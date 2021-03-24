@@ -18,7 +18,6 @@ from numpy import array, append, nan, full
 from numpy.testing import assert_almost_equal
 import pandas as pd
 from pandas import Timedelta
-from six import iteritems
 
 from zipline.assets import Equity, Future
 from zipline.data.data_portal import HISTORY_FREQUENCIES, OHLCV_FIELDS
@@ -419,7 +418,7 @@ class DataPortalTestBase(WithDataPortal,
             ((dividend_date + day, dividend_date + day), 1.0),
         ])
 
-        for (dt, perspective_dt), expected in iteritems(cases):
+        for (dt, perspective_dt), expected in cases.items():
 
             if data_frequency == 'minute':
                 dt = calendar.session_open(dt)

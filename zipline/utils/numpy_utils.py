@@ -9,7 +9,6 @@ from warnings import (
     filterwarnings,
 )
 
-import six
 import numpy as np
 from numpy import (
     array_equal,
@@ -84,13 +83,12 @@ def NaT_for_dtype(dtype):
 NaTns = NaT_for_dtype(datetime64ns_dtype)
 NaTD = NaT_for_dtype(datetime64D_dtype)
 
-
 _FILLVALUE_DEFAULTS = {
-    bool_dtype: False,
-    float32_dtype: nan,
-    float64_dtype: nan,
+    bool_dtype        : False,
+    float32_dtype     : nan,
+    float64_dtype     : nan,
     datetime64ns_dtype: NaTns,
-    object_dtype: None,
+    object_dtype      : None,
 }
 
 INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
@@ -133,10 +131,12 @@ def make_kind_check(python_types, numpy_kind):
     Make a function that checks whether a scalar or array is of a given kind
     (e.g. float, int, datetime, timedelta).
     """
+
     def check(value):
         if hasattr(value, 'dtype'):
             return value.dtype.kind == numpy_kind
         return isinstance(value, python_types)
+
     return check
 
 
@@ -411,6 +411,7 @@ class WarningContext(object):
     """
     Re-usable contextmanager for contextually managing warnings.
     """
+
     def __init__(self, *warning_specs):
         self._warning_specs = warning_specs
         self._catchers = []
@@ -533,7 +534,5 @@ def compare_datetime_arrays(x, y):
 def bytes_array_to_native_str_object_array(a):
     """Convert an array of dtype S to an object array containing `str`.
     """
-    if six.PY2:
-        return a.astype(object)
-    else:
-        return a.astype(str).astype(object)
+
+    return a.astype(str).astype(object)

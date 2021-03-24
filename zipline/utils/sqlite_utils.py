@@ -17,7 +17,6 @@ import os
 import sqlite3
 
 import sqlalchemy as sa
-from six.moves import range
 
 from .input_validation import coerce_string
 

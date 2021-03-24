@@ -1,6 +1,5 @@
 import pandas as pd
 from pandas.testing import assert_series_equal
-from six import iteritems
 from functools import partial
 
 from toolz import groupby
@@ -103,7 +102,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         assert_all_restrictions = partial(self.assert_all_restrictions, rl)
 
         # Check individual restrictions.
-        for asset, r_history in iteritems(restrictions_by_asset):
+        for asset, r_history in restrictions_by_asset.items():
             freeze_dt, unfreeze_dt, re_freeze_dt = (
                 sorted([r.effective_date for r in r_history])
             )

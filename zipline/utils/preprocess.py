@@ -7,38 +7,33 @@ from types import CodeType
 from uuid import uuid4
 
 from toolz.curried.operator import getitem
-from six import viewkeys, exec_, PY3
 
 from zipline.utils.compat import getargspec, wraps
 
-
-if PY3:
-    if sys.version_info[0:2] >= (3, 8):
-        _code_argorder_head = (
-            'co_argcount', 'co_posonlyargcount', 'co_kwonlyargcount',
-        )
-    else:
-        _code_argorder_head = ('co_argcount', 'co_kwonlyargcount')
+if sys.version_info[0:2] >= (3, 8):
+    _code_argorder_head = (
+        'co_argcount', 'co_posonlyargcount', 'co_kwonlyargcount',
+    )
 else:
-    _code_argorder_head = ('co_argcount',)
+    _code_argorder_head = ('co_argcount', 'co_kwonlyargcount')
 
 _code_argorder = (
-    _code_argorder_head
-) + (
-    'co_nlocals',
-    'co_stacksize',
-    'co_flags',
-    'co_code',
-    'co_consts',
-    'co_names',
-    'co_varnames',
-    'co_filename',
-    'co_name',
-    'co_firstlineno',
-    'co_lnotab',
-    'co_freevars',
-    'co_cellvars',
-)
+                     _code_argorder_head
+                 ) + (
+                     'co_nlocals',
+                     'co_stacksize',
+                     'co_flags',
+                     'co_code',
+                     'co_consts',
+                     'co_names',
+                     'co_varnames',
+                     'co_filename',
+                     'co_name',
+                     'co_firstlineno',
+                     'co_lnotab',
+                     'co_freevars',
+                     'co_cellvars',
+                 )
 
 NO_DEFAULT = object()
 
@@ -111,7 +106,7 @@ def preprocess(*_unused, **processors):
             )
 
         # Ensure that all processors map to valid names.
-        bad_names = viewkeys(processors) - argset
+        bad_names = processors.keys() - argset
         if bad_names:
             raise TypeError(
                 "Got processors for unknown arguments: %s." % bad_names
@@ -120,6 +115,7 @@ def preprocess(*_unused, **processors):
         return _build_preprocessed_function(
             f, processors, args_defaults, varargs, varkw,
         )
+
     return _decorator
 
 
@@ -144,9 +140,11 @@ def call(f):
     >>> foo(1)
     2
     """
+
     @wraps(f)
     def processor(func, argname, arg):
         return f(arg)
+
     return processor
 
 
@@ -184,7 +182,7 @@ def _build_preprocessed_function(func,
     assignments = []
     star_map = {
         varargs: '*',
-        varkw: '**',
+        varkw  : '**',
     }
 
     def name_as_arg(arg):
@@ -227,7 +225,7 @@ def _build_preprocessed_function(func,
     )
 
     exec_locals = {}
-    exec_(compiled, exec_globals, exec_locals)
+    exec(compiled, exec_globals, exec_locals)
     new_func = exec_locals[func.__name__]
 
     code = new_func.__code__

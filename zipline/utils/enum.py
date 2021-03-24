@@ -26,8 +26,6 @@ from ctypes import (
 
 import numpy as np
 import pandas as pd
-from six.moves import range
-
 
 _inttypes_map = OrderedDict(sorted([
     (sizeof(t) - 1, t) for t in {

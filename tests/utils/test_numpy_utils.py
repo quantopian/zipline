@@ -2,7 +2,6 @@
 Tests for zipline.utils.numpy_utils.
 """
 from datetime import datetime
-from six import itervalues
 from unittest import TestCase
 
 from numpy import (
@@ -69,7 +68,7 @@ def everything_but(k, d):
     Return iterator of all values in d except the values in k.
     """
     assert k in d
-    return concat(itervalues(keyfilter(ne(k), d)))
+    return concat(keyfilter(ne(k), d).values())
 
 
 class TypeCheckTestCase(TestCase):

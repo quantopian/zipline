@@ -19,9 +19,6 @@ A source to be used in testing.
 
 from datetime import timedelta
 import itertools
-
-from six.moves import range
-
 from zipline.protocol import (
     Event,
     DATASOURCE_TYPE
@@ -29,7 +26,6 @@ from zipline.protocol import (
 
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
-
     trade = Event()
 
     trade.source_id = source_id
@@ -109,6 +105,7 @@ class SpecificEquityTrades(object):
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
+
     def __init__(self,
                  trading_calendar,
                  asset_finder,
@@ -117,7 +114,6 @@ class SpecificEquityTrades(object):
                  end,
                  delta,
                  count=500):
-
         self.trading_calendar = trading_calendar
 
         # Unpack config dictionary with default values.
@@ -159,6 +155,6 @@ class SpecificEquityTrades(object):
                 amount=(i * 50) % 900 + 100,
                 datetime=date,
             ) for (i, date), sid in itertools.product(
-                enumerate(date_generator), self.sids
-            )
+            enumerate(date_generator), self.sids
+        )
         )

@@ -23,8 +23,6 @@ import logbook
 import toolz
 from logbook import TestHandler, WARNING
 from nose_parameterized import parameterized
-from six import iteritems, itervalues, string_types
-from six.moves import range
 from testfixtures import TempDirectory
 
 import numpy as np
@@ -891,7 +889,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
             if not context.exited:
                 amounts = [pos.amount for pos
-                           in itervalues(context.portfolio.positions)]
+                           in context.portfolio.positions.values()]
 
                 if (
                     len(amounts) > 0 and
@@ -1372,7 +1370,7 @@ class TestAlgoScript(zf.WithMakeAlgo, zf.ZiplineTestCase):
     DATA_PORTAL_USE_MINUTE_DATA = False
     EQUITY_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
 
-    STRING_TYPE_NAMES = [s.__name__ for s in string_types]
+    STRING_TYPE_NAMES = [str.__name__]
     STRING_TYPE_NAMES_STRING = ', '.join(STRING_TYPE_NAMES)
     ASSET_TYPE_NAME = Asset.__name__
     CONTINUOUS_FUTURE_NAME = ContinuousFuture.__name__
@@ -1657,8 +1655,6 @@ def handle_data(context, data):
         multi_test_algo = self.make_algo(
             script=dedent("""\
                 from collections import OrderedDict
-                from six import iteritems
-
                 from zipline.api import sid, order
 
 
@@ -2527,7 +2523,7 @@ def order_stuff(context, data):
         # The last minute packet of each day
         expected_daily = {
             k: np.array([v[389], v[779], v[1169]])
-            for k, v in iteritems(expected_minute)
+            for k, v in expected_minute.items()
         }
 
         stats = [
@@ -3749,7 +3745,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     def daily_prices_on_tick(self, row):
         return [
-            trades.iloc[row].close for trades in itervalues(self.daily_data)
+            trades.iloc[row].close for trades in self.daily_data.values()
         ]
 
     def final_daily_price(self, asset):
@@ -4098,7 +4094,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
 
     def minute_prices_on_tick(self, row):
         return [
-            trades.iloc[row].close for trades in itervalues(self.minute_data)
+            trades.iloc[row].close for trades in self.minute_data.values()
         ]
 
     def final_minute_price(self, asset):

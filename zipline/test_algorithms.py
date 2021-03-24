@@ -75,8 +75,6 @@ import numpy as np
 
 from nose.tools import assert_raises
 
-from six import itervalues
-
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
     FixedSlippage,
@@ -239,7 +237,7 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
 
         if not self.exited:
             amounts = [pos.amount for pos
-                       in itervalues(self.portfolio.positions)]
+                       in self.portfolio.positions.values()]
 
             if (
                 len(amounts) > 0 and

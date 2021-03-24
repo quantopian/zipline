@@ -19,7 +19,6 @@ from numpy.testing import assert_almost_equal
 from numpy import nan, array, full, isnan
 import pandas as pd
 from pandas import DataFrame
-from six import iteritems
 
 from zipline.data.resample import (
     minute_frame_to_session_frame,
@@ -539,7 +538,7 @@ class TestMinuteToSession(WithEquityMinuteBarData,
 
     @classmethod
     def make_equity_minute_bar_data(cls):
-        for sid, frame in iteritems(EQUITY_CASES):
+        for sid, frame in EQUITY_CASES.items():
             yield sid, frame
 
     @classmethod

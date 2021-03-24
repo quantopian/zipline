@@ -14,7 +14,6 @@ from numpy import (
 )
 from numpy.random import RandomState
 from pandas import DataFrame, Timestamp
-from six import iteritems
 from sqlite3 import connect as sqlite3_connect
 
 from .base import PipelineLoader
@@ -64,7 +63,7 @@ class PrecomputedLoader(implements(PipelineLoader)):
     """
     def __init__(self, constants, dates, sids):
         loaders = {}
-        for column, const in iteritems(constants):
+        for column, const in constants.items():
             frame = DataFrame(
                 const,
                 index=dates,

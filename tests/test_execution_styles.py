@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from nose_parameterized import parameterized
-from six.moves import range
 import pandas as pd
 
 from zipline.errors import BadOrderParameters

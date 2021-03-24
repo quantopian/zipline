@@ -20,8 +20,6 @@ import warnings
 
 from nose_parameterized import parameterized
 import pandas as pd
-from six import iteritems
-from six.moves import range, map
 from trading_calendars import get_calendar
 
 import zipline.utils.events
@@ -96,9 +94,9 @@ class TestUtils(TestCase):
         with self.assertRaises(ValueError):
             _build_date(
                 datetime.date(year=2014, month=9, day=25), {
-                    'year': 2014,
+                    'year' : 2014,
                     'month': 9,
-                    'day': 25,
+                    'day'  : 25,
                 },
             )
 
@@ -120,7 +118,7 @@ class TestUtils(TestCase):
         with self.assertRaises(ValueError):
             _build_time(
                 datetime.time(hour=1, minute=5), {
-                    'hour': 1,
+                    'hour'  : 1,
                     'minute': 5,
                 },
             )
@@ -246,12 +244,12 @@ class RuleTestCase(object):
         classes_to_ignore = [TradingDayOfWeekRule, TradingDayOfMonthRule]
 
         dem = {
-            k for k, v in iteritems(vars(zipline.utils.events))
+            k for k, v in vars(zipline.utils.events).items()
             if isinstance(v, type) and
-            issubclass(v, self.class_) and
-            v is not self.class_ and
-            v not in classes_to_ignore and
-            not isabstract(v)
+               issubclass(v, self.class_) and
+               v is not self.class_ and
+               v not in classes_to_ignore and
+               not isabstract(v)
         }
         ds = {
             k[5:] for k in dir(self)
@@ -260,7 +258,7 @@ class RuleTestCase(object):
         self.assertTrue(
             dem <= ds,
             msg='This suite is missing tests for the following classes:\n' +
-            '\n'.join(map(repr, dem - ds)),
+                '\n'.join(map(repr, dem - ds)),
         )
 
 
@@ -447,7 +445,7 @@ class StatelessRulesTests(RuleTestCase):
     def test_pass_float_to_day_of_period_rule(self, name, rule_type):
         with warnings.catch_warnings(record=True) as raised_warnings:
             warnings.simplefilter('always')
-            rule_type(n=3)    # Shouldn't trigger a warning.
+            rule_type(n=3)  # Shouldn't trigger a warning.
             rule_type(n=3.0)  # Should trigger a warning about float coercion.
 
         self.assertEqual(len(raised_warnings), 1)

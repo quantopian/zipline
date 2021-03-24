@@ -3,7 +3,6 @@ from abc import abstractmethod, abstractproperty
 from interface import implements
 import numpy as np
 import pandas as pd
-from six import viewvalues
 from toolz import groupby
 
 from zipline.lib.adjusted_array import AdjustedArray
@@ -67,7 +66,7 @@ def required_estimates_fields(columns):
     """
     # We also expect any of the field names that our loadable columns
     # are mapped to.
-    return metadata_columns.union(viewvalues(columns))
+    return metadata_columns.union(columns.values())
 
 
 def validate_column_specs(events, columns):

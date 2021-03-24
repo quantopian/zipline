@@ -21,7 +21,6 @@ from nose.tools import nottest
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
 from six import with_metaclass
-from six.moves import filter, map
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry

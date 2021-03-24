@@ -1902,7 +1902,7 @@ class TradingAlgorithm(object):
         style = MarketOrder()
         order_args = [
             (asset, amount, style)
-            for (asset, amount) in share_count.items()
+            for (asset, amount) in share_counts.items()
             if amount
         ]
         return self.blotter.batch_order(order_args)

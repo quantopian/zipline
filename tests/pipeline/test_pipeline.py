@@ -4,7 +4,6 @@ Tests for zipline.pipeline.Pipeline
 from unittest import TestCase
 
 from mock import patch
-from six import PY2
 
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
@@ -43,10 +42,6 @@ class SomeOtherFilter(Filter):
 
 
 class PipelineTestCase(TestCase):
-
-    if PY2:
-        def assertRaisesRegex(self, *args, **kwargs):
-            return self.assertRaisesRegexp(*args, **kwargs)
 
     def test_construction(self):
         p0 = Pipeline()

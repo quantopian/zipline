@@ -19,7 +19,6 @@ from nose_parameterized import parameterized
 import numpy as np
 from numpy import nan
 import pandas as pd
-from six import iteritems
 
 from zipline._protocol import handle_non_market_minutes, BarData
 from zipline.assets import Asset, Equity
@@ -604,7 +603,7 @@ class MinuteEquityHistoryTestCase(WithHistory,
             start_val=2,
             interval=10,
         )
-        return iteritems(data)
+        return data.items()
 
     def test_history_in_initialize(self):
         algo_text = dedent(

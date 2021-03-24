@@ -8,7 +8,6 @@ from unittest import TestCase
 from nose_parameterized import parameterized
 from numpy import arange, array, dtype
 import pytz
-from six import PY3
 
 from zipline.utils.preprocess import call, preprocess
 from zipline.utils.input_validation import (
@@ -28,11 +27,7 @@ def noop(func, argname, argvalue):
     return argvalue
 
 
-if PY3:
-    qualname = attrgetter('__qualname__')
-else:
-    def qualname(ob):
-        return '.'.join((__name__, ob.__name__))
+qualname = attrgetter('__qualname__')
 
 
 class PreprocessTestCase(TestCase):
@@ -48,6 +43,7 @@ class PreprocessTestCase(TestCase):
         Verify that the validate decorator doesn't swallow typeerrors that
         would be raised when calling a function with invalid arguments
         """
+
         def undecorated(x, y):
             return x, y
 
@@ -151,6 +147,7 @@ class PreprocessTestCase(TestCase):
             @decorator
             def func(a, b, c=3):
                 return a, b, c
+
             self.assertEqual(func(*args, **kwargs), ('1', 2.0, 4))
 
     @parameterized.expand([

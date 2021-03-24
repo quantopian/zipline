@@ -2,7 +2,7 @@
 Tests for chunked adjustments.
 """
 from collections import namedtuple
-from itertools import chain, product
+from itertools import chain, product, zip_longest
 from string import ascii_lowercase, ascii_uppercase
 from textwrap import dedent
 from unittest import TestCase
@@ -15,7 +15,6 @@ from numpy import (
     dtype,
     full,
 )
-from six.moves import zip_longest
 from toolz import curry
 
 from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
@@ -101,7 +100,6 @@ def as_labelarray(initial_dtype, missing_value, array):
 bytes_dtype = dtype('S3')
 unicode_dtype = dtype('U3')
 
-
 AdjustmentCase = namedtuple(
     'AdjustmentCase',
     [
@@ -128,7 +126,6 @@ def _gen_unadjusted_cases(name,
     expected_output_array = make_expected_output(raw_data)
 
     for windowlen in valid_window_lengths(nrows):
-
         num_legal_windows = num_windows_of_length_M_on_buffers_of_length_N(
             windowlen, nrows
         )
@@ -208,12 +205,12 @@ def _gen_multiplicative_adjustment_cases(dtype):
         adjustment_type(0, 4, 1, 1, coerce_to_dtype(dtype, 6)),
         adjustment_type(2, 2, 2, 2, coerce_to_dtype(dtype, 7)),
     ]
-    buffer_as_of[5] = array([[8,  6,  5],
-                             [4, 18,  5],
+    buffer_as_of[5] = array([[8, 6, 5],
+                             [4, 18, 5],
                              [1, 18, 35],
-                             [1,  6,  5],
-                             [1,  6,  1],
-                             [1,  1,  1]], dtype=dtype)
+                             [1, 6, 5],
+                             [1, 6, 1],
+                             [1, 1, 1]], dtype=dtype)
 
     return _gen_expectations(
         baseline,
@@ -239,13 +236,13 @@ def _gen_overwrite_adjustment_cases(dtype):
     and our own LabelArray class for strings.
     """
     adjustment_type = {
-        float64_dtype: Float64Overwrite,
+        float64_dtype     : Float64Overwrite,
         datetime64ns_dtype: Datetime64Overwrite,
-        int64_dtype: Int64Overwrite,
-        bytes_dtype: ObjectOverwrite,
-        unicode_dtype: ObjectOverwrite,
-        object_dtype: ObjectOverwrite,
-        bool_dtype: BooleanOverwrite,
+        int64_dtype       : Int64Overwrite,
+        bytes_dtype       : ObjectOverwrite,
+        unicode_dtype     : ObjectOverwrite,
+        object_dtype      : ObjectOverwrite,
+        bool_dtype        : BooleanOverwrite,
     }[dtype]
     make_expected_dtype = as_dtype(dtype)
     missing_value = default_missing_value_for_dtype(datetime64ns_dtype)
@@ -344,8 +341,8 @@ def _gen_overwrite_1d_array_adjustment_case(dtype):
     and our own LabelArray class for strings.
     """
     adjustment_type = {
-        bool_dtype: Boolean1DArrayOverwrite,
-        float64_dtype: Float641DArrayOverwrite,
+        bool_dtype        : Boolean1DArrayOverwrite,
+        float64_dtype     : Float641DArrayOverwrite,
         datetime64ns_dtype: Datetime641DArrayOverwrite,
     }[dtype]
     make_expected_dtype = as_dtype(dtype)
@@ -440,7 +437,6 @@ def _gen_expectations(baseline,
                       buffer_as_of,
                       nrows,
                       perspective_offsets):
-
     for windowlen, perspective_offset in product(valid_window_lengths(nrows),
                                                  perspective_offsets):
         # How long is an iterator of length-N windows on this buffer?
@@ -595,7 +591,7 @@ class AdjustedArrayTestCase(TestCase):
             _gen_unadjusted_cases(
                 'object_labelarray',
                 make_input=(
-                    lambda a: LabelArray(a.astype(unicode).astype(object), u'')
+                        lambda a: LabelArray(a.astype(unicode).astype(object), u'')
                 ),
                 make_expected_output=as_labelarray(unicode_dtype, ''),
                 missing_value='',
@@ -684,10 +680,10 @@ class AdjustedArrayTestCase(TestCase):
             _gen_unadjusted_cases(
                 'object_labelarray',
                 make_input=(
-                    lambda a: LabelArray(
-                        a.astype(unicode).astype(object),
-                        None,
-                    )
+                        lambda a: LabelArray(
+                            a.astype(unicode).astype(object),
+                            None,
+                        )
                 ),
                 make_expected_output=as_labelarray(unicode_dtype, u''),
                 missing_value=None,
@@ -870,35 +866,35 @@ last_col=0, value=4.000000)]}
     S = Float64Multiply(0, 1, 4, 4, 5.06)
 
     @parameterized.expand([(
-        # Initial adjustments
-        {
-            1: [A, B],
-            2: [C],
-            4: [D],
-        },
+            # Initial adjustments
+            {
+                1: [A, B],
+                2: [C],
+                4: [D],
+            },
 
-        # Adjustments to add
-        {
-            1: [E],
-            2: [F, G],
-            3: [H, S],
-        },
+            # Adjustments to add
+            {
+                1: [E],
+                2: [F, G],
+                3: [H, S],
+            },
 
-        # Expected adjustments with 'append'
-        {
-            1: [A, B, E],
-            2: [C, F, G],
-            3: [H, S],
-            4: [D],
-        },
+            # Expected adjustments with 'append'
+            {
+                1: [A, B, E],
+                2: [C, F, G],
+                3: [H, S],
+                4: [D],
+            },
 
-        # Expected adjustments with 'prepend'
-        {
-            1: [E, A, B],
-            2: [F, G, C],
-            3: [H, S],
-            4: [D],
-        },
+            # Expected adjustments with 'prepend'
+            {
+                1: [E, A, B],
+                2: [F, G, C],
+                3: [H, S],
+                4: [D],
+            },
     )])
     def test_update_adjustments(self,
                                 initial_adjustments,

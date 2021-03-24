@@ -58,7 +58,6 @@ implements the following algorithm for executing pipelines:
 from abc import ABCMeta, abstractmethod
 from functools import partial
 
-from six import iteritems, with_metaclass, viewkeys
 from numpy import array, arange
 from pandas import DataFrame, MultiIndex
 from toolz import groupby
@@ -83,7 +82,7 @@ from zipline.utils.date_utils import compute_date_range_chunks
 from zipline.utils.pandas_utils import categorical_df_concat
 
 
-class PipelineEngine(with_metaclass(ABCMeta)):
+class PipelineEngine(metaclass=ABCMeta):
 
     @abstractmethod
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
@@ -654,7 +653,7 @@ class SimplePipelineEngine(PipelineEngine):
         # ensures that we can run pipelines for graphs where we don't have a
         # loader registered for an atomic term if all the dependencies of that
         # term were supplied in the initial workspace.
-        will_be_loaded = graph.loadable_terms - viewkeys(workspace)
+        will_be_loaded = graph.loadable_terms - workspace.keys()
         loader_groups = groupby(
             loader_group_key,
             (t for t in execution_order if t in will_be_loaded),
@@ -725,7 +724,7 @@ class SimplePipelineEngine(PipelineEngine):
         # At this point, all the output terms are in the workspace.
         out = {}
         graph_extra_rows = graph.extra_rows
-        for name, term in iteritems(graph.outputs):
+        for name, term in graph.outputs.items():
             # Truncate off extra rows from outputs.
             out[name] = workspace[term][graph_extra_rows[term]:]
         return out
@@ -773,7 +772,7 @@ class SimplePipelineEngine(PipelineEngine):
             return DataFrame(
                 data={
                     name: array([], dtype=arr.dtype)
-                    for name, arr in iteritems(data)
+                    for name, arr in data.items()
                 },
                 index=MultiIndex.from_arrays([empty_dates, empty_assets]),
             )

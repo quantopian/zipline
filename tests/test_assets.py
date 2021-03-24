@@ -32,7 +32,6 @@ from nose_parameterized import parameterized
 import numpy as np
 from numpy import full, int32, int64
 import pandas as pd
-from six import viewkeys
 import sqlalchemy as sa
 
 from zipline.assets import (
@@ -49,7 +48,6 @@ from zipline.assets.synthetic import (
     make_rotating_equity_info,
     make_simple_equity_info,
 )
-from six import itervalues, integer_types
 from toolz import valmap, concat
 
 from zipline.assets.asset_writer import (
@@ -93,8 +91,6 @@ from zipline.testing.fixtures import (
     WithTmpDir,
     WithInstanceTmpDir,
 )
-from zipline.utils.range import range
-
 
 Case = namedtuple('Case', 'finder inputs as_of country_code expected')
 
@@ -119,42 +115,42 @@ def build_lookup_generic_cases():
             # These symbols are duplicated within the US, but have different
             # lifetimes.
             {
-                'sid': 0,
-                'symbol': 'duplicated_in_us',
+                'sid'       : 0,
+                'symbol'    : 'duplicated_in_us',
                 'start_date': dupe_old_start.value,
-                'end_date': dupe_old_end.value,
-                'exchange': 'US_EXCHANGE',
+                'end_date'  : dupe_old_end.value,
+                'exchange'  : 'US_EXCHANGE',
             },
             {
-                'sid': 1,
-                'symbol': 'duplicated_in_us',
+                'sid'       : 1,
+                'symbol'    : 'duplicated_in_us',
                 'start_date': dupe_new_start.value,
-                'end_date': dupe_new_end.value,
-                'exchange': 'US_EXCHANGE',
+                'end_date'  : dupe_new_end.value,
+                'exchange'  : 'US_EXCHANGE',
             },
             # This asset is unique.
             {
-                'sid': 2,
-                'symbol': 'unique',
+                'sid'       : 2,
+                'symbol'    : 'unique',
                 'start_date': unique_start.value,
-                'end_date': unique_end.value,
-                'exchange': 'US_EXCHANGE',
+                'end_date'  : unique_end.value,
+                'exchange'  : 'US_EXCHANGE',
             },
             # These assets appear with the same ticker at the same time in
             # different countries.
             {
-                'sid': 3,
-                'symbol': 'duplicated_globally',
+                'sid'       : 3,
+                'symbol'    : 'duplicated_globally',
                 'start_date': unique_start.value,
-                'end_date': unique_start.value,
-                'exchange': 'US_EXCHANGE',
+                'end_date'  : unique_start.value,
+                'exchange'  : 'US_EXCHANGE',
             },
             {
-                'sid': 4,
-                'symbol': 'duplicated_globally',
+                'sid'       : 4,
+                'symbol'    : 'duplicated_globally',
                 'start_date': unique_start.value,
-                'end_date': unique_start.value,
-                'exchange': 'CA_EXCHANGE',
+                'end_date'  : unique_start.value,
+                'exchange'  : 'CA_EXCHANGE',
             },
         ],
         index='sid'
@@ -165,22 +161,22 @@ def build_lookup_generic_cases():
     futures = pd.DataFrame.from_records(
         [
             {
-                'sid': fof14_sid,
-                'symbol': 'FOF14',
-                'root_symbol': 'FO',
-                'start_date': unique_start.value,
-                'end_date': unique_end.value,
+                'sid'            : fof14_sid,
+                'symbol'         : 'FOF14',
+                'root_symbol'    : 'FO',
+                'start_date'     : unique_start.value,
+                'end_date'       : unique_end.value,
                 'auto_close_date': unique_end.value,
-                'exchange': 'US_FUT',
+                'exchange'       : 'US_FUT',
             },
         ],
         index='sid'
     )
 
     root_symbols = pd.DataFrame({
-        'root_symbol': ['FO'],
+        'root_symbol'   : ['FO'],
         'root_symbol_id': [1],
-        'exchange': ['US_FUT'],
+        'exchange'      : ['US_FUT'],
     })
 
     exchanges = pd.DataFrame.from_records([
@@ -272,12 +268,12 @@ def build_lookup_generic_cases():
         # Mixed types
         yield case(
             inputs=(
-                'DUPLICATED_IN_US',     # dupe_old b/c of as_of
-                dupe_new,               # dupe_new
-                2,                      # unique
-                'UNIQUE',               # unique
+                'DUPLICATED_IN_US',  # dupe_old b/c of as_of
+                dupe_new,  # dupe_new
+                2,  # unique
+                'UNIQUE',  # unique
                 'DUPLICATED_GLOBALLY',  # dupe_us b/c of country_code
-                dupe_ca,                # dupe_ca
+                dupe_ca,  # dupe_ca
             ),
             as_of=dupe_old_start,
             country_code='US',
@@ -304,7 +300,6 @@ def build_lookup_generic_cases():
 
 
 class AssetTestCase(TestCase):
-
     # Dynamically list the Asset properties we want to test.
     asset_attrs = [name for name, value in vars(Asset).items()
                    if isinstance(value, GetSetDescriptorType)]
@@ -371,9 +366,8 @@ class AssetTestCase(TestCase):
         self.assertEqual(s_23, int32(23))
         self.assertEqual(s_23, int64(23))
         # Check all int types (includes long on py2):
-        for int_type in integer_types:
-            self.assertEqual(int_type(23), s_23)
-            self.assertEqual(s_23, int_type(23))
+        self.assertEqual(int(23), s_23)
+        self.assertEqual(s_23, int(23))
 
         self.assertNotEqual(s_23, s_24)
         self.assertNotEqual(s_23, 24)
@@ -431,23 +425,23 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
         return pd.DataFrame.from_dict(
             {
                 2468: {
-                    'symbol': 'OMH15',
-                    'root_symbol': 'OM',
-                    'notice_date': pd.Timestamp('2014-01-20', tz='UTC'),
+                    'symbol'         : 'OMH15',
+                    'root_symbol'    : 'OM',
+                    'notice_date'    : pd.Timestamp('2014-01-20', tz='UTC'),
                     'expiration_date': pd.Timestamp('2014-02-20', tz='UTC'),
                     'auto_close_date': pd.Timestamp('2014-01-18', tz='UTC'),
-                    'tick_size': .01,
-                    'multiplier': 500.0,
-                    'exchange': "TEST",
+                    'tick_size'      : .01,
+                    'multiplier'     : 500.0,
+                    'exchange'       : "TEST",
                 },
-                0: {
-                    'symbol': 'CLG06',
-                    'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
+                0   : {
+                    'symbol'         : 'CLG06',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : pd.Timestamp('2005-12-01', tz='UTC'),
+                    'notice_date'    : pd.Timestamp('2005-12-20', tz='UTC'),
                     'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
-                    'multiplier': 1.0,
-                    'exchange': 'TEST',
+                    'multiplier'     : 1.0,
+                    'exchange'       : 'TEST',
                 },
             },
             orient='index',
@@ -540,30 +534,30 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         frame = pd.DataFrame.from_records(
             [
                 {
-                    'sid': sid,
-                    'symbol':  'TEST.%d' % sid,
+                    'sid'       : sid,
+                    'symbol'    : 'TEST.%d' % sid,
                     'start_date': as_of.value,
-                    'end_date': as_of.value,
-                    'exchange': uuid.uuid4().hex
+                    'end_date'  : as_of.value,
+                    'exchange'  : uuid.uuid4().hex
                 }
                 for sid in sids
             ]
         )
         self.write_assets(equities=frame)
         assets = self.asset_finder.retrieve_equities(sids)
-        assert_equal(viewkeys(assets), set(sids))
+        assert_equal(assets.keys(), set(sids))
 
     def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
         frame = pd.DataFrame.from_records(
             [
                 {
-                    'sid': i,
-                    'symbol':  'TEST.%d' % i,
+                    'sid'         : i,
+                    'symbol'      : 'TEST.%d' % i,
                     'company_name': "company%d" % i,
-                    'start_date': as_of.value,
-                    'end_date': as_of.value,
-                    'exchange': uuid.uuid4().hex
+                    'start_date'  : as_of.value,
+                    'end_date'    : as_of.value,
+                    'exchange'    : uuid.uuid4().hex
                 }
                 for i in range(3)
             ]
@@ -635,34 +629,34 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             [
                 # sid 0
                 {
-                    'symbol': 'A',
+                    'symbol'    : 'A',
                     'asset_name': 'Asset A',
                     'start_date': T('2014-01-01'),
-                    'end_date': T('2014-01-05'),
-                    'exchange': "TEST",
+                    'end_date'  : T('2014-01-05'),
+                    'exchange'  : "TEST",
                 },
                 {
-                    'symbol': 'B',
+                    'symbol'    : 'B',
                     'asset_name': 'Asset B',
                     'start_date': T('2014-01-06'),
-                    'end_date': T('2014-01-10'),
-                    'exchange': "TEST",
+                    'end_date'  : T('2014-01-10'),
+                    'exchange'  : "TEST",
                 },
 
                 # sid 1
                 {
-                    'symbol': 'C',
+                    'symbol'    : 'C',
                     'asset_name': 'Asset C',
                     'start_date': T('2014-01-01'),
-                    'end_date': T('2014-01-05'),
-                    'exchange': "TEST",
+                    'end_date'  : T('2014-01-05'),
+                    'exchange'  : "TEST",
                 },
                 {
-                    'symbol': 'A',  # claiming the unused symbol 'A'
+                    'symbol'    : 'A',  # claiming the unused symbol 'A'
                     'asset_name': 'Asset A',
                     'start_date': T('2014-01-06'),
-                    'end_date': T('2014-01-10'),
-                    'exchange': "TEST",
+                    'end_date'  : T('2014-01-10'),
+                    'exchange'  : "TEST",
                 },
             ],
             index=[0, 0, 1, 1],
@@ -751,11 +745,11 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         df = pd.DataFrame.from_records(
             [
                 {
-                    'sid': i,
-                    'symbol':  'existing',
+                    'sid'       : i,
+                    'symbol'    : 'existing',
                     'start_date': date.value,
-                    'end_date': (date + timedelta(days=1)).value,
-                    'exchange': 'NYSE',
+                    'end_date'  : (date + timedelta(days=1)).value,
+                    'exchange'  : 'NYSE',
                 }
                 for i, date in enumerate(dates)
             ]
@@ -780,27 +774,27 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         df = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 1,
-                    'symbol': 'multiple',
+                    'sid'       : 1,
+                    'symbol'    : 'multiple',
                     'start_date': pd.Timestamp('2010-01-01'),
-                    'end_date': pd.Timestamp('2012-01-01'),
-                    'exchange': 'NYSE'
+                    'end_date'  : pd.Timestamp('2012-01-01'),
+                    'exchange'  : 'NYSE'
                 },
                 # Same as asset 1, but with a later end date.
                 {
-                    'sid': 2,
-                    'symbol': 'multiple',
+                    'sid'       : 2,
+                    'symbol'    : 'multiple',
                     'start_date': pd.Timestamp('2010-01-01'),
-                    'end_date': pd.Timestamp('2013-01-01'),
-                    'exchange': 'NYSE'
+                    'end_date'  : pd.Timestamp('2013-01-01'),
+                    'exchange'  : 'NYSE'
                 },
                 # Same as asset 1, but with a later start_date
                 {
-                    'sid': 3,
-                    'symbol': 'multiple',
+                    'sid'       : 3,
+                    'symbol'    : 'multiple',
                     'start_date': pd.Timestamp('2011-01-01'),
-                    'end_date': pd.Timestamp('2012-01-01'),
-                    'exchange': 'NYSE'
+                    'end_date'  : pd.Timestamp('2012-01-01'),
+                    'exchange'  : 'NYSE'
                 },
             ]
         )
@@ -857,11 +851,11 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         df = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 1,
-                    'symbol': symbol,
+                    'sid'       : 1,
+                    'symbol'    : symbol,
                     'start_date': date.value,
-                    'end_date': (date + timedelta(days=30)).value,
-                    'exchange': 'NYSE',
+                    'end_date'  : (date + timedelta(days=30)).value,
+                    'exchange'  : 'NYSE',
                 }
                 for symbol in ('FOOB', 'FOO_B')
             ]
@@ -889,25 +883,25 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         df = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 1,
-                    'symbol': 'FOOB',
+                    'sid'       : 1,
+                    'symbol'    : 'FOOB',
                     'start_date': date.value,
-                    'end_date': date.max.value,
-                    'exchange': 'NYSE',
+                    'end_date'  : date.max.value,
+                    'exchange'  : 'NYSE',
                 },
                 {
-                    'sid': 1,
-                    'symbol': 'FOO_B',
+                    'sid'       : 1,
+                    'symbol'    : 'FOO_B',
                     'start_date': (date + timedelta(days=31)).value,
-                    'end_date': (date + timedelta(days=60)).value,
-                    'exchange': 'NYSE',
+                    'end_date'  : (date + timedelta(days=60)).value,
+                    'exchange'  : 'NYSE',
                 },
                 {
-                    'sid': 2,
-                    'symbol': 'FOO_B',
+                    'sid'       : 2,
+                    'symbol'    : 'FOO_B',
                     'start_date': (date + timedelta(days=61)).value,
-                    'end_date': date.max.value,
-                    'exchange': 'NYSE',
+                    'end_date'  : date.max.value,
+                    'exchange'  : 'NYSE',
                 },
 
             ]
@@ -928,36 +922,36 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         data = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 0,
-                    'symbol': 'real',
+                    'sid'       : 0,
+                    'symbol'    : 'real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
                 {
-                    'sid': 1,
-                    'symbol': 'also_real',
+                    'sid'       : 1,
+                    'symbol'    : 'also_real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
                 # Sid whose end date is before our query date.  We should
                 # still correctly find it.
                 {
-                    'sid': 2,
-                    'symbol': 'real_but_old',
+                    'sid'       : 2,
+                    'symbol'    : 'real_but_old',
                     'start_date': pd.Timestamp('2002-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2003-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2003-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
                 # Sid whose start_date is **after** our query date.  We should
                 # **not** find it.
                 {
-                    'sid': 3,
-                    'symbol': 'real_but_in_the_future',
+                    'sid'       : 3,
+                    'symbol'    : 'real_but_in_the_future',
                     'start_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2020-1-1', tz='UTC'),
-                    'exchange': 'THE FUTURE',
+                    'end_date'  : pd.Timestamp('2020-1-1', tz='UTC'),
+                    'exchange'  : 'THE FUTURE',
                 },
             ]
         )
@@ -985,18 +979,18 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         data = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 0,
-                    'symbol': 'real',
+                    'sid'       : 0,
+                    'symbol'    : 'real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'US_EXCHANGE',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'US_EXCHANGE',
                 },
                 {
-                    'sid': 1,
-                    'symbol': 'real',
+                    'sid'       : 1,
+                    'symbol'    : 'real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'CA_EXCHANGE',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'CA_EXCHANGE',
                 },
             ]
         )
@@ -1075,11 +1069,11 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                     exchange=exchange,
                 )
                 for exchange in (
-                    'US_EXCHANGE_1',
-                    'US_EXCHANGE_2',
-                    'CA_EXCHANGE',
-                    'JP_EXCHANGE',
-                )
+                'US_EXCHANGE_1',
+                'US_EXCHANGE_2',
+                'CA_EXCHANGE',
+                'JP_EXCHANGE',
+            )
             ],
             ignore_index=True,
         )
@@ -1101,8 +1095,8 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         sids_by_country = {
             'US': equities.index[:2 * assets_per_exchange],
             'CA': equities.index[
-                2 * assets_per_exchange:3 * assets_per_exchange
-            ],
+                  2 * assets_per_exchange:3 * assets_per_exchange
+                  ],
             'JP': equities.index[3 * assets_per_exchange:],
         }
         self.write_assets(equities=equities, exchanges=exchanges)
@@ -1194,25 +1188,25 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         equities = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 0,
-                    'symbol': 'A',
+                    'sid'       : 0,
+                    'symbol'    : 'A',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
                 {
-                    'sid': 1,
-                    'symbol': 'B',
+                    'sid'       : 1,
+                    'symbol'    : 'B',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
                 {
-                    'sid': 2,
-                    'symbol': 'C',
+                    'sid'       : 2,
+                    'symbol'    : 'C',
                     'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
             ]
         )
@@ -1220,32 +1214,32 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         equity_supplementary_mappings = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 0,
-                    'field': 'ALT_ID',
-                    'value': '100000000',
+                    'sid'       : 0,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000000',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2013-6-28', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2013-6-28', tz='UTC'),
                 },
                 {
-                    'sid': 1,
-                    'field': 'ALT_ID',
-                    'value': '100000001',
+                    'sid'       : 1,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000001',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
                 },
                 {
-                    'sid': 0,
-                    'field': 'ALT_ID',
-                    'value': '100000002',
+                    'sid'       : 0,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000002',
                     'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
                 },
                 {
-                    'sid': 2,
-                    'field': 'ALT_ID',
-                    'value': '100000000',
+                    'sid'       : 2,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000000',
                     'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
                 },
             ]
         )
@@ -1268,11 +1262,11 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         # We don't know about this ALT_ID yet.
         with self.assertRaisesRegex(
-            ValueNotFoundForField,
-            "Value '{}' was not found for field '{}'.".format(
-                '100000002',
-                'ALT_ID',
-            )
+                ValueNotFoundForField,
+                "Value '{}' was not found for field '{}'.".format(
+                    '100000002',
+                    'ALT_ID',
+                )
         ):
             af.lookup_by_supplementary_field('ALT_ID', '100000002', dt)
 
@@ -1295,8 +1289,8 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         ).format('100000000', 'ALT_ID')
 
         with self.assertRaisesRegex(
-            MultipleValuesFoundForField,
-            expected_in_repr,
+                MultipleValuesFoundForField,
+                expected_in_repr,
         ):
             af.lookup_by_supplementary_field('ALT_ID', '100000000', None)
 
@@ -1304,25 +1298,25 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         equities = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 0,
-                    'symbol': 'A',
+                    'sid'       : 0,
+                    'symbol'    : 'A',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
                 {
-                    'sid': 1,
-                    'symbol': 'B',
+                    'sid'       : 1,
+                    'symbol'    : 'B',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
                 {
-                    'sid': 2,
-                    'symbol': 'C',
+                    'sid'       : 2,
+                    'symbol'    : 'C',
                     'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': 'TEST',
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
+                    'exchange'  : 'TEST',
                 },
             ]
         )
@@ -1330,32 +1324,32 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         equity_supplementary_mappings = pd.DataFrame.from_records(
             [
                 {
-                    'sid': 0,
-                    'field': 'ALT_ID',
-                    'value': '100000000',
+                    'sid'       : 0,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000000',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2013-6-28', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2013-6-28', tz='UTC'),
                 },
                 {
-                    'sid': 1,
-                    'field': 'ALT_ID',
-                    'value': '100000001',
+                    'sid'       : 1,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000001',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
                 },
                 {
-                    'sid': 0,
-                    'field': 'ALT_ID',
-                    'value': '100000002',
+                    'sid'       : 0,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000002',
                     'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
                 },
                 {
-                    'sid': 2,
-                    'field': 'ALT_ID',
-                    'value': '100000000',
+                    'sid'       : 2,
+                    'field'     : 'ALT_ID',
+                    'value'     : '100000000',
                     'start_date': pd.Timestamp('2013-7-1', tz='UTC'),
-                    'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
+                    'end_date'  : pd.Timestamp('2014-1-1', tz='UTC'),
                 },
             ]
         )
@@ -1378,8 +1372,8 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         # Since sid 2 has not yet started, we don't know about its
         # ALT_ID.
         with self.assertRaisesRegex(
-            NoValueForSid,
-            "No '{}' value found for sid '{}'.".format('ALT_ID', 2),
+                NoValueForSid,
+                "No '{}' value found for sid '{}'.".format('ALT_ID', 2),
         ):
             finder.get_supplementary_field(2, 'ALT_ID', dt),
 
@@ -1396,8 +1390,8 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         # Sid 0 has historically held two values for ALT_ID by this dt.
         with self.assertRaisesRegex(
-            MultipleValuesFoundForSid,
-            "Multiple '{}' values found for sid '{}'.".format('ALT_ID', 0),
+                MultipleValuesFoundForSid,
+                "Multiple '{}' values found for sid '{}'.".format('ALT_ID', 0),
         ):
             finder.get_supplementary_field(0, 'ALT_ID', None),
 
@@ -1473,7 +1467,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             )
             self.assertEqual(
                 {type_},
-                {type(asset) for asset in itervalues(results)},
+                {type(asset) for asset in results.values()},
             )
             with self.assertRaises(failure_type):
                 lookup(fail_sids)
@@ -1528,8 +1522,8 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             )
             self.assertEqual(
                 (
-                    list(equities.symbol.loc[equity_sids]) +
-                    list(futures.symbol.loc[future_sids])
+                        list(equities.symbol.loc[equity_sids]) +
+                        list(futures.symbol.loc[future_sids])
                 ),
                 list(asset.symbol for asset in results),
             )
@@ -1581,19 +1575,19 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         frame = pd.DataFrame.from_records(
             [
                 {
-                    'sid': sid,
-                    'symbol':  'TEST.A',
+                    'sid'         : sid,
+                    'symbol'      : 'TEST.A',
                     'company_name': "company %d" % sid,
-                    'start_date': as_of.value,
-                    'end_date': as_of.value,
-                    'exchange': 'EXCHANGE %d' % sid,
+                    'start_date'  : as_of.value,
+                    'end_date'    : as_of.value,
+                    'exchange'    : 'EXCHANGE %d' % sid,
                 }
                 for sid in sids
             ]
         )
 
         exchanges = pd.DataFrame({
-            'exchange': frame['exchange'],
+            'exchange'    : frame['exchange'],
             'country_code': [self.country_code(n) for n in range(num_assets)],
         })
         self.write_assets(equities=frame, exchanges=exchanges)
@@ -1644,7 +1638,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             for symbol in ('PRTY_HRD', 'BRKA', 'BRK_A')
         ])
         exchanges = pd.DataFrame({
-            'exchange': metadata['exchange'].unique(),
+            'exchange'    : metadata['exchange'].unique(),
             'country_code': list(map(self.country_code, range(num_countries))),
         })
         self.write_assets(equities=metadata, exchanges=exchanges)
@@ -1722,30 +1716,30 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             [
                 # first sid per country
                 {
-                    'symbol': 'A',
+                    'symbol'    : 'A',
                     'asset_name': 'Asset A',
                     'start_date': T('2014-01-01'),
-                    'end_date': T('2014-01-05'),
+                    'end_date'  : T('2014-01-05'),
                 },
                 {
-                    'symbol': 'B',
+                    'symbol'    : 'B',
                     'asset_name': 'Asset B',
                     'start_date': T('2014-01-06'),
-                    'end_date': T('2014-01-10'),
+                    'end_date'  : T('2014-01-10'),
                 },
 
                 # second sid per country
                 {
-                    'symbol': 'C',
+                    'symbol'    : 'C',
                     'asset_name': 'Asset C',
                     'start_date': T('2014-01-01'),
-                    'end_date': T('2014-01-05'),
+                    'end_date'  : T('2014-01-05'),
                 },
                 {
-                    'symbol': 'A',  # claiming the unused symbol 'A'
+                    'symbol'    : 'A',  # claiming the unused symbol 'A'
                     'asset_name': 'Asset A',
                     'start_date': T('2014-01-06'),
-                    'end_date': T('2014-01-10'),
+                    'end_date'  : T('2014-01-10'),
                 },
             ] * num_countries,
             index=np.repeat(np.arange(num_countries * 2), 2),
@@ -1755,7 +1749,7 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             4,
         )
         exchanges = pd.DataFrame({
-            'exchange': ['EXCHANGE %d' % n for n in range(num_countries)],
+            'exchange'    : ['EXCHANGE %d' % n for n in range(num_countries)],
             'country_code': [
                 self.country_code(n) for n in range(num_countries)
             ]
@@ -1877,18 +1871,18 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         df = pd.DataFrame.from_records(
             [
                 {
-                    'sid': n * len(dates) + i,
-                    'symbol':  'existing',
+                    'sid'       : n * len(dates) + i,
+                    'symbol'    : 'existing',
                     'start_date': date.value,
-                    'end_date': (date + timedelta(days=1)).value,
-                    'exchange': 'EXCHANGE %d' % n,
+                    'end_date'  : (date + timedelta(days=1)).value,
+                    'exchange'  : 'EXCHANGE %d' % n,
                 }
                 for n in range(num_countries)
                 for i, date in enumerate(dates)
             ]
         )
         exchanges = pd.DataFrame({
-            'exchange': ['EXCHANGE %d' % n for n in range(num_countries)],
+            'exchange'    : ['EXCHANGE %d' % n for n in range(num_countries)],
             'country_code': [
                 self.country_code(n) for n in range(num_countries)
             ],
@@ -1938,33 +1932,33 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         df = pd.DataFrame.from_records(concat(
             [
                 {
-                    'sid': n * 3,
-                    'symbol': 'multiple',
+                    'sid'       : n * 3,
+                    'symbol'    : 'multiple',
                     'start_date': pd.Timestamp('2010-01-01'),
-                    'end_date': pd.Timestamp('2012-01-01'),
-                    'exchange': 'EXCHANGE %d' % n,
+                    'end_date'  : pd.Timestamp('2012-01-01'),
+                    'exchange'  : 'EXCHANGE %d' % n,
                 },
                 # Same as asset 1, but with a later end date.
                 {
-                    'sid': n * 3 + 1,
-                    'symbol': 'multiple',
+                    'sid'       : n * 3 + 1,
+                    'symbol'    : 'multiple',
                     'start_date': pd.Timestamp('2010-01-01'),
-                    'end_date': pd.Timestamp('2013-01-01'),
-                    'exchange': 'EXCHANGE %d' % n,
+                    'end_date'  : pd.Timestamp('2013-01-01'),
+                    'exchange'  : 'EXCHANGE %d' % n,
                 },
                 # Same as asset 1, but with a later start_date
                 {
-                    'sid': n * 3 + 2,
-                    'symbol': 'multiple',
+                    'sid'       : n * 3 + 2,
+                    'symbol'    : 'multiple',
                     'start_date': pd.Timestamp('2011-01-01'),
-                    'end_date': pd.Timestamp('2012-01-01'),
-                    'exchange': 'EXCHANGE %d' % n,
+                    'end_date'  : pd.Timestamp('2012-01-01'),
+                    'exchange'  : 'EXCHANGE %d' % n,
                 },
             ]
             for n in range(num_countries)
         ))
         exchanges = pd.DataFrame({
-            'exchange': ['EXCHANGE %d' % n for n in range(num_countries)],
+            'exchange'    : ['EXCHANGE %d' % n for n in range(num_countries)],
             'country_code': [
                 self.country_code(n) for n in range(num_countries)
             ],
@@ -1974,36 +1968,36 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
             self.write_assets(equities=df, exchanges=exchanges)
 
         expected_error_msg = (
-            "Ambiguous ownership for 3 symbols, multiple assets held the"
-            " following symbols:\n"
-            "MULTIPLE (%s):\n"
-            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
-            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
-            "      start_date   end_date\n"
-            "  sid                      \n"
-            "  0   2010-01-01 2012-01-01\n"
-            "  1   2010-01-01 2013-01-01\n"
-            "  2   2011-01-01 2012-01-01\n"
-            "MULTIPLE (%s):\n"
-            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
-            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
-            "      start_date   end_date\n"
-            "  sid                      \n"
-            "  3   2010-01-01 2012-01-01\n"
-            "  4   2010-01-01 2013-01-01\n"
-            "  5   2011-01-01 2012-01-01\n"
-            "MULTIPLE (%s):\n"
-            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
-            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
-            "      start_date   end_date\n"
-            "  sid                      \n"
-            "  6   2010-01-01 2012-01-01\n"
-            "  7   2010-01-01 2013-01-01\n"
-            "  8   2011-01-01 2012-01-01" % (
-                self.country_code(0),
-                self.country_code(1),
-                self.country_code(2),
-            )
+                "Ambiguous ownership for 3 symbols, multiple assets held the"
+                " following symbols:\n"
+                "MULTIPLE (%s):\n"
+                "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+                " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+                "      start_date   end_date\n"
+                "  sid                      \n"
+                "  0   2010-01-01 2012-01-01\n"
+                "  1   2010-01-01 2013-01-01\n"
+                "  2   2011-01-01 2012-01-01\n"
+                "MULTIPLE (%s):\n"
+                "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+                " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+                "      start_date   end_date\n"
+                "  sid                      \n"
+                "  3   2010-01-01 2012-01-01\n"
+                "  4   2010-01-01 2013-01-01\n"
+                "  5   2011-01-01 2012-01-01\n"
+                "MULTIPLE (%s):\n"
+                "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+                " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+                "      start_date   end_date\n"
+                "  sid                      \n"
+                "  6   2010-01-01 2012-01-01\n"
+                "  7   2010-01-01 2013-01-01\n"
+                "  8   2011-01-01 2012-01-01" % (
+                    self.country_code(0),
+                    self.country_code(1),
+                    self.country_code(2),
+                )
         )
         self.assertEqual(str(e.exception), expected_error_msg)
 
@@ -2022,31 +2016,31 @@ class AssetFinderMultipleCountries(WithTradingCalendars, ZiplineTestCase):
         df = pd.DataFrame.from_records(concat(
             [
                 {
-                    'sid': n * 2,
-                    'symbol': 'FOOB',
+                    'sid'       : n * 2,
+                    'symbol'    : 'FOOB',
                     'start_date': date.value,
-                    'end_date': date.max.value,
-                    'exchange': 'EXCHANGE %d' % n,
+                    'end_date'  : date.max.value,
+                    'exchange'  : 'EXCHANGE %d' % n,
                 },
                 {
-                    'sid': n * 2,
-                    'symbol': 'FOO_B',
+                    'sid'       : n * 2,
+                    'symbol'    : 'FOO_B',
                     'start_date': (date + timedelta(days=31)).value,
-                    'end_date': (date + timedelta(days=60)).value,
-                    'exchange': 'EXCHANGE %d' % n,
+                    'end_date'  : (date + timedelta(days=60)).value,
+                    'exchange'  : 'EXCHANGE %d' % n,
                 },
                 {
-                    'sid': n * 2 + 1,
-                    'symbol': 'FOO_B',
+                    'sid'       : n * 2 + 1,
+                    'symbol'    : 'FOO_B',
                     'start_date': (date + timedelta(days=61)).value,
-                    'end_date': date.max.value,
-                    'exchange': 'EXCHANGE %d' % n,
+                    'end_date'  : date.max.value,
+                    'exchange'  : 'EXCHANGE %d' % n,
                 },
             ]
             for n in range(num_countries)
         ))
         exchanges = pd.DataFrame({
-            'exchange': ['EXCHANGE %d' % n for n in range(num_countries)],
+            'exchange'    : ['EXCHANGE %d' % n for n in range(num_countries)],
             'country_code': [
                 self.country_code(n) for n in range(num_countries)
             ],
@@ -2367,9 +2361,9 @@ class TestExchangeInfo(ZiplineTestCase):
             'OSAKA STOCK EXCHANGE',
         ]
         equities = pd.DataFrame({
-            'sid': sids,
+            'sid'     : sids,
             'exchange': exchange_names,
-            'symbol': [chr(65 + sid) for sid in sids],
+            'symbol'  : [chr(65 + sid) for sid in sids],
         })
         exchange_infos = [
             ExchangeInfo('NEW YORK STOCK EXCHANGE', 'NYSE', 'US'),
@@ -2426,15 +2420,15 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
         df = pd.DataFrame.from_records(
             [
                 {
-                    'sid': sid,
-                    'symbol':  str(sid),
+                    'sid'       : sid,
+                    'symbol'    : str(sid),
                     'start_date': date.value,
-                    'end_date': (date + timedelta(days=1)).value,
+                    'end_date'  : (date + timedelta(days=1)).value,
 
                     # Change the exchange with each mapping period. We don't
                     # currently support point in time exchange information,
                     # so we just take the most recent by end date.
-                    'exchange': 'EXCHANGE-%d-%d' % (sid, n),
+                    'exchange'  : 'EXCHANGE-%d-%d' % (sid, n),
                 }
                 for n, date in enumerate(dates)
                 for sid in sids
@@ -2452,24 +2446,24 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
     def test_write_direct(self):
         # don't include anything with a default to test that those work.
         equities = pd.DataFrame({
-            'sid': [0, 1],
+            'sid'       : [0, 1],
             'asset_name': ['Ayy Inc.', 'Lmao LP'],
             # the full exchange name
-            'exchange': ['NYSE', 'TSE'],
+            'exchange'  : ['NYSE', 'TSE'],
         })
         equity_symbol_mappings = pd.DataFrame({
-            'sid': [0, 1],
-            'symbol': ['AYY', 'LMAO'],
-            'company_symbol':  ['AYY', 'LMAO'],
+            'sid'               : [0, 1],
+            'symbol'            : ['AYY', 'LMAO'],
+            'company_symbol'    : ['AYY', 'LMAO'],
             'share_class_symbol': ['', ''],
         })
         equity_supplementary_mappings = pd.DataFrame({
-            'sid': [0, 1],
+            'sid'  : [0, 1],
             'field': ['QSIP', 'QSIP'],
             'value': [str(hash(s)) for s in ['AYY', 'LMAO']],
         })
         exchanges = pd.DataFrame({
-            'exchange': ['NYSE', 'TSE'],
+            'exchange'    : ['NYSE', 'TSE'],
             'country_code': ['US', 'JP'],
         })
 
@@ -2514,13 +2508,13 @@ class TestWrite(WithInstanceTmpDir, ZiplineTestCase):
         exchange_info = reader.exchange_info
         expected_exchange_info = {
             'NYSE': ExchangeInfo('NYSE', 'NYSE', 'US'),
-            'TSE': ExchangeInfo('TSE', 'TSE', 'JP'),
+            'TSE' : ExchangeInfo('TSE', 'TSE', 'JP'),
         }
         assert_equal(exchange_info, expected_exchange_info)
 
         supplementary_map = reader.equity_supplementary_map
         expected_supplementary_map = {
-            ('QSIP', str(hash('AYY'))): (
+            ('QSIP', str(hash('AYY'))) : (
                 OwnershipPeriod(
                     start=pd.Timestamp(0, tz='UTC'),
                     end=pd.Timestamp.max.tz_localize('UTC'),

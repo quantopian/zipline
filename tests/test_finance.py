@@ -23,8 +23,6 @@ from nose.tools import timed
 import numpy as np
 import pandas as pd
 import pytz
-from six import iteritems
-from six.moves import range
 from testfixtures import TempDirectory
 
 from zipline.finance.blotter.simulation_blotter import SimulationBlotter
@@ -219,7 +217,7 @@ class FinanceTestCase(zf.WithAssetFinder,
                         )
                     ),
                     tempdir.path,
-                    iteritems(assets),
+                    assets.items(),
                 )
 
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)

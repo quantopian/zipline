@@ -35,7 +35,6 @@ from pandas import (
 )
 from pandas.compat.chainmap import ChainMap
 from pandas.testing import assert_frame_equal
-from six import iteritems, itervalues
 from toolz import merge
 
 from zipline.assets.synthetic import make_rotating_equity_info
@@ -753,11 +752,11 @@ class ConstantInputTestCase(WithConstantInputs,
             self.dates[-1]
         )
         min_window = min(pip_col.window_length
-                         for pip_col in itervalues(columns))
+                         for pip_col in columns.values())
         col_to_val = ChainMap(constants1, constants2)
         vals = {name: (sum(col_to_val[col] for col in pipe_col.inputs)
                        * pipe_col.window_length)
-                for name, pipe_col in iteritems(columns)}
+                for name, pipe_col in columns.items()}
 
         index = MultiIndex.from_product([self.dates[2:], self.assets])
 

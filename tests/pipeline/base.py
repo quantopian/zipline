@@ -4,7 +4,6 @@ Base class for Pipeline API unit tests.
 import numpy as np
 from numpy import arange, prod
 from pandas import DataFrame, Timestamp
-from six import iteritems
 
 from zipline.lib.labelarray import LabelArray
 from zipline.utils.compat import wraps
@@ -40,7 +39,7 @@ def with_defaults(**default_funcs):
     def decorator(f):
         @wraps(f)
         def method(self, *args, **kwargs):
-            for name, func in iteritems(default_funcs):
+            for name, func in default_funcs.items():
                 if name not in kwargs:
                     kwargs[name] = func(self)
             return f(self, *args, **kwargs)

@@ -31,8 +31,6 @@ from pandas import (
     Series,
     Timestamp,
 )
-from six import iteritems
-from six.moves import range
 from toolz import merge
 from trading_calendars import get_calendar
 
@@ -464,7 +462,7 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         # Retrieving data for "holes" (dates with no data, but within
         # an  asset's lifetime) should not raise an exception. nan is
         # returned for OHLC fields, and 0 is returned for volume.
-        for asset, dates in iteritems(self.holes):
+        for asset, dates in self.holes.items():
             for date in dates:
                 assert_equal(
                     reader.get_value(asset, date, CLOSE),

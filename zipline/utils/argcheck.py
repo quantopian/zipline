@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import namedtuple
-from itertools import chain
-from six.moves import map, zip_longest
+from itertools import chain, zip_longest
 
 from zipline.errors import ZiplineError
 from zipline.utils.compat import getargspec

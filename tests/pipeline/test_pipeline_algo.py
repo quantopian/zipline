@@ -27,7 +27,6 @@ from pandas import (
     Series,
     Timestamp,
 )
-from six import iteritems, itervalues
 from trading_calendars import get_calendar
 
 from zipline.api import (
@@ -520,7 +519,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
     def compute_expected_vwaps(self, window_lengths):
         AAPL, MSFT, BRK_A = self.AAPL, self.MSFT, self.BRK_A
         # Our view of the data before AAPL's split on June 9, 2014.
-        raw = {k: v.copy() for k, v in iteritems(self.raw_data)}
+        raw = {k: v.copy() for k, v in self.raw_data.items()}
 
         split_date = self.AAPL_split_date
         split_loc = self.dates.get_loc(split_date)
@@ -529,7 +528,7 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
         # Our view of the data after AAPL's split.  All prices from before June
         # 9 get divided by the split ratio, and volumes get multiplied by the
         # split ratio.
-        adj = {k: v.copy() for k, v in iteritems(self.raw_data)}
+        adj = {k: v.copy() for k, v in self.raw_data.items()}
         adj_aapl = adj[AAPL]
         for column in 'open', 'high', 'low', 'close':
             adj_aapl.iloc[:split_loc, adj_aapl.columns.get_loc(column)] /= \
@@ -556,9 +555,9 @@ class PipelineAlgorithmTestCase(WithMakeAlgo,
 
         # Make sure all the expected vwaps have the same dates.
         vwap_dates = vwaps[1][self.AAPL].index
-        for dict_ in itervalues(vwaps):
+        for dict_ in vwaps.values():
             # Each value is a dict mapping sid -> expected series.
-            for series in itervalues(dict_):
+            for series in dict_.values():
                 self.assertTrue((vwap_dates == series.index).all())
 
         # Spot check expectations near the AAPL split.

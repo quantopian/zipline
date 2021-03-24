@@ -5,7 +5,7 @@ from collections import OrderedDict, Sequence
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
 
-from six.moves._thread import allocate_lock as Lock
+from _thread import allocate_lock as Lock
 from toolz.sandbox import unzip
 from trading_calendars.utils.memoize import lazyval
 

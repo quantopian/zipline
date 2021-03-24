@@ -3,7 +3,6 @@ Shared docstrings for parameters that should be documented identically
 across different functions.
 """
 import re
-from six import iteritems
 from textwrap import dedent
 from toolz import curry
 
@@ -53,7 +52,7 @@ def format_docstring(owner_name, docstring, formatters):
     # each entry in **formatters and applying any leading whitespace to each
     # line in the desired substitution.
     format_params = {}
-    for target, doc_for_target in iteritems(formatters):
+    for target, doc_for_target in formatters.items():
         # Search for '{name}', with optional leading whitespace.
         regex = re.compile(r'^(\s*)' + '({' + target + '})$', re.MULTILINE)
         matches = regex.findall(docstring)

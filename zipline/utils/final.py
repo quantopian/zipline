@@ -1,7 +1,5 @@
 from abc import ABCMeta, abstractmethod
 
-from six import with_metaclass, iteritems
-
 # Consistent error to be thrown in various cases regarding overriding
 # `final` attributes.
 _type_error = TypeError('Cannot override final attribute')
@@ -32,8 +30,9 @@ class FinalMeta(type):
     """A metaclass template for classes the want to prevent subclassess from
     overriding some methods or attributes.
     """
+
     def __new__(mcls, name, bases, dict_):
-        for k, v in iteritems(dict_):
+        for k, v in dict_.items():
             if is_final(k, bases):
                 raise _type_error
 
@@ -45,7 +44,7 @@ class FinalMeta(type):
             setattr_ = bases[0].__setattr__
 
         if not is_final('__setattr__', bases) \
-           and not isinstance(setattr_, final):
+                and not isinstance(setattr_, final):
             # implicitly make the `__setattr__` a `final` object so that
             # users cannot just avoid the descriptor protocol.
             dict_['__setattr__'] = final(setattr_)
@@ -62,7 +61,7 @@ class FinalMeta(type):
         super(FinalMeta, self).__setattr__(name, value)
 
 
-class final(with_metaclass(ABCMeta)):
+class final(metaclass=ABCMeta):
     """
     An attribute that cannot be overridden.
     This is like the final modifier in Java.
@@ -80,6 +79,7 @@ class final(with_metaclass(ABCMeta)):
     subclassing `C`; attempting to do so will raise a `TypeError` at class
     construction time.
     """
+
     def __new__(cls, attr):
         # Decide if this is a method wrapper or an attribute wrapper.
         # We are going to cache the `callable` check by creating a
@@ -111,6 +111,7 @@ class finalvalue(final):
     """
     A wrapper for a non-descriptor attribute.
     """
+
     def __get__(self, instance, owner):
         return self._attr
 
@@ -119,5 +120,6 @@ class finaldescriptor(final):
     """
     A final wrapper around a descriptor.
     """
+
     def __get__(self, instance, owner):
         return self._attr.__get__(instance, owner)

@@ -1,8 +1,6 @@
 from functools import reduce
 from operator import itemgetter
 from pprint import pformat
-
-from six.moves import map, zip
 from toolz import curry, flip
 
 from .sentinel import sentinel
@@ -320,9 +318,11 @@ def set_attribute(name, value):
     >>> bar.__name__
     'foo'
     """
+
     def decorator(f):
         setattr(f, name, value)
         return f
+
     return decorator
 
 
