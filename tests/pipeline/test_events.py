@@ -1,5 +1,5 @@
 """
-Tests for setting up an EventsLoader and a BlazeEventsLoader.
+Tests for setting up an EventsLoader.
 """
 from datetime import time
 from itertools import product
@@ -417,7 +417,7 @@ class EventsLoaderTestCase(WithAssetFinder,
 
     @classmethod
     def make_loader(cls, events, next_value_columns, previous_value_columns):
-        # This method exists to be overridden by BlazeEventsLoaderTestCase
+        # This method exists to be overridden by EventsLoaderTestCases using alternative loaders
         return EventsLoader(events, next_value_columns, previous_value_columns)
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
