@@ -31,7 +31,6 @@ Position Tracking
 
 """
 
-from __future__ import division
 from math import copysign
 import numpy as np
 import logbook

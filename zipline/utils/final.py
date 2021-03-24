@@ -30,7 +30,7 @@ def is_final(name, mro):
 
 class FinalMeta(type):
     """A metaclass template for classes the want to prevent subclassess from
-    overriding a some methods or attributes.
+    overriding some methods or attributes.
     """
     def __new__(mcls, name, bases, dict_):
         for k, v in iteritems(dict_):

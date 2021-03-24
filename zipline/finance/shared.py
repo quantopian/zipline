@@ -1,4 +1,3 @@
-
 from abc import ABCMeta
 from itertools import chain
 

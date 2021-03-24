@@ -6,7 +6,8 @@ import warnings
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
-from six import with_metaclass, iteritems, itervalues, PY2
+from pandas.errors import PerformanceWarning
+from six import with_metaclass
 import responses
 from toolz import flip, groupby, merge
 from trading_calendars import (
@@ -79,9 +80,15 @@ from ..finance.trading import SimulationParameters
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from ..utils.memoize import remember_last
-from ..utils.pandas_utils import PerformanceWarning
 
 zipline_dir = os.path.dirname(zipline.__file__)
+
+
+def make_tz_aware(ts):
+    try:
+        return ts.tz_localize('UTC')
+    except TypeError:
+        return ts.tz_convert('UTC')
 
 
 class DebugMROMeta(FinalMeta):
@@ -249,10 +256,6 @@ class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
             The callback to invoke at the end of each test.
         """
         return self._instance_teardown_stack.callback(callback)
-
-    if PY2:
-        def assertRaisesRegex(self, *args, **kwargs):
-            return self.assertRaisesRegexp(*args, **kwargs)
 
 
 def alias(attr_name):
@@ -480,7 +483,7 @@ class WithAssetFinder(WithDefaultDateBounds):
     def exchange_names(cls):
         """A list of canonical exchange names for all exchanges in this suite.
         """
-        infos = itervalues(cls.asset_finder.exchange_info)
+        infos = cls.asset_finder.exchange_info.values()
         return sorted(i.canonical_name for i in infos)
 
     @classlazyval
@@ -521,7 +524,7 @@ class WithTradingCalendars(object):
     """
     TRADING_CALENDAR_STRS = ('NYSE',)
     TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE', Future: 'us_futures'}
-    # For backwards compatibility, existing tests and fixtures refer to
+    # For backwards compatibility, exisitng tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
     # calendar.
     TRADING_CALENDAR_PRIMARY_CAL = 'NYSE'
@@ -536,13 +539,17 @@ class WithTradingCalendars(object):
         # construction. This causes nosetest to fail.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", PerformanceWarning)
-            for cal_str in (set(cls.TRADING_CALENDAR_STRS) | {cls.TRADING_CALENDAR_PRIMARY_CAL}):
+            for cal_str in (
+                    set(cls.TRADING_CALENDAR_STRS) |
+                    {cls.TRADING_CALENDAR_PRIMARY_CAL}
+            ):
                 # Set name to allow aliasing.
                 calendar = get_calendar(cal_str)
-                setattr(cls, '{0}_calendar'.format(cal_str.lower()), calendar)
+                setattr(cls,
+                        '{0}_calendar'.format(cal_str.lower()), calendar)
                 cls.trading_calendars[cal_str] = calendar
 
-            type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
+            type_to_cal = cls.TRADING_CALENDAR_FOR_ASSET_TYPE.items()
             for asset_type, cal_str in type_to_cal:
                 calendar = get_calendar(cal_str)
                 cls.trading_calendars[asset_type] = calendar
@@ -698,21 +705,12 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
 
         cls.trading_sessions = {}
 
-        def make_tz_aware(ts):
-            try:
-                # needs UTC tz
-                return ts.tz_localize('UTC')
-            except:  # throws generic Exception in some case
-                # already tz-aware
-                return ts.tz_convert('UTC')
-
         for cal_str in cls.TRADING_CALENDAR_STRS:
             trading_calendar = cls.trading_calendars[cal_str]
-            start_session_label = make_tz_aware(cls.DATA_MIN_DAY)
-            end_session_label = make_tz_aware(cls.DATA_MAX_DAY)
-
-            sessions = trading_calendar.sessions_in_range(start_session_label=start_session_label,
-                                                          end_session_label=end_session_label)
+            sessions = trading_calendar.sessions_in_range(
+                make_tz_aware(cls.DATA_MIN_DAY),
+                make_tz_aware(cls.DATA_MAX_DAY)
+            )
             # Set name for aliasing.
             setattr(cls,
                     '{0}_sessions'.format(cal_str.lower()), sessions)

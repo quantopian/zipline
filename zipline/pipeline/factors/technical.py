@@ -2,8 +2,6 @@
 Technical Analysis Factors
 --------------------------
 """
-from __future__ import division
-
 from numpy import (
     abs,
     average,

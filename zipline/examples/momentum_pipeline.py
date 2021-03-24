@@ -2,7 +2,6 @@
 A simple Pipeline algorithm that longs the top 3 stocks by RSI and shorts
 the bottom 3 each day.
 """
-from six import viewkeys
 from zipline.api import (
     attach_pipeline,
     date_rules,
@@ -49,7 +48,7 @@ def rebalance(context, data):
     # Remove any assets that should no longer be in our portfolio.
     portfolio_assets = longs | shorts
     positions = context.portfolio.positions
-    for asset in viewkeys(positions) - set(portfolio_assets):
+    for asset in positions.keys() - set(portfolio_assets):
         # This will fail if the asset was removed from our portfolio because it
         # was delisted.
         if data.can_trade(asset):

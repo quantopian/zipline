@@ -18,8 +18,6 @@ from datetime import datetime
 
 import pandas as pd
 
-from six import with_metaclass
-
 from zipline.errors import (
     AccountControlViolation,
     TradingControlViolation,
@@ -29,11 +27,10 @@ from zipline.utils.input_validation import (
     expect_types,
 )
 
-
 log = logbook.Logger('TradingControl')
 
 
-class TradingControl(with_metaclass(abc.ABCMeta)):
+class TradingControl(metaclass=abc.ABCMeta):
     """
     Abstract base class representing a fail-safe control on the behavior of any
     algorithm.
@@ -354,7 +351,7 @@ class AssetDateBounds(TradingControl):
                     asset, amount, algo_datetime, metadata=metadata)
 
 
-class AccountControl(with_metaclass(abc.ABCMeta)):
+class AccountControl(metaclass=abc.ABCMeta):
     """
     Abstract base class representing a fail-safe control on the behavior of any
     algorithm.

@@ -30,7 +30,6 @@ from pandas import (
     to_datetime,
     Timestamp,
 )
-from six import iteritems, viewkeys
 from toolz import compose
 from trading_calendars import get_calendar
 
@@ -46,7 +45,6 @@ from zipline.utils.numpy_utils import iNaT, float64_dtype, uint32_dtype
 from zipline.utils.memoize import lazyval
 from zipline.utils.cli import maybe_show_progress
 from ._equities import _compute_row_slices, _read_bcolz_data
-
 
 logger = logbook.Logger('UsEquityPricing')
 
@@ -135,10 +133,10 @@ class BcolzDailyBarWriter(object):
     zipline.data.bcolz_daily_bars.BcolzDailyBarReader
     """
     _csv_dtypes = {
-        'open': float64_dtype,
-        'high': float64_dtype,
-        'low': float64_dtype,
-        'close': float64_dtype,
+        'open'  : float64_dtype,
+        'high'  : float64_dtype,
+        'low'   : float64_dtype,
+        'close' : float64_dtype,
         'volume': float64_dtype,
     }
 
@@ -230,8 +228,8 @@ class BcolzDailyBarWriter(object):
             dtype=self._csv_dtypes,
         )
         return self.write(
-            ((asset, read(path)) for asset, path in iteritems(asset_map)),
-            assets=viewkeys(asset_map),
+            ((asset, read(path)) for asset, path in asset_map.items()),
+            assets=asset_map.keys(),
             show_progress=show_progress,
             invalid_data_behavior=invalid_data_behavior,
         )
@@ -444,6 +442,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
     --------
     zipline.data.bcolz_daily_bars.BcolzDailyBarWriter
     """
+
     def __init__(self, table, read_all_threshold=3000):
         self._maybe_table_rootdir = table
         # Cache of fully read np.array for the carrays in the daily bar table.
@@ -481,28 +480,23 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
     @lazyval
     def _first_rows(self):
         return {
-            int(asset_id): start_index
-            for asset_id, start_index in iteritems(
-                self._table.attrs['first_row'],
-            )
+            int(asset_id): start_index for asset_id, start_index in self._table.attrs['first_row'].items()
         }
 
     @lazyval
     def _last_rows(self):
         return {
             int(asset_id): end_index
-            for asset_id, end_index in iteritems(
-                self._table.attrs['last_row'],
-            )
+            for asset_id, end_index
+            in self._table.attrs['last_row'].items()
         }
 
     @lazyval
     def _calendar_offsets(self):
         return {
             int(id_): offset
-            for id_, offset in iteritems(
-                self._table.attrs['calendar_offset'],
-            )
+            for id_, offset in
+            self._table.attrs['calendar_offset'].items()
         }
 
     @lazyval

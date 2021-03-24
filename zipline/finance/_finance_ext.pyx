@@ -5,7 +5,6 @@ from libc.math cimport sqrt
 cimport numpy as np
 import numpy as np
 import pandas as pd
-from six import itervalues
 
 from zipline._protocol cimport InnerPosition
 from zipline.assets._assets cimport Future
@@ -26,7 +25,7 @@ cpdef update_position_last_sale_prices(positions, get_price, dt):
     cdef InnerPosition inner_position
     cdef np.float64_t last_sale_price
 
-    for outer_position in itervalues(positions):
+    for outer_position in positions.values():
         inner_position = outer_position.inner_position
 
         last_sale_price = get_price(inner_position.asset)
@@ -193,7 +192,7 @@ cpdef calculate_position_tracker_stats(positions, PositionStats stats):
     cdef InnerPosition position
     cdef Py_ssize_t ix = 0
 
-    for outer_position in itervalues(positions):
+    for outer_position in positions.values():
         position = outer_position.inner_position
 
         # NOTE: this loop does a lot of stuff!

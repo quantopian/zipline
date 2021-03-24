@@ -54,6 +54,7 @@ intervaltree>=2.1.0
 # faster array ops.
 bottleneck>=1.0.0
 
+# todo check constraint
 # Graph algorithms used by zipline.pipeline
 networkx>=1.9.1,<2.0
 # NumericalExpression pipeline terms.

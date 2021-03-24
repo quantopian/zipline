@@ -4,7 +4,6 @@ import os
 import click
 import logbook
 import pandas as pd
-from six import text_type
 
 import zipline
 from zipline.data import bundles as bundles_module
@@ -439,7 +438,7 @@ def bundles():
             continue
         try:
             ingestions = list(
-                map(text_type, bundles_module.ingestions_for_bundle(bundle))
+                map(str, bundles_module.ingestions_for_bundle(bundle))
             )
         except OSError as e:
             if e.errno != errno.ENOENT:
@@ -451,7 +450,6 @@ def bundles():
         # no ingestions have yet been made.
         for timestamp in ingestions or ["<no ingestions>"]:
             click.echo("%s %s" % (bundle, timestamp))
-
 
 if __name__ == '__main__':
     main()

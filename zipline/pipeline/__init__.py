@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from .classifiers import Classifier, CustomClassifier
 from .domain import Domain
 from .factors import Factor, CustomFactor

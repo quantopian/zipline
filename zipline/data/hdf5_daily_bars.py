@@ -97,14 +97,13 @@ Sample layout of the full file with multiple countries.
          |- /code
 """
 
-
 from functools import partial
 
 import h5py
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, raise_from, viewkeys
+from six import raise_from, viewkeys
 from six.moves import reduce
 
 from zipline.data.bar_reader import (
@@ -118,11 +117,9 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bytes_array_to_native_str_object_array
 from zipline.utils.pandas_utils import check_indexes_all_same
 
-
 log = logbook.Logger('HDF5DailyBars')
 
 VERSION = 0
-
 
 DATA = 'data'
 INDEX = 'index'
@@ -146,17 +143,15 @@ SID = 'sid'
 START_DATE = 'start_date'
 END_DATE = 'end_date'
 
-
 # XXX is reserved for "transactions involving no currency".
 MISSING_CURRENCY = 'XXX'
 
-
 DEFAULT_SCALING_FACTORS = {
     # Retain 3 decimal places for prices.
-    OPEN: 1000,
-    HIGH: 1000,
-    LOW: 1000,
-    CLOSE: 1000,
+    OPEN  : 1000,
+    HIGH  : 1000,
+    LOW   : 1000,
+    CLOSE : 1000,
     # Volume is expected to be a whole integer.
     VOLUME: 1,
 }
@@ -229,6 +224,7 @@ class HDF5DailyBarWriter(object):
     --------
     zipline.data.hdf5_daily_bars.HDF5DailyBarReader
     """
+
     def __init__(self, filename, date_chunk_size):
         self._filename = filename
         self._date_chunk_size = date_chunk_size
@@ -497,18 +493,19 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
     country_group : h5py.Group
         The group for a single country in an HDF5 daily pricing file.
     """
+
     def __init__(self, country_group):
         self._country_group = country_group
 
         self._postprocessors = {
-            OPEN: partial(convert_price_with_scaling_factor,
-                          scaling_factor=self._read_scaling_factor(OPEN)),
-            HIGH: partial(convert_price_with_scaling_factor,
-                          scaling_factor=self._read_scaling_factor(HIGH)),
-            LOW: partial(convert_price_with_scaling_factor,
-                         scaling_factor=self._read_scaling_factor(LOW)),
-            CLOSE: partial(convert_price_with_scaling_factor,
-                           scaling_factor=self._read_scaling_factor(CLOSE)),
+            OPEN  : partial(convert_price_with_scaling_factor,
+                            scaling_factor=self._read_scaling_factor(OPEN)),
+            HIGH  : partial(convert_price_with_scaling_factor,
+                            scaling_factor=self._read_scaling_factor(HIGH)),
+            LOW   : partial(convert_price_with_scaling_factor,
+                            scaling_factor=self._read_scaling_factor(LOW)),
+            CLOSE : partial(convert_price_with_scaling_factor,
+                            scaling_factor=self._read_scaling_factor(CLOSE)),
             VOLUME: lambda a: a,
         }
 
@@ -857,11 +854,12 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         A dict mapping country codes to SessionBarReader instances to
         service each country.
     """
+
     def __init__(self, readers):
         self._readers = readers
         self._country_map = pd.concat([
             pd.Series(index=reader.sids, data=country_code)
-            for country_code, reader in iteritems(readers)
+            for country_code, reader in readers.items()
         ])
 
     @classmethod
@@ -1034,12 +1032,9 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
         try:
             country_code = self._country_code_for_assets([sid])
         except ValueError as exc:
-            raise_from(
-                NoDataForSid(
-                    'Asset not contained in daily pricing file: {}'.format(sid)
-                ),
-                exc
-            )
+            raise NoDataForSid(
+                'Asset not contained in daily pricing file: {}'.format(sid)
+            ) from exc
         return self._readers[country_code].get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):

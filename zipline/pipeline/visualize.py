@@ -1,8 +1,6 @@
 """
 Tools for visualizing dependencies between Terms.
 """
-from __future__ import unicode_literals
-
 from contextlib import contextmanager
 import errno
 from functools import partial

@@ -30,7 +30,7 @@ DEFAULT_MINIMUM_COST_PER_EQUITY_TRADE = 0.0  # $0 per trade
 DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE = 0.0  # $0 per trade
 
 
-class CommissionModel(with_metaclass(FinancialModelMeta)):
+class CommissionModel(metaclass=FinancialModelMeta):
     """Abstract base class for commission models.
 
     Commission models are responsible for accepting order/transaction pairs and
@@ -86,14 +86,16 @@ class NoCommission(CommissionModel):
         return 0.0
 
 
+# todo: update to Python3
 class EquityCommissionModel(with_metaclass(AllowedAssetMarker,
                                            CommissionModel)):
     """
-    Base class for commission models which only support equities.
-    """
+        Base class for commission models which only support equities.
+        """
     allowed_asset_types = (Equity,)
 
 
+# todo: update to Python3
 class FutureCommissionModel(with_metaclass(AllowedAssetMarker,
                                            CommissionModel)):
     """

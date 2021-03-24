@@ -10,8 +10,8 @@ import pandas as pd
 from pandas import read_csv
 import pytz
 import requests
-from six import StringIO, iteritems, with_metaclass
-
+from six import with_metaclass
+from io import StringIO
 from zipline.errors import (
     MultipleSymbolsFound,
     SymbolNotFound,
@@ -67,7 +67,6 @@ ALLOWED_REQUESTS_KWARGS = {
     'cert'
 }
 
-
 # The following optional arguments are supported for pandas' read_csv
 # function, and may be passed as kwargs to the datasource below.
 # see https://pandas.pydata.org/
@@ -114,13 +113,13 @@ ALLOWED_READ_CSV_KWARGS = {
 }
 
 SHARED_REQUESTS_KWARGS = {
-    'stream': True,
+    'stream'         : True,
     'allow_redirects': False,
 }
 
 
 def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
-    requests_kwargs = {key: val for (key, val) in iteritems(kwargs)
+    requests_kwargs = {key: val for (key, val) in kwargs.items()
                        if key in ALLOWED_REQUESTS_KWARGS}
     if params_checker is not None:
         url, s_params = params_checker(url)
@@ -242,7 +241,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         return parsed
 
     def mask_pandas_args(self, kwargs):
-        pandas_kwargs = {key: val for (key, val) in iteritems(kwargs)
+        pandas_kwargs = {key: val for (key, val) in kwargs.items()
                          if key in ALLOWED_READ_CSV_KWARGS}
         if 'usecols' in pandas_kwargs:
             usecols = pandas_kwargs['usecols']
@@ -485,13 +484,13 @@ class PandasRequestsCSV(PandasCSV):
         # the superclass.
         # Also returns possible https updated url if sent to http quandl ds
         # If url hasn't changed, will just return the original.
-        self._requests_kwargs, self.url =\
+        self._requests_kwargs, self.url = \
             mask_requests_args(url,
                                params_checker=special_params_checker,
                                **kwargs)
 
         remaining_kwargs = {
-            k: v for k, v in iteritems(kwargs)
+            k: v for k, v in kwargs.items()
             if k not in self.requests_kwargs
         }
 

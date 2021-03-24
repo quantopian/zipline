@@ -12,15 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import division
-
 from abc import abstractmethod
 import math
-
 import numpy as np
 from pandas import isnull
-from six import with_metaclass
 from toolz import merge
+from six import with_metaclass
 
 from zipline.assets import Equity, Future
 from zipline.errors import HistoryWindowStartsBeforeData
@@ -80,7 +77,7 @@ def fill_price_worse_than_limit_price(fill_price, order):
     return False
 
 
-class SlippageModel(with_metaclass(FinancialModelMeta)):
+class SlippageModel(metaclass=FinancialModelMeta):
     """
     Abstract base class for slippage models.
 
@@ -222,6 +219,7 @@ class NoSlippage(SlippageModel):
     -----
     This is primarily used for testing.
     """
+
     @staticmethod
     def process_order(data, order):
         return (
@@ -230,6 +228,7 @@ class NoSlippage(SlippageModel):
         )
 
 
+# todo: update to Python3
 class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     """
     Base class for slippage models which only support equities.
@@ -237,6 +236,7 @@ class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     allowed_asset_types = (Equity,)
 
 
+# todo: update to Python3
 class FutureSlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     """
     Base class for slippage models which only support futures.
@@ -270,6 +270,7 @@ class VolumeShareSlippage(SlippageModel):
         simulated price impact. Smaller values will result in less simulated
         price impact. Default is 0.1.
     """
+
     def __init__(self,
                  volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
@@ -325,8 +326,8 @@ class VolumeShareSlippage(SlippageModel):
         # END
 
         simulated_impact = volume_share ** 2 \
-            * math.copysign(self.price_impact, order.direction) \
-            * price
+                           * math.copysign(self.price_impact, order.direction) \
+                           * price
         impacted_price = price + simulated_impact
 
         if fill_price_worse_than_limit_price(impacted_price, order):
@@ -356,6 +357,7 @@ class FixedSlippage(SlippageModel):
     order's asset, even if the size of the order is greater than the historical
     volume.
     """
+
     def __init__(self, spread=0.0):
         super(FixedSlippage, self).__init__()
         self.spread = spread
@@ -514,7 +516,7 @@ class MarketImpactBase(SlippageModel):
             )
             values = {
                 'volume': volume_history[:-1].mean(),
-                'close': close_volatility * SQRT_252,
+                'close' : close_volatility * SQRT_252,
             }
             self._window_data_cache.set(asset, values, data.current_session)
 
@@ -632,6 +634,7 @@ class FixedBasisPointsSlippage(SlippageModel):
     - This class, default-constructed, is zipline's default slippage model for
       equities.
     """
+
     @expect_bounded(
         basis_points=(0, None),
         __funcname='FixedBasisPointsSlippage',
@@ -659,7 +662,6 @@ class FixedBasisPointsSlippage(SlippageModel):
         )
 
     def process_order(self, data, order):
-
         volume = data.current(order.asset, "volume")
         max_volume = int(self.volume_limit * volume)
 
@@ -674,3 +676,9 @@ class FixedBasisPointsSlippage(SlippageModel):
             price + price * (self.percentage * order.direction),
             shares_to_fill * order.direction
         )
+
+
+if __name__ == '__main__':
+    f = EquitySlippageModel()
+    # print(f.__meta__)
+    print(f.__class__)
