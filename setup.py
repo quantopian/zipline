@@ -119,14 +119,10 @@ ext_modules = [
     Extension(name='zipline.data._minute_bar_internal',
               sources=['zipline/data/_minute_bar_internal.pyx']),
     Extension(name='zipline.data._resample',
-              sources=['zipline/data/_resample.pyx']),
-    Extension(name='zipline.pipeline.loaders.blaze._core',
-              sources=['zipline/pipeline/loaders/blaze/_core.pyx'],
-              depends=['zipline/lib/adjustment.pxd']),
+              sources=['zipline/data/_resample.pyx'])
 ]
 for ext_module in ext_modules:
     ext_module.cython_directives = dict(language_level="3")
-
 
 STR_TO_CMP = {
     '<' : lt,
