@@ -824,14 +824,3 @@ def index_of_first_difference(left, right):
         return next(difflocs)
     except StopIteration:
         raise ValueError("Left was equal to right!")
-
-
-try:
-    # pull the dshape cases in
-    from datashape.util.testing import assert_dshape_equal
-except ImportError:
-    pass
-else:
-    assert_equal.funcs.update(
-        dissoc(assert_dshape_equal.funcs, (object, object)),
-    )
