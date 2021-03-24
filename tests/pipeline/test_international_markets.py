@@ -43,8 +43,8 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
 
     INTERNATIONAL_PRICING_STARTING_PRICES = {
         'XNYS': 100,  # NYSE
-        'XTSE': 50,   # Toronto Stock Exchange
-        'XLON': 25,   # London Stock Exchange
+        'XTSE': 50,  # Toronto Stock Exchange
+        'XLON': 25,  # London Stock Exchange
     }
     # Assets in these countries will be quoted in one of the listed currencies.
     INTERNATIONAL_PRICING_CURRENCIES = {
@@ -53,8 +53,8 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         'XLON': ['GBP', 'EUR', 'USD'],
     }
     assert (
-        INTERNATIONAL_PRICING_STARTING_PRICES.keys()
-        == INTERNATIONAL_PRICING_CURRENCIES.keys()
+            INTERNATIONAL_PRICING_STARTING_PRICES.keys()
+            == INTERNATIONAL_PRICING_CURRENCIES.keys()
     )
 
     FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
@@ -72,10 +72,10 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         volumes = np.arange(10000, 10000 + len(closes))
 
         base_frame = pd.DataFrame({
-            'close': closes,
-            'open': opens,
-            'high': highs,
-            'low': lows,
+            'close' : closes,
+            'open'  : opens,
+            'high'  : highs,
+            'low'   : lows,
             'volume': volumes,
         }, index=sessions)
 
@@ -114,17 +114,21 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
                 assets=assets, calendar=calendar, sessions=sessions,
             ))
 
-            panel = (pd.Panel.from_dict(cls.daily_bar_data[name])
-                     .transpose(2, 1, 0))
+            bar_data = cls.daily_bar_data[name]
+            df = pd.concat(bar_data, keys=bar_data.keys()).stack().unstack(0).swaplevel()
+            frames = {field: frame.reset_index(level=0, drop=True) for field, frame in df.groupby(level=0)}
+
+            # panel = (pd.Panel.from_dict(cls.daily_bar_data[name])
+            #          .transpose(2, 1, 0))
 
             cls.daily_bar_currency_codes[name] = cls.make_currency_codes(
                 calendar,
                 assets,
             )
 
-            cls.daily_bar_readers[name] = InMemoryDailyBarReader.from_panel(
-                panel,
-                calendar,
+            cls.daily_bar_readers[name] = InMemoryDailyBarReader(
+                frames=frames,
+                calendar=calendar,
                 currency_codes=cls.daily_bar_currency_codes[name],
             )
 
@@ -216,10 +220,10 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
     def test_generic_pipeline_with_explicit_domain(self, domain):
         calendar = domain.calendar
         pipe = Pipeline({
-            'open': EquityPricing.open.latest,
-            'high': EquityPricing.high.latest,
-            'low': EquityPricing.low.latest,
-            'close': EquityPricing.close.latest,
+            'open'  : EquityPricing.open.latest,
+            'high'  : EquityPricing.high.latest,
+            'low'   : EquityPricing.low.latest,
+            'close' : EquityPricing.close.latest,
             'volume': EquityPricing.volume.latest,
         }, domain=domain)
 
@@ -281,7 +285,7 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
         # in the same currency.
 
         pipe = Pipeline({
-            'close': EquityPricing.close.latest,
+            'close'    : EquityPricing.close.latest,
             'close_USD': EquityPricing.close.fx('USD').latest,
             'close_CAD': EquityPricing.close.fx('CAD').latest,
             'close_EUR': EquityPricing.close.fx('EUR').latest,
@@ -312,7 +316,6 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
         # rate values and multiplying by the unconverted pricing values.
         fx_reader = self.in_memory_fx_rate_reader
         for target in self.FX_RATES_CURRENCIES:
-
             # Closes, converted to target currency, as reported by pipeline, as
             # a (dates, assets) dataframe.
             result_2d = result['close_' + target].unstack(fill_value=np.nan)
@@ -380,17 +383,17 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
 
     def test_explicit_specialization_matches_implicit(self):
         pipeline_specialized = Pipeline({
-            'open': EquityPricing.open.latest,
-            'high': EquityPricing.high.latest,
-            'low': EquityPricing.low.latest,
-            'close': EquityPricing.close.latest,
+            'open'  : EquityPricing.open.latest,
+            'high'  : EquityPricing.high.latest,
+            'low'   : EquityPricing.low.latest,
+            'close' : EquityPricing.close.latest,
             'volume': EquityPricing.volume.latest,
         }, domain=US_EQUITIES)
         dataset_specialized = Pipeline({
-            'open': USEquityPricing.open.latest,
-            'high': USEquityPricing.high.latest,
-            'low': USEquityPricing.low.latest,
-            'close': USEquityPricing.close.latest,
+            'open'  : USEquityPricing.open.latest,
+            'high'  : USEquityPricing.high.latest,
+            'low'   : USEquityPricing.low.latest,
+            'close' : USEquityPricing.close.latest,
             'volume': USEquityPricing.volume.latest,
         })
 
