@@ -804,7 +804,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 },
             ]
         )
-
+        # self.write_assets(equities=df)
         with self.assertRaises(ValueError) as e:
             self.write_assets(equities=df)
 

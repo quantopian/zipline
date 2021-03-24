@@ -60,13 +60,12 @@ symbol_columns = frozenset({
 })
 mapping_columns = symbol_columns | {'start_date', 'end_date'}
 
-
 _index_columns = {
-    'equities': 'sid',
+    'equities'                     : 'sid',
     'equity_supplementary_mappings': 'sid',
-    'futures': 'sid',
-    'exchanges': 'exchange',
-    'root_symbols': 'root_symbol',
+    'futures'                      : 'sid',
+    'exchanges'                    : 'exchange',
+    'root_symbols'                 : 'root_symbol',
 }
 
 
@@ -105,14 +104,14 @@ def _no_default(df, column):
 
 # Default values for the equities DataFrame
 _equities_defaults = {
-    'symbol': _default_none,
-    'asset_name': _default_none,
-    'start_date': lambda df, col: 0,
-    'end_date': lambda df, col: np.iinfo(np.int64).max,
-    'first_traded': _default_none,
+    'symbol'         : _default_none,
+    'asset_name'     : _default_none,
+    'start_date'     : lambda df, col: 0,
+    'end_date'       : lambda df, col: np.iinfo(np.int64).max,
+    'first_traded'   : _default_none,
     'auto_close_date': _default_none,
     # the full exchange name
-    'exchange': _no_default,
+    'exchange'       : _no_default,
 }
 
 # the defaults for ``equities`` in ``write_direct``
@@ -121,49 +120,49 @@ del _direct_equities_defaults['symbol']
 
 # Default values for the futures DataFrame
 _futures_defaults = {
-    'symbol': _default_none,
-    'root_symbol': _default_none,
-    'asset_name': _default_none,
-    'start_date': lambda df, col: 0,
-    'end_date': lambda df, col: np.iinfo(np.int64).max,
-    'first_traded': _default_none,
-    'exchange': _default_none,
-    'notice_date': _default_none,
+    'symbol'         : _default_none,
+    'root_symbol'    : _default_none,
+    'asset_name'     : _default_none,
+    'start_date'     : lambda df, col: 0,
+    'end_date'       : lambda df, col: np.iinfo(np.int64).max,
+    'first_traded'   : _default_none,
+    'exchange'       : _default_none,
+    'notice_date'    : _default_none,
     'expiration_date': _default_none,
     'auto_close_date': _default_none,
-    'tick_size': _default_none,
-    'multiplier': lambda df, col: 1,
+    'tick_size'      : _default_none,
+    'multiplier'     : lambda df, col: 1,
 }
 
 # Default values for the exchanges DataFrame
 _exchanges_defaults = {
     'canonical_name': lambda df, col: df.index,
-    'country_code': lambda df, col: '??',
+    'country_code'  : lambda df, col: '??',
 }
 
 # Default values for the root_symbols DataFrame
 _root_symbols_defaults = {
-    'sector': _default_none,
+    'sector'     : _default_none,
     'description': _default_none,
-    'exchange': _default_none,
+    'exchange'   : _default_none,
 }
 
 # Default values for the equity_supplementary_mappings DataFrame
 _equity_supplementary_mappings_defaults = {
-    'value': _default_none,
-    'field': _default_none,
+    'value'     : _default_none,
+    'field'     : _default_none,
     'start_date': lambda df, col: 0,
-    'end_date': lambda df, col: np.iinfo(np.int64).max,
+    'end_date'  : lambda df, col: np.iinfo(np.int64).max,
 }
 
 # Default values for the equity_symbol_mappings DataFrame
 _equity_symbol_mappings_defaults = {
-    'sid': _no_default,
-    'company_symbol': _default_none,
+    'sid'               : _no_default,
+    'company_symbol'    : _default_none,
     'share_class_symbol': _default_none,
-    'symbol': _default_none,
-    'start_date': lambda df, col: 0,
-    'end_date': lambda df, col: np.iinfo(np.int64).max,
+    'symbol'            : _default_none,
+    'start_date'        : lambda df, col: 0,
+    'end_date'          : lambda df, col: np.iinfo(np.int64).max,
 }
 
 # Fuzzy symbol delimiters that may break up a company symbol and share class
@@ -287,17 +286,12 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
         Raised when there are ambiguous symbol mappings.
     """
     mappings = df.set_index('sid')[list(mapping_columns)].copy()
-    if 'exchange' in exchanges.columns:
-        mappings = mappings.join(asset_exchange.to_frame('exchange').merge(exchanges, how='left')[['country_code']])
-    elif 'canonical_name' in exchanges.columns:
-        mappings = mappings.join(asset_exchange.to_frame('canonical_name').merge(exchanges, how='left')[['country_code']])
-    else:
-        ex_name = exchanges.columns.drop('country_code')[0]
-        df = df.merge(asset_exchange.to_frame('exchange'), how='left', left_on='sid', right_index=True).merge(exchanges, left_on='exchange', right_on=ex_name, how='left')
-        mappings = mappings.merge(df[['symbol', 'country_code']], how='left')
+    try:
+        mappings['country_code'] = exchanges['country_code'][asset_exchange.loc[df['sid']]].values
+    except KeyError:
+        mappings['country_code'] = (exchanges.set_index('exchange')['country_code']
+            .loc[asset_exchange.loc[df['sid']].values])
 
-
-    # mappings['country_code'] = exchanges['country_code'].loc[asset_exchange.loc[df['sid']]].values
     ambiguous = {}
 
     def check_intersections(persymbol):
@@ -850,7 +844,7 @@ class AssetDBWriter(object):
         self._write_df_to_table(tbl, assets, txn, chunk_size)
 
         pd.DataFrame({
-            asset_router.c.sid.name: assets.index.values,
+            asset_router.c.sid.name       : assets.index.values,
             asset_router.c.asset_type.name: asset_type,
         }).to_sql(
             asset_router.name,

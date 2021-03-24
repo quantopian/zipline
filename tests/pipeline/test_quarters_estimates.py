@@ -2462,7 +2462,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 SID_FIELD_NAME: cls.s0,
                 'estimate'    : 10,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-09', tz='UTC'), tz='utc'
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
@@ -2499,7 +2499,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries,
                 SID_FIELD_NAME: cls.s0,
                 'estimate'    : 10,
             }, index=pd.date_range(
-                cls.test_start_date, pd.Timestamp('2015-01-09'), tz='utc'
+                cls.test_start_date, pd.Timestamp('2015-01-09', tz='UTC'), tz='utc'
             )),
             pd.DataFrame({
                 SID_FIELD_NAME: cls.s1,
