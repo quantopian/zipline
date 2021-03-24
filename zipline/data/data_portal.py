@@ -20,8 +20,7 @@ import numpy as np
 from numpy import float64, int64, nan
 import pandas as pd
 from pandas import isnull
-from six import iteritems
-from six.moves import reduce
+from functools import reduce
 
 from zipline.assets import (
     Asset,
@@ -371,7 +370,7 @@ class DataPortal(object):
         # call
         extra_source_df = pd.DataFrame()
 
-        for identifier, df in iteritems(group_dict):
+        for identifier, df in group_dict.items():
             # Since we know this df only contains a single sid, we can safely
             # de-dupe by the index (dt). If minute granularity, will take the
             # last data point on any given day

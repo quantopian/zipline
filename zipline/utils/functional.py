@@ -2,7 +2,6 @@ from functools import reduce
 from operator import itemgetter
 from pprint import pformat
 
-from six import viewkeys, iteritems
 from six.moves import map, zip
 from toolz import curry, flip
 
@@ -135,7 +134,7 @@ def dzip_exact(*dicts):
     >>> result == {'a': (1, 3), 'b': (2, 4)}
     True
     """
-    if not same(*map(viewkeys, dicts)):
+    if not same(*map(dict.keys, dicts)):
         raise ValueError(
             "dict keys not all equal:\n\n%s" % _format_unequal_keys(dicts)
         )
@@ -401,7 +400,7 @@ def invert(d):
     {1: {'a', 'c'}, 2: {'b'}}
     """
     out = {}
-    for k, v in iteritems(d):
+    for k, v in d.items():
         try:
             out[v].add(k)
         except KeyError:
@@ -417,4 +416,4 @@ def keysorted(d):
     >>> keysorted({'c': 1, 'b': 2, 'a': 3})
     [('a', 3), ('b', 2), ('c', 1)]
     """
-    return sorted(iteritems(d), key=itemgetter(0))
+    return sorted(d.items(), key=itemgetter(0))

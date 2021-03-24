@@ -1,5 +1,3 @@
-import six
-
 from zipline.errors import UnsupportedPipelineOutput
 from zipline.utils.input_validation import (
     expect_element,
@@ -263,7 +261,7 @@ class Pipeline(object):
             raise AssertionError("Unknown graph format %r." % format)
 
     @staticmethod
-    @expect_types(term=Term, column_name=six.string_types)
+    @expect_types(term=Term, column_name=str)
     def validate_column(column_name, term):
         if term.ndim == 1:
             raise UnsupportedPipelineOutput(column_name=column_name, term=term)
@@ -276,7 +274,7 @@ class Pipeline(object):
         Includes all terms registered as data outputs of the pipeline, plus the
         screen, if present.
         """
-        terms = list(six.itervalues(self._columns))
+        terms = list(self._columns.values())
         screen = self.screen
         if screen is not None:
             terms.append(screen)

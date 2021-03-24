@@ -7,7 +7,6 @@ import numpy as np
 from numpy import integer as any_integer
 import pandas as pd
 from pandas import Timestamp
-import six
 import sqlite3
 
 from zipline.utils.functional import keysorted
@@ -46,27 +45,27 @@ StockDividend = namedtuple(
 
 SQLITE_ADJUSTMENT_COLUMN_DTYPES = {
     'effective_date': any_integer,
-    'ratio': float64_dtype,
-    'sid': any_integer,
+    'ratio'         : float64_dtype,
+    'sid'           : any_integer,
 }
 
 SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
-    'sid': any_integer,
-    'ex_date': any_integer,
+    'sid'          : any_integer,
+    'ex_date'      : any_integer,
     'declared_date': any_integer,
-    'record_date': any_integer,
-    'pay_date': any_integer,
-    'amount': float,
+    'record_date'  : any_integer,
+    'pay_date'     : any_integer,
+    'amount'       : float,
 }
 
 SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
-    'sid': any_integer,
-    'ex_date': any_integer,
+    'sid'          : any_integer,
+    'ex_date'      : any_integer,
     'declared_date': any_integer,
-    'record_date': any_integer,
-    'pay_date': any_integer,
-    'payment_sid': any_integer,
-    'ratio': float,
+    'record_date'  : any_integer,
+    'pay_date'     : any_integer,
+    'payment_sid'  : any_integer,
+    'ratio'        : float,
 }
 
 
@@ -96,10 +95,10 @@ class SQLiteAdjustmentReader(object):
     :class:`zipline.data.adjustments.SQLiteAdjustmentWriter`
     """
     _datetime_int_cols = {
-        'splits': ('effective_date',),
-        'mergers': ('effective_date',),
-        'dividends': ('effective_date',),
-        'dividend_payouts': (
+        'splits'                : ('effective_date',),
+        'mergers'               : ('effective_date',),
+        'dividends'             : ('effective_date',),
+        'dividend_payouts'      : (
             'declared_date', 'ex_date', 'pay_date', 'record_date',
         ),
         'stock_dividend_payouts': (
@@ -111,10 +110,10 @@ class SQLiteAdjustmentReader(object):
         # from users. For our outputs, however, we always want to return the
         # same types, and any_integer turns into int32 on some numpy windows
         # builds, so specify int64 explicitly here.
-        'splits': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
-        'mergers': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
-        'dividends': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
-        'dividend_payouts': specialize_any_integer(
+        'splits'                : specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'mergers'               : specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'dividends'             : specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'dividend_payouts'      : specialize_any_integer(
             SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES,
         ),
         'stock_dividend_payouts': specialize_any_integer(
@@ -350,7 +349,7 @@ class SQLiteAdjustmentWriter(object):
     def __init__(self, conn_or_path, equity_daily_bar_reader, overwrite=False):
         if isinstance(conn_or_path, sqlite3.Connection):
             self.conn = conn_or_path
-        elif isinstance(conn_or_path, six.string_types):
+        elif isinstance(conn_or_path, str):
             if overwrite:
                 try:
                     remove(conn_or_path)
@@ -517,9 +516,9 @@ class SQLiteAdjustmentWriter(object):
 
         valid_ratio_mask = non_nan_ratio_mask & positive_ratio_mask
         return pd.DataFrame({
-            'sid': input_sids[valid_ratio_mask],
+            'sid'           : input_sids[valid_ratio_mask],
             'effective_date': input_dates[valid_ratio_mask],
-            'ratio': ratio[valid_ratio_mask],
+            'ratio'         : ratio[valid_ratio_mask],
         })
 
     def _write_dividends(self, dividends):

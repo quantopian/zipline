@@ -18,7 +18,6 @@ from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.compat import ExitStack
-from six import viewkeys
 
 from zipline.gens.sim_engine import (
     BAR,
@@ -32,10 +31,9 @@ log = Logger('Trade Simulation')
 
 
 class AlgorithmSimulator(object):
-
     EMISSION_TO_PERF_KEY_MAP = {
         'minute': 'minute_perf',
-        'daily': 'daily_perf'
+        'daily' : 'daily_perf'
     }
 
     def __init__(self, algo, sim_params, data_portal, clock, benchmark_source,
@@ -79,6 +77,7 @@ class AlgorithmSimulator(object):
         def inject_algo_dt(record):
             if 'algo_dt' not in record.extra:
                 record.extra['algo_dt'] = self.simulation_dt
+
         self.processor = Processor(inject_algo_dt)
 
     def get_simulation_dt(self):
@@ -161,8 +160,8 @@ class AlgorithmSimulator(object):
 
             # handle any splits that impact any positions or any open orders.
             assets_we_care_about = (
-                viewkeys(metrics_tracker.positions) |
-                viewkeys(algo.blotter.open_orders)
+                    metrics_tracker.positions.keys() |
+                    algo.blotter.open_orders.keys()
             )
 
             if assets_we_care_about:

@@ -23,12 +23,6 @@ import numpy as np
 
 from itertools import chain, repeat
 
-from six import (
-    exec_,
-    iteritems,
-    itervalues,
-    string_types,
-)
 from trading_calendars.utils.pandas_utils import days_at_time
 from trading_calendars import get_calendar
 
@@ -364,7 +358,7 @@ class TradingAlgorithm(object):
             if algo_filename is None:
                 algo_filename = '<string>'
             code = compile(self.algoscript, algo_filename, 'exec')
-            exec_(code, self.namespace)
+            exec(code, self.namespace)
 
             self._initialize = self.namespace.get('initialize', noop)
             self._handle_data = self.namespace.get('handle_data', noop)
@@ -981,7 +975,7 @@ class TradingAlgorithm(object):
         # call to next on args[0] will also advance args[1], resulting in zip
         # returning (a,b) (c,d) (e,f) rather than (a,a) (b,b) (c,c) etc.
         positionals = zip(*args)
-        for name, value in chain(positionals, iteritems(kwargs)):
+        for name, value in chain(positionals, kwargs.items()):
             self._recorded_vars[name] = value
 
     @api_method
@@ -1908,7 +1902,7 @@ class TradingAlgorithm(object):
         style = MarketOrder()
         order_args = [
             (asset, amount, style)
-            for (asset, amount) in iteritems(share_counts)
+            for (asset, amount) in share_count.items()
             if amount
         ]
         return self.blotter.batch_order(order_args)
@@ -1936,7 +1930,7 @@ class TradingAlgorithm(object):
         if asset is None:
             return {
                 key: [order.to_api_obj() for order in orders]
-                for key, orders in iteritems(self.blotter.open_orders)
+                for key, orders in self.blotter.open_orders.items()
                 if orders
             }
         if asset in self.blotter.open_orders:
@@ -2238,7 +2232,7 @@ class TradingAlgorithm(object):
     @require_not_initialized(AttachPipelineAfterInitialize())
     @expect_types(
         pipeline=Pipeline,
-        name=string_types,
+        name=str,
         chunks=(int, Iterable, type(None)),
     )
     def attach_pipeline(self, pipeline, name, chunks=None, eager=True):
@@ -2412,7 +2406,7 @@ class TradingAlgorithm(object):
         Return a list of all the TradingAlgorithm API methods.
         """
         return [
-            fn for fn in itervalues(vars(cls))
+            fn for fn in vars(cls).values()
             if getattr(fn, 'is_api_method', False)
         ]
 

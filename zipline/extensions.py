@@ -1,5 +1,4 @@
 import re
-import six
 from toolz import curry
 
 
@@ -73,7 +72,7 @@ def update_namespace(namespace, path, name):
         setattr(namespace, path[0], name)
     else:
         if hasattr(namespace, path[0]):
-            if isinstance(getattr(namespace, path[0]), six.string_types):
+            if isinstance(getattr(namespace, path[0]), str):
                 raise ValueError("Conflicting assignments at namespace"
                                  " level '%s'" % path[0])
         else:
@@ -103,6 +102,7 @@ class Registry(object):
     interface : type
         The abstract base class to manage.
     """
+
     def __init__(self, interface):
         self.interface = interface
         self._factories = {}
@@ -264,7 +264,6 @@ def create_registry(interface):
 
 
 extensible = create_registry
-
 
 # A global dictionary for storing instances of Registry:
 custom_types = {}

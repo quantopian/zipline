@@ -4,10 +4,7 @@ from itertools import repeat
 from textwrap import dedent
 from weakref import WeakKeyDictionary
 
-from six import (
-    iteritems,
-    with_metaclass,
-)
+from six import with_metaclass
 from toolz import first
 
 from zipline.currency import Currency
@@ -420,7 +417,7 @@ class DataSetMeta(type):
         )
 
         # Collect any new columns from this dataset.
-        for maybe_colname, maybe_column in iteritems(dict_):
+        for maybe_colname, maybe_column in dict_.items():
             if isinstance(maybe_column, Column):
                 # add column names defined on our class
                 bound_column_descr = maybe_column.bind(maybe_colname)
@@ -789,7 +786,7 @@ class DataSetFamilySlice(DataSet):
 
 # XXX: This docstring was mostly written when the abstraction here was
 # "MultiDimensionalDataSet". It probably needs some rewriting.
-class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
+class DataSetFamily(metaclass=DataSetFamilyMeta):
     """
     Base class for Pipeline dataset families.
 

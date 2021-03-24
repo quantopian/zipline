@@ -16,8 +16,6 @@ from logbook import Logger
 from collections import defaultdict
 from copy import copy
 
-from six import iteritems
-
 from zipline.assets import Equity, Future, Asset
 from .blotter import Blotter
 from zipline.extensions import register
@@ -338,7 +336,7 @@ class SimulationBlotter(Blotter):
         commissions = []
 
         if self.open_orders:
-            for asset, asset_orders in iteritems(self.open_orders):
+            for asset, asset_orders in self.open_orders.items():
                 slippage = self.slippage_models[type(asset)]
 
                 for order, txn in \

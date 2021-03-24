@@ -3,7 +3,6 @@ from numpy import vectorize
 from functools import partial, reduce
 import operator
 import pandas as pd
-from six import with_metaclass, iteritems
 from collections import namedtuple
 from toolz import groupby
 
@@ -11,11 +10,9 @@ from zipline.utils.enum import enum
 from zipline.utils.numpy_utils import vectorized_is_element
 from zipline.assets import Asset
 
-
 Restriction = namedtuple(
     'Restriction', ['asset', 'effective_date', 'state']
 )
-
 
 RESTRICTION_STATES = enum(
     'ALLOWED',
@@ -23,7 +20,7 @@ RESTRICTION_STATES = enum(
 )
 
 
-class Restrictions(with_metaclass(abc.ABCMeta)):
+class Restrictions(metaclass=abc.ABCMeta):
     """
     Abstract restricted list interface, representing a set of assets that an
     algorithm is restricted from trading.
@@ -120,6 +117,7 @@ class NoRestrictions(Restrictions):
     """
     A no-op restrictions that contains no restrictions.
     """
+
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
             return False
@@ -171,7 +169,7 @@ class HistoricalRestrictions(Restrictions):
                 restrictions_for_asset, key=lambda x: x.effective_date
             )
             for asset, restrictions_for_asset
-            in iteritems(groupby(lambda x: x.asset, restrictions))
+            in groupby(lambda x: x.asset, restrictions).items()
         }
 
     def is_restricted(self, assets, dt):

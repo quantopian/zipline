@@ -25,7 +25,6 @@ from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas import isnull
-from six import with_metaclass, string_types, viewkeys, iteritems
 import sqlalchemy as sa
 from toolz import (
     compose,
@@ -217,7 +216,7 @@ def _convert_asset_timestamp_fields(dict_):
     """
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
     """
-    for key in _asset_timestamp_fields & viewkeys(dict_):
+    for key in _asset_timestamp_fields & dict_.keys():
         value = pd.Timestamp(dict_[key], tz='UTC')
         dict_[key] = None if isnull(value) else value
     return dict_
@@ -370,7 +369,7 @@ class AssetFinder(object):
     @staticmethod
     def _fuzzify_symbol_ownership_map(ownership_map):
         fuzzy_mappings = {}
-        for (cs, scs), owners in iteritems(ownership_map):
+        for (cs, scs), owners in ownership_map.items():
             fuzzy_owners = fuzzy_mappings.setdefault(
                 cs + scs,
                 [],
@@ -735,7 +734,7 @@ class AssetFinder(object):
         # particular sid was an equity/future and called this function with a
         # concrete type, but we couldn't actually resolve the asset.  This is
         # an error in our code, not a user-input error.
-        misses = tuple(set(sids) - viewkeys(hits))
+        misses = tuple(set(sids) - hits.keys())
         if misses:
             if querying_equities:
                 raise EquitiesNotFound(sids=misses)
@@ -1330,7 +1329,7 @@ class AssetFinder(object):
             except SidsNotFound:
                 return None
 
-        if isinstance(obj, string_types):
+        if isinstance(obj, str):
             # Try to look up as an equity first.
             try:
                 return self.lookup_symbol(
@@ -1476,7 +1475,7 @@ class AssetFinder(object):
         numpy.putmask
         zipline.pipeline.engine.SimplePipelineEngine._compute_root_mask
         """
-        if isinstance(country_codes, string_types):
+        if isinstance(country_codes, str):
             raise TypeError(
                 "Got string {!r} instead of an iterable of strings in "
                 "AssetFinder.lifetimes.".format(country_codes),
@@ -1517,28 +1516,26 @@ class AssetFinder(object):
         return tuple(sids.tolist())
 
 
-class AssetConvertible(with_metaclass(ABCMeta)):
+class AssetConvertible(metaclass=ABCMeta):
     """
     ABC for types that are convertible to integer-representations of
     Assets.
 
-    Includes Asset, six.string_types, and Integral
+    Includes Asset, str, and Integral
     """
     pass
 
 
 AssetConvertible.register(Integral)
 AssetConvertible.register(Asset)
-# Use six.string_types for Python2/3 compatibility
-for _type in string_types:
-    AssetConvertible.register(_type)
+AssetConvertible.register(str)
 
 
 class NotAssetConvertible(ValueError):
     pass
 
 
-class PricingDataAssociable(with_metaclass(ABCMeta)):
+class PricingDataAssociable(metaclass=ABCMeta):
     """
     ABC for types that can be associated with pricing data.
 

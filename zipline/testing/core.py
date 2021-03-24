@@ -20,7 +20,7 @@ from mock import patch
 from nose.tools import nottest
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
-from six import itervalues, iteritems, with_metaclass
+from six import with_metaclass
 from six.moves import filter, map
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
@@ -56,7 +56,6 @@ from zipline.utils.sentinel import sentinel
 
 import numpy as np
 from numpy import float64
-
 
 EPOCH = pd.Timestamp(0, tz='UTC')
 
@@ -104,7 +103,6 @@ def check_algo_results(test,
                        expected_order_count=None,
                        expected_positions_count=None,
                        sid=None):
-
     if expected_transactions_count is not None:
         txns = flatten_list(results["transactions"])
         test.assertEqual(expected_transactions_count, len(txns))
@@ -126,7 +124,6 @@ def flatten_list(list):
 
 
 def assert_single_position(test, zipline):
-
     output, transaction_count = drain_zipline(test, zipline)
 
     if 'expected_transactions' in test.zipline_test_config:
@@ -155,7 +152,7 @@ def assert_single_position(test, zipline):
                 for order in update['daily_perf']['orders']:
                     orders_by_id[order['id']] = order
 
-    for order in itervalues(orders_by_id):
+    for order in orders_by_id.value():
         test.assertEqual(
             order['status'],
             ORDER_STATUS.FILLED,
@@ -327,10 +324,10 @@ def make_trade_data_for_asset_info(dates,
 
         df = pd.DataFrame(
             {
-                "open": prices[:, j],
-                "high": prices[:, j],
-                "low": prices[:, j],
-                "close": prices[:, j],
+                "open"  : prices[:, j],
+                "high"  : prices[:, j],
+                "low"   : prices[:, j],
+                "close" : prices[:, j],
                 "volume": volumes[:, j],
             },
             index=dates,
@@ -416,6 +413,7 @@ class ExplodingObject(object):
     Useful for verifying that an object is never touched during a
     function/method call.
     """
+
     def __getattribute__(self, name):
         raise UnexpectedAttributeAccess(name)
 
@@ -444,10 +442,10 @@ def create_minute_bar_data(minutes, sids):
     for sid_idx, sid in enumerate(sids):
         yield sid, pd.DataFrame(
             {
-                'open': np.arange(length) + 10 + sid_idx,
-                'high': np.arange(length) + 15 + sid_idx,
-                'low': np.arange(length) + 8 + sid_idx,
-                'close': np.arange(length) + 10 + sid_idx,
+                'open'  : np.arange(length) + 10 + sid_idx,
+                'high'  : np.arange(length) + 15 + sid_idx,
+                'low'   : np.arange(length) + 8 + sid_idx,
+                'close' : np.arange(length) + 10 + sid_idx,
                 'volume': 100 + sid_idx,
             },
             index=minutes,
@@ -459,12 +457,12 @@ def create_daily_bar_data(sessions, sids):
     for sid_idx, sid in enumerate(sids):
         yield sid, pd.DataFrame(
             {
-                "open": (np.array(range(10, 10 + length)) + sid_idx),
-                "high": (np.array(range(15, 15 + length)) + sid_idx),
-                "low": (np.array(range(8, 8 + length)) + sid_idx),
-                "close": (np.array(range(10, 10 + length)) + sid_idx),
+                "open"  : (np.array(range(10, 10 + length)) + sid_idx),
+                "high"  : (np.array(range(15, 15 + length)) + sid_idx),
+                "low"   : (np.array(range(8, 8 + length)) + sid_idx),
+                "close" : (np.array(range(10, 10 + length)) + sid_idx),
                 "volume": np.array(range(100, 100 + length)) + sid_idx,
-                "day": [session.value for session in sessions]
+                "day"   : [session.value for session in sessions]
             },
             index=sessions,
         )
@@ -530,7 +528,6 @@ def create_minute_df_for_asset(trading_calendar,
                                interval=1,
                                start_val=1,
                                minute_blacklist=None):
-
     asset_minutes = trading_calendar.minutes_for_sessions_in_range(
         start_dt, end_dt
     )
@@ -538,26 +535,26 @@ def create_minute_df_for_asset(trading_calendar,
 
     if interval > 1:
         minutes_arr = np.zeros(minutes_count)
-        minutes_arr[interval-1::interval] = \
-            np.arange(start_val+interval-1, start_val+minutes_count, interval)
+        minutes_arr[interval - 1::interval] = \
+            np.arange(start_val + interval - 1, start_val + minutes_count, interval)
     else:
         minutes_arr = np.arange(start_val, start_val + minutes_count)
 
     open_ = minutes_arr.copy()
-    open_[interval-1::interval] += 1
+    open_[interval - 1::interval] += 1
 
     high = minutes_arr.copy()
-    high[interval-1::interval] += 2
+    high[interval - 1::interval] += 2
 
     low = minutes_arr.copy()
     low[interval - 1::interval] -= 1
 
     df = pd.DataFrame(
         {
-            "open": open_,
-            "high": high,
-            "low": low,
-            "close": minutes_arr,
+            "open"  : open_,
+            "high"  : high,
+            "low"   : low,
+            "close" : minutes_arr,
             "volume": 100 * minutes_arr,
         },
         index=asset_minutes,
@@ -578,10 +575,10 @@ def create_daily_df_for_asset(trading_calendar, start_day, end_day,
 
     df = pd.DataFrame(
         {
-            "open": days_arr + 1,
-            "high": days_arr + 2,
-            "low": days_arr - 1,
-            "close": days_arr,
+            "open"  : days_arr + 1,
+            "high"  : days_arr + 2,
+            "low"   : days_arr - 1,
+            "close" : days_arr,
             "volume": days_arr * 100,
         },
         index=days,
@@ -601,7 +598,7 @@ def create_daily_df_for_asset(trading_calendar, start_day, end_day,
 
 
 def trades_by_sid_to_dfs(trades_by_sid, index):
-    for sidint, trades in iteritems(trades_by_sid):
+    for sidint, trades in trades_by_sid.items():
         opens = []
         highs = []
         lows = []
@@ -616,10 +613,10 @@ def trades_by_sid_to_dfs(trades_by_sid, index):
 
         yield sidint, pd.DataFrame(
             {
-                "open": opens,
-                "high": highs,
-                "low": lows,
-                "close": closes,
+                "open"  : opens,
+                "high"  : highs,
+                "low"   : lows,
+                "close" : closes,
                 "volume": volumes,
             },
             index=index,
@@ -655,7 +652,7 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
         length = len(minutes)
         assets = {}
 
-        for sidint, trades in iteritems(trades_by_sid):
+        for sidint, trades in trades_by_sid.items():
             opens = np.zeros(length)
             highs = np.zeros(length)
             lows = np.zeros(length)
@@ -673,12 +670,12 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
                 volumes[idx] = trade.volume
 
             assets[sidint] = pd.DataFrame({
-                "open": opens,
-                "high": highs,
-                "low": lows,
-                "close": closes,
+                "open"  : opens,
+                "high"  : highs,
+                "low"   : lows,
+                "close" : closes,
                 "volume": volumes,
-                "dt": minutes
+                "dt"    : minutes
             }).set_index("dt")
 
         write_bcolz_minute_data(
@@ -723,8 +720,8 @@ class FakeDataPortal(DataPortal):
                            data_frequency, ffill=True):
         end_idx = self.trading_calendar.all_sessions.searchsorted(end_dt)
         days = self.trading_calendar.all_sessions[
-            (end_idx - bar_count + 1):(end_idx + 1)
-        ]
+               (end_idx - bar_count + 1):(end_idx + 1)
+               ]
 
         df = pd.DataFrame(
             np.full((bar_count, len(assets)), 100.0),
@@ -749,6 +746,7 @@ class FetcherDataPortal(DataPortal):
     Mock dataportal that returns fake data for history and non-fetcher
     spot value.
     """
+
     def __init__(self, asset_finder, trading_calendar, first_trading_day=None):
         super(FetcherDataPortal, self).__init__(asset_finder, trading_calendar,
                                                 first_trading_day)
@@ -848,6 +846,7 @@ class tmp_asset_finder(tmp_assets_db):
     --------
     tmp_assets_db
     """
+
     def __init__(self,
                  url='sqlite:///:memory:',
                  finder_cls=AssetFinder,
@@ -955,6 +954,7 @@ def subtest(iterator, *_names):
     --------
     zipline.testing.parameter_space
     """
+
     def dec(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -973,6 +973,7 @@ def subtest(iterator, *_names):
                 raise SubTestFailures(*failures)
 
         return wrapped
+
     return dec
 
 
@@ -1166,6 +1167,7 @@ def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
     --------
     zipline.testing.subtest
     """
+
     def decorator(f):
 
         argspec = getargspec(f)
@@ -1210,6 +1212,7 @@ def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
             def wrapped(self):
                 for args in make_param_sets():
                     clean_f(self, *args)
+
             return wrapped
         else:
             @wraps(f)
@@ -1277,8 +1280,8 @@ def make_alternating_boolean_array(shape, first_value=True):
     alternating = np.empty(shape, dtype=np.bool)
     for row in alternating:
         row[::2] = first_value
-        row[1::2] = not(first_value)
-        first_value = not(first_value)
+        row[1::2] = not (first_value)
+        first_value = not (first_value)
     return alternating
 
 
@@ -1307,7 +1310,7 @@ def make_cascading_boolean_array(shape, first_value=True):
         raise ValueError(
             'Shape must be 2-dimensional. Given shape was {}'.format(shape)
         )
-    cascading = np.full(shape, not(first_value), dtype=np.bool)
+    cascading = np.full(shape, not (first_value), dtype=np.bool)
     ending_col = shape[1] - 1
     for row in cascading:
         if ending_col > 0:
@@ -1432,6 +1435,7 @@ class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
         The path to the directory to write the data into. If not given, this
         will be a unique name.
     """
+
     @abstractproperty
     def _reader_cls(self):
         raise NotImplementedError('_reader')
@@ -1571,6 +1575,7 @@ def ensure_doctest(f, name=None):
 class RecordBatchBlotter(SimulationBlotter):
     """Blotter that tracks how its batch_order method was called.
     """
+
     def __init__(self):
         super(RecordBatchBlotter, self).__init__()
         self.order_batch_called = []
@@ -1716,19 +1721,19 @@ def simulate_minutes_for_day(open_,
     max_ = max(close, open_)
     where = values > max_
     values[where] = (
-        (values[where] - max_) *
-        (high - max_) /
-        (values.max() - max_) +
-        max_
+            (values[where] - max_) *
+            (high - max_) /
+            (values.max() - max_) +
+            max_
     )
 
     min_ = min(close, open_)
     where = values < min_
     values[where] = (
-        (values[where] - min_) *
-        (low - min_) /
-        (values.min() - min_) +
-        min_
+            (values[where] - min_) *
+            (low - min_) /
+            (values.min() - min_) +
+            min_
     )
 
     if not (np.allclose(values.max(), high) and
@@ -1753,10 +1758,10 @@ def simulate_minutes_for_day(open_,
 
     # TODO: add in volume
     return pd.DataFrame({
-        'open': prices.first(),
-        'close': prices.last(),
-        'high': prices.max(),
-        'low': prices.min(),
+        'open'  : prices.first(),
+        'close' : prices.last(),
+        'high'  : prices.max(),
+        'low'   : prices.min(),
         'volume': volume,
     })
 

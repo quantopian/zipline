@@ -20,7 +20,6 @@ from dateutil.relativedelta import relativedelta
 import empyrical as ep
 import numpy as np
 import pandas as pd
-from six import iteritems
 
 from zipline.utils.exploding_object import NamedExplodingObject
 from zipline.finance._finance_ext import minute_annual_volatility
@@ -663,7 +662,7 @@ class _ClassicRiskMetrics(object):
                 if k != 'period_label' and not np.isfinite(v) else
                 v
             )
-            for k, v in iteritems(rval)
+            for k, v in rval.items()
         }
 
     @classmethod

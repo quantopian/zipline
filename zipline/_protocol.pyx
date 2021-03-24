@@ -15,35 +15,22 @@
 import warnings
 from contextlib import contextmanager
 from functools import wraps
-
 import pandas as pd
 import numpy as np
 
-from six import iteritems, PY2, string_types
 from cpython cimport bool
 from collections import Iterable
 
 from zipline.assets import (
-    AssetConvertible,
     PricingDataAssociable,
 )
-from zipline.assets._assets cimport Asset, Future
+from zipline.assets._assets cimport Asset
 from zipline.assets.continuous_futures import ContinuousFuture
 from zipline.utils.pandas_utils import normalize_date
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 cdef bool _is_iterable(obj):
-    return isinstance(obj, Iterable) and not isinstance(obj, string_types)
-
-if PY2:
-    def no_wraps_py2(f):
-        def dec(g):
-            g.__doc__ = f.__doc__
-            g.__name__ = f.__name__
-            return g
-        return dec
-else:
-    no_wraps_py2 = wraps
+    return isinstance(obj, Iterable) and not isinstance(obj, str)
 
 cdef class check_parameters(object):
     """
@@ -66,7 +53,7 @@ cdef class check_parameters(object):
         self.keys_to_types = dict(zip(keyword_names, types))
 
     def __call__(self, func):
-        @no_wraps_py2(func)
+        @wraps(func)
         def assert_keywords_and_call(*args, **kwargs):
             cdef short i
 
@@ -97,7 +84,7 @@ cdef class check_parameters(object):
                                     )
 
             # verify type of each kwarg
-            for keyword, arg in iteritems(kwargs):
+            for keyword, arg in kwargs.items():
                 if keyword in ('assets', 'fields') and _is_iterable(arg):
                     if len(arg) == 0:
                         continue
@@ -250,7 +237,7 @@ cdef class BarData:
         return dt
 
     @check_parameters(('assets', 'fields'),
-                      ((Asset, ContinuousFuture) + string_types, string_types))
+                      ((Asset, ContinuousFuture, str), (str,)))
     def current(self, assets, fields):
         """
         Returns the "current" value of the given fields for the given assets
@@ -597,9 +584,10 @@ cdef class BarData:
             return not (last_traded_dt is pd.NaT)
 
     @check_parameters(('assets', 'fields', 'bar_count', 'frequency'),
-                      ((Asset, ContinuousFuture) + string_types, string_types,
+                      ((Asset, ContinuousFuture, str),
+                       (str,),
                        int,
-                       string_types))
+                       (str,)))
     def history(self, assets, fields, bar_count, frequency):
         """
         Returns a trailing window of length ``bar_count`` with data for
@@ -656,7 +644,7 @@ cdef class BarData:
         If the current simulation time is not a valid market time, we use the last market close instead.
         """
 
-        single_field = isinstance(fields, string_types)
+        single_field = isinstance(fields, str)
 
         single_asset = isinstance(assets, PricingDataAssociable)
         if single_asset:

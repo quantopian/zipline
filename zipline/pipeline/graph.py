@@ -4,7 +4,6 @@ Dependency-Graph representation of Pipeline API terms.
 import uuid
 
 import networkx as nx
-from six import iteritems, itervalues
 from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
@@ -58,7 +57,7 @@ class TermGraph(object):
 
         self._frozen = False
         parents = set()
-        for term in itervalues(terms):
+        for term in terms.values():
             self._add_to_graph(term, parents)
             # No parents should be left between top-level terms.
             assert not parents
@@ -453,7 +452,7 @@ class ExecutionPlan(TermGraph):
         """
         return {
             term: attrs['extra_rows']
-            for term, attrs in iteritems(self.graph.node)
+            for term, attrs in self.graph.node.items()
         }
 
     def _ensure_extra_rows(self, term, N):

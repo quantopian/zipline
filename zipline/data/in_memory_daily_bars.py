@@ -1,5 +1,3 @@
-from six import iteritems
-
 import numpy as np
 import pandas as pd
 from pandas import NaT
@@ -29,6 +27,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         Whether or not to verify that input data is correctly aligned to the
         given calendar. Default is True.
     """
+
     @expect_types(
         frames=dict,
         calendar=TradingCalendar,
@@ -41,7 +40,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
                  currency_codes,
                  verify_indices=True):
         self._frames = frames
-        self._values = {key: frame.values for key, frame in iteritems(frames)}
+        self._values = {key: frame.values for key, frame in frames.items()}
         self._calendar = calendar
         self._currency_codes = currency_codes
 

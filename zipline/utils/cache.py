@@ -12,7 +12,6 @@ from tempfile import mkdtemp, NamedTemporaryFile
 
 import pandas as pd
 
-from .compat import PY2
 from .context_tricks import nop_context
 from .paths import ensure_directory
 from .sentinel import sentinel
@@ -54,6 +53,7 @@ class CachedObject(object):
         ...
     Expired: 2014-01-01 00:00:00+00:00
     """
+
     def __init__(self, value, expires):
         self._value = value
         self._expires = expires
@@ -203,6 +203,7 @@ class dataframe_cache(MutableMapping):
     The cache uses a temporary file format that is subject to change between
     versions of zipline.
     """
+
     def __init__(self,
                  path=None,
                  lock=None,
@@ -226,7 +227,6 @@ class dataframe_cache(MutableMapping):
 
             self.serialize = self._serialize_pickle
             self.deserialize = (
-                pickle.load if PY2 else
                 partial(pickle.load, encoding='latin-1')
             )
 
@@ -308,6 +308,7 @@ class working_file(object):
     ``working_file`` uses :func:`shutil.move` to move the actual files,
     meaning it has as strong of guarantees as :func:`shutil.move`.
     """
+
     def __init__(self, final_path, *args, **kwargs):
         self._tmpfile = NamedTemporaryFile(delete=False, *args, **kwargs)
         self._final_path = final_path
@@ -351,6 +352,7 @@ class working_dir(object):
     ``working_dir`` uses :func:`dir_util.copy_tree` to move the actual files,
     meaning it has as strong of guarantees as :func:`dir_util.copy_tree`.
     """
+
     def __init__(self, final_path, *args, **kwargs):
         self.path = mkdtemp()
         self._final_path = final_path

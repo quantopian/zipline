@@ -15,8 +15,6 @@
 import math
 import uuid
 
-from six import text_type
-
 import zipline.protocol as zp
 from zipline.assets import Asset
 from zipline.utils.enum import enum
@@ -255,4 +253,4 @@ class Order(object):
         """
         Unicode representation for this object.
         """
-        return text_type(repr(self))
+        return str(repr(self))

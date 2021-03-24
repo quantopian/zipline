@@ -13,7 +13,6 @@ from numpy import (
     uint32,
     uint8,
 )
-from six import iteritems
 from toolz import merge_with
 from zipline.errors import (
     WindowLengthNotPositive,
@@ -352,7 +351,7 @@ class AdjustedArray(object):
         self._data = self._data.map(func)
 
         # Map each of the adjustments.
-        for _, row_adjustments in iteritems(self.adjustments):
+        for _, row_adjustments in self.adjustments.items():
             for adjustment in row_adjustments:
                 adjustment.value = func(adjustment.value)
 

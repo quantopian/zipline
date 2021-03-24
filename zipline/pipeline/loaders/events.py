@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from interface import implements
-from six import viewvalues
 from toolz import groupby, merge
 
 from .base import PipelineLoader
@@ -31,8 +30,8 @@ def required_event_fields(next_value_columns, previous_value_columns):
     }.union(
         # We also expect any of the field names that our loadable columns
         # are mapped to.
-        viewvalues(next_value_columns),
-        viewvalues(previous_value_columns),
+        next_value_columns.values(),
+        previous_value_columns.values(),
     )
 
 

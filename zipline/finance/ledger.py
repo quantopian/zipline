@@ -19,7 +19,6 @@ from math import isnan
 import logbook
 import numpy as np
 import pandas as pd
-from six import iteritems, itervalues, PY2
 
 from zipline.assets import Future
 from zipline.finance.transaction import Transaction
@@ -43,6 +42,7 @@ class PositionTracker(object):
     data_frequency : {'daily', 'minute'}
         The data frequency of the simulation.
     """
+
     def __init__(self, data_frequency):
         self.positions = OrderedDict()
 
@@ -241,7 +241,7 @@ class PositionTracker(object):
     def get_positions(self):
         positions = self._positions_store
 
-        for asset, pos in iteritems(self.positions):
+        for asset, pos in self.positions.items():
             # Adds the new position if we didn't have one before, or overwrite
             # one we have currently
             positions[asset] = pos.protocol_position
@@ -251,7 +251,7 @@ class PositionTracker(object):
     def get_position_list(self):
         return [
             pos.to_dict()
-            for asset, pos in iteritems(self.positions)
+            for asset, pos in self.positions.items()
             if pos.amount != 0
         ]
 
@@ -302,33 +302,12 @@ class PositionTracker(object):
         return self._stats
 
 
-if PY2:
-    def move_to_end(ordered_dict, key, last=False):
-        if last:
-            ordered_dict[key] = ordered_dict.pop(key)
-        else:
-            # please don't do this in python 2 ;_;
-            new_first_element = ordered_dict.pop(key)
-
-            # the items (without the given key) in the order they were inserted
-            items = ordered_dict.items()
-
-            # reset the ordered_dict to re-insert in the new order
-            ordered_dict.clear()
-
-            ordered_dict[key] = new_first_element
-
-            # add the items back in their original order
-            ordered_dict.update(items)
-else:
-    move_to_end = OrderedDict.move_to_end
-
+move_to_end = OrderedDict.move_to_end
 
 PeriodStats = namedtuple(
     'PeriodStats',
     'net_liquidation gross_leverage net_leverage',
 )
-
 
 not_overridden = sentinel(
     'not_overridden',
@@ -359,6 +338,7 @@ class Ledger(object):
         The daily returns as an ndarray. Days that have not yet finished will
         hold a value of ``np.nan``.
     """
+
     def __init__(self, trading_sessions, capital_base, data_frequency):
         if len(trading_sessions):
             start = trading_sessions[0]
@@ -413,9 +393,9 @@ class Ledger(object):
         # compute today's returns in returns space instead of portfolio-value
         # space to work even when we have capital changes
         return (
-            (self.portfolio.returns + 1) /
-            (self._previous_total_returns + 1) -
-            1
+                (self.portfolio.returns + 1) /
+                (self._previous_total_returns + 1) -
+                1
         )
 
     @property
@@ -645,7 +625,7 @@ class Ledger(object):
             # flatten the by-day transactions
             return [
                 txn
-                for by_day in itervalues(self._processed_transactions)
+                for by_day in self._processed_transactions.values()
                 for txn in by_day
             ]
 
@@ -668,11 +648,11 @@ class Ledger(object):
         """
         if dt is None:
             # orders by id is already flattened
-            return [o.to_dict() for o in itervalues(self._orders_by_id)]
+            return [o.to_dict() for o in self._orders_by_id.values()]
 
         return [
             o.to_dict()
-            for o in itervalues(self._orders_by_modified.get(dt, {}))
+            for o in self._orders_by_modified.get(dt, {}).values()
         ]
 
     @property
@@ -684,7 +664,7 @@ class Ledger(object):
         payout_last_sale_prices = self._payout_last_sale_prices
 
         total = 0
-        for asset, old_price in iteritems(payout_last_sale_prices):
+        for asset, old_price in payout_last_sale_prices.items():
             position = positions[asset]
             payout_last_sale_prices[asset] = price = position.last_sale_price
             amount = position.amount
@@ -728,9 +708,9 @@ class Ledger(object):
 
         portfolio.pnl += pnl
         portfolio.returns = (
-            (1 + portfolio.returns) *
-            (1 + returns) -
-            1
+                (1 + portfolio.returns) *
+                (1 + returns) -
+                1
         )
 
         # the portfolio has been fully synced
@@ -804,7 +784,7 @@ class Ledger(object):
             account.buying_power = np.inf
             account.equity_with_loan = portfolio.portfolio_value
             account.total_positions_value = (
-                portfolio.portfolio_value - portfolio.cash
+                    portfolio.portfolio_value - portfolio.cash
             )
             account.total_positions_exposure = (
                 portfolio.positions_exposure
@@ -828,7 +808,7 @@ class Ledger(object):
             account.leverage = account.gross_leverage
 
             # apply the overrides
-            for k, v in iteritems(self._account_overrides):
+            for k, v in self._account_overrides.items():
                 setattr(account, k, v)
 
             # the account has been fully synced
