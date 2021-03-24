@@ -644,9 +644,7 @@ class SimplePipelineEngine(PipelineEngine):
         # The extra rows condition is a simplification: we don't currently have
         # a mechanism for asking a loader to fetch different windows of data
         # for different terms, so we only batch requests together when they're
-        # going to produce data for the same set of dates. That may change in
-        # the future if we find a loader that can still benefit significantly
-        # from batching unequal-length requests.
+        # going to produce data for the same set of dates.
         def loader_group_key(term):
             loader = get_loader(term)
             extra_rows = graph.extra_rows[term]

@@ -378,7 +378,7 @@ def handle_data(context, data):
         """)
 
             np.testing.assert_array_equal([24] * 251, results["aapl"])
-            self.assertEqual(337, results["palladium"].iloc[-1])
+            self.assertEqual(337, pd.to_numeric(results["palladium"]).iloc[-1])
 
             expected = {
                 'allow_redirects': False,

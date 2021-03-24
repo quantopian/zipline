@@ -133,7 +133,6 @@ from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-
 log = logbook.Logger("ZiplineLog")
 
 # For creating and storing pipeline instances
@@ -269,7 +268,7 @@ class TradingAlgorithm(object):
             # Raise an error if we were passed two different asset finders.
             # There's no world where that's a good idea.
             if asset_finder is not None \
-               and asset_finder is not data_portal.asset_finder:
+                    and asset_finder is not data_portal.asset_finder:
                 raise ValueError(
                     "Inconsistent asset_finders in TradingAlgorithm()"
                 )
@@ -697,11 +696,11 @@ class TradingAlgorithm(object):
         if capital_change['type'] == 'target':
             target = capital_change['value']
             capital_change_amount = (
-                target -
-                (
-                    self.portfolio.portfolio_value -
-                    portfolio_value_adjustment
-                )
+                    target -
+                    (
+                            self.portfolio.portfolio_value -
+                            portfolio_value_adjustment
+                    )
             )
 
             log.info('Processing capital change to target %s at %s. Capital '
@@ -722,10 +721,10 @@ class TradingAlgorithm(object):
 
         yield {
             'capital_change':
-                {'date': dt,
-                 'type': 'cash',
+                {'date'  : dt,
+                 'type'  : 'cash',
                  'target': target,
-                 'delta': capital_change_amount}
+                 'delta' : capital_change_amount}
         }
 
     @api_method
@@ -768,12 +767,12 @@ class TradingAlgorithm(object):
             Raised when ``field`` is not a valid option.
         """
         env = {
-            'arena': self.sim_params.arena,
+            'arena'         : self.sim_params.arena,
             'data_frequency': self.sim_params.data_frequency,
-            'start': self.sim_params.first_open,
-            'end': self.sim_params.last_close,
-            'capital_base': self.sim_params.capital_base,
-            'platform': self._platform
+            'start'         : self.sim_params.first_open,
+            'end'           : self.sim_params.last_close,
+            'capital_base'  : self.sim_params.capital_base,
+            'platform'      : self._platform
         }
         if field == '*':
             return env
@@ -1611,7 +1610,9 @@ class TradingAlgorithm(object):
             The new symbol lookup date.
         """
         try:
-            self._symbol_lookup_date = pd.Timestamp(dt, tz='UTC')
+            self._symbol_lookup_date = pd.Timestamp(dt).tz_localize('UTC')
+        except TypeError:
+            self._symbol_lookup_date = pd.Timestamp(dt).tz_convert('UTC')
         except ValueError:
             raise UnsupportedDatetimeFormat(input=dt,
                                             method='set_symbol_lookup_date')

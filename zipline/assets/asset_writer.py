@@ -287,10 +287,18 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
         Raised when there are ambiguous symbol mappings.
     """
     mappings = df.set_index('sid')[list(mapping_columns)].copy()
-    mappings['country_code'] = exchanges['country_code'][
-        asset_exchange.loc[df['sid']]
-    ].values
-    ambigious = {}
+    if 'exchange' in exchanges.columns:
+        mappings = mappings.join(asset_exchange.to_frame('exchange').merge(exchanges, how='left')[['country_code']])
+    elif 'canonical_name' in exchanges.columns:
+        mappings = mappings.join(asset_exchange.to_frame('canonical_name').merge(exchanges, how='left')[['country_code']])
+    else:
+        ex_name = exchanges.columns.drop('country_code')[0]
+        df = df.merge(asset_exchange.to_frame('exchange'), how='left', left_on='sid', right_index=True).merge(exchanges, left_on='exchange', right_on=ex_name, how='left')
+        mappings = mappings.merge(df[['symbol', 'country_code']], how='left')
+
+
+    # mappings['country_code'] = exchanges['country_code'].loc[asset_exchange.loc[df['sid']]].values
+    ambiguous = {}
 
     def check_intersections(persymbol):
         intersections = list(intersecting_ranges(map(
@@ -305,16 +313,16 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
             # ``persymbol`` is a view and ``astype`` doesn't copy the index
             # correctly in pandas 0.22
             msg_component = '\n  '.join(str(data).splitlines())
-            ambigious[persymbol.name] = intersections, msg_component
+            ambiguous[persymbol.name] = intersections, msg_component
 
     mappings.groupby(['symbol', 'country_code']).apply(check_intersections)
 
-    if ambigious:
+    if ambiguous:
         raise ValueError(
             'Ambiguous ownership for %d symbol%s, multiple assets held the'
             ' following symbols:\n%s' % (
-                len(ambigious),
-                '' if len(ambigious) == 1 else 's',
+                len(ambiguous),
+                '' if len(ambiguous) == 1 else 's',
                 '\n'.join(
                     '%s (%s):\n  intersections: %s\n  %s' % (
                         symbol,
@@ -323,7 +331,7 @@ def _check_symbol_mappings(df, exchanges, asset_exchange):
                         cs,
                     )
                     for (symbol, country_code), (intersections, cs) in sorted(
-                        ambigious.items(),
+                        ambiguous.items(),
                         key=first,
                     )
                 ),

@@ -146,8 +146,6 @@ def simplex_projection(v, b=1):
     return w
 
 
-# Note: this function can be removed if running
-# this algorithm on quantopian.com
 def analyze(context=None, results=None):
     import matplotlib.pyplot as plt
     fig = plt.figure()

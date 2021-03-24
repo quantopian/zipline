@@ -700,8 +700,8 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
 
         for cal_str in cls.TRADING_CALENDAR_STRS:
             trading_calendar = cls.trading_calendars[cal_str]
-            sessions = trading_calendar.sessions_in_range(
-                cls.DATA_MIN_DAY, cls.DATA_MAX_DAY)
+            sessions = trading_calendar.sessions_in_range(cls.DATA_MIN_DAY.tz_localize('UTC'),
+                                                          cls.DATA_MAX_DAY.tz_localize('UTC'))
             # Set name for aliasing.
             setattr(cls,
                     '{0}_sessions'.format(cal_str.lower()), sessions)

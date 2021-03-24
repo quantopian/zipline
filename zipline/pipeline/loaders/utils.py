@@ -63,8 +63,8 @@ def next_event_indexer(all_dates,
     sid_ixs = all_sids.searchsorted(event_sids)
     # side='right' here ensures that we include the event date itself
     # if it's in all_dates.
-    dt_ixs = all_dates.searchsorted(event_dates, side='right')
-    ts_ixs = data_query_cutoff.searchsorted(event_timestamps, side='right')
+    dt_ixs = all_dates.searchsorted(pd.to_datetime(event_dates, utc=True), side='right')
+    ts_ixs = data_query_cutoff.searchsorted(pd.to_datetime(event_timestamps, utc=True), side='right')
 
     # Walk backward through the events, writing the index of the event into
     # slots ranging from the event's timestamp to its asof.  This depends for
@@ -122,7 +122,7 @@ def previous_event_indexer(data_query_cutoff_times,
 
     eff_dts = np.maximum(event_dates, event_timestamps)
     sid_ixs = all_sids.searchsorted(event_sids)
-    dt_ixs = data_query_cutoff_times.searchsorted(eff_dts, side='right')
+    dt_ixs = data_query_cutoff_times.searchsorted(pd.to_datetime(eff_dts, utc=True), side='right')
 
     # Walk backwards through the events, writing the index of the event into
     # slots ranging from max(event_date, event_timestamp) to the start of the
@@ -146,7 +146,6 @@ def last_in_date_group(df,
                        extra_groupers=None):
     """
     Determine the last piece of information known on each date in the date
-
     index for each group. Input df MUST be sorted such that the correct last
     item is chosen from each group.
 
@@ -176,37 +175,37 @@ def last_in_date_group(df,
         levels of a multiindex of columns.
 
     """
-    idx = [data_query_cutoff_times[data_query_cutoff_times.searchsorted(
-        df[TS_FIELD_NAME].values,
-    )]]
+    # get positions in `data_query_cutoff_times` just before `TS_FIELD_NAME` in `df`
+    idx_before_ts = data_query_cutoff_times.searchsorted(pd.to_datetime(df[TS_FIELD_NAME], utc=True))
+    idx = [data_query_cutoff_times[idx_before_ts]]
+
     if have_sids:
         idx += [SID_FIELD_NAME]
     if extra_groupers is None:
         extra_groupers = []
     idx += extra_groupers
 
-    last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
-        idx,
-        sort=False,
-    ).last()
+    to_unstack = idx[-1:-len(idx):-1]
+    last_in_group = (df
+                     .drop(TS_FIELD_NAME, axis=1)
+                     .groupby(idx, sort=False)
+                     .last()
+                     .unstack(level=to_unstack))
 
     # For the number of things that we're grouping by (except TS), unstack
     # the df. Done this way because of an unresolved pandas bug whereby
     # passing a list of levels with mixed dtypes to unstack causes the
     # resulting DataFrame to have all object-type columns.
-    for _ in range(len(idx) - 1):
-        last_in_group = last_in_group.unstack(-1)
+    # for _ in range(len(idx) - 1):
+    #     last_in_group = last_in_group.unstack(-1)
 
     if reindex:
         if have_sids:
             cols = last_in_group.columns
-            last_in_group = last_in_group.reindex(
-                index=data_query_cutoff_times,
-                columns=pd.MultiIndex.from_product(
-                    tuple(cols.levels[0:len(extra_groupers) + 1]) + (assets,),
-                    names=cols.names,
-                ),
-            )
+            columns = pd.MultiIndex.from_product(tuple(cols.levels[0:len(extra_groupers) + 1]) + (assets,),
+                                                 names=cols.names)
+            last_in_group = last_in_group.reindex(index=data_query_cutoff_times,
+                                                  columns=columns)
         else:
             last_in_group = last_in_group.reindex(data_query_cutoff_times)
 

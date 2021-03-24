@@ -27,7 +27,6 @@ from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning, \
 class LatestTestCase(WithSeededRandomPipelineEngine,
                      WithTradingSessions,
                      ZiplineTestCase):
-
     START_DATE = Timestamp('2014-01-01')
     END_DATE = Timestamp('2015-12-31')
     SEEDED_RANDOM_PIPELINE_SEED = 100
@@ -47,8 +46,9 @@ class LatestTestCase(WithSeededRandomPipelineEngine,
         loader = self.seeded_random_loader
         index = self.trading_days[slice_]
         columns = self.assets
-        values = loader.values(column.dtype, self.trading_days, self.sids)[
-            slice_]
+        values = loader.values(column.dtype,
+                               self.trading_days,
+                               self.sids)[slice_]
 
         if column.dtype.kind in ('O', 'S', 'U'):
             # For string columns, we expect a categorical in the output.

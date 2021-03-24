@@ -86,7 +86,10 @@ class IDomain(Interface):
         -------
         pd.Timestamp
         """
-        dt = pd.Timestamp(dt).tz_convert('UTC')
+        try:
+            dt = pd.Timestamp(dt).tz_convert('UTC')
+        except TypeError:
+            dt = pd.Timestamp(dt).tz_localize('UTC')
 
         trading_days = self.all_sessions()
         try:

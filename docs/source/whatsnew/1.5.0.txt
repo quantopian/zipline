@@ -1,0 +1,59 @@
+Development
+-----------
+
+:Release: 1.5.0
+:Date: TBD
+
+.. warning::
+   This release is still under active development.  All changes listed are
+   subject to change at any time.
+
+
+Highlights
+~~~~~~~~~~
+
+Support for Python 3.7 and Pyhon 3.8 and updated dependencies
+
+Enhancements
+~~~~~~~~~~~~
+
+None
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+None
+
+Performance
+~~~~~~~~~~~
+
+None
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+None
+
+Build
+~~~~~
+
+None
+
+Documentation
+~~~~~~~~~~~~~
+
+Expanded; include Pipeline info
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+None

@@ -1151,33 +1151,34 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         # asset1 day1 price should be 331-390
         np.testing.assert_array_equal(
-            range(331, 391), algo.history_values[0]["price"][1]
+            range(331, 391), algo.history_values[0].loc[pd.IndexSlice[:, 1], 'price']
         )
 
         # asset1 day1 high should be 333-392
         np.testing.assert_array_equal(
-            range(333, 393), algo.history_values[0]["high"][1]
+            range(333, 393), algo.history_values[0].loc[pd.IndexSlice[:, 1], 'high']
+
         )
 
         # asset2 day1 price should be 19 300s, then 40 350s
         np.testing.assert_array_equal(
-            [300] * 19, algo.history_values[0]["price"][2][0:19]
+            [300] * 19, algo.history_values[0].loc[pd.IndexSlice[:, 2], 'price'].iloc[:19]
         )
 
         np.testing.assert_array_equal(
-            [350] * 40, algo.history_values[0]["price"][2][20:]
+            [350] * 40, algo.history_values[0].loc[pd.IndexSlice[:, 2], 'price'].iloc[20:]
         )
 
         # asset2 day1 high should be all NaNs except for the 19th item
         # = 2016-01-05 20:20:00+00:00
         np.testing.assert_array_equal(
-            np.full(19, np.nan), algo.history_values[0]["high"][2][0:19]
+            np.full(19, np.nan), algo.history_values[0].loc[pd.IndexSlice[:, 2], 'high'].iloc[:19]
         )
 
-        self.assertEqual(352, algo.history_values[0]["high"][2][19])
+        self.assertEqual(352, algo.history_values[0].loc[pd.IndexSlice[:, 2], 'high'].iloc[19])
 
         np.testing.assert_array_equal(
-            np.full(40, np.nan), algo.history_values[0]["high"][2][20:]
+            np.full(40, np.nan), algo.history_values[0].loc[pd.IndexSlice[:, 2], 'high'].iloc[20:]
         )
 
     def test_data_in_bts_daily(self):
@@ -1214,11 +1215,11 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         self.assertTrue(350, results.the_price2[0])
 
-        self.assertEqual(392, algo.history_values[0]["high"][1][0])
-        self.assertEqual(390, algo.history_values[0]["price"][1][0])
+        self.assertEqual(392, algo.history_values[0]["high"][0])
+        self.assertEqual(390, algo.history_values[0]["price"][0])
 
-        self.assertEqual(352, algo.history_values[0]["high"][2][0])
-        self.assertEqual(350, algo.history_values[0]["price"][2][0])
+        self.assertEqual(352, algo.history_values[0]["high"][1])
+        self.assertEqual(350, algo.history_values[0]["price"][1])
 
     def test_portfolio_bts(self):
         algo_code = dedent("""
@@ -1716,7 +1717,7 @@ def handle_data(context, data):
             stats.transactions = stats.transactions.apply(
                 lambda txns: [toolz.dissoc(txn, 'order_id') for txn in txns]
             )
-        assert_equal(multi_stats, batch_stats)
+        assert_equal(multi_stats.sort_index(1), batch_stats.sort_index(1))
 
     def test_batch_market_order_filters_null_orders(self):
         share_counts = [50, 0]

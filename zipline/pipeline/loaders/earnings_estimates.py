@@ -29,7 +29,6 @@ from zipline.pipeline.loaders.utils import (
     last_in_date_group,
 )
 
-
 INVALID_NUM_QTRS_MESSAGE = "Passed invalid number of quarters %s; " \
                            "must pass a number of quarters >= 0"
 NEXT_FISCAL_QUARTER = 'next_fiscal_quarter'
@@ -135,6 +134,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         A map of names of BoundColumns that this loader will load to the
         names of the corresponding columns in `events`.
     """
+
     def __init__(self, estimates, name_map):
         validate_column_specs(
             estimates,
@@ -145,7 +145,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             estimates[EVENT_DATE_FIELD_NAME].notnull() &
             estimates[FISCAL_QUARTER_FIELD_NAME].notnull() &
             estimates[FISCAL_YEAR_FIELD_NAME].notnull()
-        ]
+            ]
         self.estimates[NORMALIZED_QUARTERS] = normalize_quarters(
             self.estimates[FISCAL_YEAR_FIELD_NAME],
             self.estimates[FISCAL_QUARTER_FIELD_NAME],
@@ -153,11 +153,11 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
 
         self.array_overwrites_dict = {
             datetime64ns_dtype: Datetime641DArrayOverwrite,
-            float64_dtype: Float641DArrayOverwrite,
+            float64_dtype     : Float641DArrayOverwrite,
         }
         self.scalar_overwrites_dict = {
             datetime64ns_dtype: Datetime64Overwrite,
-            float64_dtype: Float64Overwrite,
+            float64_dtype     : Float64Overwrite,
         }
 
         self.name_map = name_map
@@ -237,7 +237,8 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
                 SHIFTED_NORMALIZED_QTRS,
             ],
         )
-        requested_qtr_data = stacked_last_per_qtr.loc[requested_qtr_idx]
+
+        requested_qtr_data = stacked_last_per_qtr.reindex(index=requested_qtr_idx)
         requested_qtr_data = requested_qtr_data.reset_index(
             SHIFTED_NORMALIZED_QTRS,
         )
@@ -270,13 +271,17 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             The index in `dates` at which the data should be split.
         """
         split_adjusted_asof_idx = dates.searchsorted(
-            self._split_adjusted_asof
+            pd.to_datetime(self._split_adjusted_asof, utc=True)
         )
         # The split-asof date is after the date index.
         if split_adjusted_asof_idx == len(dates):
             split_adjusted_asof_idx = len(dates) - 1
-        elif self._split_adjusted_asof < dates[0].tz_localize(None):
-            split_adjusted_asof_idx = -1
+        if self._split_adjusted_asof.tzinfo is not None:
+            if self._split_adjusted_asof < dates[0]:
+                split_adjusted_asof_idx = -1
+        else:
+            if self._split_adjusted_asof < dates[0].tz_localize(None):
+                split_adjusted_asof_idx = -1
         return split_adjusted_asof_idx
 
     def collect_overwrites_for_sid(self,
@@ -323,7 +328,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             return
 
         next_qtr_start_indices = dates.searchsorted(
-            group[EVENT_DATE_FIELD_NAME].values,
+            pd.to_datetime(group[EVENT_DATE_FIELD_NAME], utc=True),
             side=self.searchsorted_side,
         )
 
@@ -554,9 +559,9 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             # with the missing value for this column.
             else:
                 adjs = [self.overwrite_with_null(
-                        col,
-                        next_qtr_start_idx,
-                        sid_idx)]
+                    col,
+                    next_qtr_start_idx,
+                    sid_idx)]
                 add_new_adjustments(col_to_overwrites,
                                     adjs,
                                     column_name,
@@ -634,7 +639,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
 
             # Lookup the asset indexer once, this is so we can reindex
             # the assets returned into the assets requested for each column.
-            # This depends on the fact that our column multiindex has the same
+            # This depends on the fact that our column pd.MultiIndex has the same
             # sids for each field. This allows us to do the lookup once on
             # level 1 instead of doing the lookup each time per value in
             # level 0.
@@ -644,17 +649,20 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             for col in columns:
                 column_name = self.name_map[col.name]
                 # allocate the empty output with the correct missing value
-                output_array = np.full(
-                    (len(dates), len(sids)),
-                    col.missing_value,
-                    dtype=col.dtype,
-                )
-                # overwrite the missing value with values from the computed
-                # data
-                output_array[
-                    :,
-                    asset_indexer,
-                ] = requested_qtr_data[column_name].values
+                # shape = len(dates), len(sids)
+                # output_array = np.full(shape=shape,
+                #                        fill_value=col.missing_value,
+                #                        dtype=col.dtype)
+                # overwrite the missing value with values from the computed data
+                # try:
+                output_array = (requested_qtr_data[column_name]
+                                .reindex(sids, axis=1)
+                                .to_numpy()
+                                .astype(col.dtype))
+                # except ValueError:
+                #     np.copyto(output_array[:, asset_indexer],
+                #               requested_qtr_data[column_name].to_numpy(na_value=output_array.dtype),
+                #               casting='unsafe')
                 out[col] = AdjustedArray(
                     output_array,
                     # There may not be any adjustments at all (e.g. if
@@ -716,12 +724,9 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             level=0,
             inplace=True,
         )
-        stacked_last_per_qtr = stacked_last_per_qtr.sort_values(
-            EVENT_DATE_FIELD_NAME,
-        )
-        stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
-            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
-        )
+        stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(stacked_last_per_qtr[EVENT_DATE_FIELD_NAME],
+                                                                     utc=True)
+        stacked_last_per_qtr = stacked_last_per_qtr.sort_values(EVENT_DATE_FIELD_NAME)
         return last_per_qtr, stacked_last_per_qtr
 
 
@@ -775,7 +780,7 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
         next_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] >=
             stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
-        ].groupby(
+            ].groupby(
             level=[SIMULATION_DATES, SID_FIELD_NAME],
             as_index=False,
             # Here we take advantage of the fact that `stacked_last_per_qtr` is
@@ -829,7 +834,7 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
         previous_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
             stacked_last_per_qtr.index.get_level_values(SIMULATION_DATES)
-        ].groupby(
+            ].groupby(
             level=[SIMULATION_DATES, SID_FIELD_NAME],
             as_index=False,
             # Here we take advantage of the fact that `stacked_last_per_qtr` is
@@ -873,6 +878,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         the split_adjusted_asof date. All adjustments occurring during this
         second half are applied sequentially as they appear in the timeline.
     """
+
     def __init__(self,
                  estimates,
                  name_map,
@@ -1034,11 +1040,11 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         # the date of this adjustment
         newest_kd_for_qtr = sid_estimates[
             (sid_estimates[NORMALIZED_QUARTERS] == requested_quarter) &
-            (sid_estimates[TS_FIELD_NAME] >= adjustment_ts)
-        ][TS_FIELD_NAME].min()
+            (pd.to_datetime(sid_estimates[TS_FIELD_NAME], utc=True) >= adjustment_ts)
+            ][TS_FIELD_NAME].min()
         if pd.notnull(newest_kd_for_qtr):
             newest_kd_idx = dates.searchsorted(
-                newest_kd_for_qtr
+                pd.to_datetime(newest_kd_for_qtr, utc=True)
             )
             # We have fresh information that comes in
             # before the end of the overwrite and
@@ -1292,11 +1298,11 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         return pre_adjustments_dict, post_adjustments_dict
 
     def merge_split_adjustments_with_overwrites(
-        self,
-        pre,
-        post,
-        overwrites,
-        requested_split_adjusted_columns
+            self,
+            pre,
+            post,
+            overwrites,
+            requested_split_adjusted_columns
     ):
         """
         Merge split adjustments with the dict containing overwrites.

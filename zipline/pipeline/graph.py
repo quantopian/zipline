@@ -233,12 +233,12 @@ class TermGraph(object):
 
 class ExecutionPlan(TermGraph):
     """
-    Graph represention of Pipeline Term dependencies that includes metadata
+    Graph representation of Pipeline Term dependencies that includes metadata
     about extra rows required to perform computations.
 
     Each node in the graph has an `extra_rows` attribute, indicating how many,
-    if any, extra rows we should compute for the node.  Extra rows are most
-    often needed when a term is an input to a rolling window computation.  For
+    if any, extra rows we should compute for the node. Extra rows are most
+    often needed when a term is an input to a rolling window computation. For
     example, if we compute a 30 day moving average of price from day X to day
     Y, we need to load price data for the range from day (X - 29) to day Y.
 

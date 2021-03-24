@@ -724,46 +724,10 @@ cdef class BarData:
             df = (pd.concat(df_dict,
                             keys=df_dict.keys(),
                             names=['fields', dt_label])
-                  .stack(dropna=False) # ensure we return all fields & dates despite missing values
+                  .stack(dropna=False)  # ensure we return all fields/assets/dates despite missing values
                   .unstack(level='fields'))
             df.index.set_names([dt_label, 'asset'])
             return df.sort_index()
-
-            #     # return pd.DataFrame with pd.DateTimeIndex, fields in columns.
-            #     return pd.DataFrame(df_dict)
-            #
-            # else:  # multiple assets, multiple fields
-            #     df_dict = {
-            #         field: self.data_portal.get_history_window(
-            #             asset_list,
-            #             self._get_current_minute(),
-            #             bar_count,
-            #             frequency,
-            #             field,
-            #             self.data_frequency,
-            #         ).loc[:, asset_list] for field in fields
-            #     }
-            #
-            #     if self._adjust_minutes:
-            #         adjs = {
-            #             field: self.data_portal.get_adjustments(
-            #                 asset_list,
-            #                 field,
-            #                 self._get_current_minute(),
-            #                 self.simulation_dt_func()
-            #             ) for field in fields
-            #         }
-            #
-            #         df_dict = {field: df * adjs[field]
-            #                    for field, df in df_dict.items()}
-            #
-            #     # returned DataFrame has a pd.MultiIndex
-            #     dt_label = 'date' if frequency == '1d' else 'date_time'
-            #     df = pd.concat(df_dict,
-            #                    keys=df_dict.keys(),
-            #                    names=['fields', dt_label]).stack().unstack(level='fields')
-            #     df.index.set_names([dt_label, 'asset'])
-            #     return df
 
     property current_dt:
         def __get__(self):
