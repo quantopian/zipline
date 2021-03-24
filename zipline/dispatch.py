@@ -7,14 +7,6 @@ import sys
 
 from multipledispatch import dispatch
 
-try:
-    from datashape.dispatch import namespace
-except ImportError:
-    pass
-else:
-    globals().update(namespace)
-    del namespace
-
 dispatch = partial(dispatch, namespace=globals())
 
 del partial
