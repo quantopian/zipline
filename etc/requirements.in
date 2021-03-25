@@ -56,7 +56,7 @@ bottleneck>=1.0.0
 
 # todo check constraint
 # Graph algorithms used by zipline.pipeline
-networkx>=1.9.1,<2.0
+networkx>=1.9.1
 # NumericalExpression pipeline terms.
 numexpr>=2.6.1
 

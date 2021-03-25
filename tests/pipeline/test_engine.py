@@ -1,7 +1,6 @@
 """
 Tests for SimplePipelineEngine
 """
-from __future__ import division
 from collections import OrderedDict
 from itertools import product
 from operator import add, sub

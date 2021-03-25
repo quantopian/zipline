@@ -1,8 +1,6 @@
 """
 Script for rebuilding the samples for the Quandl tests.
 """
-from __future__ import print_function
-
 import os
 import requests
 from io import BytesIO

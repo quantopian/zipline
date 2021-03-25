@@ -1,5 +1,3 @@
-from __future__ import division
-
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd

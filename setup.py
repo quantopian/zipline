@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import print_function
 import os
 import re
 import sys
@@ -133,7 +132,7 @@ STR_TO_CMP = {
     '>=': ge,
 }
 
-SYS_VERSION = '.'.join(list(map(str, sys.version_info[:3])))
+SYS_VERSION = '.'.join([f'{i}' for i in sys.version_info[:3]])
 
 
 def _filter_requirements(lines_iter, filter_names=None,
