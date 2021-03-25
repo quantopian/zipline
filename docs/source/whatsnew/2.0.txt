@@ -1,7 +1,7 @@
 Development
 -----------
 
-:Release: 1.5.0
+:Release: 2.0rc1
 :Date: TBD
 
 .. warning::
@@ -12,7 +12,7 @@ Development
 Highlights
 ~~~~~~~~~~
 
-Support for Python 3.7 and Pyhon 3.8 and updated dependencies
+Support for Python 3.7, 3.8 and 3.9 as well as updated dependencies.
 
 - Networkx 2.0
 - patchd bcolz

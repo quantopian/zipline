@@ -53,7 +53,7 @@ intervaltree>=2.1.0
 bottleneck>=1.0.0
 
 # Graph algorithms used by zipline.pipeline
-networkx>=1.9.1
+networkx>=2.0
 # NumericalExpression pipeline terms.
 numexpr>=2.6.1
 

@@ -4,96 +4,45 @@
 #
 #    pip-compile --no-emit-index-url --output-file=etc/requirements_py38_locked.txt etc/requirements.in etc/requirements_build.in etc/requirements_dev.in etc/requirements_docs.in etc/requirements_talib.in
 #
-alabaster==0.7.12
-    # via sphinx
-alembic==1.4.3
-    # via -r etc/requirements.in
-babel==2.8.0
-    # via sphinx
-bcolz==1.2.1
-    # via -r etc/requirements.in
-bottleneck==1.3.2
-    # via -r etc/requirements.in
-certifi==2020.6.20
-    # via
-    #   matplotlib
-    #   requests
-chardet==3.0.4
-    # via requests
-click==7.1.2
-    # via
-    #   -r etc/requirements.in
-    #   pip-tools
-coverage==5.3
-    # via -r etc/requirements_dev.in
-cycler==0.10.0
-    # via matplotlib
-cython==0.29.21
-    # via -r etc/requirements_build.in
-decorator==4.4.2
-    # via networkx
-docutils==0.16
-    # via sphinx
-empyrical==0.5.5
-    # via -r etc/requirements.in
-flake8==3.8.4
-    # via -r etc/requirements_dev.in
-h5py==2.10.0
-    # via -r etc/requirements.in
-idna==2.10
-    # via requests
-imagesize==1.2.0
-    # via sphinx
-intervaltree==3.1.0
-    # via -r etc/requirements.in
-iso3166==1.0.1
-    # via -r etc/requirements.in
-iso4217==1.6.20180829
-    # via -r etc/requirements.in
-jinja2==2.11.2
-    # via
-    #   numpydoc
-    #   sphinx
-kiwisolver==1.2.0
-    # via matplotlib
-livereload==2.6.3
-    # via sphinx-autobuild
-logbook==1.5.3
-    # via -r etc/requirements.in
-lru-dict==1.1.6
-    # via -r etc/requirements.in
-lxml==4.6.1
-    # via pandas-datareader
-mako==1.1.3
-    # via alembic
-markupsafe==1.1.1
-    # via
-    #   jinja2
-    #   mako
-matplotlib==3.3.2
-    # via -r etc/requirements_dev.in
-mccabe==0.6.1
-    # via flake8
-mock==4.0.2
-    # via -r etc/requirements_dev.in
-multipledispatch==0.6.0
-    # via -r etc/requirements.in
-networkx==1.11
-    # via -r etc/requirements.in
-nose-ignore-docstring==0.2
-    # via -r etc/requirements_dev.in
-nose-timer==1.0.0
-    # via -r etc/requirements_dev.in
-nose==1.3.7
-    # via
-    #   -r etc/requirements_dev.in
-    #   nose-timer
-numexpr==2.7.1
-    # via
-    #   -r etc/requirements.in
-    #   tables
-numpy==1.18.5
-    # via
+alabaster==0.7.12 # via sphinx
+alembic==1.4.3 # via -r etc/requirements.in
+babel==2.8.0 # via sphinx
+bcolz==1.2.1 # via -r etc/requirements.in
+bottleneck==1.3.2 # via -r etc/requirements.in
+certifi==2020.6.20 # via matplotlib requests
+chardet==3.0.4 # via requests
+click==7.1.2 # via -r etc/requirements.in pip-tools
+coverage==5.3 # via -r etc/requirements_dev.in
+cycler==0.10.0 # via matplotlib
+cython==0.29.21 # via -r etc/requirements_build.in
+decorator==4.4.2 # via networkx
+docutils==0.16 # via sphinx
+empyrical==0.5.5 # via -r etc/requirements.in
+flake8==3.8.4 # via -r etc/requirements_dev.in
+h5py==2.10.0 # via -r etc/requirements.in
+idna==2.10 # via requests
+imagesize==1.2.0 # via sphinx
+intervaltree==3.1.0 # via -r etc/requirements.in
+iso3166==1.0.1 # via -r etc/requirements.in
+iso4217==1.6.20180829 # via -r etc/requirements.in
+jinja2==2.11.2 # via numpydoc sphinx
+kiwisolver==1.2.0 # via matplotlib
+livereload==2.6.3 # via sphinx-autobuild
+logbook==1.5.3 # via -r etc/requirements.in
+lru-dict==1.1.6 # via -r etc/requirements.in
+lxml==4.6.1 # via pandas-datareader
+mako==1.1.3 # via alembic
+markupsafe==1.1.1 # via jinja2 mako
+matplotlib==3.3.2 # via -r etc/requirements_dev.in
+mccabe==0.6.1 # via flake8
+mock==4.0.2 # via -r etc/requirements_dev.in
+multipledispatch==0.6.0 # via -r etc/requirements.in
+networkx==1.11 # via -r etc/requirements.in
+nose-ignore-docstring==0.2 # via -r etc/requirements_dev.in
+nose-timer==1.0.0 # via -r etc/requirements_dev.in
+nose==1.3.7 # via -r etc/requirements_dev.in nose-timer
+numexpr==2.7.1 # via -r etc/requirements.in tables
+numpy==1.18.5 # via
     #   -r etc/requirements.in
     #   -r etc/requirements_build.in
     #   bcolz
@@ -109,16 +58,10 @@ numpy==1.18.5
     #   ta-lib
     #   tables
     #   trading-calendars
-numpydoc==1.1.0
-    # via -r etc/requirements_docs.in
-packaging==20.4
-    # via sphinx
-pandas-datareader==0.8.1
-    # via
-    #   -r etc/requirements_dev.in
-    #   empyrical
-pandas==1.1.3
-    # via
+numpydoc==1.1.0 # via -r etc/requirements_docs.in
+packaging==20.4 # via sphinx
+pandas-datareader==0.8.1 # via -r etc/requirements_dev.in empyrical
+pandas==1.1.3 # via
     #   -r etc/requirements.in
     #   empyrical
     #   pandas-datareader
