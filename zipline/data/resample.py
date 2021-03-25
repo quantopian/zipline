@@ -40,7 +40,6 @@ _MINUTE_TO_SESSION_OHCLV_HOW = OrderedDict((
 
 
 def minute_frame_to_session_frame(minute_frame, calendar):
-
     """
     Resample a DataFrame with minute data into the frame expected by a
     BcolzDailyBarWriter.
@@ -137,10 +136,10 @@ class DailyHistoryAggregator(object):
         #              2: (1458221460000000000, 42.0),
         #         })
         self._caches = {
-            'open': None,
-            'high': None,
-            'low': None,
-            'close': None,
+            'open'  : None,
+            'high'  : None,
+            'low'   : None,
+            'close' : None,
             'volume': None
         }
 
@@ -594,8 +593,11 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         return self._minute_bar_reader.first_trading_day
 
     def get_last_traded_dt(self, asset, dt):
-        return self.trading_calendar.minute_to_session_label(
-            self._minute_bar_reader.get_last_traded_dt(asset, dt))
+        last_dt = self._minute_bar_reader.get_last_traded_dt(asset, dt)
+        if pd.isnull(last_dt):
+            # todo: this doesn't seem right
+            return self.trading_calendar.first_trading_session
+        return self.trading_calendar.minute_to_session_label(last_dt)
 
 
 class ReindexBarReader(with_metaclass(ABCMeta)):

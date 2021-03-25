@@ -1107,6 +1107,7 @@ class DataPortal(object):
 
         if field != "volume":
             # volumes default to 0, so we don't need to put NaNs in the array
+            return_array = return_array.astype(float64)
             return_array[:] = np.NAN
 
         if bar_count != 0:
