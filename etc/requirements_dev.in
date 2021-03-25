@@ -23,5 +23,5 @@ responses>=0.9.0
 pip-tools>=4.3.0
 
 # Generating test data (just one case, trying without constraint)
-# pandas-datareader>=0.2.1,<0.9.0
+# pandas-datareader>=0.2.1
 pandas-datareader>=0.2.1

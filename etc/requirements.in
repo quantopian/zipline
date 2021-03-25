@@ -4,13 +4,11 @@ pip>=7.1.0
 setuptools>18.0
 
 Logbook>=0.12.5
-
 # Command line interface helper
 click>=4.0.0
 
 # Language utilities
 six>=1.10.0
-contextlib2>=0.4.0; python_version < "3.0"
 python-interface>=1.5.3
 multipledispatch>=0.6.0
 # FUNctional programming utilities
@@ -54,7 +52,6 @@ intervaltree>=2.1.0
 # faster array ops.
 bottleneck>=1.0.0
 
-# todo check constraint
 # Graph algorithms used by zipline.pipeline
 networkx>=1.9.1
 # NumericalExpression pipeline terms.
