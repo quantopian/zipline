@@ -532,8 +532,7 @@ class TradingAlgorithm(object):
             )
             benchmark_returns = None
         else:
-            if self.benchmark_returns is None:
-                raise NoBenchmark()
+
             benchmark_asset = None
             benchmark_returns = self.benchmark_returns
         return BenchmarkSource(

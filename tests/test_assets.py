@@ -2070,7 +2070,8 @@ class TestAssetDBVersioning(ZiplineTestCase):
     def init_instance_fixtures(self):
         super(TestAssetDBVersioning, self).init_instance_fixtures()
         self.engine = eng = self.enter_instance_context(empty_assets_db())
-        self.metadata = sa.MetaData(eng, reflect=True)
+        self.metadata = sa.MetaData(eng)
+        self.metadata.reflect(bind=eng)
 
     def test_check_version(self):
         version_table = self.metadata.tables['version_info']

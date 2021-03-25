@@ -44,7 +44,6 @@ import zipline.testing.fixtures as zf
 class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 zf.WithMakeAlgo,
                                 zf.ZiplineTestCase):
-
     START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
     END_DATE = pd.Timestamp('2016-10-19', tz='UTC')
 
@@ -61,45 +60,45 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BZ', 'MA', 'DF'],
+            'root_symbol'   : ['FO', 'BZ', 'MA', 'DF'],
             'root_symbol_id': [1, 2, 3, 4],
-            'exchange': ['CMES', 'CMES', 'CMES', 'CMES']})
+            'exchange'      : ['CMES', 'CMES', 'CMES', 'CMES']})
 
     @classmethod
     def make_futures_info(self):
         fo_frame = DataFrame({
-            'symbol': ['FOF16', 'FOG16', 'FOH16', 'FOJ16', 'FOK16', 'FOF22',
-                       'FOG22'],
-            'sid': range(0, 7),
-            'root_symbol': ['FO'] * 7,
-            'asset_name': ['Foo'] * 7,
-            'start_date': [Timestamp('2015-01-05', tz='UTC'),
-                           Timestamp('2015-02-05', tz='UTC'),
-                           Timestamp('2015-03-05', tz='UTC'),
-                           Timestamp('2015-04-05', tz='UTC'),
-                           Timestamp('2015-05-05', tz='UTC'),
-                           Timestamp('2021-01-05', tz='UTC'),
-                           Timestamp('2015-01-05', tz='UTC')],
-            'end_date': [Timestamp('2016-08-19', tz='UTC'),
-                         Timestamp('2016-09-19', tz='UTC'),
-                         Timestamp('2016-10-19', tz='UTC'),
-                         Timestamp('2016-11-19', tz='UTC'),
-                         Timestamp('2022-08-19', tz='UTC'),
-                         Timestamp('2022-09-19', tz='UTC'),
-                         # Set the last contract's end date (which is the last
-                         # date for which there is data to a value that is
-                         # within the range of the dates being tested.  This
-                         # models real life scenarios where the end date of the
-                         # furthest out contract is not necessarily the
-                         # greatest end date all contracts in the chain.
-                         Timestamp('2015-02-05', tz='UTC')],
-            'notice_date': [Timestamp('2016-01-27', tz='UTC'),
-                            Timestamp('2016-02-26', tz='UTC'),
-                            Timestamp('2016-03-24', tz='UTC'),
-                            Timestamp('2016-04-26', tz='UTC'),
-                            Timestamp('2016-05-26', tz='UTC'),
-                            Timestamp('2022-01-26', tz='UTC'),
-                            Timestamp('2022-02-26', tz='UTC')],
+            'symbol'         : ['FOF16', 'FOG16', 'FOH16', 'FOJ16', 'FOK16', 'FOF22',
+                                'FOG22'],
+            'sid'            : range(0, 7),
+            'root_symbol'    : ['FO'] * 7,
+            'asset_name'     : ['Foo'] * 7,
+            'start_date'     : [Timestamp('2015-01-05', tz='UTC'),
+                                Timestamp('2015-02-05', tz='UTC'),
+                                Timestamp('2015-03-05', tz='UTC'),
+                                Timestamp('2015-04-05', tz='UTC'),
+                                Timestamp('2015-05-05', tz='UTC'),
+                                Timestamp('2021-01-05', tz='UTC'),
+                                Timestamp('2015-01-05', tz='UTC')],
+            'end_date'       : [Timestamp('2016-08-19', tz='UTC'),
+                                Timestamp('2016-09-19', tz='UTC'),
+                                Timestamp('2016-10-19', tz='UTC'),
+                                Timestamp('2016-11-19', tz='UTC'),
+                                Timestamp('2022-08-19', tz='UTC'),
+                                Timestamp('2022-09-19', tz='UTC'),
+                                # Set the last contract's end date (which is the last
+                                # date for which there is data to a value that is
+                                # within the range of the dates being tested.  This
+                                # models real life scenarios where the end date of the
+                                # furthest out contract is not necessarily the
+                                # greatest end date all contracts in the chain.
+                                Timestamp('2015-02-05', tz='UTC')],
+            'notice_date'    : [Timestamp('2016-01-27', tz='UTC'),
+                                Timestamp('2016-02-26', tz='UTC'),
+                                Timestamp('2016-03-24', tz='UTC'),
+                                Timestamp('2016-04-26', tz='UTC'),
+                                Timestamp('2016-05-26', tz='UTC'),
+                                Timestamp('2022-01-26', tz='UTC'),
+                                Timestamp('2022-02-26', tz='UTC')],
             'expiration_date': [Timestamp('2016-01-27', tz='UTC'),
                                 Timestamp('2016-02-26', tz='UTC'),
                                 Timestamp('2016-03-24', tz='UTC'),
@@ -114,90 +113,90 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
                                 Timestamp('2016-05-26', tz='UTC'),
                                 Timestamp('2022-01-26', tz='UTC'),
                                 Timestamp('2022-02-26', tz='UTC')],
-            'tick_size': [0.001] * 7,
-            'multiplier': [1000.0] * 7,
-            'exchange': ['CMES'] * 7,
+            'tick_size'      : [0.001] * 7,
+            'multiplier'     : [1000.0] * 7,
+            'exchange'       : ['CMES'] * 7,
         })
 
         # BZ is set up to test chain predicates, for futures such as PL which
         # only use a subset of contracts for the roll chain.
         bz_frame = DataFrame({
-            'symbol': ['BZF16', 'BZG16', 'BZH16'],
-            'root_symbol': ['BZ'] * 3,
-            'asset_name': ['Baz'] * 3,
-            'sid': range(10, 13),
-            'start_date': [Timestamp('2005-01-01', tz='UTC'),
-                           Timestamp('2005-01-21', tz='UTC'),
-                           Timestamp('2005-01-21', tz='UTC')],
-            'end_date': [Timestamp('2016-08-19', tz='UTC'),
-                         Timestamp('2016-11-21', tz='UTC'),
-                         Timestamp('2016-10-19', tz='UTC')],
-            'notice_date': [Timestamp('2016-01-11', tz='UTC'),
-                            Timestamp('2016-02-08', tz='UTC'),
-                            Timestamp('2016-03-09', tz='UTC')],
+            'symbol'         : ['BZF16', 'BZG16', 'BZH16'],
+            'root_symbol'    : ['BZ'] * 3,
+            'asset_name'     : ['Baz'] * 3,
+            'sid'            : range(10, 13),
+            'start_date'     : [Timestamp('2005-01-01', tz='UTC'),
+                                Timestamp('2005-01-21', tz='UTC'),
+                                Timestamp('2005-01-21', tz='UTC')],
+            'end_date'       : [Timestamp('2016-08-19', tz='UTC'),
+                                Timestamp('2016-11-21', tz='UTC'),
+                                Timestamp('2016-10-19', tz='UTC')],
+            'notice_date'    : [Timestamp('2016-01-11', tz='UTC'),
+                                Timestamp('2016-02-08', tz='UTC'),
+                                Timestamp('2016-03-09', tz='UTC')],
             'expiration_date': [Timestamp('2016-01-11', tz='UTC'),
                                 Timestamp('2016-02-08', tz='UTC'),
                                 Timestamp('2016-03-09', tz='UTC')],
             'auto_close_date': [Timestamp('2016-01-11', tz='UTC'),
                                 Timestamp('2016-02-08', tz='UTC'),
                                 Timestamp('2016-03-09', tz='UTC')],
-            'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
-            'exchange': ['CMES'] * 3,
+            'tick_size'      : [0.001] * 3,
+            'multiplier'     : [1000.0] * 3,
+            'exchange'       : ['CMES'] * 3,
         })
 
         # MA is set up to test a contract which is has no active volume.
         ma_frame = DataFrame({
-            'symbol': ['MAG16', 'MAH16', 'MAJ16'],
-            'root_symbol': ['MA'] * 3,
-            'asset_name': ['Most Active'] * 3,
-            'sid': range(14, 17),
-            'start_date': [Timestamp('2005-01-01', tz='UTC'),
-                           Timestamp('2005-01-21', tz='UTC'),
-                           Timestamp('2005-01-21', tz='UTC')],
-            'end_date': [Timestamp('2016-08-19', tz='UTC'),
-                         Timestamp('2016-11-21', tz='UTC'),
-                         Timestamp('2016-10-19', tz='UTC')],
-            'notice_date': [Timestamp('2016-02-17', tz='UTC'),
-                            Timestamp('2016-03-16', tz='UTC'),
-                            Timestamp('2016-04-13', tz='UTC')],
+            'symbol'         : ['MAG16', 'MAH16', 'MAJ16'],
+            'root_symbol'    : ['MA'] * 3,
+            'asset_name'     : ['Most Active'] * 3,
+            'sid'            : range(14, 17),
+            'start_date'     : [Timestamp('2005-01-01', tz='UTC'),
+                                Timestamp('2005-01-21', tz='UTC'),
+                                Timestamp('2005-01-21', tz='UTC')],
+            'end_date'       : [Timestamp('2016-08-19', tz='UTC'),
+                                Timestamp('2016-11-21', tz='UTC'),
+                                Timestamp('2016-10-19', tz='UTC')],
+            'notice_date'    : [Timestamp('2016-02-17', tz='UTC'),
+                                Timestamp('2016-03-16', tz='UTC'),
+                                Timestamp('2016-04-13', tz='UTC')],
             'expiration_date': [Timestamp('2016-02-17', tz='UTC'),
                                 Timestamp('2016-03-16', tz='UTC'),
                                 Timestamp('2016-04-13', tz='UTC')],
             'auto_close_date': [Timestamp('2016-02-17', tz='UTC'),
                                 Timestamp('2016-03-16', tz='UTC'),
                                 Timestamp('2016-04-13', tz='UTC')],
-            'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
-            'exchange': ['CMES'] * 3,
+            'tick_size'      : [0.001] * 3,
+            'multiplier'     : [1000.0] * 3,
+            'exchange'       : ['CMES'] * 3,
         })
 
         # DF is set up to have a double volume flip between the 'F' and 'G'
         # contracts, and then a really early temporary volume flip between the
         # 'G' and 'H' contracts.
         df_frame = DataFrame({
-            'symbol': ['DFF16', 'DFG16', 'DFH16'],
-            'root_symbol': ['DF'] * 3,
-            'asset_name': ['Double Flip'] * 3,
-            'sid': range(17, 20),
-            'start_date': [Timestamp('2005-01-01', tz='UTC'),
-                           Timestamp('2005-02-01', tz='UTC'),
-                           Timestamp('2005-03-01', tz='UTC')],
-            'end_date': [Timestamp('2016-08-19', tz='UTC'),
-                         Timestamp('2016-09-19', tz='UTC'),
-                         Timestamp('2016-10-19', tz='UTC')],
-            'notice_date': [Timestamp('2016-02-19', tz='UTC'),
-                            Timestamp('2016-03-18', tz='UTC'),
-                            Timestamp('2016-04-22', tz='UTC')],
+            'symbol'         : ['DFF16', 'DFG16', 'DFH16'],
+            'root_symbol'    : ['DF'] * 3,
+            'asset_name'     : ['Double Flip'] * 3,
+            'sid'            : range(17, 20),
+            'start_date'     : [Timestamp('2005-01-01', tz='UTC'),
+                                Timestamp('2005-02-01', tz='UTC'),
+                                Timestamp('2005-03-01', tz='UTC')],
+            'end_date'       : [Timestamp('2016-08-19', tz='UTC'),
+                                Timestamp('2016-09-19', tz='UTC'),
+                                Timestamp('2016-10-19', tz='UTC')],
+            'notice_date'    : [Timestamp('2016-02-19', tz='UTC'),
+                                Timestamp('2016-03-18', tz='UTC'),
+                                Timestamp('2016-04-22', tz='UTC')],
             'expiration_date': [Timestamp('2016-02-19', tz='UTC'),
                                 Timestamp('2016-03-18', tz='UTC'),
                                 Timestamp('2016-04-22', tz='UTC')],
             'auto_close_date': [Timestamp('2016-02-17', tz='UTC'),
                                 Timestamp('2016-03-16', tz='UTC'),
                                 Timestamp('2016-04-20', tz='UTC')],
-            'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
-            'exchange': ['CMES'] * 3,
+            'tick_size'      : [0.001] * 3,
+            'multiplier'     : [1000.0] * 3,
+            'exchange'       : ['CMES'] * 3,
         })
 
         return pd.concat([fo_frame, bz_frame, ma_frame, df_frame])
@@ -235,10 +234,10 @@ class ContinuousFuturesTestCase(zf.WithCreateBarData,
         vol_markers = vol_day_markers + vol_min_markers
         base_df = pd.DataFrame(
             {
-                'open': full(len(dts), 102000.0) + markers,
-                'high': full(len(dts), 109000.0) + markers,
-                'low': full(len(dts), 101000.0) + markers,
-                'close': full(len(dts), 105000.0) + markers,
+                'open'  : full(len(dts), 102000.0) + markers,
+                'high'  : full(len(dts), 109000.0) + markers,
+                'low'   : full(len(dts), 101000.0) + markers,
+                'close' : full(len(dts), 105000.0) + markers,
                 'volume': full(len(dts), 10000, dtype=int64) + vol_markers,
             },
             index=dts)
@@ -995,26 +994,26 @@ def record_current_contract(algo, data):
             window.loc['2016-01-26', cf_mul],
             124992.348,
             err_msg="At beginning of window, should be FOG16's first value, "
-            "adjusted.")
+                    "adjusted.")
 
         # Difference of 7008.561
         assert_almost_equal(
             window.loc['2016-01-26', cf_add],
             125011.44,
             err_msg="At beginning of window, should be FOG16's first value, "
-            "adjusted.")
+                    "adjusted.")
 
         assert_almost_equal(
             window.loc['2016-02-26', cf_mul],
             125241.440,
             err_msg="On session with roll, should be FOH16's 24th value, "
-            "unadjusted.")
+                    "unadjusted.")
 
         assert_almost_equal(
             window.loc['2016-02-26', cf_add],
             125241.440,
             err_msg="On session with roll, should be FOH16's 24th value, "
-            "unadjusted.")
+                    "unadjusted.")
 
         assert_almost_equal(
             window.loc['2016-02-29', cf_mul],
@@ -1049,46 +1048,46 @@ def record_current_contract(algo, data):
             window.loc['2016-02-24', cf_mul],
             135236.905,
             err_msg="At beginning of window, should be FOG16's 22nd value, "
-            "with two adjustments.")
+                    "with two adjustments.")
 
         assert_almost_equal(
             window.loc['2016-02-24', cf_add],
             135251.44,
             err_msg="At beginning of window, should be FOG16's 22nd value, "
-            "with two adjustments")
+                    "with two adjustments")
 
         # Unadjusted: 125241.44
         assert_almost_equal(
             window.loc['2016-02-26', cf_mul],
             135259.442,
             err_msg="On session with roll, should be FOH16's 24th value, "
-            "with one adjustment.")
+                    "with one adjustment.")
 
         assert_almost_equal(
             window.loc['2016-02-26', cf_add],
             135271.44,
             err_msg="On session with roll, should be FOH16's 24th value, "
-            "with one adjustment.")
+                    "with one adjustment.")
 
         # Unadjusted: 125251.44
         assert_almost_equal(
             window.loc['2016-02-29', cf_mul],
             135270.241,
             err_msg="On session after roll, should be FOH16's 25th value, "
-            "with one adjustment.")
+                    "with one adjustment.")
 
         assert_almost_equal(
             window.loc['2016-02-29', cf_add],
             135281.44,
             err_msg="On session after roll, should be FOH16's 25th value, "
-            "unadjusted.")
+                    "unadjusted.")
 
         # Unadjusted: 135431.44
         assert_almost_equal(
             window.loc['2016-03-24', cf_mul],
             135431.44,
             err_msg="On session with roll, should be FOJ16's 43rd value, "
-            "unadjusted.")
+                    "unadjusted.")
 
         assert_almost_equal(
             window.loc['2016-03-24', cf_add],
@@ -1272,7 +1271,6 @@ def record_current_contract(algo, data):
 
 class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
                          zf.ZiplineTestCase):
-
     START_DATE = pd.Timestamp('2017-01-03', tz='UTC')
     END_DATE = pd.Timestamp('2017-05-23', tz='UTC')
 
@@ -1310,80 +1308,80 @@ class RollFinderTestCase(zf.WithBcolzFutureDailyBarReader,
         return pd.DataFrame.from_dict(
             {
                 1000: {
-                    'symbol': 'CLF17',
-                    'root_symbol': 'CL',
-                    'start_date': cls.START_DATE,
-                    'end_date': cls.first_end_date,
+                    'symbol'         : 'CLF17',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : cls.START_DATE,
+                    'end_date'       : cls.first_end_date,
                     'auto_close_date': cls.first_end_date - two_days,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 1001: {
-                    'symbol': 'CLG17',
-                    'root_symbol': 'CL',
-                    'start_date': cls.START_DATE,
-                    'end_date': cls.second_end_date,
+                    'symbol'         : 'CLG17',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : cls.START_DATE,
+                    'end_date'       : cls.second_end_date,
                     'auto_close_date': cls.second_end_date - two_days,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 1002: {
-                    'symbol': 'CLH17',
-                    'root_symbol': 'CL',
-                    'start_date': cls.START_DATE,
-                    'end_date': cls.third_end_date,
+                    'symbol'         : 'CLH17',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : cls.START_DATE,
+                    'end_date'       : cls.third_end_date,
                     'auto_close_date': cls.third_auto_close_date,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 1003: {
-                    'symbol': 'CLJ17',
-                    'root_symbol': 'CL',
-                    'start_date': cls.fourth_start_date,
-                    'end_date': cls.fourth_end_date,
+                    'symbol'         : 'CLJ17',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : cls.fourth_start_date,
+                    'end_date'       : cls.fourth_end_date,
                     'auto_close_date': cls.fourth_auto_close_date,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 1004: {
-                    'symbol': 'CLK17',
-                    'root_symbol': 'CL',
-                    'start_date': cls.fifth_start_date,
-                    'end_date': cls.fifth_end_date,
+                    'symbol'         : 'CLK17',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : cls.fifth_start_date,
+                    'end_date'       : cls.fifth_end_date,
                     'auto_close_date': cls.fifth_auto_close_date,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 1005: {
-                    'symbol': 'CLM17',
-                    'root_symbol': 'CL',
-                    'start_date': cls.last_start_date,
-                    'end_date': cls.END_DATE,
+                    'symbol'         : 'CLM17',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : cls.last_start_date,
+                    'end_date'       : cls.END_DATE,
                     'auto_close_date': cls.END_DATE + two_days,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 1006: {
-                    'symbol': 'CLN17',
-                    'root_symbol': 'CL',
-                    'start_date': cls.last_start_date,
-                    'end_date': cls.END_DATE,
+                    'symbol'         : 'CLN17',
+                    'root_symbol'    : 'CL',
+                    'start_date'     : cls.last_start_date,
+                    'end_date'       : cls.END_DATE,
                     'auto_close_date': cls.END_DATE + two_days,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 2000: {
                     # Using a placeholder month of 'A' to mean this is the
                     # first contract in the chain.
-                    'symbol': 'FVA17',
-                    'root_symbol': 'FV',
-                    'start_date': cls.START_DATE,
-                    'end_date': cls.END_DATE + end_buffer_days,
+                    'symbol'         : 'FVA17',
+                    'root_symbol'    : 'FV',
+                    'start_date'     : cls.START_DATE,
+                    'end_date'       : cls.END_DATE + end_buffer_days,
                     'auto_close_date': cls.END_DATE + two_days,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
                 2001: {
                     # Using a placeholder month of 'B' to mean this is the
                     # second contract in the chain.
-                    'symbol': 'FVB17',
-                    'root_symbol': 'FV',
-                    'start_date': cls.START_DATE,
-                    'end_date': cls.END_DATE + end_buffer_days,
+                    'symbol'         : 'FVB17',
+                    'root_symbol'    : 'FV',
+                    'start_date'     : cls.START_DATE,
+                    'end_date'       : cls.END_DATE + end_buffer_days,
                     'auto_close_date': cls.END_DATE + end_buffer_days,
-                    'exchange': 'CMES',
+                    'exchange'       : 'CMES',
                 },
             },
             orient='index',
@@ -1480,7 +1478,7 @@ ACD -> 2017-05-19        0        0        0        0     3000 `---1000--> 2000
         yield (
             1003,
             fourth_contract_data.copy().loc[
-                cls.fourth_start_date:cls.fourth_end_date
+            cls.fourth_start_date:cls.fourth_end_date
             ]
         )
 
@@ -1629,66 +1627,66 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
     @classmethod
     def make_root_symbols_info(self):
         return pd.DataFrame({
-            'root_symbol': ['FO', 'BA', 'BZ'],
+            'root_symbol'   : ['FO', 'BA', 'BZ'],
             'root_symbol_id': [1, 2, 3],
-            'exchange': ['CMES', 'CMES', 'CMES']})
+            'exchange'      : ['CMES', 'CMES', 'CMES']})
 
     @classmethod
     def make_futures_info(self):
         fo_frame = DataFrame({
-            'root_symbol': ['FO'] * 4,
-            'asset_name': ['Foo'] * 4,
-            'symbol': ['FOF16', 'FOG16', 'FOH16', 'FOJ16'],
-            'sid': range(1, 5),
-            'start_date': pd.date_range('2015-01-01', periods=4, tz="UTC"),
-            'end_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
-            'notice_date': pd.date_range('2016-01-01', periods=4, tz="UTC"),
+            'root_symbol'    : ['FO'] * 4,
+            'asset_name'     : ['Foo'] * 4,
+            'symbol'         : ['FOF16', 'FOG16', 'FOH16', 'FOJ16'],
+            'sid'            : range(1, 5),
+            'start_date'     : pd.date_range('2015-01-01', periods=4, tz="UTC"),
+            'end_date'       : pd.date_range('2016-01-01', periods=4, tz="UTC"),
+            'notice_date'    : pd.date_range('2016-01-01', periods=4, tz="UTC"),
             'expiration_date': pd.date_range(
                 '2016-01-01', periods=4, tz="UTC"),
             'auto_close_date': pd.date_range(
                 '2016-01-01', periods=4, tz="UTC"),
-            'tick_size': [0.001] * 4,
-            'multiplier': [1000.0] * 4,
-            'exchange': ['CMES'] * 4,
+            'tick_size'      : [0.001] * 4,
+            'multiplier'     : [1000.0] * 4,
+            'exchange'       : ['CMES'] * 4,
         })
         # BA is set up to test a quarterly roll, to test Eurodollar-like
         # behavior
         # The roll should go from BAH16 -> BAM16
         ba_frame = DataFrame({
-            'root_symbol': ['BA'] * 3,
-            'asset_name': ['Bar'] * 3,
-            'symbol': ['BAF16', 'BAG16', 'BAH16'],
-            'sid': range(5, 8),
-            'start_date': pd.date_range('2015-01-01', periods=3, tz="UTC"),
-            'end_date': pd.date_range('2016-01-01', periods=3, tz="UTC"),
-            'notice_date': pd.date_range('2016-01-01', periods=3, tz="UTC"),
+            'root_symbol'    : ['BA'] * 3,
+            'asset_name'     : ['Bar'] * 3,
+            'symbol'         : ['BAF16', 'BAG16', 'BAH16'],
+            'sid'            : range(5, 8),
+            'start_date'     : pd.date_range('2015-01-01', periods=3, tz="UTC"),
+            'end_date'       : pd.date_range('2016-01-01', periods=3, tz="UTC"),
+            'notice_date'    : pd.date_range('2016-01-01', periods=3, tz="UTC"),
             'expiration_date': pd.date_range(
                 '2016-01-01', periods=3, tz="UTC"),
             'auto_close_date': pd.date_range(
                 '2016-01-01', periods=3, tz="UTC"),
-            'tick_size': [0.001] * 3,
-            'multiplier': [1000.0] * 3,
-            'exchange': ['CMES'] * 3,
+            'tick_size'      : [0.001] * 3,
+            'multiplier'     : [1000.0] * 3,
+            'exchange'       : ['CMES'] * 3,
         })
         # BZ is set up to test the case where the first contract in a chain has
         # an auto close date before its start date. It also tests the case
         # where a contract in the chain has a start date after the auto close
         # date of the previous contract, leaving a gap with no active contract.
         bz_frame = DataFrame({
-            'root_symbol': ['BZ'] * 4,
-            'asset_name': ['Baz'] * 4,
-            'symbol': ['BZF15', 'BZG15', 'BZH15', 'BZJ16'],
-            'sid': range(8, 12),
-            'start_date': [
+            'root_symbol'    : ['BZ'] * 4,
+            'asset_name'     : ['Baz'] * 4,
+            'symbol'         : ['BZF15', 'BZG15', 'BZH15', 'BZJ16'],
+            'sid'            : range(8, 12),
+            'start_date'     : [
                 pd.Timestamp('2015-01-02', tz='UTC'),
                 pd.Timestamp('2015-01-03', tz='UTC'),
                 pd.Timestamp('2015-02-23', tz='UTC'),
                 pd.Timestamp('2015-02-24', tz='UTC'),
             ],
-            'end_date': pd.date_range(
+            'end_date'       : pd.date_range(
                 '2015-02-01', periods=4, freq='MS', tz='UTC',
             ),
-            'notice_date': [
+            'notice_date'    : [
                 pd.Timestamp('2014-12-31', tz='UTC'),
                 pd.Timestamp('2015-02-18', tz='UTC'),
                 pd.Timestamp('2015-03-18', tz='UTC'),
@@ -1703,9 +1701,9 @@ class OrderedContractsTestCase(zf.WithAssetFinder, zf.ZiplineTestCase):
                 pd.Timestamp('2015-03-16', tz='UTC'),
                 pd.Timestamp('2015-04-15', tz='UTC'),
             ],
-            'tick_size': [0.001] * 4,
-            'multiplier': [1000.0] * 4,
-            'exchange': ['CMES'] * 4,
+            'tick_size'      : [0.001] * 4,
+            'multiplier'     : [1000.0] * 4,
+            'exchange'       : ['CMES'] * 4,
         })
 
         return pd.concat([fo_frame, ba_frame, bz_frame])

@@ -14,10 +14,14 @@ Highlights
 
 Support for Python 3.7 and Pyhon 3.8 and updated dependencies
 
+- Networkx 2.0
+- patchd bcolz
+
 Enhancements
 ~~~~~~~~~~~~
 
-None
+- custom_loader()
+- docs
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

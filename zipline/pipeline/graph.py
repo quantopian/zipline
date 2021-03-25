@@ -8,6 +8,7 @@ from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
 from .term import LoadableTerm
+from pprint import pprint
 
 
 class CyclicDependency(Exception):
@@ -52,6 +53,7 @@ class TermGraph(object):
     --------
     ExecutionPlan
     """
+
     def __init__(self, terms):
         self.graph = nx.DiGraph()
 
@@ -172,7 +174,7 @@ class TermGraph(object):
         nodes get one extra reference to ensure that they're still in the graph
         at the end of execution.
         """
-        refcounts = self.graph.out_degree()
+        refcounts = dict(self.graph.out_degree())
         for t in self.outputs.values():
             refcounts[t] += 1
 
@@ -259,6 +261,7 @@ class ExecutionPlan(TermGraph):
     outputs
     offset
     """
+
     def __init__(self,
                  domain,
                  terms,
@@ -282,7 +285,7 @@ class ExecutionPlan(TermGraph):
             t: t.specialize(domain)
             for t in self.graph if isinstance(t, LoadableTerm)
         }
-        self.graph = nx.relabel_nodes(self.graph, specializations)
+        self.graph = nx.relabel.relabel_nodes(self.graph, specializations)
 
         self.domain = domain
 
@@ -450,16 +453,16 @@ class ExecutionPlan(TermGraph):
         :meth:`zipline.pipeline.graph.ExecutionPlan.offset`
         :meth:`zipline.pipeline.Term.dependencies`
         """
+
         return {
-            term: attrs['extra_rows']
-            for term, attrs in self.graph.node.items()
-        }
+            term: self.graph.nodes[term]['extra_rows']
+            for term in self.graph.nodes}
 
     def _ensure_extra_rows(self, term, N):
         """
         Ensure that we're going to compute at least N extra rows of `term`.
         """
-        attrs = self.graph.node[term]
+        attrs = dict(self.graph.nodes())[term]
         attrs['extra_rows'] = max(N, attrs.get('extra_rows', 0))
 
     def mask_and_dates_for_term(self,
@@ -494,7 +497,7 @@ class ExecutionPlan(TermGraph):
         # This offset is computed against root_mask_term because that is what
         # determines the shape of the top-level dates array.
         dates_offset = (
-            self.extra_rows[root_mask_term] - self.extra_rows[term]
+                self.extra_rows[root_mask_term] - self.extra_rows[term]
         )
 
         return workspace[mask][mask_offset:], all_dates[dates_offset:]
@@ -502,7 +505,7 @@ class ExecutionPlan(TermGraph):
     def _assert_all_loadable_terms_specialized_to(self, domain):
         """Make sure that we've specialized all loadable terms in the graph.
         """
-        for term in self.graph.node:
+        for term in self.graph.nodes():
             if isinstance(term, LoadableTerm):
                 assert term.domain is domain
 

@@ -14,9 +14,13 @@
 from functools import partial
 import warnings
 
-from bcolz import carray, ctable
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    from bcolz import carray, ctable
+    import numpy as np
+
 import logbook
-import numpy as np
+
 from numpy import (
     array,
     full,

@@ -210,10 +210,10 @@ class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
             self.assertIn(SomeFactor(), resolution_order)
 
             self.assertEqual(
-                graph.graph.node[specialized_foo]['extra_rows'], 4,
+                graph.graph.nodes[specialized_foo]['extra_rows'], 4,
             )
             self.assertEqual(
-                graph.graph.node[specialized_bar]['extra_rows'], 4,
+                graph.graph.nodes[specialized_bar]['extra_rows'], 4,
             )
 
         for foobar in gen_equivalent_factors():
