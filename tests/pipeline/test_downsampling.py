@@ -58,9 +58,9 @@ class NDaysAgoClassifier(CustomClassifier):
 
 class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
 
-    DATA_MIN_DAY = pd.Timestamp('2012-06', tz='UTC')
-    DATA_MAX_DAY = pd.Timestamp('2015', tz='UTC')
-    TRADING_CALENDAR_STRS = ('NYSE', 'LSE', 'TSX')
+    DATA_MIN_DAY = pd.Timestamp("2012-06", tz="UTC")
+    DATA_MAX_DAY = pd.Timestamp("2015", tz="UTC")
+    TRADING_CALENDAR_STRS = ("NYSE", "LSE", "TSX")
 
     # Test with different window_lengths to ensure that window length is not
     # used when calculating exra rows for the top-level term.
@@ -95,12 +95,10 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True
+        __fail_fast=True,
     )
     def test_yearly(self, base_terms, calendar_name):
-        downsampled_terms = tuple(
-            t.downsample('year_start') for t in base_terms
-        )
+        downsampled_terms = tuple(t.downsample("year_start") for t in base_terms)
         all_terms = base_terms + downsampled_terms
 
         all_sessions = self.trading_sessions[calendar_name]
@@ -198,8 +196,7 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
         # to request enough extra rows.
         for i in range(0, 30, 5):
             with self.assertRaisesRegex(
-                NoFurtherDataError,
-                r'\s*Insufficient data to compute Pipeline'
+                NoFurtherDataError, r"\s*Insufficient data to compute Pipeline"
             ):
                 self.check_extra_row_calculations(
                     downsampled_terms,
@@ -226,17 +223,15 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True
+        __fail_fast=True,
     )
     def test_quarterly(self, calendar_name, base_terms):
-        downsampled_terms = tuple(
-            t.downsample('quarter_start') for t in base_terms
-        )
+        downsampled_terms = tuple(t.downsample("quarter_start") for t in base_terms)
         all_terms = base_terms + downsampled_terms
 
         # This region intersects with Q4 2013, Q1 2014, and Q2 2014.
         tmp = self.trading_sessions[calendar_name]
-        all_sessions = tmp[tmp.slice_indexer('2013-12-15', '2014-04-30')]
+        all_sessions = tmp[tmp.slice_indexer("2013-12-15", "2014-04-30")]
         end_session = all_sessions[-1]
 
         months = all_sessions.month
@@ -333,17 +328,15 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True
+        __fail_fast=True,
     )
     def test_monthly(self, calendar_name, base_terms):
-        downsampled_terms = tuple(
-            t.downsample('month_start') for t in base_terms
-        )
+        downsampled_terms = tuple(t.downsample("month_start") for t in base_terms)
         all_terms = base_terms + downsampled_terms
 
         # This region intersects with Dec 2013, Jan 2014, and Feb 2014.
         tmp = self.trading_sessions[calendar_name]
-        all_sessions = tmp[tmp.slice_indexer('2013-12-15', '2014-02-28')]
+        all_sessions = tmp[tmp.slice_indexer("2013-12-15", "2014-02-28")]
         end_session = all_sessions[-1]
 
         months = all_sessions.month
@@ -440,12 +433,10 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
             (filter1, filter11, filter91),
             (classifier1, classifier11, classifier91),
         ],
-        __fail_fast=True
+        __fail_fast=True,
     )
     def test_weekly(self, calendar_name, base_terms):
-        downsampled_terms = tuple(
-            t.downsample('week_start') for t in base_terms
-        )
+        downsampled_terms = tuple(t.downsample("week_start") for t in base_terms)
         all_terms = base_terms + downsampled_terms
 
         #    December 2013
@@ -468,18 +459,12 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
         # This region intersects with the last full week of 2013, the week
         # shared by 2013 and 2014, and the first full week of 2014.
         tmp = self.trading_sessions[calendar_name]
-        all_sessions = tmp[tmp.slice_indexer('2013-12-27', '2014-01-12')]
+        all_sessions = tmp[tmp.slice_indexer("2013-12-27", "2014-01-12")]
         end_session = all_sessions[-1]
 
-        week0 = all_sessions[
-            all_sessions.slice_indexer('2013-12-27', '2013-12-29')
-        ]
-        week1 = all_sessions[
-            all_sessions.slice_indexer('2013-12-30', '2014-01-05')
-        ]
-        week2 = all_sessions[
-            all_sessions.slice_indexer('2014-01-06', '2014-01-12')
-        ]
+        week0 = all_sessions[all_sessions.slice_indexer("2013-12-27", "2013-12-29")]
+        week1 = all_sessions[all_sessions.slice_indexer("2013-12-30", "2014-01-05")]
+        week2 = all_sessions[all_sessions.slice_indexer("2014-01-06", "2014-01-12")]
 
         # Simulate requesting computation where the unaltered lookback would
         # land exactly on the first date in week 2.  We shouldn't request any
@@ -563,13 +548,15 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
                 expected_extra_rows=i + 1,
             )
 
-    def check_extra_row_calculations(self,
-                                     terms,
-                                     all_sessions,
-                                     start_session,
-                                     end_session,
-                                     min_extra_rows,
-                                     expected_extra_rows):
+    def check_extra_row_calculations(
+        self,
+        terms,
+        all_sessions,
+        start_session,
+        end_session,
+        min_extra_rows,
+        expected_extra_rows,
+    ):
         """
         Check that each term in ``terms`` computes an expected number of extra
         rows for the given parameters.
@@ -588,18 +575,17 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
                     expected_extra_rows,
                     term,
                     result,
-                )
+                ),
             )
 
 
-class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
-                                  ZiplineTestCase):
+class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
     # Extend into the last few days of 2013 to test year/quarter boundaries.
-    START_DATE = pd.Timestamp('2013-12-15', tz='UTC')
+    START_DATE = pd.Timestamp("2013-12-15", tz="UTC")
 
     # Extend into the first few days of 2015 to test year/quarter boundaries.
-    END_DATE = pd.Timestamp('2015-01-06', tz='UTC')
+    END_DATE = pd.Timestamp("2015-01-06", tz="UTC")
 
     ASSET_FINDER_EQUITY_SIDS = tuple(range(10))
     DOMAIN = US_EQUITIES
@@ -628,42 +614,48 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         # 30
         all_sessions = self.all_sessions
         compute_dates = all_sessions[
-            all_sessions.slice_indexer('2014-06-05', '2015-01-06')
+            all_sessions.slice_indexer("2014-06-05", "2015-01-06")
         ]
         start_date, end_date = compute_dates[[0, -1]]
 
-        pipe = Pipeline({
-            'year': term.downsample(frequency='year_start'),
-            'quarter': term.downsample(frequency='quarter_start'),
-            'month': term.downsample(frequency='month_start'),
-            'week': term.downsample(frequency='week_start'),
-        })
+        pipe = Pipeline(
+            {
+                "year": term.downsample(frequency="year_start"),
+                "quarter": term.downsample(frequency="quarter_start"),
+                "month": term.downsample(frequency="month_start"),
+                "week": term.downsample(frequency="week_start"),
+            }
+        )
 
         # Raw values for term, computed each day from 2014 to the end of the
         # target period.
         raw_term_results = self.run_pipeline(
-            Pipeline({'term': term}),
-            start_date=pd.Timestamp('2014-01-02', tz='UTC'),
-            end_date=pd.Timestamp('2015-01-06', tz='UTC'),
-        )['term'].unstack()
+            Pipeline({"term": term}),
+            start_date=pd.Timestamp("2014-01-02", tz="UTC"),
+            end_date=pd.Timestamp("2015-01-06", tz="UTC"),
+        )["term"].unstack()
 
         expected_results = {
-            'year': (raw_term_results
-                     .groupby(pd.Grouper(freq='AS'))
-                     .first()
-                     .reindex(compute_dates, method='ffill')),
-            'quarter': (raw_term_results
-                        .groupby(pd.Grouper(freq='QS'))
-                        .first()
-                        .reindex(compute_dates, method='ffill')),
-            'month': (raw_term_results
-                      .groupby(pd.Grouper(freq='MS'))
-                      .first()
-                      .reindex(compute_dates, method='ffill')),
-            'week': (raw_term_results
-                     .groupby(pd.Grouper(freq='W', label='left'))
-                     .first()
-                     .reindex(compute_dates, method='ffill')),
+            "year": (
+                raw_term_results.groupby(pd.Grouper(freq="AS"))
+                .first()
+                .reindex(compute_dates, method="ffill")
+            ),
+            "quarter": (
+                raw_term_results.groupby(pd.Grouper(freq="QS"))
+                .first()
+                .reindex(compute_dates, method="ffill")
+            ),
+            "month": (
+                raw_term_results.groupby(pd.Grouper(freq="MS"))
+                .first()
+                .reindex(compute_dates, method="ffill")
+            ),
+            "week": (
+                raw_term_results.groupby(pd.Grouper(freq="W", label="left"))
+                .first()
+                .reindex(compute_dates, method="ffill")
+            ),
         }
 
         results = self.run_pipeline(pipe, start_date, end_date)
@@ -704,7 +696,6 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         self.check_downsampled_term(sma > 5)
 
     def test_downsample_windowed_classifier(self):
-
         class IntSumClassifier(CustomClassifier):
             inputs = [TestingDataSet.float_col]
             window_length = 8
@@ -727,7 +718,7 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
 
         f = NDaysAgoFactor(window_length=3)
         with self.assertRaises(ValueError) as e:
-            f.downsample('bad')
+            f.downsample("bad")
 
         expected = (
             "{}() expected a value in "
@@ -747,14 +738,14 @@ class DownsampledCAPipelineTestCase(DownsampledPipelineTestCase):
 
 class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
 
-    T = partial(pd.Timestamp, tz='utc')
-    START_DATE = T('2014-01-01')
-    END_DATE = T('2014-02-01')
-    HALF_WAY_POINT = T('2014-01-15')
+    T = partial(pd.Timestamp, tz="utc")
+    START_DATE = T("2014-01-01")
+    END_DATE = T("2014-02-01")
+    HALF_WAY_POINT = T("2014-01-15")
 
     dates = pd.date_range(START_DATE, END_DATE)
 
-    ASSET_FINDER_COUNTRY_CODE = '??'
+    ASSET_FINDER_COUNTRY_CODE = "??"
 
     class SidFactor(CustomFactor):
         inputs = ()
@@ -783,22 +774,24 @@ class TestDownsampledRowwiseOperation(WithAssetFinder, ZiplineTestCase):
         end = cls.END_DATE
         early_end = cls.HALF_WAY_POINT
         return pd.DataFrame(
-            [['A',    'Ayy Inc.', start,       end, 'E'],
-             ['B', 'early end',   start, early_end, 'E'],
-             ['C',      'C Inc.', start,       end, 'E']],
-            index=[ord('A'), ord('B'), ord('C')],
+            [
+                ["A", "Ayy Inc.", start, end, "E"],
+                ["B", "early end", start, early_end, "E"],
+                ["C", "C Inc.", start, end, "E"],
+            ],
+            index=[ord("A"), ord("B"), ord("C")],
             columns=(
-                'symbol',
-                'asset_name',
-                'start_date',
-                'end_date',
-                'exchange',
+                "symbol",
+                "asset_name",
+                "start_date",
+                "end_date",
+                "exchange",
             ),
         )
 
     def test_downsampled_rank(self):
-        downsampled_rank = self.factor.rank().downsample('month_start')
-        pipeline = Pipeline({'rank': downsampled_rank})
+        downsampled_rank = self.factor.rank().downsample("month_start")
+        pipeline = Pipeline({"rank": downsampled_rank})
 
         results_month_start = self.pipeline_engine.run_pipeline(
             pipeline,

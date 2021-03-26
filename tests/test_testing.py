@@ -60,23 +60,14 @@ class TestParameterSpace(TestCase):
 
 
 class TestMakeBooleanArray(TestCase):
-
     def test_make_alternating_boolean_array(self):
         check_arrays(
             make_alternating_boolean_array((3, 3)),
-            array(
-                [[True,  False,  True],
-                 [False,  True, False],
-                 [True,  False,  True]]
-            ),
+            array([[True, False, True], [False, True, False], [True, False, True]]),
         )
         check_arrays(
             make_alternating_boolean_array((3, 3), first_value=False),
-            array(
-                [[False,  True, False],
-                 [True,  False,  True],
-                 [False,  True, False]]
-            ),
+            array([[False, True, False], [True, False, True], [False, True, False]]),
         )
         check_arrays(
             make_alternating_boolean_array((1, 3)),
@@ -94,19 +85,11 @@ class TestMakeBooleanArray(TestCase):
     def test_make_cascading_boolean_array(self):
         check_arrays(
             make_cascading_boolean_array((3, 3)),
-            array(
-                [[True,   True, False],
-                 [True,  False, False],
-                 [False, False, False]]
-            ),
+            array([[True, True, False], [True, False, False], [False, False, False]]),
         )
         check_arrays(
             make_cascading_boolean_array((3, 3), first_value=False),
-            array(
-                [[False, False, True],
-                 [False,  True, True],
-                 [True,   True, True]]
-            ),
+            array([[False, False, True], [False, True, True], [True, True, True]]),
         )
         check_arrays(
             make_cascading_boolean_array((1, 3)),
@@ -122,19 +105,17 @@ class TestMakeBooleanArray(TestCase):
         )
 
 
-class TestTestingSlippage(WithConstantEquityMinuteBarData,
-                          WithDataPortal,
-                          ZiplineTestCase):
-    ASSET_FINDER_EQUITY_SYMBOLS = ('A',)
+class TestTestingSlippage(
+    WithConstantEquityMinuteBarData, WithDataPortal, ZiplineTestCase
+):
+    ASSET_FINDER_EQUITY_SYMBOLS = ("A",)
     ASSET_FINDER_EQUITY_SIDS = (1,)
 
     @classmethod
     def init_class_fixtures(cls):
         super(TestTestingSlippage, cls).init_class_fixtures()
         cls.asset = cls.asset_finder.retrieve_asset(1)
-        cls.minute, _ = (
-            cls.trading_calendar.open_and_close_for_session(cls.START_DATE)
-        )
+        cls.minute, _ = cls.trading_calendar.open_and_close_for_session(cls.START_DATE)
 
     def init_instance_fixtures(self):
         super(TestTestingSlippage, self).init_instance_fixtures()
@@ -143,7 +124,7 @@ class TestTestingSlippage(WithConstantEquityMinuteBarData,
             lambda: self.minute,
             "minute",
             self.trading_calendar,
-            NoRestrictions()
+            NoRestrictions(),
         )
 
     def make_order(self, amount):
@@ -177,12 +158,11 @@ class TestTestingSlippage(WithConstantEquityMinuteBarData,
 
 
 class TestPredicates(ZiplineTestCase):
-
     def test_wildcard(self):
         for obj in 1, object(), "foo", {}:
             self.assertEqual(obj, wildcard)
             self.assertEqual([obj], [wildcard])
-            self.assertEqual({'foo': wildcard}, {'foo': wildcard})
+            self.assertEqual({"foo": wildcard}, {"foo": wildcard})
 
     def test_instance_of(self):
         self.assertEqual(1, instance_of(int))
@@ -191,7 +171,6 @@ class TestPredicates(ZiplineTestCase):
         self.assertEqual("foo", instance_of((str, int)))
 
     def test_instance_of_exact(self):
-
         class Foo(object):
             pass
 

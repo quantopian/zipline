@@ -16,18 +16,17 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 
-nat = pd.Timestamp('nat')
+nat = pd.Timestamp("nat")
 
 
-class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
-                                  WithInstanceTmpDir,
-                                  WithLogger,
-                                  ZiplineTestCase):
+class TestSQLiteAdjustmentsWriter(
+    WithTradingCalendars, WithInstanceTmpDir, WithLogger, ZiplineTestCase
+):
     make_log_handler = logbook.TestHandler
 
     def init_instance_fixtures(self):
         super(TestSQLiteAdjustmentsWriter, self).init_instance_fixtures()
-        self.db_path = self.instance_tmpdir.getpath('adjustments.db')
+        self.db_path = self.instance_tmpdir.getpath("adjustments.db")
 
     def writer(self, session_bar_reader):
         return self.enter_instance_context(
@@ -48,15 +47,12 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
             index=dates,
             columns=sids,
         )
-        frames = {
-            key: nan_frame
-            for key in ('open', 'high', 'low', 'close', 'volume')
-        }
+        frames = {key: nan_frame for key in ("open", "high", "low", "close", "volume")}
 
         return InMemoryDailyBarReader(
             frames,
             self.trading_calendar,
-            currency_codes=pd.Series(index=sids, data='USD'),
+            currency_codes=pd.Series(index=sids, data="USD"),
         )
 
     def writer_without_pricing(self, dates, sids):
@@ -68,13 +64,13 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
             index=close.index,
             columns=close.columns,
         )
-        frames = {'close': close}
-        for key in 'open', 'high', 'low', 'volume':
+        frames = {"close": close}
+        for key in "open", "high", "low", "volume":
             frames[key] = nan_frame
         return InMemoryDailyBarReader(
             frames,
             self.trading_calendar,
-            currency_codes=pd.Series(index=close.columns, data='USD'),
+            currency_codes=pd.Series(index=close.columns, data="USD"),
         )
 
     def writer_from_close(self, close):
@@ -82,28 +78,29 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
 
     def assert_all_empty(self, dfs):
         for k, v in dfs.items():
-            assert_equal(len(v), 0, msg='%s dataframe should be empty' % k)
+            assert_equal(len(v), 0, msg="%s dataframe should be empty" % k)
 
     def test_calculate_dividend_ratio(self):
         first_date_ix = 200
-        dates = self.trading_calendar.all_sessions[
-                first_date_ix:first_date_ix + 3
-                ]
+        dates = self.trading_calendar.all_sessions[first_date_ix : first_date_ix + 3]
 
-        before_pricing_data = \
-            (dates[0] - self.trading_calendar.day).tz_convert('UTC')
-        one_day_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day).tz_convert('UTC')
-        ten_days_past_pricing_data = \
-            (dates[-1] + self.trading_calendar.day * 10).tz_convert('UTC')
+        before_pricing_data = (dates[0] - self.trading_calendar.day).tz_convert("UTC")
+        one_day_past_pricing_data = (dates[-1] + self.trading_calendar.day).tz_convert(
+            "UTC"
+        )
+        ten_days_past_pricing_data = (
+            dates[-1] + self.trading_calendar.day * 10
+        ).tz_convert("UTC")
 
         def T(n):
-            return dates[n].tz_convert('UTC')
+            return dates[n].tz_convert("UTC")
 
         close = pd.DataFrame(
-            [[10.0, 0.5, 30.0],  # noqa
-             [9.5, 0.4, np.nan],  # noqa
-             [15.0, 0.6, np.nan]],  # noqa
+            [
+                [10.0, 0.5, 30.0],  # noqa
+                [9.5, 0.4, np.nan],  # noqa
+                [15.0, 0.6, np.nan],
+            ],  # noqa
             columns=[0, 1, 2],
             index=dates,
         )
@@ -115,114 +112,114 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
                 # output
                 [0, before_pricing_data, 10],
                 [0, T(0), 10],
-
                 # previous price was 0.4, meaning the dividend amount
                 # is greater than or equal to price and the ratio would be
                 # negative. we should warn and drop this row
                 [1, T(1), 0.51],
-
                 # previous price was 0.4, meaning the dividend amount
                 # is exactly equal to price and the ratio would be 0.
                 # we should warn and drop this row
                 [1, T(2), 0.4],
-
                 # previous price is nan, so we cannot compute the ratio.
                 # we should warn and drop this row
                 [2, T(2), 10],
-
                 # previous price was 10, expected ratio is 0.95
                 [0, T(1), 0.5],
-
                 # previous price was 0.4, expected ratio is 0.9
                 [1, T(2), 0.04],
-
                 # we shouldn't crash in the process of warning/dropping this
                 # row even though it is past the range of `dates`
                 [2, one_day_past_pricing_data, 0.1],
                 [2, ten_days_past_pricing_data, 0.1],
-
             ],
-            columns=['sid', 'ex_date', 'amount'],
+            columns=["sid", "ex_date", "amount"],
         )
 
         # give every extra date field a unique date so that we can make sure
         # they appear unchanged in the dividends payouts
         ix = first_date_ix
-        for col in 'declared_date', 'record_date', 'pay_date':
-            extra_dates = self.trading_calendar.all_sessions[
-                          ix:ix + len(dividends)
-                          ]
+        for col in "declared_date", "record_date", "pay_date":
+            extra_dates = self.trading_calendar.all_sessions[ix : ix + len(dividends)]
             ix += len(dividends)
             dividends[col] = extra_dates
 
         self.writer_from_close(close).write(dividends=dividends)
         dfs = self.component_dataframes()
-        dividend_payouts = dfs.pop('dividend_payouts')
-        dividend_ratios = dfs.pop('dividends')
+        dividend_payouts = dfs.pop("dividend_payouts")
+        dividend_ratios = dfs.pop("dividends")
         self.assert_all_empty(dfs)
 
-        payout_sort_key = ['sid', 'ex_date', 'amount']
+        payout_sort_key = ["sid", "ex_date", "amount"]
         dividend_payouts = dividend_payouts.sort_values(payout_sort_key)
         dividend_payouts = dividend_payouts.reset_index(drop=True)
 
         expected_dividend_payouts = dividend_payouts.sort_values(
             payout_sort_key,
         )
-        expected_dividend_payouts.reset_index(
-            drop=True, inplace=True
-        )
+        expected_dividend_payouts.reset_index(drop=True, inplace=True)
         assert_equal(dividend_payouts, expected_dividend_payouts)
 
         expected_dividend_ratios = pd.DataFrame(
-            [[T(1), 0.95, 0],
-             [T(2), 0.90, 1]],
-            columns=['effective_date', 'ratio', 'sid'],
+            [[T(1), 0.95, 0], [T(2), 0.90, 1]],
+            columns=["effective_date", "ratio", "sid"],
         )
         dividend_ratios.sort_values(
-            ['effective_date', 'sid'],
+            ["effective_date", "sid"],
             inplace=True,
         )
         dividend_ratios.reset_index(drop=True, inplace=True)
         assert_equal(dividend_ratios, expected_dividend_ratios)
 
-        self.assertTrue(self.log_handler.has_warning(
-            "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
-            " amount=10.000",
-        ))
-        self.assertTrue(self.log_handler.has_warning(
-            "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
-            " amount=0.100",
-        ))
-        self.assertTrue(self.log_handler.has_warning(
-            "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
-            " amount=0.100",
-        ))
-        self.assertTrue(self.log_handler.has_warning(
-            'Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,'
-            ' amount=0.510',
-        ))
-        self.assertTrue(self.log_handler.has_warning(
-            'Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18,'
-            ' amount=0.400',
-        ))
+        self.assertTrue(
+            self.log_handler.has_warning(
+                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
+                " amount=10.000",
+            )
+        )
+        self.assertTrue(
+            self.log_handler.has_warning(
+                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
+                " amount=0.100",
+            )
+        )
+        self.assertTrue(
+            self.log_handler.has_warning(
+                "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
+                " amount=0.100",
+            )
+        )
+        self.assertTrue(
+            self.log_handler.has_warning(
+                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,"
+                " amount=0.510",
+            )
+        )
+        self.assertTrue(
+            self.log_handler.has_warning(
+                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18,"
+                " amount=0.400",
+            )
+        )
 
     def _test_identity(self, name):
         sids = np.arange(5)
 
         # tx_convert makes tz-naive
-        dates = self.trading_calendar.all_sessions.tz_convert('UTC')
+        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
 
         def T(n):
             return dates[n]
 
-        sort_key = ['effective_date', 'sid', 'ratio']
+        sort_key = ["effective_date", "sid", "ratio"]
         input_ = pd.DataFrame(
-            [[T(0), 0.1, 1],
-             [T(1), 2.0, 1],
-             [T(0), 0.1, 2],
-             [T(4), 2.0, 2],
-             [T(8), 2.4, 2]],
-            columns=['effective_date', 'ratio', 'sid'],
+            [
+                [T(0), 0.1, 1],
+                [T(1), 2.0, 1],
+                [T(0), 0.1, 2],
+                [T(4), 2.0, 2],
+                [T(8), 2.4, 2],
+            ],
+            columns=["effective_date", "ratio", "sid"],
         ).sort_values(sort_key)
 
         self.writer_without_pricing(dates, sids).write(**{name: input_})
@@ -234,57 +231,57 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         assert_equal(input_, output)
 
     def test_splits(self):
-        self._test_identity('splits')
+        self._test_identity("splits")
 
     def test_mergers(self):
-        self._test_identity('mergers')
+        self._test_identity("mergers")
 
     def test_stock_dividends(self):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert('UTC')
+        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
 
         def T(n):
             return dates[n]
 
-        sort_key = ['sid', 'ex_date', 'payment_sid', 'ratio']
+        sort_key = ["sid", "ex_date", "payment_sid", "ratio"]
         input_ = pd.DataFrame(
-            [[0, T(0), 1.5, 1],
-             [0, T(1), 0.5, 2],
-
-             # the same asset has two stock dividends for different assets on
-             # the same day
-             [1, T(0), 1, 2],
-             [1, T(0), 1.2, 3]],
-            columns=['sid', 'ex_date', 'ratio', 'payment_sid'],
+            [
+                [0, T(0), 1.5, 1],
+                [0, T(1), 0.5, 2],
+                # the same asset has two stock dividends for different assets on
+                # the same day
+                [1, T(0), 1, 2],
+                [1, T(0), 1.2, 3],
+            ],
+            columns=["sid", "ex_date", "ratio", "payment_sid"],
         ).sort_values(sort_key)
 
         # give every extra date field a unique date so that we can make sure
         # they appear unchanged in the dividends payouts
         ix = 0
-        for col in 'declared_date', 'record_date', 'pay_date':
-            extra_dates = dates[ix:ix + len(input_)]
+        for col in "declared_date", "record_date", "pay_date":
+            extra_dates = dates[ix : ix + len(input_)]
             ix += len(input_)
             input_[col] = extra_dates
 
         self.writer_without_pricing(dates, sids).write(stock_dividends=input_)
         dfs = self.component_dataframes()
 
-        output = dfs.pop('stock_dividend_payouts').sort_values(sort_key)
+        output = dfs.pop("stock_dividend_payouts").sort_values(sort_key)
         self.assert_all_empty(dfs)
 
         assert_equal(output, input_[sorted(input_.columns)])
 
     @parameter_space(convert_dates=[True, False])
     def test_empty_frame_dtypes(self, convert_dates):
-        """Test that dataframe dtypes are preserved for empty tables.
-        """
+        """Test that dataframe dtypes are preserved for empty tables."""
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert('UTC')
+        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
 
         if convert_dates:
-            date_dtype = np.dtype('M8[ns]')
+            date_dtype = np.dtype("M8[ns]")
         else:
-            date_dtype = np.dtype('int64')
+            date_dtype = np.dtype("int64")
 
         # Write all empty frames.
         self.writer_without_pricing(dates, sids).write()
@@ -294,36 +291,42 @@ class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
         for df in dfs.values():
             assert_equal(len(df), 0)
 
-        for key in 'splits', 'mergers', 'dividends':
+        for key in "splits", "mergers", "dividends":
             result = dfs[key].dtypes
-            expected = pd.Series({
-                'effective_date': date_dtype,
-                'ratio': np.dtype('float64'),
-                'sid': np.dtype('int64'),
-            }).sort_index()
+            expected = pd.Series(
+                {
+                    "effective_date": date_dtype,
+                    "ratio": np.dtype("float64"),
+                    "sid": np.dtype("int64"),
+                }
+            ).sort_index()
             assert_equal(result, expected)
 
-        result = dfs['dividend_payouts'].dtypes
-        expected = pd.Series({
-            'sid': np.dtype('int64'),
-            'ex_date': date_dtype,
-            'declared_date': date_dtype,
-            'record_date': date_dtype,
-            'pay_date': date_dtype,
-            'amount': np.dtype('float64'),
-        }).sort_index()
+        result = dfs["dividend_payouts"].dtypes
+        expected = pd.Series(
+            {
+                "sid": np.dtype("int64"),
+                "ex_date": date_dtype,
+                "declared_date": date_dtype,
+                "record_date": date_dtype,
+                "pay_date": date_dtype,
+                "amount": np.dtype("float64"),
+            }
+        ).sort_index()
 
         assert_equal(result, expected)
 
-        result = dfs['stock_dividend_payouts'].dtypes
-        expected = pd.Series({
-            'sid': np.dtype('int64'),
-            'ex_date': date_dtype,
-            'declared_date': date_dtype,
-            'record_date': date_dtype,
-            'pay_date': date_dtype,
-            'payment_sid': np.dtype('int64'),
-            'ratio': np.dtype('float64'),
-        }).sort_index()
+        result = dfs["stock_dividend_payouts"].dtypes
+        expected = pd.Series(
+            {
+                "sid": np.dtype("int64"),
+                "ex_date": date_dtype,
+                "declared_date": date_dtype,
+                "record_date": date_dtype,
+                "pay_date": date_dtype,
+                "payment_sid": np.dtype("int64"),
+                "ratio": np.dtype("float64"),
+            }
+        ).sort_index()
 
         assert_equal(result, expected)

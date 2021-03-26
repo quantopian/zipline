@@ -34,11 +34,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         verify_indices=bool,
         currency_codes=pd.Series,
     )
-    def __init__(self,
-                 frames,
-                 calendar,
-                 currency_codes,
-                 verify_indices=True):
+    def __init__(self, frames, calendar, currency_codes, verify_indices=True):
         self._frames = frames
         self._values = {key: frame.values for key, frame in frames.items()}
         self._calendar = calendar
@@ -48,13 +44,12 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
         if verify_indices:
             verify_frames_aligned(list(frames.values()), calendar)
 
-        self._sessions = frames['close'].index
-        self._sids = frames['close'].columns
+        self._sessions = frames["close"].index
+        self._sids = frames["close"].columns
 
     @classmethod
     def from_dfs(cls, dfs, calendar, currency_codes):
-        """Helper for construction from a dict of DataFrames.
-        """
+        """Helper for construction from a dict of DataFrames."""
         return cls(dfs, calendar, currency_codes)
 
     @property
@@ -125,7 +120,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
                        NaT if no trade is found before the given dt.
         """
         try:
-            return self.frames['close'].loc[:, asset.sid].last_valid_index()
+            return self.frames["close"].loc[:, asset.sid].last_valid_index()
         except IndexError:
             return NaT
 

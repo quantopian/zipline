@@ -8,9 +8,9 @@ from textwrap import dedent
 
 
 class _Sentinel(object):
-    """Base class for Sentinel objects.
-    """
-    __slots__ = ('__weakref__',)
+    """Base class for Sentinel objects."""
+
+    __slots__ = ("__weakref__",)
 
 
 def is_sentinel(obj):
@@ -26,8 +26,9 @@ def sentinel(name, doc=None):
         if doc == value.__doc__:
             return value
 
-        raise ValueError(dedent(
-            """\
+        raise ValueError(
+            dedent(
+                """\
             New sentinel value %r conflicts with an existing sentinel of the
             same name.
             Old sentinel docstring: %r
@@ -37,7 +38,9 @@ def sentinel(name, doc=None):
 
             Resolve this conflict by changing the name of one of the sentinels.
             """,
-        ) % (name, value.__doc__, doc, value._created_at))
+            )
+            % (name, value.__doc__, doc, value._created_at)
+        )
 
     try:
         frame = sys._getframe(1)
@@ -45,11 +48,11 @@ def sentinel(name, doc=None):
         frame = None
 
     if frame is None:
-        created_at = '<unknown>'
+        created_at = "<unknown>"
     else:
-        created_at = '%s:%s' % (frame.f_code.co_filename, frame.f_lineno)
+        created_at = "%s:%s" % (frame.f_code.co_filename, frame.f_lineno)
 
-    @object.__new__   # bind a single instance to the name 'Sentinel'
+    @object.__new__  # bind a single instance to the name 'Sentinel'
     class Sentinel(_Sentinel):
         __doc__ = doc
         __name__ = name
@@ -59,10 +62,10 @@ def sentinel(name, doc=None):
         _created_at = created_at
 
         def __new__(cls):
-            raise TypeError('cannot create %r instances' % name)
+            raise TypeError("cannot create %r instances" % name)
 
         def __repr__(self):
-            return 'sentinel(%r)' % name
+            return "sentinel(%r)" % name
 
         def __reduce__(self):
             return sentinel, (name, doc)
@@ -75,7 +78,7 @@ def sentinel(name, doc=None):
 
     cls = type(Sentinel)
     try:
-        cls.__module__ = frame.f_globals['__name__']
+        cls.__module__ = frame.f_globals["__name__"]
     except (AttributeError, KeyError):
         # Couldn't get the name from the calling scope, just use None.
         # AttributeError is when frame is None, KeyError is when f_globals

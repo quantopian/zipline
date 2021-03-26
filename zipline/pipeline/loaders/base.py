@@ -5,8 +5,7 @@ from interface import default, Interface
 
 
 class PipelineLoader(Interface):
-    """Interface for PipelineLoaders.
-    """
+    """Interface for PipelineLoaders."""
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         """

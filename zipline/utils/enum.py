@@ -27,19 +27,15 @@ from ctypes import (
 import numpy as np
 import pandas as pd
 
-_inttypes_map = OrderedDict(sorted([
-    (sizeof(t) - 1, t) for t in {
-        c_ubyte,
-        c_uint,
-        c_ulong,
-        c_ulonglong,
-        c_ushort
-    }
-]))
+_inttypes_map = OrderedDict(
+    sorted(
+        [(sizeof(t) - 1, t) for t in {c_ubyte, c_uint, c_ulong, c_ulonglong, c_ushort}]
+    )
+)
 _inttypes = list(
     pd.Series(_inttypes_map).reindex(
         range(max(_inttypes_map.keys())),
-        method='bfill',
+        method="bfill",
     ),
 )
 
@@ -90,8 +86,8 @@ def enum(option, *options):
         inttype = _inttypes[int(np.log2(len(options) - 1)) // 8]
     except IndexError:
         raise OverflowError(
-            'Cannot store enums with more than sys.maxsize elements, got %d' %
-            len(options),
+            "Cannot store enums with more than sys.maxsize elements, got %d"
+            % len(options),
         )
 
     class _enum(Structure):
@@ -104,10 +100,8 @@ def enum(option, *options):
             return 0 <= value < len(options)
 
         def __repr__(self):
-            return '<enum: %s>' % (
-                ('%d fields' % len(options))
-                if len(options) > 10 else
-                repr(options)
+            return "<enum: %s>" % (
+                ("%d fields" % len(options)) if len(options) > 10 else repr(options)
             )
 
     return _enum(*rangeob)

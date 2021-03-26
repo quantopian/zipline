@@ -19,10 +19,7 @@ A source to be used in testing.
 
 from datetime import timedelta
 import itertools
-from zipline.protocol import (
-    Event,
-    DATASOURCE_TYPE
-)
+from zipline.protocol import Event, DATASOURCE_TYPE
 
 
 def create_trade(sid, price, amount, datetime, source_id="test_factory"):
@@ -35,29 +32,23 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
     trade.price = price
     trade.close_price = price
     trade.open_price = price
-    trade.low = price * .95
+    trade.low = price * 0.95
     trade.high = price * 1.05
     trade.volume = amount
 
     return trade
 
 
-def date_gen(start,
-             end,
-             trading_calendar,
-             delta=timedelta(minutes=1),
-             repeats=None):
+def date_gen(start, end, trading_calendar, delta=timedelta(minutes=1), repeats=None):
     """
     Utility to generate a stream of dates.
     """
-    daily_delta = not (delta.total_seconds()
-                       % timedelta(days=1).total_seconds())
+    daily_delta = not (delta.total_seconds() % timedelta(days=1).total_seconds())
     cur = start
     if daily_delta:
         # if we are producing daily timestamps, we
         # use midnight
-        cur = cur.replace(hour=0, minute=0, second=0,
-                          microsecond=0)
+        cur = cur.replace(hour=0, minute=0, second=0, microsecond=0)
 
     def advance_current(cur):
         """
@@ -65,9 +56,9 @@ def date_gen(start,
         """
         cur = cur + delta
 
-        currently_executing = \
-            (daily_delta and (cur in trading_calendar.all_sessions)) or \
-            (trading_calendar.is_open_on_minute(cur))
+        currently_executing = (
+            daily_delta and (cur in trading_calendar.all_sessions)
+        ) or (trading_calendar.is_open_on_minute(cur))
 
         if currently_executing:
             return cur
@@ -106,14 +97,9 @@ class SpecificEquityTrades(object):
     filter : filter to remove the sids
     """
 
-    def __init__(self,
-                 trading_calendar,
-                 asset_finder,
-                 sids,
-                 start,
-                 end,
-                 delta,
-                 count=500):
+    def __init__(
+        self, trading_calendar, asset_finder, sids, start, end, delta, count=500
+    ):
         self.trading_calendar = trading_calendar
 
         # Unpack config dictionary with default values.
@@ -154,7 +140,8 @@ class SpecificEquityTrades(object):
                 price=float(i % 10) + 1.0,
                 amount=(i * 50) % 900 + 100,
                 datetime=date,
-            ) for (i, date), sid in itertools.product(
-            enumerate(date_generator), self.sids
-        )
+            )
+            for (i, date), sid in itertools.product(
+                enumerate(date_generator), self.sids
+            )
         )

@@ -34,7 +34,7 @@ from zipline.utils.cache import dataframe_cache
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 EXAMPLE_MODULES = examples.load_example_modules()
 
@@ -46,32 +46,29 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
     def init_class_fixtures(cls):
         super(ExamplesTests, cls).init_class_fixtures()
 
-        register('test', lambda *args: None)
-        cls.add_class_callback(partial(unregister, 'test'))
+        register("test", lambda *args: None)
+        cls.add_class_callback(partial(unregister, "test"))
 
-        with tarfile.open(test_resource_path('example_data.tar.gz')) as tar:
+        with tarfile.open(test_resource_path("example_data.tar.gz")) as tar:
             tar.extractall(cls.tmpdir.path)
 
         cls.expected_perf = dataframe_cache(
             cls.tmpdir.getpath(
-                'example_data/expected_perf/%s' %
-                pd.__version__.replace('.', '-'),
+                "example_data/expected_perf/%s" % pd.__version__.replace(".", "-"),
             ),
-            serialization='pickle',
+            serialization="pickle",
         )
 
         cls.no_benchmark_expected_perf = {
-            example_name: cls._no_benchmark_expectations_applied(
-                expected_perf.copy()
-            )
+            example_name: cls._no_benchmark_expectations_applied(expected_perf.copy())
             for example_name, expected_perf in cls.expected_perf.items()
         }
 
     @staticmethod
     def _no_benchmark_expectations_applied(expected_perf):
         # With no benchmark, expect zero results for these metrics:
-        expected_perf[['alpha', 'beta']] = None
-        for col in ['benchmark_period_return', 'benchmark_volatility']:
+        expected_perf[["alpha", "beta"]] = None
+        for col in ["benchmark_period_return", "benchmark_volatility"]:
             expected_perf.loc[
                 ~pd.isnull(expected_perf[col]),
                 col,
@@ -80,7 +77,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
 
     @parameter_space(
         example_name=sorted(EXAMPLE_MODULES),
-        benchmark_returns=[read_checked_in_benchmark_data(), None]
+        benchmark_returns=[read_checked_in_benchmark_data(), None],
     )
     def test_example(self, example_name, benchmark_returns):
         actual_perf = examples.run_example(
@@ -89,7 +86,7 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             # This should match the invocation in
             # zipline/tests/resources/rebuild_example_data
             environ={
-                'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
+                "ZIPLINE_ROOT": self.tmpdir.getpath("example_data/root"),
             },
             benchmark_returns=benchmark_returns,
         )
@@ -100,8 +97,9 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
 
         # Exclude positions column as the positions do not always have the
         # same order
-        columns = [column for column in examples._cols_to_check
-                   if column != 'positions']
+        columns = [
+            column for column in examples._cols_to_check if column != "positions"
+        ]
         assert_equal(
             actual_perf[columns],
             expected_perf[columns],
@@ -112,6 +110,6 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
         )
         # Sort positions by SID before comparing
         assert_equal(
-            expected_perf['positions'].apply(sorted, key=itemgetter('sid')),
-            actual_perf['positions'].apply(sorted, key=itemgetter('sid')),
+            expected_perf["positions"].apply(sorted, key=itemgetter("sid")),
+            actual_perf["positions"].apply(sorted, key=itemgetter("sid")),
         )

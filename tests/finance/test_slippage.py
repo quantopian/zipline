@@ -20,7 +20,7 @@ from collections import namedtuple
 import datetime
 from math import sqrt
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 import pandas as pd
 import pytz
@@ -54,26 +54,23 @@ from zipline.testing.fixtures import (
 from zipline.utils.classproperty import classproperty
 from zipline.utils.pandas_utils import normalize_date
 
-TestOrder = namedtuple('TestOrder', 'limit direction')
+TestOrder = namedtuple("TestOrder", "limit direction")
 
 
-class SlippageTestCase(WithCreateBarData,
-                       WithSimParams,
-                       WithDataPortal,
-                       ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+class SlippageTestCase(
+    WithCreateBarData, WithSimParams, WithDataPortal, ZiplineTestCase
+):
+    START_DATE = pd.Timestamp("2006-01-05 14:31", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-05 14:36", tz="utc")
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    SIM_PARAMS_EMISSION_RATE = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
+    SIM_PARAMS_EMISSION_RATE = "daily"
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp("2006-01-05", tz="utc")
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp("2006-01-07", tz="utc")
     minutes = pd.date_range(
-        start=START_DATE,
-        end=END_DATE - pd.Timedelta('1 minute'),
-        freq='1min'
+        start=START_DATE, end=END_DATE - pd.Timedelta("1 minute"), freq="1min"
     )
 
     @classproperty
@@ -84,11 +81,11 @@ class SlippageTestCase(WithCreateBarData,
     def make_equity_minute_bar_data(cls):
         yield 133, pd.DataFrame(
             {
-                'open'  : [3.0, 3.0, 3.5, 4.0, 3.5],
-                'high'  : [3.15, 3.15, 3.15, 3.15, 3.15],
-                'low'   : [2.85, 2.85, 2.85, 2.85, 2.85],
-                'close' : [3.0, 3.5, 4.0, 3.5, 3.0],
-                'volume': [2000, 2000, 2000, 2000, 2000],
+                "open": [3.0, 3.0, 3.5, 4.0, 3.5],
+                "high": [3.15, 3.15, 3.15, 3.15, 3.15],
+                "low": [2.85, 2.85, 2.85, 2.85, 2.85],
+                "close": [3.0, 3.5, 4.0, 3.5, 3.0],
+                "volume": [2000, 2000, 2000, 2000, 2000],
             },
             index=cls.minutes,
         )
@@ -127,7 +124,7 @@ class SlippageTestCase(WithCreateBarData,
 
         self.assertEqual(MyMixedModel.allowed_asset_types, (Equity, Future))
 
-        SomeType = type('SomeType', (object,), {})
+        SomeType = type("SomeType", (object,), {})
 
         # A custom model that defines its own allowed types should take
         # precedence over the parent class definitions.
@@ -145,9 +142,7 @@ class SlippageTestCase(WithCreateBarData,
         limit_sell = TestOrder(limit=1.5, direction=-1)
 
         for price in [1, 1.5, 2]:
-            self.assertFalse(
-                fill_price_worse_than_limit_price(price, non_limit_order)
-            )
+            self.assertFalse(fill_price_worse_than_limit_price(price, non_limit_order))
 
         self.assertFalse(fill_price_worse_than_limit_price(1, limit_buy))
         self.assertFalse(fill_price_worse_than_limit_price(1.5, limit_buy))
@@ -163,80 +158,94 @@ class SlippageTestCase(WithCreateBarData,
 
         # long, does not trade
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': 100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'limit' : 3.5})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": 100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "limit": 3.5,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[3],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # long, does not trade - impacted price worse than limit price
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': 100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'limit' : 3.5})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": 100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "limit": 3.5,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[3],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # long, does trade
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': 100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'limit' : 3.6})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": 100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "limit": 3.6,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[3],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 1)
         txn = orders_txns[0][1]
 
         expected_txn = {
-            'price'   : float(3.50021875),
-            'dt'      : datetime.datetime(
-                2006, 1, 5, 14, 34, tzinfo=pytz.utc),
+            "price": float(3.50021875),
+            "dt": datetime.datetime(2006, 1, 5, 14, 34, tzinfo=pytz.utc),
             # we ordered 100 shares, but default volume slippage only allows
             # for 2.5% of the volume.  2.5% * 2000 = 50 shares
-            'amount'  : int(50),
-            'asset'   : self.ASSET133,
-            'order_id': open_orders[0].id
+            "amount": int(50),
+            "asset": self.ASSET133,
+            "order_id": open_orders[0].id,
         }
 
         self.assertIsNotNone(txn)
@@ -246,77 +255,91 @@ class SlippageTestCase(WithCreateBarData,
 
         # short, does not trade
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': -100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'limit' : 3.5})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": -100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "limit": 3.5,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[0],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does not trade - impacted price worse than limit price
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': -100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'limit' : 3.5})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": -100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "limit": 3.5,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[0],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does trade
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': -100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'limit' : 3.4})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": -100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "limit": 3.4,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[1],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price' : float(3.49978125),
-            'dt'    : datetime.datetime(
-                2006, 1, 5, 14, 32, tzinfo=pytz.utc),
-            'amount': int(-50),
-            'asset' : self.ASSET133,
+            "price": float(3.49978125),
+            "dt": datetime.datetime(2006, 1, 5, 14, 32, tzinfo=pytz.utc),
+            "amount": int(-50),
+            "asset": self.ASSET133,
         }
 
         self.assertIsNotNone(txn)
@@ -330,24 +353,29 @@ class SlippageTestCase(WithCreateBarData,
 
         # long, does not trade
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': 100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'stop'  : 4.0,
-                'limit' : 3.0})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": 100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "stop": 4.0,
+                    "limit": 3.0,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[2],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
@@ -355,34 +383,41 @@ class SlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[3],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # long, does not trade - impacted price worse than limit price
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': 100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'stop'  : 4.0,
-                'limit' : 3.5})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": 100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "stop": 4.0,
+                    "limit": 3.5,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[2],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
@@ -390,34 +425,41 @@ class SlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[3],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # long, does trade
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': 100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'stop'  : 4.0,
-                'limit' : 3.6})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": 100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "stop": 4.0,
+                    "limit": 3.6,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[2],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
@@ -425,21 +467,22 @@ class SlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[3],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price' : float(3.50021875),
-            'dt'    : datetime.datetime(
-                2006, 1, 5, 14, 34, tzinfo=pytz.utc),
-            'amount': int(50),
-            'asset' : self.ASSET133
+            "price": float(3.50021875),
+            "dt": datetime.datetime(2006, 1, 5, 14, 34, tzinfo=pytz.utc),
+            "amount": int(50),
+            "asset": self.ASSET133,
         }
 
         for key, value in expected_txn.items():
@@ -448,24 +491,29 @@ class SlippageTestCase(WithCreateBarData,
         # short, does not trade
 
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': -100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'stop'  : 3.0,
-                'limit' : 4.0})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": -100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "stop": 3.0,
+                    "limit": 4.0,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[0],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
@@ -473,34 +521,41 @@ class SlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[1],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does not trade - impacted price worse than limit price
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': -100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'stop'  : 3.0,
-                'limit' : 3.5})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": -100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "stop": 3.0,
+                    "limit": 3.5,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[0],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
@@ -508,34 +563,41 @@ class SlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[1],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
         # short, does trade
         open_orders = [
-            Order(**{
-                'dt'    : datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                'amount': -100,
-                'filled': 0,
-                'asset' : self.ASSET133,
-                'stop'  : 3.0,
-                'limit' : 3.4})
+            Order(
+                **{
+                    "dt": datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    "amount": -100,
+                    "filled": 0,
+                    "asset": self.ASSET133,
+                    "stop": 3.0,
+                    "limit": 3.4,
+                }
+            )
         ]
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.minutes[0],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
@@ -543,40 +605,43 @@ class SlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[1],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price' : float(3.49978125),
-            'dt'    : datetime.datetime(2006, 1, 5, 14, 32, tzinfo=pytz.utc),
-            'amount': int(-50),
-            'asset' : self.ASSET133,
+            "price": float(3.49978125),
+            "dt": datetime.datetime(2006, 1, 5, 14, 32, tzinfo=pytz.utc),
+            "amount": int(-50),
+            "asset": self.ASSET133,
         }
 
         for key, value in expected_txn.items():
             self.assertEquals(value, txn[key])
 
 
-class VolumeShareSlippageTestCase(WithCreateBarData,
-                                  WithSimParams,
-                                  WithDataPortal,
-                                  ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+class VolumeShareSlippageTestCase(
+    WithCreateBarData, WithSimParams, WithDataPortal, ZiplineTestCase
+):
+    START_DATE = pd.Timestamp("2006-01-05 14:31", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-05 14:36", tz="utc")
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    SIM_PARAMS_EMISSION_RATE = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
+    SIM_PARAMS_EMISSION_RATE = "daily"
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
-    minutes = pd.date_range(start=START_DATE, end=END_DATE - pd.Timedelta('1 minute'), freq='1min')
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp("2006-01-05", tz="utc")
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp("2006-01-07", tz="utc")
+    minutes = pd.date_range(
+        start=START_DATE, end=END_DATE - pd.Timedelta("1 minute"), freq="1min"
+    )
 
     @classproperty
     def CREATE_BARDATA_DATA_FREQUENCY(cls):
@@ -586,36 +651,38 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
     def make_equity_minute_bar_data(cls):
         yield 133, pd.DataFrame(
             {
-                'open'  : [3.00],
-                'high'  : [3.15],
-                'low'   : [2.85],
-                'close' : [3.00],
-                'volume': [200],
+                "open": [3.00],
+                "high": [3.15],
+                "low": [2.85],
+                "close": [3.00],
+                "volume": [200],
             },
             index=[cls.minutes[0]],
         )
 
     @classmethod
     def make_futures_info(cls):
-        return pd.DataFrame({
-            'sid'        : [1000],
-            'root_symbol': ['CL'],
-            'symbol'     : ['CLF06'],
-            'start_date' : [cls.ASSET_FINDER_EQUITY_START_DATE],
-            'end_date'   : [cls.ASSET_FINDER_EQUITY_END_DATE],
-            'multiplier' : [500],
-            'exchange'   : ['CMES'],
-        })
+        return pd.DataFrame(
+            {
+                "sid": [1000],
+                "root_symbol": ["CL"],
+                "symbol": ["CLF06"],
+                "start_date": [cls.ASSET_FINDER_EQUITY_START_DATE],
+                "end_date": [cls.ASSET_FINDER_EQUITY_END_DATE],
+                "multiplier": [500],
+                "exchange": ["CMES"],
+            }
+        )
 
     @classmethod
     def make_future_minute_bar_data(cls):
         yield 1000, pd.DataFrame(
             {
-                'open'  : [5.00],
-                'high'  : [5.15],
-                'low'   : [4.85],
-                'close' : [5.00],
-                'volume': [100],
+                "open": [5.00],
+                "high": [5.15],
+                "low": [4.85],
+                "close": [5.00],
+                "volume": [100],
             },
             index=[cls.minutes[0]],
         )
@@ -634,7 +701,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 amount=100,
                 filled=0,
-                asset=self.ASSET133
+                asset=self.ASSET133,
             )
         ]
 
@@ -642,22 +709,24 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[0],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price'   : float(3.0001875),
-            'dt'      : datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-            'amount'  : int(5),
-            'asset'   : self.ASSET133,
-            'type'    : DATASOURCE_TYPE.TRANSACTION,
-            'order_id': open_orders[0].id
+            "price": float(3.0001875),
+            "dt": datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            "amount": int(5),
+            "asset": self.ASSET133,
+            "type": DATASOURCE_TYPE.TRANSACTION,
+            "order_id": open_orders[0].id,
         }
 
         self.assertIsNotNone(txn)
@@ -671,7 +740,7 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 amount=100,
                 filled=0,
-                asset=self.ASSET133
+                asset=self.ASSET133,
             )
         ]
 
@@ -681,11 +750,13 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.minutes[1],
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 0)
 
@@ -719,26 +790,25 @@ class VolumeShareSlippageTestCase(WithCreateBarData,
         # impacted price is:
         #     5.0 + (5.0 * (0.1 ** 2) * 0.3) = 5.015
         expected_txn = {
-            'price'   : 5.015,
-            'dt'      : datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-            'amount'  : 10,
-            'asset'   : self.ASSET1000,
-            'type'    : DATASOURCE_TYPE.TRANSACTION,
-            'order_id': open_orders[0].id,
+            "price": 5.015,
+            "dt": datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            "amount": 10,
+            "asset": self.ASSET1000,
+            "type": DATASOURCE_TYPE.TRANSACTION,
+            "order_id": open_orders[0].id,
         }
 
         self.assertIsNotNone(txn)
         self.assertEquals(expected_txn, txn.__dict__)
 
 
-class VolatilityVolumeShareTestCase(WithCreateBarData,
-                                    WithSimParams,
-                                    WithDataPortal,
-                                    ZiplineTestCase):
-    ASSET_START_DATE = pd.Timestamp('2006-02-10', tz='utc')
+class VolatilityVolumeShareTestCase(
+    WithCreateBarData, WithSimParams, WithDataPortal, ZiplineTestCase
+):
+    ASSET_START_DATE = pd.Timestamp("2006-02-10", tz="utc")
 
-    TRADING_CALENDAR_STRS = ('NYSE', 'us_futures')
-    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
+    TRADING_CALENDAR_STRS = ("NYSE", "us_futures")
+    TRADING_CALENDAR_PRIMARY_CAL = "us_futures"
 
     @classmethod
     def init_class_fixtures(cls):
@@ -747,26 +817,29 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
 
     @classmethod
     def make_futures_info(cls):
-        return pd.DataFrame({
-            'sid'        : [1000, 1001],
-            'root_symbol': ['CL', 'FV'],
-            'symbol'     : ['CLF07', 'FVF07'],
-            'start_date' : [cls.ASSET_START_DATE, cls.START_DATE],
-            'end_date'   : [cls.END_DATE, cls.END_DATE],
-            'multiplier' : [500, 500],
-            'exchange'   : ['CMES', 'CMES'],
-        })
+        return pd.DataFrame(
+            {
+                "sid": [1000, 1001],
+                "root_symbol": ["CL", "FV"],
+                "symbol": ["CLF07", "FVF07"],
+                "start_date": [cls.ASSET_START_DATE, cls.START_DATE],
+                "end_date": [cls.END_DATE, cls.END_DATE],
+                "multiplier": [500, 500],
+                "exchange": ["CMES", "CMES"],
+            }
+        )
 
     @classmethod
     def make_future_minute_bar_data(cls):
         data = list(
             super(
-                VolatilityVolumeShareTestCase, cls,
+                VolatilityVolumeShareTestCase,
+                cls,
             ).make_future_minute_bar_data()
         )
         # Make the first month's worth of data NaN to simulate cases where a
         # futures contract does not exist yet.
-        data[0][1].loc[:cls.ASSET_START_DATE] = np.NaN
+        data[0][1].loc[: cls.ASSET_START_DATE] = np.NaN
         return data
 
     def test_calculate_impact_buy(self):
@@ -777,7 +850,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
             (None, None),
         ]
         order = Order(
-            dt=pd.Timestamp.now(tz='utc').round('min'),
+            dt=pd.Timestamp.now(tz="utc").round("min"),
             asset=self.ASSET,
             amount=10,
         )
@@ -791,7 +864,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
             (None, None),
         ]
         order = Order(
-            dt=pd.Timestamp.now(tz='utc').round('min'),
+            dt=pd.Timestamp.now(tz="utc").round("min"),
             asset=self.ASSET,
             amount=-10,
         )
@@ -799,7 +872,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
 
     def _calculate_impact(self, test_order, answer_key):
         model = VolatilityVolumeShare(volume_limit=0.05)
-        first_minute = pd.Timestamp('2006-03-31 11:35AM', tz='UTC')
+        first_minute = pd.Timestamp("2006-03-31 11:35AM", tz="UTC")
 
         next_3_minutes = self.trading_calendar.minutes_window(first_minute, 3)
         remaining_shares = test_order.open_amount
@@ -807,7 +880,9 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
         for i, minute in enumerate(next_3_minutes):
             data = self.create_bardata(simulation_dt_func=lambda: minute)
             new_order = Order(
-                dt=data.current_dt, asset=self.ASSET, amount=remaining_shares,
+                dt=data.current_dt,
+                asset=self.ASSET,
+                amount=remaining_shares,
             )
             price, amount = model.process_order(data, new_order)
 
@@ -827,11 +902,11 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
 
         cases = [
             # History will look for data before the start date.
-            (pd.Timestamp('2006-01-05 11:35AM', tz='UTC'), early_start_asset),
+            (pd.Timestamp("2006-01-05 11:35AM", tz="UTC"), early_start_asset),
             # Start day of the futures contract; no history yet.
-            (pd.Timestamp('2006-02-10 11:35AM', tz='UTC'), late_start_asset),
+            (pd.Timestamp("2006-02-10 11:35AM", tz="UTC"), late_start_asset),
             # Only a week's worth of history data.
-            (pd.Timestamp('2006-02-17 11:35AM', tz='UTC'), late_start_asset),
+            (pd.Timestamp("2006-02-17 11:35AM", tz="UTC"), late_start_asset),
         ]
 
         for minute, asset in cases:
@@ -840,11 +915,8 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
             order = Order(dt=data.current_dt, asset=asset, amount=10)
             price, amount = model.process_order(data, order)
 
-            avg_price = (
-                                data.current(asset, 'high') + data.current(asset, 'low')
-                        ) / 2
-            expected_price = \
-                avg_price * (1 + model.NO_DATA_VOLATILITY_SLIPPAGE_IMPACT)
+            avg_price = (data.current(asset, "high") + data.current(asset, "low")) / 2
+            expected_price = avg_price * (1 + model.NO_DATA_VOLATILITY_SLIPPAGE_IMPACT)
 
             self.assertAlmostEqual(price, expected_price, delta=0.001)
             self.assertEqual(amount, 10)
@@ -855,10 +927,13 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
         # Use all the same numbers from the 'calculate_impact' tests. Since the
         # impacted price is 59805.5, which is worse than the limit price of
         # 59800, the model should return None.
-        minute = pd.Timestamp('2006-03-01 11:35AM', tz='UTC')
+        minute = pd.Timestamp("2006-03-01 11:35AM", tz="UTC")
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         order = Order(
-            dt=data.current_dt, asset=self.ASSET, amount=10, limit=59800,
+            dt=data.current_dt,
+            asset=self.ASSET,
+            amount=10,
+            limit=59800,
         )
         price, amount = model.process_order(data, order)
 
@@ -871,7 +946,7 @@ class VolatilityVolumeShareTestCase(WithCreateBarData,
         # down to zero. In this case we expect no amount to be transacted.
         model = VolatilityVolumeShare(volume_limit=0.001)
 
-        minute = pd.Timestamp('2006-03-01 11:35AM', tz='UTC')
+        minute = pd.Timestamp("2006-03-01 11:35AM", tz="UTC")
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         order = Order(dt=data.current_dt, asset=self.ASSET, amount=10)
         price, amount = model.process_order(data, order)
@@ -895,13 +970,15 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
         )
 
     def test_window_data(self):
-        session = pd.Timestamp('2006-03-01')
+        session = pd.Timestamp("2006-03-01")
         minute = self.trading_calendar.minutes_for_session(session)[1]
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         asset = self.asset_finder.retrieve_asset(1)
 
         mean_volume, volatility = VolatilityVolumeShare(0.0)._get_window_data(
-            data, asset, window_length=20,
+            data,
+            asset,
+            window_length=20,
         )
 
         #                            close  volume
@@ -934,17 +1011,18 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
         self.assertEqual(volatility, reference_vol)
 
 
-class OrdersStopTestCase(WithSimParams,
-                         WithAssetFinder,
-                         WithTradingCalendars,
-                         ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+class OrdersStopTestCase(
+    WithSimParams, WithAssetFinder, WithTradingCalendars, ZiplineTestCase
+):
+    START_DATE = pd.Timestamp("2006-01-05 14:31", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-05 14:36", tz="utc")
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    SIM_PARAMS_EMISSION_RATE = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
+    SIM_PARAMS_EMISSION_RATE = "daily"
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    minutes = pd.date_range(start=START_DATE, end=END_DATE - pd.Timedelta('1 minute'), freq='1min')
+    minutes = pd.date_range(
+        start=START_DATE, end=END_DATE - pd.Timedelta("1 minute"), freq="1min"
+    )
 
     @classmethod
     def init_class_fixtures(cls):
@@ -976,130 +1054,131 @@ class OrdersStopTestCase(WithSimParams,
         #                    |   long   |   short  |
         # | price > stop     |    X     |          |
         # | price < stop     |          |     X    |
-
-        'long | price gt stop' : {
-            'order'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:30', tz='UTC'),
-                'amount': 100,
-                'filled': 0,
-                'stop'  : 3.5
+        "long | price gt stop": {
+            "order": {
+                "dt": pd.Timestamp("2006-01-05 14:30", tz="UTC"),
+                "amount": 100,
+                "filled": 0,
+                "stop": 3.5,
             },
-            'event'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                'volume': 2000,
-                'price' : 4.0,
-                'high'  : 3.15,
-                'low'   : 2.85,
-                'close' : 4.0,
-                'open'  : 3.5
+            "event": {
+                "dt": pd.Timestamp("2006-01-05 14:31", tz="UTC"),
+                "volume": 2000,
+                "price": 4.0,
+                "high": 3.15,
+                "low": 2.85,
+                "close": 4.0,
+                "open": 3.5,
             },
-            'expected': {
-                'transaction': {
-                    'price' : 4.00025,
-                    'dt'    : pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                    'amount': 50,
+            "expected": {
+                "transaction": {
+                    "price": 4.00025,
+                    "dt": pd.Timestamp("2006-01-05 14:31", tz="UTC"),
+                    "amount": 50,
                 }
-            }
+            },
         },
-        'long | price lt stop' : {
-            'order'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:30', tz='UTC'),
-                'amount': 100,
-                'filled': 0,
-                'stop'  : 3.6
+        "long | price lt stop": {
+            "order": {
+                "dt": pd.Timestamp("2006-01-05 14:30", tz="UTC"),
+                "amount": 100,
+                "filled": 0,
+                "stop": 3.6,
             },
-            'event'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                'volume': 2000,
-                'price' : 3.5,
-                'high'  : 3.15,
-                'low'   : 2.85,
-                'close' : 3.5,
-                'open'  : 4.0
+            "event": {
+                "dt": pd.Timestamp("2006-01-05 14:31", tz="UTC"),
+                "volume": 2000,
+                "price": 3.5,
+                "high": 3.15,
+                "low": 2.85,
+                "close": 3.5,
+                "open": 4.0,
             },
-            'expected': {
-                'transaction': None
-            }
+            "expected": {"transaction": None},
         },
-        'short | price gt stop': {
-            'order'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:30', tz='UTC'),
-                'amount': -100,
-                'filled': 0,
-                'stop'  : 3.4
+        "short | price gt stop": {
+            "order": {
+                "dt": pd.Timestamp("2006-01-05 14:30", tz="UTC"),
+                "amount": -100,
+                "filled": 0,
+                "stop": 3.4,
             },
-            'event'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                'volume': 2000,
-                'price' : 3.5,
-                'high'  : 3.15,
-                'low'   : 2.85,
-                'close' : 3.5,
-                'open'  : 3.0
+            "event": {
+                "dt": pd.Timestamp("2006-01-05 14:31", tz="UTC"),
+                "volume": 2000,
+                "price": 3.5,
+                "high": 3.15,
+                "low": 2.85,
+                "close": 3.5,
+                "open": 3.0,
             },
-            'expected': {
-                'transaction': None
-            }
+            "expected": {"transaction": None},
         },
-        'short | price lt stop': {
-            'order'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:30', tz='UTC'),
-                'amount': -100,
-                'filled': 0,
-                'stop'  : 3.5
+        "short | price lt stop": {
+            "order": {
+                "dt": pd.Timestamp("2006-01-05 14:30", tz="UTC"),
+                "amount": -100,
+                "filled": 0,
+                "stop": 3.5,
             },
-            'event'   : {
-                'dt'    : pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                'volume': 2000,
-                'price' : 3.0,
-                'high'  : 3.15,
-                'low'   : 2.85,
-                'close' : 3.0,
-                'open'  : 3.0
+            "event": {
+                "dt": pd.Timestamp("2006-01-05 14:31", tz="UTC"),
+                "volume": 2000,
+                "price": 3.0,
+                "high": 3.15,
+                "low": 2.85,
+                "close": 3.0,
+                "open": 3.0,
             },
-            'expected': {
-                'transaction': {
-                    'price' : 2.9998125,
-                    'dt'    : pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                    'amount': -50,
+            "expected": {
+                "transaction": {
+                    "price": 2.9998125,
+                    "dt": pd.Timestamp("2006-01-05 14:31", tz="UTC"),
+                    "amount": -50,
                 }
-            }
+            },
         },
     }
 
-    @parameterized.expand(sorted(
-        (name, case['order'], case['event'], case['expected'])
-        for name, case in STOP_ORDER_CASES.items()
-    ))
+    @parameterized.expand(
+        sorted(
+            (name, case["order"], case["event"], case["expected"])
+            for name, case in STOP_ORDER_CASES.items()
+        )
+    )
     def test_orders_stop(self, name, order_data, event_data, expected):
         data = order_data
-        data['asset'] = self.ASSET133
+        data["asset"] = self.ASSET133
         order = Order(**data)
 
-        if expected['transaction']:
-            expected['transaction']['asset'] = self.ASSET133
-        event_data['asset'] = self.ASSET133
+        if expected["transaction"]:
+            expected["transaction"]["asset"] = self.ASSET133
+        event_data["asset"] = self.ASSET133
 
         assets = (
-            (133, pd.DataFrame(
-                {
-                    'open'  : [event_data['open']],
-                    'high'  : [event_data['high']],
-                    'low'   : [event_data['low']],
-                    'close' : [event_data['close']],
-                    'volume': [event_data['volume']],
-                },
-                index=[pd.Timestamp('2006-01-05 14:31', tz='UTC')],
-            )),
+            (
+                133,
+                pd.DataFrame(
+                    {
+                        "open": [event_data["open"]],
+                        "high": [event_data["high"]],
+                        "low": [event_data["low"]],
+                        "close": [event_data["close"]],
+                        "volume": [event_data["volume"]],
+                    },
+                    index=[pd.Timestamp("2006-01-05 14:31", tz="UTC")],
+                ),
+            ),
         )
         days = pd.date_range(
-            start=normalize_date(self.minutes[0]),
-            end=normalize_date(self.minutes[-1])
+            start=normalize_date(self.minutes[0]), end=normalize_date(self.minutes[-1])
         )
         with tmp_bcolz_equity_minute_bar_reader(
-                self.trading_calendar, days, assets) as reader:
+            self.trading_calendar, days, assets
+        ) as reader:
             data_portal = DataPortal(
-                self.asset_finder, self.trading_calendar,
+                self.asset_finder,
+                self.trading_calendar,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
             )
@@ -1107,7 +1186,7 @@ class OrdersStopTestCase(WithSimParams,
             slippage_model = VolumeShareSlippage()
 
             try:
-                dt = pd.Timestamp('2006-01-05 14:31', tz='UTC')
+                dt = pd.Timestamp("2006-01-05 14:31", tz="UTC")
                 bar_data = BarData(
                     data_portal,
                     lambda: dt,
@@ -1116,43 +1195,42 @@ class OrdersStopTestCase(WithSimParams,
                     NoRestrictions(),
                 )
 
-                _, txn = next(slippage_model.simulate(
-                    bar_data,
-                    self.ASSET133,
-                    [order],
-                ))
+                _, txn = next(
+                    slippage_model.simulate(
+                        bar_data,
+                        self.ASSET133,
+                        [order],
+                    )
+                )
             except StopIteration:
                 txn = None
 
-            if expected['transaction'] is None:
+            if expected["transaction"] is None:
                 self.assertIsNone(txn)
             else:
                 self.assertIsNotNone(txn)
 
-                for key, value in expected['transaction'].items():
+                for key, value in expected["transaction"].items():
                     self.assertEquals(value, txn[key])
 
 
-class FixedBasisPointsSlippageTestCase(WithCreateBarData,
-                                       ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-05', tz='utc')
+class FixedBasisPointsSlippageTestCase(WithCreateBarData, ZiplineTestCase):
+    START_DATE = pd.Timestamp("2006-01-05", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-05", tz="utc")
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
 
-    first_minute = (
-        pd.Timestamp('2006-01-05 9:31', tz='US/Eastern').tz_convert('UTC')
-    )
+    first_minute = pd.Timestamp("2006-01-05 9:31", tz="US/Eastern").tz_convert("UTC")
 
     @classmethod
     def make_equity_minute_bar_data(cls):
         yield 133, pd.DataFrame(
             {
-                'open'  : [2.9],
-                'high'  : [3.15],
-                'low'   : [2.85],
-                'close' : [3.00],
-                'volume': [200],
+                "open": [2.9],
+                "high": [3.15],
+                "low": [2.85],
+                "close": [3.00],
+                "volume": [200],
             },
             index=[cls.first_minute],
         )
@@ -1162,88 +1240,97 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         super(FixedBasisPointsSlippageTestCase, cls).init_class_fixtures()
         cls.ASSET133 = cls.asset_finder.retrieve_asset(133)
 
-    @parameterized.expand([
-        # Volume limit of 10% on an order of 100 shares. Since the bar volume
-        # is 200, we should hit the limit and only fill 20 shares.
-        ('5bps_over_vol_limit', 5, 0.1, 100, 3.0015, 20),
-        # Same as previous, but on the short side.
-        ('5bps_negative_over_vol_limit', 5, 0.1, -100, 2.9985, -20),
-        # Volume limit of 10% on an order of 10 shares. We should fill the full
-        # amount.
-        ('5bps_under_vol_limit', 5, 0.1, 10, 3.0015, 10),
-        # Same as previous, but on the short side.
-        ('5bps_negative_under_vol_limit', 5, 0.1, -10, 2.9985, -10),
-        # Change the basis points value.
-        ('10bps', 10, 0.1, 100, 3.003, 20),
-        # Change the volume limit points value.
-        ('20pct_volume_limit', 5, 0.2, 100, 3.0015, 40),
-    ])
-    def test_fixed_bps_slippage(self,
-                                name,
-                                basis_points,
-                                volume_limit,
-                                order_amount,
-                                expected_price,
-                                expected_amount):
-        slippage_model = FixedBasisPointsSlippage(basis_points=basis_points,
-                                                  volume_limit=volume_limit)
+    @parameterized.expand(
+        [
+            # Volume limit of 10% on an order of 100 shares. Since the bar volume
+            # is 200, we should hit the limit and only fill 20 shares.
+            ("5bps_over_vol_limit", 5, 0.1, 100, 3.0015, 20),
+            # Same as previous, but on the short side.
+            ("5bps_negative_over_vol_limit", 5, 0.1, -100, 2.9985, -20),
+            # Volume limit of 10% on an order of 10 shares. We should fill the full
+            # amount.
+            ("5bps_under_vol_limit", 5, 0.1, 10, 3.0015, 10),
+            # Same as previous, but on the short side.
+            ("5bps_negative_under_vol_limit", 5, 0.1, -10, 2.9985, -10),
+            # Change the basis points value.
+            ("10bps", 10, 0.1, 100, 3.003, 20),
+            # Change the volume limit points value.
+            ("20pct_volume_limit", 5, 0.2, 100, 3.0015, 40),
+        ]
+    )
+    def test_fixed_bps_slippage(
+        self,
+        name,
+        basis_points,
+        volume_limit,
+        order_amount,
+        expected_price,
+        expected_amount,
+    ):
+        slippage_model = FixedBasisPointsSlippage(
+            basis_points=basis_points, volume_limit=volume_limit
+        )
 
         open_orders = [
             Order(
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 amount=order_amount,
                 filled=0,
-                asset=self.ASSET133
+                asset=self.ASSET133,
             )
         ]
 
-        bar_data = self.create_bardata(
-            simulation_dt_func=lambda: self.first_minute
-        )
+        bar_data = self.create_bardata(simulation_dt_func=lambda: self.first_minute)
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 1)
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price'   : expected_price,
-            'dt'      : datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-            'amount'  : expected_amount,
-            'asset'   : self.ASSET133,
-            'type'    : DATASOURCE_TYPE.TRANSACTION,
-            'order_id': open_orders[0].id
+            "price": expected_price,
+            "dt": datetime.datetime(2006, 1, 5, 14, 31, tzinfo=pytz.utc),
+            "amount": expected_amount,
+            "asset": self.ASSET133,
+            "type": DATASOURCE_TYPE.TRANSACTION,
+            "order_id": open_orders[0].id,
         }
 
         self.assertIsNotNone(txn)
         self.assertEquals(expected_txn, txn.__dict__)
 
-    @parameterized.expand([
-        # Volume limit for the bar is 20. We've ordered 10 total shares.
-        # We should fill both orders completely.
-        ('order_under_limit', 9, 1, 9, 1),
-        # Volume limit for the bar is 20. We've ordered 21 total shares.
-        # The second order should have one share remaining after fill.
-        ('order_over_limit', -3, 18, -3, 17),
-    ])
-    def test_volume_limit(self, name,
-                          first_order_amount,
-                          second_order_amount,
-                          first_order_fill_amount,
-                          second_order_fill_amount):
-        slippage_model = FixedBasisPointsSlippage(basis_points=5,
-                                                  volume_limit=0.1)
+    @parameterized.expand(
+        [
+            # Volume limit for the bar is 20. We've ordered 10 total shares.
+            # We should fill both orders completely.
+            ("order_under_limit", 9, 1, 9, 1),
+            # Volume limit for the bar is 20. We've ordered 21 total shares.
+            # The second order should have one share remaining after fill.
+            ("order_over_limit", -3, 18, -3, 17),
+        ]
+    )
+    def test_volume_limit(
+        self,
+        name,
+        first_order_amount,
+        second_order_amount,
+        first_order_fill_amount,
+        second_order_fill_amount,
+    ):
+        slippage_model = FixedBasisPointsSlippage(basis_points=5, volume_limit=0.1)
 
         open_orders = [
             Order(
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 amount=order_amount,
                 filled=0,
-                asset=self.ASSET133
+                asset=self.ASSET133,
             )
             for order_amount in [first_order_amount, second_order_amount]
         ]
@@ -1252,18 +1339,20 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
             simulation_dt_func=lambda: self.first_minute,
         )
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
 
         self.assertEquals(len(orders_txns), 2)
 
         _, first_txn = orders_txns[0]
         _, second_txn = orders_txns[1]
-        self.assertEquals(first_txn['amount'], first_order_fill_amount)
-        self.assertEquals(second_txn['amount'], second_order_fill_amount)
+        self.assertEquals(first_txn["amount"], first_order_fill_amount)
+        self.assertEquals(second_txn["amount"], second_order_fill_amount)
 
     def test_broken_constructions(self):
         with self.assertRaises(ValueError) as e:
@@ -1272,7 +1361,7 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         self.assertEqual(
             str(e.exception),
             "FixedBasisPointsSlippage() expected a value greater than "
-            "or equal to 0 for argument 'basis_points', but got -1 instead."
+            "or equal to 0 for argument 'basis_points', but got -1 instead.",
         )
 
         with self.assertRaises(ValueError) as e:
@@ -1281,34 +1370,33 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
         self.assertEqual(
             str(e.exception),
             "FixedBasisPointsSlippage() expected a value strictly "
-            "greater than 0 for argument 'volume_limit', but got 0 instead."
+            "greater than 0 for argument 'volume_limit', but got 0 instead.",
         )
 
     def test_fill_zero_shares(self):
-        slippage_model = FixedBasisPointsSlippage(basis_points=5,
-                                                  volume_limit=0.1)
+        slippage_model = FixedBasisPointsSlippage(basis_points=5, volume_limit=0.1)
 
         # since the volume limit for the bar is 20, the first order will be
         # filled and there will be a transaction for it, and the second order
         # will order zero shares so there should not be a transaction for it.
         open_orders = [
-                          Order(
-                              dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-                              amount=20,
-                              filled=0,
-                              asset=self.ASSET133
-                          )
-                      ] * 2
+            Order(
+                dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                amount=20,
+                filled=0,
+                asset=self.ASSET133,
+            )
+        ] * 2
 
-        bar_data = self.create_bardata(
-            simulation_dt_func=lambda: self.first_minute
+        bar_data = self.create_bardata(simulation_dt_func=lambda: self.first_minute)
+
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
         )
-
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
 
         self.assertEqual(1, len(orders_txns))
 
@@ -1318,13 +1406,15 @@ class FixedBasisPointsSlippageTestCase(WithCreateBarData,
                 dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 amount=0,
                 filled=0,
-                asset=self.ASSET133
+                asset=self.ASSET133,
             )
         ]
 
-        orders_txns = list(slippage_model.simulate(
-            bar_data,
-            self.ASSET133,
-            open_orders,
-        ))
+        orders_txns = list(
+            slippage_model.simulate(
+                bar_data,
+                self.ASSET133,
+                open_orders,
+            )
+        )
         self.assertEqual(0, len(orders_txns))

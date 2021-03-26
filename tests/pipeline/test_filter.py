@@ -118,7 +118,6 @@ class Mask(Filter):
 
 
 class FilterTestCase(BaseUSEquityPipelineTestCase):
-
     def init_instance_fixtures(self):
         super(FilterTestCase, self).init_instance_fixtures()
         self.f = SomeFactor()
@@ -127,15 +126,15 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         self.datetime_f = SomeDatetimeFactor()
 
         self.factors_by_dtype_name = {
-            'float64': self.f,
-            'datetime64[ns]': self.datetime_f,
+            "float64": self.f,
+            "datetime64[ns]": self.datetime_f,
         }
 
     def test_bad_percentiles(self):
         f = self.f
 
         bad_percentiles = [
-            (-.1, 10),
+            (-0.1, 10),
             (10, 100.1),
             (20, 10),
             (50, 50),
@@ -155,21 +154,21 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         mask = Mask()
 
-        methods = ['top', 'bottom']
+        methods = ["top", "bottom"]
         counts = 2, 3, 10
         term_combos = list(product(methods, counts, [True, False]))
 
         def termname(method, count, masked):
-            return '_'.join([method, str(count), 'mask' if masked else ''])
+            return "_".join([method, str(count), "mask" if masked else ""])
 
         def expected_result(method, count, masked):
             # Ranking with a mask is equivalent to ranking with nans applied on
             # the masked values.
             to_rank = nan_data if masked else data
 
-            if method == 'top':
+            if method == "top":
                 return rowwise_rank(-to_rank) < count
-            elif method == 'bottom':
+            elif method == "bottom":
                 return rowwise_rank(to_rank) < count
 
         # Add a term for each permutation of top/bottom, count, and
@@ -177,9 +176,9 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         terms = {}
         expected = {}
         for method, count, masked in term_combos:
-            kwargs = {'N': count}
+            kwargs = {"N": count}
             if masked:
-                kwargs['mask'] = mask
+                kwargs["mask"] = mask
             term = getattr(self.f, method)(**kwargs)
             name = termname(method, count, masked)
             terms[name] = term
@@ -195,7 +194,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
     def test_percentile_between(self):
 
         quintiles = range(5)
-        filter_names = ['pct_' + str(q) for q in quintiles]
+        filter_names = ["pct_" + str(q) for q in quintiles]
         iter_quintiles = list(zip(filter_names, quintiles))
         terms = {
             name: self.f.percentile_between(q * 20.0, (q + 1) * 20.0)
@@ -224,12 +223,17 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         # Test with 6 columns, no NaNs, and one masked entry per day.
         eye6 = eye(6, dtype=float64)
-        mask = array([[1, 1, 1, 1, 1, 0],
-                      [0, 1, 1, 1, 1, 1],
-                      [1, 0, 1, 1, 1, 1],
-                      [1, 1, 0, 1, 1, 1],
-                      [1, 1, 1, 0, 1, 1],
-                      [1, 1, 1, 1, 0, 1]], dtype=bool)
+        mask = array(
+            [
+                [1, 1, 1, 1, 1, 0],
+                [0, 1, 1, 1, 1, 1],
+                [1, 0, 1, 1, 1, 1],
+                [1, 1, 0, 1, 1, 1],
+                [1, 1, 1, 0, 1, 1],
+                [1, 1, 1, 1, 0, 1],
+            ],
+            dtype=bool,
+        )
         expected = {}
         for name, quintile in iter_quintiles:
             if quintile < 4:
@@ -279,7 +283,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         data = arange(25, dtype=float).reshape(5, 5) % 4
         quartiles = range(4)
-        filter_names = ['pct_' + str(q) for q in quartiles]
+        filter_names = ["pct_" + str(q) for q in quartiles]
 
         terms = {
             name: self.f.percentile_between(q * 25.0, (q + 1) * 25.0)
@@ -312,32 +316,36 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         with_mask = self.g.percentile_between(80, 100, mask=custom_mask)
 
         terms = {
-            'mask': custom_mask,
-            'without_mask': without_mask,
-            'with_mask': with_mask,
+            "mask": custom_mask,
+            "without_mask": without_mask,
+            "with_mask": with_mask,
         }
         expected = {
             # Mask that accepts everything except the diagonal.
-            'mask': ~eye(5, dtype=bool),
+            "mask": ~eye(5, dtype=bool),
             # Second should pass the largest value each day.  Each row is
             # strictly increasing, so we always select the last value.
-            'without_mask': array(
-                [[0, 0, 0, 0, 1],
-                 [0, 0, 0, 0, 1],
-                 [0, 0, 0, 0, 1],
-                 [0, 0, 0, 0, 1],
-                 [0, 0, 0, 0, 1]],
+            "without_mask": array(
+                [
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1],
+                ],
                 dtype=bool,
             ),
             # With a mask, we should remove the diagonal as an option before
             # computing percentiles.  On the last day, we should get the
             # second-largest value, rather than the largest.
-            'with_mask': array(
-                [[0, 0, 0, 0, 1],
-                 [0, 0, 0, 0, 1],
-                 [0, 0, 0, 0, 1],
-                 [0, 0, 0, 0, 1],
-                 [0, 0, 0, 1, 0]],  # Different from with!
+            "with_mask": array(
+                [
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 0, 1, 0],
+                ],  # Different from with!
                 dtype=bool,
             ),
         }
@@ -356,12 +364,12 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                'isnan': self.f.isnan(),
-                'isnull': self.f.isnull(),
+                "isnan": self.f.isnan(),
+                "isnull": self.f.isnull(),
             },
             expected={
-                'isnan': diag,
-                'isnull': diag,
+                "isnan": diag,
+                "isnull": diag,
             },
             initial_workspace={self.f: data},
             mask=self.build_mask(self.ones_mask()),
@@ -374,12 +382,12 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                'notnan': self.f.notnan(),
-                'notnull': self.f.notnull(),
+                "notnan": self.f.notnan(),
+                "notnull": self.f.notnull(),
             },
             expected={
-                'notnan': ~diag,
-                'notnull': ~diag,
+                "notnan": ~diag,
+                "notnull": ~diag,
             },
             initial_workspace={self.f: data},
             mask=self.build_mask(self.ones_mask()),
@@ -392,15 +400,15 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         data[:, 4] = -inf
 
         self.check_terms(
-            terms={'isfinite': self.f.isfinite()},
-            expected={'isfinite': isfinite(data)},
+            terms={"isfinite": self.f.isfinite()},
+            expected={"isfinite": isfinite(data)},
             initial_workspace={self.f: data},
             mask=self.build_mask(self.ones_mask()),
         )
 
     def test_all_present_float_factor_input(self):
-        """Test float factor input to `AllPresent`
-        """
+        """Test float factor input to `AllPresent`"""
+
         class SomeWindowSafeFactor(Factor):
             dtype = float64_dtype
             inputs = ()
@@ -413,37 +421,47 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         data = self.randn_data(seed=10, shape=shape)
         data[eye(*shape, dtype=bool)] = input_factor.missing_value
 
-        expected_3 = array([[1, 0, 0, 0, 1, 1],
-                            [1, 1, 0, 0, 0, 1],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 1, 1],
-                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        expected_3 = array(
+            [
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 0, 0, 0, 1],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
 
-        expected_4 = array([[0, 0, 0, 0, 1, 1],
-                            [1, 0, 0, 0, 0, 1],
-                            [1, 1, 0, 0, 0, 0],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        expected_4 = array(
+            [
+                [0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
         self.check_terms(
             terms={
-                '3': AllPresent([input_factor], window_length=3),
-                '4': AllPresent([input_factor], window_length=4),
+                "3": AllPresent([input_factor], window_length=3),
+                "4": AllPresent([input_factor], window_length=4),
             },
             expected={
-                '3': expected_3,
-                '4': expected_4,
+                "3": expected_3,
+                "4": expected_4,
             },
             initial_workspace={input_factor: data},
-            mask=self.build_mask(ones(shape=shape))
+            mask=self.build_mask(ones(shape=shape)),
         )
 
     def test_all_present_int_factor_input(self):
-        """Test int factor input to `AllPresent`
-        """
+        """Test int factor input to `AllPresent`"""
+
         class SomeWindowSafeIntFactor(Factor):
             dtype = int64_dtype
             inputs = ()
@@ -457,103 +475,126 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         data = RandomState(5).choice(range(1, 5), size=shape, replace=True)
         data[eye(*shape, dtype=bool)] = input_factor.missing_value
 
-        expected_3 = array([[1, 0, 0, 0, 1, 1],
-                            [1, 1, 0, 0, 0, 1],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 1, 1],
-                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        expected_3 = array(
+            [
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 0, 0, 0, 1],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
 
-        expected_4 = array([[0, 0, 0, 0, 1, 1],
-                            [1, 0, 0, 0, 0, 1],
-                            [1, 1, 0, 0, 0, 0],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        expected_4 = array(
+            [
+                [0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
         self.check_terms(
             terms={
-                '3': AllPresent([input_factor], window_length=3),
-                '4': AllPresent([input_factor], window_length=4),
+                "3": AllPresent([input_factor], window_length=3),
+                "4": AllPresent([input_factor], window_length=4),
             },
             expected={
-                '3': expected_3,
-                '4': expected_4,
+                "3": expected_3,
+                "4": expected_4,
             },
             initial_workspace={input_factor: data},
-            mask=self.build_mask(ones(shape=shape))
+            mask=self.build_mask(ones(shape=shape)),
         )
 
     def test_all_present_classifier_input(self):
-        """Test classifier factor input to `AllPresent`
-        """
+        """Test classifier factor input to `AllPresent`"""
+
         class SomeWindowSafeStringClassifier(Classifier):
             dtype = object_dtype
             inputs = ()
             window_length = 0
-            missing_value = ''
+            missing_value = ""
             window_safe = True
 
         input_factor = SomeWindowSafeStringClassifier()
 
         shape = (10, 6)
         data = RandomState(6).choice(
-            array(['a', 'e', 'i', 'o', 'u'], dtype=object_dtype),
+            array(["a", "e", "i", "o", "u"], dtype=object_dtype),
             size=shape,
-            replace=True
+            replace=True,
         )
         data[eye(*shape, dtype=bool)] = input_factor.missing_value
 
-        expected_3 = array([[1, 0, 0, 0, 1, 1],
-                            [1, 1, 0, 0, 0, 1],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 1, 1],
-                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        expected_3 = array(
+            [
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 0, 0, 0, 1],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
 
-        expected_4 = array([[0, 0, 0, 0, 1, 1],
-                            [1, 0, 0, 0, 0, 1],
-                            [1, 1, 0, 0, 0, 0],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 1, 1]], dtype=bool)
+        expected_4 = array(
+            [
+                [0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
 
         self.check_terms(
             terms={
-                '3': AllPresent([input_factor], window_length=3),
-                '4': AllPresent([input_factor], window_length=4),
+                "3": AllPresent([input_factor], window_length=3),
+                "4": AllPresent([input_factor], window_length=4),
             },
             expected={
-                '3': expected_3,
-                '4': expected_4,
+                "3": expected_3,
+                "4": expected_4,
             },
             initial_workspace={input_factor: data},
-            mask=self.build_mask(ones(shape=shape))
+            mask=self.build_mask(ones(shape=shape)),
         )
 
     def test_all_present_filter_input(self):
-        """Test error is raised when filter factor is input to `AllPresent`
-        """
+        """Test error is raised when filter factor is input to `AllPresent`"""
         with self.assertRaises(TypeError) as err:
             AllPresent([Mask()], window_length=4)
 
         self.assertEqual(
-            "Input to filter `AllPresent` cannot be a Filter.",
-            str(err.exception)
+            "Input to filter `AllPresent` cannot be a Filter.", str(err.exception)
         )
 
     def test_all(self):
 
-        data = array([[1, 1, 1, 1, 1, 1],
-                      [0, 1, 1, 1, 1, 1],
-                      [1, 0, 1, 1, 1, 1],
-                      [1, 1, 0, 1, 1, 1],
-                      [1, 1, 1, 0, 1, 1],
-                      [1, 1, 1, 1, 0, 1],
-                      [1, 1, 1, 1, 1, 0]], dtype=bool)
+        data = array(
+            [
+                [1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1],
+                [1, 0, 1, 1, 1, 1],
+                [1, 1, 0, 1, 1, 1],
+                [1, 1, 1, 0, 1, 1],
+                [1, 1, 1, 1, 0, 1],
+                [1, 1, 1, 1, 1, 0],
+            ],
+            dtype=bool,
+        )
 
         # With a window_length of N, 0's should be "sticky" for the (N - 1)
         # days after the 0 in the base data.
@@ -562,15 +603,25 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # number of output rows for all inputs, so we only get the last 4
         # outputs for expected_3 even though we have enought input data to
         # compute 5 rows.
-        expected_3 = array([[0, 0, 0, 1, 1, 1],
-                            [1, 0, 0, 0, 1, 1],
-                            [1, 1, 0, 0, 0, 1],
-                            [1, 1, 1, 0, 0, 0]], dtype=bool)
+        expected_3 = array(
+            [
+                [0, 0, 0, 1, 1, 1],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 0, 0, 0, 1],
+                [1, 1, 1, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
 
-        expected_4 = array([[0, 0, 0, 1, 1, 1],
-                            [0, 0, 0, 0, 1, 1],
-                            [1, 0, 0, 0, 0, 1],
-                            [1, 1, 0, 0, 0, 0]], dtype=bool)
+        expected_4 = array(
+            [
+                [0, 0, 0, 1, 1, 1],
+                [0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
 
         class Input(Filter):
             inputs = ()
@@ -578,12 +629,12 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                '3': All(inputs=[Input()], window_length=3),
-                '4': All(inputs=[Input()], window_length=4),
+                "3": All(inputs=[Input()], window_length=3),
+                "4": All(inputs=[Input()], window_length=4),
             },
             expected={
-                '3': expected_3,
-                '4': expected_4,
+                "3": expected_3,
+                "4": expected_4,
             },
             initial_workspace={Input(): data},
             mask=self.build_mask(ones(shape=data.shape)),
@@ -607,13 +658,18 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         #
         #     all(a, b) == ~(any(~a, ~b))
         #
-        data = array([[0, 0, 0, 0, 0, 0],
-                      [1, 0, 0, 0, 0, 0],
-                      [0, 1, 0, 0, 0, 0],
-                      [0, 0, 1, 0, 0, 0],
-                      [0, 0, 0, 1, 0, 0],
-                      [0, 0, 0, 0, 1, 0],
-                      [0, 0, 0, 0, 0, 1]], dtype=bool)
+        data = array(
+            [
+                [0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1],
+            ],
+            dtype=bool,
+        )
 
         # With a window_length of N, 1's should be "sticky" for the (N - 1)
         # days after the 1 in the base data.
@@ -622,15 +678,25 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # number of output rows for all inputs, so we only get the last 4
         # outputs for expected_3 even though we have enought input data to
         # compute 5 rows.
-        expected_3 = array([[1, 1, 1, 0, 0, 0],
-                            [0, 1, 1, 1, 0, 0],
-                            [0, 0, 1, 1, 1, 0],
-                            [0, 0, 0, 1, 1, 1]], dtype=bool)
+        expected_3 = array(
+            [
+                [1, 1, 1, 0, 0, 0],
+                [0, 1, 1, 1, 0, 0],
+                [0, 0, 1, 1, 1, 0],
+                [0, 0, 0, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
 
-        expected_4 = array([[1, 1, 1, 0, 0, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [0, 1, 1, 1, 1, 0],
-                            [0, 0, 1, 1, 1, 1]], dtype=bool)
+        expected_4 = array(
+            [
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [0, 1, 1, 1, 1, 0],
+                [0, 0, 1, 1, 1, 1],
+            ],
+            dtype=bool,
+        )
 
         class Input(Filter):
             inputs = ()
@@ -638,12 +704,12 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                '3': Any(inputs=[Input()], window_length=3),
-                '4': Any(inputs=[Input()], window_length=4),
+                "3": Any(inputs=[Input()], window_length=3),
+                "4": Any(inputs=[Input()], window_length=4),
             },
             expected={
-                '3': expected_3,
-                '4': expected_4,
+                "3": expected_3,
+                "4": expected_4,
             },
             initial_workspace={Input(): data},
             mask=self.build_mask(ones(shape=data.shape)),
@@ -656,70 +722,87 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         # This smoothing filter gives customizable "stickiness"
 
-        data = array([[1, 1, 1, 1, 1, 1],
-                      [1, 1, 1, 1, 1, 1],
-                      [1, 1, 1, 1, 1, 0],
-                      [1, 1, 1, 1, 0, 0],
-                      [1, 1, 1, 0, 0, 0],
-                      [1, 1, 0, 0, 0, 0],
-                      [1, 0, 0, 0, 0, 0]], dtype=bool)
+        data = array(
+            [
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
 
-        expected_1 = array([[1, 1, 1, 1, 1, 1],
-                            [1, 1, 1, 1, 1, 1],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 0, 0]], dtype=bool)
+        expected_1 = array(
+            [
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 0, 0],
+            ],
+            dtype=bool,
+        )
 
-        expected_2 = array([[1, 1, 1, 1, 1, 1],
-                            [1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 0, 0, 0]], dtype=bool)
+        expected_2 = array(
+            [
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
 
-        expected_3 = array([[1, 1, 1, 1, 1, 0],
-                            [1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 0, 0, 0, 0]], dtype=bool)
+        expected_3 = array(
+            [
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
 
-        expected_4 = array([[1, 1, 1, 1, 0, 0],
-                            [1, 1, 1, 0, 0, 0],
-                            [1, 1, 0, 0, 0, 0],
-                            [1, 0, 0, 0, 0, 0]], dtype=bool)
+        expected_4 = array(
+            [
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
 
         class Input(Filter):
             inputs = ()
             window_length = 0
 
-        all_but_one = AtLeastN(inputs=[Input()],
-                               window_length=4,
-                               N=3)
+        all_but_one = AtLeastN(inputs=[Input()], window_length=4, N=3)
 
-        all_but_two = AtLeastN(inputs=[Input()],
-                               window_length=4,
-                               N=2)
+        all_but_two = AtLeastN(inputs=[Input()], window_length=4, N=2)
 
-        any_equiv = AtLeastN(inputs=[Input()],
-                             window_length=4,
-                             N=1)
+        any_equiv = AtLeastN(inputs=[Input()], window_length=4, N=1)
 
-        all_equiv = AtLeastN(inputs=[Input()],
-                             window_length=4,
-                             N=4)
+        all_equiv = AtLeastN(inputs=[Input()], window_length=4, N=4)
 
         self.check_terms(
             terms={
-                'AllButOne': all_but_one,
-                'AllButTwo': all_but_two,
-                'AnyEquiv': any_equiv,
-                'AllEquiv': all_equiv,
-                'Any': Any(inputs=[Input()], window_length=4),
-                'All': All(inputs=[Input()], window_length=4)
+                "AllButOne": all_but_one,
+                "AllButTwo": all_but_two,
+                "AnyEquiv": any_equiv,
+                "AllEquiv": all_equiv,
+                "Any": Any(inputs=[Input()], window_length=4),
+                "All": All(inputs=[Input()], window_length=4),
             },
             expected={
-                'Any': expected_1,
-                'AnyEquiv': expected_1,
-                'AllButTwo': expected_2,
-                'AllButOne': expected_3,
-                'All': expected_4,
-                'AllEquiv': expected_4,
+                "Any": expected_1,
+                "AnyEquiv": expected_1,
+                "AllButTwo": expected_2,
+                "AllButOne": expected_3,
+                "All": expected_4,
+                "AllEquiv": expected_4,
             },
             initial_workspace={Input(): data},
             mask=self.build_mask(ones(shape=data.shape)),
@@ -736,7 +819,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         class TestFactor(CustomFactor):
             dtype = float64_dtype
-            inputs = (InputFilter(), )
+            inputs = (InputFilter(),)
             window_length = factor_len
 
             def compute(self, today, assets, out, filter_):
@@ -749,10 +832,10 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                'windowsafe': TestFactor(),
+                "windowsafe": TestFactor(),
             },
             expected={
-                'windowsafe': full(output_shape, factor_len, dtype=float64),
+                "windowsafe": full(output_shape, factor_len, dtype=float64),
             },
             initial_workspace={InputFilter(): data},
             mask=self.build_mask(self.ones_mask()),
@@ -774,9 +857,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         self.assertTrue(filter_.window_safe)
 
     @parameter_space(
-        dtype=('float64', 'datetime64[ns]'),
-        seed=(1, 2, 3),
-        __fail_fast=True
+        dtype=("float64", "datetime64[ns]"), seed=(1, 2, 3), __fail_fast=True
     )
     def test_top_with_groupby(self, dtype, seed):
         permute = partial(permute_rows, seed)
@@ -788,21 +869,25 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # values independently of order.
         factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
 
-        classifier_data = permuted_array([[0, 0, 1, 1, 2, 2, 0, 0],
-                                          [0, 0, 1, 1, 2, 2, 0, 0],
-                                          [0, 1, 2, 3, 0, 1, 2, 3],
-                                          [0, 1, 2, 3, 0, 1, 2, 3],
-                                          [0, 0, 0, 0, 1, 1, 1, 1],
-                                          [0, 0, 0, 0, 1, 1, 1, 1],
-                                          [0, 0, 0, 0, 0, 0, 0, 0],
-                                          [0, 0, 0, 0, 0, 0, 0, 0]])
+        classifier_data = permuted_array(
+            [
+                [0, 0, 1, 1, 2, 2, 0, 0],
+                [0, 0, 1, 1, 2, 2, 0, 0],
+                [0, 1, 2, 3, 0, 1, 2, 3],
+                [0, 1, 2, 3, 0, 1, 2, 3],
+                [0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
         f = self.factors_by_dtype_name[dtype]
         c = self.c
         self.check_terms(
             terms={
-                '1': f.top(1, groupby=c),
-                '2': f.top(2, groupby=c),
-                '3': f.top(3, groupby=c),
+                "1": f.top(1, groupby=c),
+                "2": f.top(2, groupby=c),
+                "3": f.top(3, groupby=c),
             },
             initial_workspace={
                 f: factor_data,
@@ -811,42 +896,55 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             expected={
                 # Should be the rightmost location of each entry in
                 # classifier_data.
-                '1': permuted_array([[0, 0, 0, 1, 0, 1, 0, 1],
-                                     [0, 0, 0, 1, 0, 1, 0, 1],
-                                     [0, 0, 0, 0, 1, 1, 1, 1],
-                                     [0, 0, 0, 0, 1, 1, 1, 1],
-                                     [0, 0, 0, 1, 0, 0, 0, 1],
-                                     [0, 0, 0, 1, 0, 0, 0, 1],
-                                     [0, 0, 0, 0, 0, 0, 0, 1],
-                                     [0, 0, 0, 0, 0, 0, 0, 1]], dtype=bool),
+                "1": permuted_array(
+                    [
+                        [0, 0, 0, 1, 0, 1, 0, 1],
+                        [0, 0, 0, 1, 0, 1, 0, 1],
+                        [0, 0, 0, 0, 1, 1, 1, 1],
+                        [0, 0, 0, 0, 1, 1, 1, 1],
+                        [0, 0, 0, 1, 0, 0, 0, 1],
+                        [0, 0, 0, 1, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 0, 1],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the first and second-rightmost location of each
                 # entry in classifier_data.
-                '2': permuted_array([[0, 0, 1, 1, 1, 1, 1, 1],
-                                     [0, 0, 1, 1, 1, 1, 1, 1],
-                                     [1, 1, 1, 1, 1, 1, 1, 1],
-                                     [1, 1, 1, 1, 1, 1, 1, 1],
-                                     [0, 0, 1, 1, 0, 0, 1, 1],
-                                     [0, 0, 1, 1, 0, 0, 1, 1],
-                                     [0, 0, 0, 0, 0, 0, 1, 1],
-                                     [0, 0, 0, 0, 0, 0, 1, 1]], dtype=bool),
+                "2": permuted_array(
+                    [
+                        [0, 0, 1, 1, 1, 1, 1, 1],
+                        [0, 0, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [0, 0, 1, 1, 0, 0, 1, 1],
+                        [0, 0, 1, 1, 0, 0, 1, 1],
+                        [0, 0, 0, 0, 0, 0, 1, 1],
+                        [0, 0, 0, 0, 0, 0, 1, 1],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the first, second, and third-rightmost location of
                 # each entry in classifier_data.
-                '3': permuted_array([[0, 1, 1, 1, 1, 1, 1, 1],
-                                     [0, 1, 1, 1, 1, 1, 1, 1],
-                                     [1, 1, 1, 1, 1, 1, 1, 1],
-                                     [1, 1, 1, 1, 1, 1, 1, 1],
-                                     [0, 1, 1, 1, 0, 1, 1, 1],
-                                     [0, 1, 1, 1, 0, 1, 1, 1],
-                                     [0, 0, 0, 0, 0, 1, 1, 1],
-                                     [0, 0, 0, 0, 0, 1, 1, 1]], dtype=bool),
+                "3": permuted_array(
+                    [
+                        [0, 1, 1, 1, 1, 1, 1, 1],
+                        [0, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [0, 1, 1, 1, 0, 1, 1, 1],
+                        [0, 1, 1, 1, 0, 1, 1, 1],
+                        [0, 0, 0, 0, 0, 1, 1, 1],
+                        [0, 0, 0, 0, 0, 1, 1, 1],
+                    ],
+                    dtype=bool,
+                ),
             },
             mask=self.build_mask(self.ones_mask(shape=shape)),
         )
 
     @parameter_space(
-        dtype=('float64', 'datetime64[ns]'),
-        seed=(1, 2, 3),
-        __fail_fast=True
+        dtype=("float64", "datetime64[ns]"), seed=(1, 2, 3), __fail_fast=True
     )
     def test_top_and_bottom_with_groupby(self, dtype, seed):
         permute = partial(permute_rows, seed)
@@ -857,26 +955,30 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # Shuffle the input rows to verify that we correctly pick out the top
         # values independently of order.
         factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
-        classifier_data = permuted_array([[0, 0, 1, 1, 2, 2, 0, 0],
-                                          [0, 0, 1, 1, 2, 2, 0, 0],
-                                          [0, 1, 2, 3, 0, 1, 2, 3],
-                                          [0, 1, 2, 3, 0, 1, 2, 3],
-                                          [0, 0, 0, 0, 1, 1, 1, 1],
-                                          [0, 0, 0, 0, 1, 1, 1, 1],
-                                          [0, 0, 0, 0, 0, 0, 0, 0],
-                                          [0, 0, 0, 0, 0, 0, 0, 0]])
+        classifier_data = permuted_array(
+            [
+                [0, 0, 1, 1, 2, 2, 0, 0],
+                [0, 0, 1, 1, 2, 2, 0, 0],
+                [0, 1, 2, 3, 0, 1, 2, 3],
+                [0, 1, 2, 3, 0, 1, 2, 3],
+                [0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
         f = self.factors_by_dtype_name[dtype]
         c = self.c
 
         self.check_terms(
             terms={
-                'top1': f.top(1, groupby=c),
-                'top2': f.top(2, groupby=c),
-                'top3': f.top(3, groupby=c),
-                'bottom1': f.bottom(1, groupby=c),
-                'bottom2': f.bottom(2, groupby=c),
-                'bottom3': f.bottom(3, groupby=c),
+                "top1": f.top(1, groupby=c),
+                "top2": f.top(2, groupby=c),
+                "top3": f.top(3, groupby=c),
+                "bottom1": f.bottom(1, groupby=c),
+                "bottom2": f.bottom(2, groupby=c),
+                "bottom3": f.bottom(3, groupby=c),
             },
             initial_workspace={
                 f: factor_data,
@@ -885,73 +987,100 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             expected={
                 # Should be the rightmost location of each entry in
                 # classifier_data.
-                'top1': permuted_array([[0, 0, 0, 1, 0, 1, 0, 1],
-                                        [0, 0, 0, 1, 0, 1, 0, 1],
-                                        [0, 0, 0, 0, 1, 1, 1, 1],
-                                        [0, 0, 0, 0, 1, 1, 1, 1],
-                                        [0, 0, 0, 1, 0, 0, 0, 1],
-                                        [0, 0, 0, 1, 0, 0, 0, 1],
-                                        [0, 0, 0, 0, 0, 0, 0, 1],
-                                        [0, 0, 0, 0, 0, 0, 0, 1]], dtype=bool),
+                "top1": permuted_array(
+                    [
+                        [0, 0, 0, 1, 0, 1, 0, 1],
+                        [0, 0, 0, 1, 0, 1, 0, 1],
+                        [0, 0, 0, 0, 1, 1, 1, 1],
+                        [0, 0, 0, 0, 1, 1, 1, 1],
+                        [0, 0, 0, 1, 0, 0, 0, 1],
+                        [0, 0, 0, 1, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 0, 1],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the leftmost location of each entry in
                 # classifier_data.
-                'bottom1': permuted_array([[1, 0, 1, 0, 1, 0, 0, 0],
-                                           [1, 0, 1, 0, 1, 0, 0, 0],
-                                           [1, 1, 1, 1, 0, 0, 0, 0],
-                                           [1, 1, 1, 1, 0, 0, 0, 0],
-                                           [1, 0, 0, 0, 1, 0, 0, 0],
-                                           [1, 0, 0, 0, 1, 0, 0, 0],
-                                           [1, 0, 0, 0, 0, 0, 0, 0],
-                                           [1, 0, 0, 0, 0, 0, 0, 0]],
-                                          dtype=bool),
+                "bottom1": permuted_array(
+                    [
+                        [1, 0, 1, 0, 1, 0, 0, 0],
+                        [1, 0, 1, 0, 1, 0, 0, 0],
+                        [1, 1, 1, 1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 1, 0, 0, 0],
+                        [1, 0, 0, 0, 1, 0, 0, 0],
+                        [1, 0, 0, 0, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0, 0, 0, 0],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the first and second-rightmost location of each
                 # entry in classifier_data.
-                'top2': permuted_array([[0, 0, 1, 1, 1, 1, 1, 1],
-                                        [0, 0, 1, 1, 1, 1, 1, 1],
-                                        [1, 1, 1, 1, 1, 1, 1, 1],
-                                        [1, 1, 1, 1, 1, 1, 1, 1],
-                                        [0, 0, 1, 1, 0, 0, 1, 1],
-                                        [0, 0, 1, 1, 0, 0, 1, 1],
-                                        [0, 0, 0, 0, 0, 0, 1, 1],
-                                        [0, 0, 0, 0, 0, 0, 1, 1]], dtype=bool),
+                "top2": permuted_array(
+                    [
+                        [0, 0, 1, 1, 1, 1, 1, 1],
+                        [0, 0, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [0, 0, 1, 1, 0, 0, 1, 1],
+                        [0, 0, 1, 1, 0, 0, 1, 1],
+                        [0, 0, 0, 0, 0, 0, 1, 1],
+                        [0, 0, 0, 0, 0, 0, 1, 1],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the first and second leftmost location of each
                 # entry in classifier_data.
-                'bottom2': permuted_array([[1, 1, 1, 1, 1, 1, 0, 0],
-                                           [1, 1, 1, 1, 1, 1, 0, 0],
-                                           [1, 1, 1, 1, 1, 1, 1, 1],
-                                           [1, 1, 1, 1, 1, 1, 1, 1],
-                                           [1, 1, 0, 0, 1, 1, 0, 0],
-                                           [1, 1, 0, 0, 1, 1, 0, 0],
-                                           [1, 1, 0, 0, 0, 0, 0, 0],
-                                           [1, 1, 0, 0, 0, 0, 0, 0]],
-                                          dtype=bool),
+                "bottom2": permuted_array(
+                    [
+                        [1, 1, 1, 1, 1, 1, 0, 0],
+                        [1, 1, 1, 1, 1, 1, 0, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 0, 0, 1, 1, 0, 0],
+                        [1, 1, 0, 0, 1, 1, 0, 0],
+                        [1, 1, 0, 0, 0, 0, 0, 0],
+                        [1, 1, 0, 0, 0, 0, 0, 0],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the first, second, and third-rightmost location of
                 # each entry in classifier_data.
-                'top3': permuted_array([[0, 1, 1, 1, 1, 1, 1, 1],
-                                        [0, 1, 1, 1, 1, 1, 1, 1],
-                                        [1, 1, 1, 1, 1, 1, 1, 1],
-                                        [1, 1, 1, 1, 1, 1, 1, 1],
-                                        [0, 1, 1, 1, 0, 1, 1, 1],
-                                        [0, 1, 1, 1, 0, 1, 1, 1],
-                                        [0, 0, 0, 0, 0, 1, 1, 1],
-                                        [0, 0, 0, 0, 0, 1, 1, 1]], dtype=bool),
+                "top3": permuted_array(
+                    [
+                        [0, 1, 1, 1, 1, 1, 1, 1],
+                        [0, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [0, 1, 1, 1, 0, 1, 1, 1],
+                        [0, 1, 1, 1, 0, 1, 1, 1],
+                        [0, 0, 0, 0, 0, 1, 1, 1],
+                        [0, 0, 0, 0, 0, 1, 1, 1],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the first, second, and third-leftmost location of
                 # each entry in classifier_data.
-                'bottom3': permuted_array([[1, 1, 1, 1, 1, 1, 1, 0],
-                                           [1, 1, 1, 1, 1, 1, 1, 0],
-                                           [1, 1, 1, 1, 1, 1, 1, 1],
-                                           [1, 1, 1, 1, 1, 1, 1, 1],
-                                           [1, 1, 1, 0, 1, 1, 1, 0],
-                                           [1, 1, 1, 0, 1, 1, 1, 0],
-                                           [1, 1, 1, 0, 0, 0, 0, 0],
-                                           [1, 1, 1, 0, 0, 0, 0, 0]],
-                                          dtype=bool),
+                "bottom3": permuted_array(
+                    [
+                        [1, 1, 1, 1, 1, 1, 1, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 0, 1, 1, 1, 0],
+                        [1, 1, 1, 0, 1, 1, 1, 0],
+                        [1, 1, 1, 0, 0, 0, 0, 0],
+                        [1, 1, 1, 0, 0, 0, 0, 0],
+                    ],
+                    dtype=bool,
+                ),
             },
             mask=self.build_mask(self.ones_mask(shape=shape)),
         )
 
     @parameter_space(
-        dtype=('float64', 'datetime64[ns]'),
+        dtype=("float64", "datetime64[ns]"),
         seed=(1, 2, 3),
         __fail_fast=True,
     )
@@ -964,22 +1093,26 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # Shuffle the input rows to verify that we correctly pick out the top
         # values independently of order.
         factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
-        classifier_data = permuted_array([[0, 0, 1, 1, 2, 2, 0, 0],
-                                          [0, 0, 1, 1, 2, 2, 0, 0],
-                                          [0, 1, 2, 3, 0, 1, 2, 3],
-                                          [0, 1, 2, 3, 0, 1, 2, 3],
-                                          [0, 0, 0, 0, 1, 1, 1, 1],
-                                          [0, 0, 0, 0, 1, 1, 1, 1],
-                                          [0, 0, 0, 0, 0, 0, 0, 0],
-                                          [0, 0, 0, 0, 0, 0, 0, 0]])
+        classifier_data = permuted_array(
+            [
+                [0, 0, 1, 1, 2, 2, 0, 0],
+                [0, 0, 1, 1, 2, 2, 0, 0],
+                [0, 1, 2, 3, 0, 1, 2, 3],
+                [0, 1, 2, 3, 0, 1, 2, 3],
+                [0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
         f = self.factors_by_dtype_name[dtype]
         c = self.c
 
         self.check_terms(
             terms={
-                'top2': f.top(2, groupby=c),
-                'bottom2': f.bottom(2, groupby=c),
+                "top2": f.top(2, groupby=c),
+                "bottom2": f.bottom(2, groupby=c),
             },
             initial_workspace={
                 f: factor_data,
@@ -988,25 +1121,34 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             expected={
                 # Should be the rightmost two entries in classifier_data,
                 # ignoring the off-diagonal.
-                'top2': permuted_array([[0, 1, 1, 1, 1, 1, 1, 0],
-                                        [0, 1, 1, 1, 1, 1, 0, 1],
-                                        [1, 1, 1, 1, 1, 0, 1, 1],
-                                        [1, 1, 1, 1, 0, 1, 1, 1],
-                                        [0, 1, 1, 0, 0, 0, 1, 1],
-                                        [0, 1, 0, 1, 0, 0, 1, 1],
-                                        [0, 0, 0, 0, 0, 0, 1, 1],
-                                        [0, 0, 0, 0, 0, 0, 1, 1]], dtype=bool),
+                "top2": permuted_array(
+                    [
+                        [0, 1, 1, 1, 1, 1, 1, 0],
+                        [0, 1, 1, 1, 1, 1, 0, 1],
+                        [1, 1, 1, 1, 1, 0, 1, 1],
+                        [1, 1, 1, 1, 0, 1, 1, 1],
+                        [0, 1, 1, 0, 0, 0, 1, 1],
+                        [0, 1, 0, 1, 0, 0, 1, 1],
+                        [0, 0, 0, 0, 0, 0, 1, 1],
+                        [0, 0, 0, 0, 0, 0, 1, 1],
+                    ],
+                    dtype=bool,
+                ),
                 # Should be the rightmost two entries in classifier_data,
                 # ignoring the off-diagonal.
-                'bottom2': permuted_array([[1, 1, 1, 1, 1, 1, 0, 0],
-                                           [1, 1, 1, 1, 1, 1, 0, 0],
-                                           [1, 1, 1, 1, 1, 0, 1, 1],
-                                           [1, 1, 1, 1, 0, 1, 1, 1],
-                                           [1, 1, 0, 0, 1, 1, 0, 0],
-                                           [1, 1, 0, 0, 1, 1, 0, 0],
-                                           [1, 0, 1, 0, 0, 0, 0, 0],
-                                           [0, 1, 1, 0, 0, 0, 0, 0]],
-                                          dtype=bool),
+                "bottom2": permuted_array(
+                    [
+                        [1, 1, 1, 1, 1, 1, 0, 0],
+                        [1, 1, 1, 1, 1, 1, 0, 0],
+                        [1, 1, 1, 1, 1, 0, 1, 1],
+                        [1, 1, 1, 1, 0, 1, 1, 1],
+                        [1, 1, 0, 0, 1, 1, 0, 0],
+                        [1, 1, 0, 0, 1, 1, 0, 0],
+                        [1, 0, 1, 0, 0, 0, 0, 0],
+                        [0, 1, 1, 0, 0, 0, 0, 0],
+                    ],
+                    dtype=bool,
+                ),
             },
             mask=self.build_mask(permute(rot90(self.eye_mask(shape=shape)))),
         )
@@ -1014,6 +1156,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
 class SidFactor(CustomFactor):
     """A factor that just returns each asset's sid."""
+
     inputs = ()
     window_length = 1
 
@@ -1021,20 +1164,19 @@ class SidFactor(CustomFactor):
         out[:] = sids
 
 
-class SpecificAssetsTestCase(WithSeededRandomPipelineEngine,
-                             ZiplineTestCase):
+class SpecificAssetsTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = tuple(range(10))
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    ASSET_FINDER_COUNTRY_CODE = "US"
     SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 
     def _check_filters(self, evens, odds, first_five, last_three):
         pipe = Pipeline(
             columns={
-                'sid': SidFactor(),
-                'evens': evens,
-                'odds': odds,
-                'first_five': first_five,
-                'last_three': last_three,
+                "sid": SidFactor(),
+                "evens": evens,
+                "odds": odds,
+                "first_five": first_five,
+                "last_three": last_three,
             },
         )
 
@@ -1078,9 +1220,7 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
 
         f = F()
         column_data = array(
-            [[True, f.missing_value],
-             [True, f.missing_value],
-             [True, True]],
+            [[True, f.missing_value], [True, f.missing_value], [True, True]],
             dtype=bool,
         )
 
@@ -1089,13 +1229,17 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
         # only include the non-missing data
         pipeline_output = pd.Series(
             data=True,
-            index=pd.MultiIndex.from_arrays([
-                [pd.Timestamp('2014-01-01'),
-                 pd.Timestamp('2014-01-02'),
-                 pd.Timestamp('2014-01-03'),
-                 pd.Timestamp('2014-01-03')],
-                [0, 0, 0, 1],
-            ]),
+            index=pd.MultiIndex.from_arrays(
+                [
+                    [
+                        pd.Timestamp("2014-01-01"),
+                        pd.Timestamp("2014-01-02"),
+                        pd.Timestamp("2014-01-03"),
+                        pd.Timestamp("2014-01-03"),
+                    ],
+                    [0, 0, 0, 1],
+                ]
+            ),
         )
 
         assert_equal(
@@ -1105,7 +1249,6 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
 
 
 class ReprTestCase(ZiplineTestCase):
-
     def test_maximum_repr(self):
         m = SomeFactor().top(1, groupby=SomeClassifier(), mask=SomeFilter())
 
@@ -1116,17 +1259,19 @@ class ReprTestCase(ZiplineTestCase):
                 SomeFactor().recursive_repr(),
                 SomeClassifier().recursive_repr(),
                 SomeFilter().recursive_repr(),
-            )
+            ),
         )
 
         short_rep = m.graph_repr()
-        assert_equal(short_rep, "Maximum:\\l  "
-                                "groupby: SomeClassifier(...)\\l  "
-                                "mask: SomeFilter(...)\\l")
+        assert_equal(
+            short_rep,
+            "Maximum:\\l  "
+            "groupby: SomeClassifier(...)\\l  "
+            "mask: SomeFilter(...)\\l",
+        )
 
 
 class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
-
     @classmethod
     def init_class_fixtures(cls):
         super(IfElseTestCase, cls).init_class_fixtures()
@@ -1150,12 +1295,12 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             cond: cond_data,
         }
         terms = {
-            'result': cond.if_else(f, g),
-            'result_1d': cond.if_else(f, g[self.assets[0]]),
+            "result": cond.if_else(f, g),
+            "result_1d": cond.if_else(f, g[self.assets[0]]),
         }
         expected = {
-            'result': where(cond_data, f_data, g_data),
-            'result_1d': where(cond_data, f_data, g_data[:, [0]]),
+            "result": where(cond_data, f_data, g_data),
+            "result_1d": where(cond_data, f_data, g_data[:, [0]]),
         }
 
         self.check_terms(
@@ -1186,12 +1331,12 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             cond: cond_data,
         }
         terms = {
-            'result': cond.if_else(f, g),
-            'result_1d': cond.if_else(f, g[self.assets[5]]),
+            "result": cond.if_else(f, g),
+            "result_1d": cond.if_else(f, g[self.assets[5]]),
         }
         expected = {
-            'result': where(cond_data, f_data, g_data),
-            'result_1d': where(cond_data, f_data, g_data[:, [5]]),
+            "result": where(cond_data, f_data, g_data),
+            "result_1d": where(cond_data, f_data, g_data[:, [5]]),
         }
 
         self.check_terms(
@@ -1225,12 +1370,12 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             cond: cond_data,
         }
         terms = {
-            'result': cond.if_else(f, g),
-            'result_1d': cond.if_else(f, g[self.assets[1]]),
+            "result": cond.if_else(f, g),
+            "result_1d": cond.if_else(f, g[self.assets[1]]),
         }
         expected = {
-            'result': where(cond_data, f_data, g_data),
-            'result_1d': where(cond_data, f_data, g_data[:, [1]]),
+            "result": where(cond_data, f_data, g_data),
+            "result_1d": where(cond_data, f_data, g_data[:, [1]]),
         }
 
         self.check_terms(
@@ -1256,13 +1401,10 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         g = Classifier2()
         cond = SomeFilter()
 
-        f_data = self.rand_categoricals(
-            seed=seed,
-            categories=['a', 'b', 'c']
-        )
+        f_data = self.rand_categoricals(seed=seed, categories=["a", "b", "c"])
         g_data = self.rand_categoricals(
             seed=seed + 1,
-            categories=['d', 'e', 'f'],
+            categories=["d", "e", "f"],
         )
         cond_data = self.rand_mask(seed=seed + 2)
 
@@ -1273,12 +1415,12 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         }
 
         terms = {
-            'result': cond.if_else(f, g),
-            'result_1d': cond.if_else(f, g[self.assets[2]]),
+            "result": cond.if_else(f, g),
+            "result_1d": cond.if_else(f, g[self.assets[2]]),
         }
         expected = {
-            'result': labelarray_where(cond_data, f_data, g_data),
-            'result_1d': labelarray_where(cond_data, f_data, g_data[:, [2]]),
+            "result": labelarray_where(cond_data, f_data, g_data),
+            "result_1d": labelarray_where(cond_data, f_data, g_data[:, [2]]),
         }
 
         self.check_terms(
@@ -1290,7 +1432,6 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
 
     @parameter_space(seed=[200, 300, 400])
     def test_if_then_else_int_classifier(self, seed):
-
         class Classifier1(Classifier):
             inputs = ()
             window_length = 0
@@ -1318,12 +1459,12 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         }
 
         terms = {
-            'result': cond.if_else(f, g),
-            'result_1d': cond.if_else(f, g[self.assets[4]]),
+            "result": cond.if_else(f, g),
+            "result_1d": cond.if_else(f, g[self.assets[4]]),
         }
         expected = {
-            'result': where(cond_data, f_data, g_data),
-            'result_1d': where(cond_data, f_data, g_data[:, [4]]),
+            "result": where(cond_data, f_data, g_data),
+            "result_1d": where(cond_data, f_data, g_data[:, [4]]),
         }
 
         self.check_terms(

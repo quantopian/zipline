@@ -16,6 +16,7 @@ class IDBox(object):
     -----
     This is useful for storing non-hashable values in a set or dict.
     """
+
     def __init__(self, ob):
         self.ob = ob
 

@@ -13,11 +13,14 @@ from distutils.version import StrictVersion
 from trading_calendars.utils.pandas_utils import days_at_time  # noqa: reexport
 
 pandas_version = StrictVersion(pd.__version__)
-new_pandas = pandas_version >= StrictVersion('0.19')
-skip_pipeline_new_pandas = 'Pipeline categoricals are not yet compatible with pandas >=0.19'
+new_pandas = pandas_version >= StrictVersion("0.19")
+skip_pipeline_new_pandas = (
+    "Pipeline categoricals are not yet compatible with pandas >=0.19"
+)
 skip_pipeline_blaze = "Blaze doesn't play nicely with Pandas >=1.0"
 
-if pandas_version >= StrictVersion('0.20'):
+if pandas_version >= StrictVersion("0.20"):
+
     def normalize_date(dt):
         """
         Normalize datetime.datetime value to midnight. Returns datetime.date as
@@ -28,11 +31,13 @@ if pandas_version >= StrictVersion('0.20'):
         normalized : datetime.datetime or Timestamp
         """
         return dt.normalize()
+
+
 else:
     from pandas.tseries.tools import normalize_date  # noqa
 
 
-if pandas_version >= StrictVersion('0.23'):
+if pandas_version >= StrictVersion("0.23"):
     from pandas.errors import PerformanceWarning
 else:
     from pandas.core.common import PerformanceWarning
@@ -69,10 +74,12 @@ def _time_to_micros(time):
     return 1000000 * seconds + time.microsecond
 
 
-_opmap = dict(zip(
-    product((True, False), repeat=3),
-    product((op.le, op.lt), (op.le, op.lt), (op.and_, op.or_)),
-))
+_opmap = dict(
+    zip(
+        product((True, False), repeat=3),
+        product((op.le, op.lt), (op.le, op.lt), (op.and_, op.or_)),
+    )
+)
 
 
 def mask_between_time(dts, start, end, include_start=True, include_end=True):
@@ -175,7 +182,7 @@ def nearest_unequal_elements(dts, dt):
     if not len(dts):
         return None, None
 
-    sortpos = dts.searchsorted(dt, side='left')
+    sortpos = dts.searchsorted(dt, side="left")
     try:
         sortval = dts[sortpos]
     except IndexError:
@@ -219,17 +226,14 @@ def ignore_pandas_nan_categorical_warning():
         # avoiding that requires a broader change to how missing values are
         # handled in pipeline, so for now just silence the warning.
         warnings.filterwarnings(
-            'ignore',
+            "ignore",
             category=FutureWarning,
         )
         yield
 
 
-if pandas_version < StrictVersion('1.0'):
-    _INDEXER_NAMES = [
-        '_' + name for (name, _) in pd.core.indexing.get_indexers_list()
-    ]
-
+if pandas_version < StrictVersion("1.0"):
+    _INDEXER_NAMES = ["_" + name for (name, _) in pd.core.indexing.get_indexers_list()]
 
     def clear_dataframe_indexer_caches(df):
         """
@@ -249,7 +253,10 @@ if pandas_version < StrictVersion('1.0'):
                 delattr(df, attr)
             except AttributeError:
                 pass
+
+
 else:
+
     def clear_dataframe_indexer_caches(df):
         pass
 
@@ -281,7 +288,7 @@ def categorical_df_concat(df_list, inplace=False):
     if not all([(df.dtypes.equals(df_i.dtypes)) for df_i in df_list[1:]]):
         raise ValueError("Input DataFrames must have the same columns/dtypes.")
 
-    categorical_columns = df.columns[df.dtypes == 'category']
+    categorical_columns = df.columns[df.dtypes == "category"]
 
     for col in categorical_columns:
         new_categories = _sort_set_none_first(
@@ -296,14 +303,12 @@ def categorical_df_concat(df_list, inplace=False):
 
 
 def _union_all(iterables):
-    """Union entries in ``iterables`` into a set.
-    """
+    """Union entries in ``iterables`` into a set."""
     return set().union(*iterables)
 
 
 def _sort_set_none_first(set_):
-    """Sort a set, sorting ``None`` before other elements, if present.
-    """
+    """Sort a set, sorting ``None`` before other elements, if present."""
     if None in set_:
         set_.remove(None)
         out = [None]
@@ -366,12 +371,10 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
     iterator = iter(indexes)
     first = next(iterator)
     for other in iterator:
-        same = (first == other)
+        same = first == other
         if not same.all():
             bad_loc = np.flatnonzero(~same)[0]
             raise ValueError(
                 "{}\nFirst difference is at index {}: "
-                "{} != {}".format(
-                    message, bad_loc, first[bad_loc], other[bad_loc]
-                ),
+                "{} != {}".format(message, bad_loc, first[bad_loc], other[bad_loc]),
             )

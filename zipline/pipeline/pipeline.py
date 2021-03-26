@@ -34,13 +34,10 @@ class Pipeline(object):
     screen : zipline.pipeline.Filter, optional
         Initial screen.
     """
-    __slots__ = ('_columns', '_screen', '_domain', '__weakref__')
 
-    @expect_types(
-        columns=optional(dict),
-        screen=optional(Filter),
-        domain=Domain
-    )
+    __slots__ = ("_columns", "_screen", "_domain", "__weakref__")
+
+    @expect_types(columns=optional(dict), screen=optional(Filter), domain=Domain)
     def __init__(self, columns=None, screen=None, domain=GENERIC):
         if columns is None:
             columns = {}
@@ -52,7 +49,8 @@ class Pipeline(object):
                 raise TypeError(
                     "Column {column_name!r} contains an invalid pipeline term "
                     "({term}). Did you mean to append '.latest'?".format(
-                        column_name=column_name, term=term,
+                        column_name=column_name,
+                        term=term,
                     )
                 )
 
@@ -172,11 +170,7 @@ class Pipeline(object):
             )
         self._screen = screen
 
-    def to_execution_plan(self,
-                          domain,
-                          default_screen,
-                          start_date,
-                          end_date):
+    def to_execution_plan(self, domain, default_screen, start_date, end_date):
         """
         Compile into an ExecutionPlan.
 
@@ -238,8 +232,8 @@ class Pipeline(object):
         columns[SCREEN_NAME] = screen
         return columns
 
-    @expect_element(format=('svg', 'png', 'jpeg'))
-    def show_graph(self, format='svg'):
+    @expect_element(format=("svg", "png", "jpeg"))
+    def show_graph(self, format="svg"):
         """
         Render this Pipeline as a DAG.
 
@@ -249,11 +243,11 @@ class Pipeline(object):
             Image format to render with.  Default is 'svg'.
         """
         g = self.to_simple_graph(AssetExists())
-        if format == 'svg':
+        if format == "svg":
             return g.svg
-        elif format == 'png':
+        elif format == "png":
             return g.png
-        elif format == 'jpeg':
+        elif format == "jpeg":
             return g.jpeg
         else:
             # We should never get here because of the expect_element decorator

@@ -25,7 +25,7 @@ from zipline.utils.compat import wraps
 from zipline.utils.functional import getattrs
 from zipline.utils.preprocess import call, preprocess
 
-_qualified_name = attrgetter('__qualname__')
+_qualified_name = attrgetter("__qualname__")
 
 
 def verify_indices_all_unique(obj):
@@ -48,10 +48,12 @@ def verify_indices_all_unique(obj):
         If any axis has duplicate entries.
     """
     axis_names = [
-        ('index',),  # Series
-        ('index', 'columns'),  # DataFrame
-        ('items', 'major_axis', 'minor_axis')  # Panel
-    ][obj.ndim - 1]  # ndim = 1 should go to entry 0,
+        ("index",),  # Series
+        ("index", "columns"),  # DataFrame
+        ("items", "major_axis", "minor_axis"),  # Panel
+    ][
+        obj.ndim - 1
+    ]  # ndim = 1 should go to entry 0,
 
     for axis_name, index in zip(axis_names, obj.axes):
         if index.is_unique:
@@ -231,13 +233,16 @@ def expect_dtypes(__funcname=_qualified_name, **named):
             raise TypeError(
                 "expect_dtypes() expected a numpy dtype or tuple of dtypes"
                 " for argument {name!r}, but got {dtype} instead.".format(
-                    name=name, dtype=dtype,
+                    name=name,
+                    dtype=dtype,
                 )
             )
 
     if isinstance(__funcname, str):
+
         def get_funcname(_):
             return __funcname
+
     else:
         get_funcname = __funcname
 
@@ -260,13 +265,13 @@ def expect_dtypes(__funcname=_qualified_name, **named):
                 "for argument {argname!r}, but got {value!r} instead."
             ).format(
                 funcname=get_funcname(func),
-                dtype_str=' or '.join(repr(d.name) for d in dtypes),
+                dtype_str=" or ".join(repr(d.name) for d in dtypes),
                 argname=argname,
                 value=value_to_show,
             )
 
         def _actual_preprocessor(func, argname, argvalue):
-            if getattr(argvalue, 'dtype', object()) not in dtypes:
+            if getattr(argvalue, "dtype", object()) not in dtypes:
                 raise TypeError(error_message(func, argname, argvalue))
             return argvalue
 
@@ -301,7 +306,8 @@ def expect_kinds(**named):
             raise TypeError(
                 "expect_dtype_kinds() expected a string or tuple of strings"
                 " for argument {name!r}, but got {kind} instead.".format(
-                    name=name, kind=dtype,
+                    name=name,
+                    kind=dtype,
                 )
             )
 
@@ -324,13 +330,13 @@ def expect_kinds(**named):
                 "for argument {argname!r}, but got {value!r} instead."
             ).format(
                 funcname=_qualified_name(func),
-                kinds=' or '.join(map(repr, kinds)),
+                kinds=" or ".join(map(repr, kinds)),
                 argname=argname,
                 value=value_to_show,
             )
 
         def _actual_preprocessor(func, argname, argvalue):
-            if getattrs(argvalue, ('dtype', 'kind'), object()) not in kinds:
+            if getattrs(argvalue, ("dtype", "kind"), object()) not in kinds:
                 raise TypeError(error_message(func, argname, argvalue))
             return argvalue
 
@@ -369,7 +375,8 @@ def expect_types(__funcname=_qualified_name, **named):
             raise TypeError(
                 "expect_types() expected a type or tuple of types for "
                 "argument '{name}', but got {type_} instead.".format(
-                    name=name, type_=type_,
+                    name=name,
+                    type_=type_,
                 )
             )
 
@@ -381,7 +388,7 @@ def expect_types(__funcname=_qualified_name, **named):
         )
         if isinstance(type_, tuple):
             template = _template.format(
-                type_or_types=' or '.join(map(_qualified_name, type_))
+                type_or_types=" or ".join(map(_qualified_name, type_))
             )
         else:
             template = _template.format(type_or_types=_qualified_name(type_))
@@ -423,18 +430,21 @@ def make_check(exc_type, template, pred, actual, funcname):
         to refer to the class name instead of the method name.
     """
     if isinstance(funcname, str):
+
         def get_funcname(_):
             return funcname
+
     else:
         get_funcname = funcname
 
     def _check(func, argname, argvalue):
         if pred(argvalue):
             raise exc_type(
-                template % {
-                    'funcname': get_funcname(func),
-                    'argname' : argname,
-                    'actual'  : actual(argvalue),
+                template
+                % {
+                    "funcname": get_funcname(func),
+                    "argname": argname,
+                    "actual": actual(argvalue),
                 },
             )
         return argvalue
@@ -574,16 +584,19 @@ def expect_bounded(__funcname=_qualified_name, **named):
     def _make_bounded_check(bounds):
         (lower, upper) = bounds
         if lower is None:
+
             def should_fail(value):
                 return value > upper
 
             predicate_descr = "less than or equal to " + str(upper)
         elif upper is None:
+
             def should_fail(value):
                 return value < lower
 
             predicate_descr = "greater than or equal to " + str(lower)
         else:
+
             def should_fail(value):
                 return not (lower <= value <= upper)
 
@@ -657,16 +670,19 @@ def expect_strictly_bounded(__funcname=_qualified_name, **named):
     def _make_bounded_check(bounds):
         (lower, upper) = bounds
         if lower is None:
+
             def should_fail(value):
                 return value >= upper
 
             predicate_descr = "strictly less than " + str(upper)
         elif upper is None:
+
             def should_fail(value):
                 return value <= lower
 
             predicate_descr = "strictly greater than " + str(lower)
         else:
+
             def should_fail(value):
                 return not (lower < value < upper)
 
@@ -690,11 +706,7 @@ def expect_strictly_bounded(__funcname=_qualified_name, **named):
 
 def _expect_bounded(make_bounded_check, __funcname, **named):
     def valid_bounds(t):
-        return (
-                isinstance(t, tuple)
-                and len(t) == 2
-                and t != (None, None)
-        )
+        return isinstance(t, tuple) and len(t) == 2 and t != (None, None)
 
     for name, bounds in named.items():
         if not valid_bounds(bounds):
@@ -731,8 +743,10 @@ def expect_dimensions(__funcname=_qualified_name, **dimensions):
     but got a 1-D array instead.
     """
     if isinstance(__funcname, str):
+
         def get_funcname(_):
             return __funcname
+
     else:
         get_funcname = __funcname
 
@@ -741,7 +755,7 @@ def expect_dimensions(__funcname=_qualified_name, **dimensions):
             actual_ndim = argvalue.ndim
             if actual_ndim != expected_ndim:
                 if actual_ndim == 0:
-                    actual_repr = 'scalar'
+                    actual_repr = "scalar"
                 else:
                     actual_repr = "%d-D array" % actual_ndim
                 raise ValueError(
@@ -827,7 +841,6 @@ def coerce_types(**kwargs):
 
 
 class error_keywords(object):
-
     def __init__(self, *args, **kwargs):
         self.messages = kwargs
 
@@ -846,8 +859,7 @@ coerce_string = partial(coerce, str)
 
 
 def validate_keys(dict_, expected, funcname):
-    """Validate that a dictionary has an expected set of keys.
-    """
+    """Validate that a dictionary has an expected set of keys."""
     expected = set(expected)
     received = set(dict_)
 

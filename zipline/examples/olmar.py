@@ -4,14 +4,16 @@ import numpy as np
 
 from zipline.finance import commission, slippage
 
-zipline_logging = logbook.NestedSetup([
-    logbook.NullHandler(),
-    logbook.StreamHandler(sys.stdout, level=logbook.INFO),
-    logbook.StreamHandler(sys.stderr, level=logbook.ERROR),
-])
+zipline_logging = logbook.NestedSetup(
+    [
+        logbook.NullHandler(),
+        logbook.StreamHandler(sys.stdout, level=logbook.INFO),
+        logbook.StreamHandler(sys.stderr, level=logbook.ERROR),
+    ]
+)
 zipline_logging.push_application()
 
-STOCKS = ['AMD', 'CERN', 'COST', 'DELL', 'GPS', 'INTC', 'MMM']
+STOCKS = ["AMD", "CERN", "COST", "DELL", "GPS", "INTC", "MMM"]
 
 
 # On-Line Portfolio Moving Average Reversion
@@ -49,7 +51,7 @@ def handle_data(algo, data):
     x_tilde = np.zeros(m)
 
     # find relative moving average price for each asset
-    mavgs = data.history(algo.sids, 'price', algo.window_length, '1d').mean()
+    mavgs = data.history(algo.sids, "price", algo.window_length, "1d").mean()
     for i, sid in enumerate(algo.sids):
         price = data.current(sid, "price")
         # Relative mean deviation
@@ -92,8 +94,7 @@ def rebalance_portfolio(algo, data, desired_port):
     if algo.init:
         positions_value = algo.portfolio.starting_cash
     else:
-        positions_value = algo.portfolio.positions_value + \
-                          algo.portfolio.cash
+        positions_value = algo.portfolio.positions_value + algo.portfolio.cash
 
     for i, sid in enumerate(algo.sids):
         current_amount[i] = algo.portfolio.positions[sid].amount
@@ -141,26 +142,26 @@ def simplex_projection(v, b=1):
 
     rho = np.where(u > (sv - b) / np.arange(1, p + 1))[0][-1]
     theta = np.max([0, (sv[rho] - b) / (rho + 1)])
-    w = (v - theta)
+    w = v - theta
     w[w < 0] = 0
     return w
 
 
 def analyze(context=None, results=None):
     import matplotlib.pyplot as plt
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
     results.portfolio_value.plot(ax=ax)
-    ax.set_ylabel('Portfolio value (USD)')
+    ax.set_ylabel("Portfolio value (USD)")
     plt.show()
 
 
 def _test_args():
-    """Extra arguments to use when zipline's automated tests run this example.
-    """
+    """Extra arguments to use when zipline's automated tests run this example."""
     import pandas as pd
 
     return {
-        'start': pd.Timestamp('2004', tz='utc'),
-        'end'  : pd.Timestamp('2008', tz='utc'),
+        "start": pd.Timestamp("2004", tz="utc"),
+        "end": pd.Timestamp("2008", tz="utc"),
     }

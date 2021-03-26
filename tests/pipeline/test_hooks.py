@@ -33,6 +33,7 @@ class TrivialFactor(CustomFactor):
     This is used to test that we correctly track date bounds in hooks in the
     presence of windowed computations.
     """
+
     window_length = 10
     inputs = [TestingDataSet.float_col, TestingDataSet.datetime_col]
 
@@ -41,9 +42,9 @@ class TrivialFactor(CustomFactor):
 
 
 class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
-    """Tests for verifying that SimplePipelineEngine calls hooks as expected.
-    """
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    """Tests for verifying that SimplePipelineEngine calls hooks as expected."""
+
+    ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod
     def make_seeded_random_pipeline_engine_hooks(cls):
@@ -67,8 +68,8 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         pipeline = Pipeline(
             {
-                'bool_': TestingDataSet.bool_col.latest,
-                'factor_rank': TrivialFactor().rank().zscore(),
+                "bool_": TestingDataSet.bool_col.latest,
+                "factor_rank": TrivialFactor().rank().zscore(),
             },
             domain=US_EQUITIES,
         )
@@ -115,18 +116,19 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 expected_chunks=expected_chunks,
             )
 
-    def verify_trace(self,
-                     trace,
-                     pipeline,
-                     pipeline_start_date,
-                     pipeline_end_date,
-                     expected_loads,
-                     expected_computes,
-                     expected_chunks):
-        """Verify a trace of a Pipeline execution.
-        """
+    def verify_trace(
+        self,
+        trace,
+        pipeline,
+        pipeline_start_date,
+        pipeline_end_date,
+        expected_loads,
+        expected_computes,
+        expected_chunks,
+    ):
+        """Verify a trace of a Pipeline execution."""
         # First/last calls should bracket the pipeline execution.
-        self.expect_context_pair(trace[0], trace[-1], 'running_pipeline')
+        self.expect_context_pair(trace[0], trace[-1], "running_pipeline")
         self.assertEqual(
             trace[0].args,
             (pipeline, pipeline_start_date, pipeline_end_date),
@@ -135,10 +137,9 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # Break up the trace into the traces of each chunk.
         chunk_traces = self.split_by_chunk(trace[1:-1])
 
-        for ctrace, (chunk_start, chunk_end) in zip(chunk_traces,
-                                                    expected_chunks):
+        for ctrace, (chunk_start, chunk_end) in zip(chunk_traces, expected_chunks):
             # Next call should bracket compute_chunk
-            self.expect_context_pair(ctrace[0], ctrace[-1], 'computing_chunk')
+            self.expect_context_pair(ctrace[0], ctrace[-1], "computing_chunk")
             self.assertIsInstance(ctrace[0].args[0], list)  # terms
             self.assertEqual(ctrace[0].args[1:], (chunk_start, chunk_end))
 
@@ -152,20 +153,18 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             for enter, exit_ in two_at_a_time(loads_and_computes):
                 self.expect_context_pair(enter, exit_, method=None)
 
-                if enter.method_name == 'loading_terms':
+                if enter.method_name == "loading_terms":
                     for loaded_term in enter.args[0]:
                         # We should only see each term once.
                         self.assertNotIn(loaded_term, loads)
                         # Don't worry about domains here.
                         loads.add(loaded_term.unspecialize())
-                elif enter.method_name == 'computing_term':
+                elif enter.method_name == "computing_term":
                     computed_term = enter.args[0]
                     self.assertNotIn(computed_term, computes)
                     computes.add(computed_term)
                 else:
-                    raise ValueError(
-                        "Unexpected method: {}".format(enter.method_name)
-                    )
+                    raise ValueError("Unexpected method: {}".format(enter.method_name))
 
             self.assertEqual(loads, expected_loads)
             self.assertEqual(computes, expected_computes)
@@ -175,10 +174,9 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         Split a trace of a chunked pipeline execution into a list of traces for
         each chunk.
         """
+
         def is_end_of_chunk(call):
-            return (
-                call.method_name == 'computing_chunk' and call.state == 'exit'
-            )
+            return call.method_name == "computing_chunk" and call.state == "exit"
 
         to_yield = []
         for call in trace:
@@ -191,8 +189,8 @@ class HooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         self.assertEqual(to_yield, [])
 
     def expect_context_pair(self, enter, exit_, method):
-        self.assertEqual(enter.state, 'enter')
-        self.assertEqual(exit_.state, 'exit')
+        self.assertEqual(enter.state, "enter")
+        self.assertEqual(exit_.state, "exit")
 
         if method is None:
             # Just assert that the methods match.
@@ -206,13 +204,14 @@ class ShouldGetSkipped(DataSet):
     Dataset that's only used by PrepopulatedFactor. It should get pruned from
     the execution when PrepopulatedFactor is prepopulated.
     """
+
     column1 = Column(dtype=float)
     column2 = Column(dtype=float)
 
 
 class PrepopulatedFactor(CustomFactor):
-    """CustomFactor that will be set by populate_initial_workspace.
-    """
+    """CustomFactor that will be set by populate_initial_workspace."""
+
     window_length = 5
     inputs = [ShouldGetSkipped.column1, ShouldGetSkipped.column2]
 
@@ -224,27 +223,23 @@ PREPOPULATED_TERM = PrepopulatedFactor()
 
 
 class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
-    """Tests for verifying ProgressHooks.
-    """
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    """Tests for verifying ProgressHooks."""
 
-    START_DATE = pd.Timestamp('2014-01-02', tz='UTC')
-    END_DATE = pd.Timestamp('2014-01-31', tz='UTC')
+    ASSET_FINDER_COUNTRY_CODE = "US"
+
+    START_DATE = pd.Timestamp("2014-01-02", tz="UTC")
+    END_DATE = pd.Timestamp("2014-01-31", tz="UTC")
 
     # Don't populate PREPOPULATED_TERM for days after this cutoff.
     # This is used to test that we correctly compute progress when the number
     # of terms computed in each chunk changes.
-    PREPOPULATED_TERM_CUTOFF = END_DATE - pd.Timedelta('2 days')
+    PREPOPULATED_TERM_CUTOFF = END_DATE - pd.Timedelta("2 days")
 
     @classmethod
     def make_seeded_random_populate_initial_workspace(cls):
         # Populate valeus for PREPOPULATED_TERM. This is used to ensure that we
         # properly track progress when we skip prepopulated terms.
-        def populate(initial_workspace,
-                     root_mask_term,
-                     execution_plan,
-                     dates,
-                     assets):
+        def populate(initial_workspace, root_mask_term, execution_plan, dates, assets):
             if PREPOPULATED_TERM not in execution_plan:
                 return initial_workspace
             elif dates[-1] > cls.PREPOPULATED_TERM_CUTOFF:
@@ -272,9 +267,9 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         hooks = [ProgressHooks.with_static_publisher(publisher)]
         pipeline = Pipeline(
             {
-                'bool_': TestingDataSet.bool_col.latest,
-                'factor_rank': TrivialFactor().rank().zscore(),
-                'prepopulated': PREPOPULATED_TERM,
+                "bool_": TestingDataSet.bool_col.latest,
+                "factor_rank": TrivialFactor().rank().zscore(),
+                "prepopulated": PREPOPULATED_TERM,
             },
             domain=US_EQUITIES,
         )
@@ -331,12 +326,14 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             empty=True,
         )
 
-    def verify_trace(self,
-                     trace,
-                     pipeline_start_date,
-                     pipeline_end_date,
-                     expected_chunks,
-                     empty=False):
+    def verify_trace(
+        self,
+        trace,
+        pipeline_start_date,
+        pipeline_end_date,
+        expected_chunks,
+        empty=False,
+    ):
         # Percent complete should be monotonically increasing through the whole
         # execution.
         for before, after in toolz.sliding_window(2, trace):
@@ -349,7 +346,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # work yet.
         first = trace[0]
         expected_first = TestingProgressPublisher.TraceState(
-            state='init',
+            state="init",
             percent_complete=0.0,
             execution_bounds=(pipeline_start_date, pipeline_end_date),
             current_chunk_bounds=expected_chunks[0],
@@ -360,7 +357,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # Last publish should have a state of success and be 100% complete.
         last = trace[-1]
         expected_last = TestingProgressPublisher.TraceState(
-            state='success',
+            state="success",
             percent_complete=100.0,
             execution_bounds=(pipeline_start_date, pipeline_end_date),
             current_chunk_bounds=expected_chunks[-1],
@@ -380,16 +377,16 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         for update in middle:
             # For empty pipelines we never leave the 'init' state.
             if empty:
-                self.assertEqual(update.state, 'init')
+                self.assertEqual(update.state, "init")
                 self.assertIs(update.current_work, None)
                 continue
 
-            if update.state in ('loading', 'computing'):
+            if update.state in ("loading", "computing"):
                 self.assertIsInstance(update.current_work, list)
-            if update.state == 'loading':
+            if update.state == "loading":
                 for term in update.current_work:
                     self.assertIsInstance(term, (LoadableTerm, AssetExists))
-            elif update.state == 'computing':
+            elif update.state == "computing":
                 for term in update.current_work:
                     self.assertIsInstance(term, ComputableTerm)
             else:
@@ -399,7 +396,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         # Break up the remaining updates by chunk.
         all_chunks = []
-        grouped = itertools.groupby(middle, attrgetter('current_chunk_bounds'))
+        grouped = itertools.groupby(middle, attrgetter("current_chunk_bounds"))
         for (chunk_start, chunk_stop), chunk_trace in grouped:
             all_chunks.append((chunk_start, chunk_stop))
 
@@ -432,7 +429,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             def compute(self, *args, **kwargs):
                 raise SomeError()
 
-        pipeline = Pipeline({'boom': ExplodingFactor()}, domain=US_EQUITIES)
+        pipeline = Pipeline({"boom": ExplodingFactor()}, domain=US_EQUITIES)
         start_date, end_date = self.trading_days[[-10, -1]]
 
         with self.assertRaises(SomeError):
@@ -453,11 +450,10 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 )
 
         final_update = publisher.trace[-1]
-        self.assertEqual(final_update.state, 'error')
+        self.assertEqual(final_update.state, "error")
 
     def expected_chunk_progress(self, pipeline_start, pipeline_end, chunk_end):
-        """Get expected progress after finishing a chunk ending at ``chunk_end``.
-        """
+        """Get expected progress after finishing a chunk ending at ``chunk_end``."""
         # +1 to be inclusive of end dates
         total_days = (pipeline_end - pipeline_start).days + 1
         days_complete = (chunk_end - pipeline_start).days + 1
@@ -465,9 +461,7 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
 
 class TermReprTestCase(ZiplineTestCase):
-
     def test_htmlsafe_repr(self):
-
         class MyFactor(CustomFactor):
             inputs = [TestingDataSet.float_col]
             window_length = 3
@@ -483,11 +477,11 @@ class TermReprTestCase(ZiplineTestCase):
             window_length = 3
 
             def __repr__(self):
-                return '<b>foo</b>'
+                return "<b>foo</b>"
 
         self.assertEqual(
             repr_htmlsafe(MyFactor()),
-            '<b>foo</b>'.replace('<', '&lt;').replace('>', '&gt;')
+            "<b>foo</b>".replace("<", "&lt;").replace(">", "&gt;"),
         )
 
     def test_htmlsafe_repr_handles_errors(self):
@@ -500,7 +494,7 @@ class TermReprTestCase(ZiplineTestCase):
 
         self.assertEqual(
             repr_htmlsafe(MyFactor()),
-            '(Error Displaying MyFactor)',
+            "(Error Displaying MyFactor)",
         )
 
     def test_htmlsafe_repr_escapes_html_when_it_handles_errors(self):
@@ -511,12 +505,12 @@ class TermReprTestCase(ZiplineTestCase):
             def __repr__(self):
                 raise ValueError("Kaboom!")
 
-        MyFactor.__name__ = '<b>foo</b>'
-        converted = MyFactor.__name__.replace('<', '&lt;').replace('>', '&gt;')
+        MyFactor.__name__ = "<b>foo</b>"
+        converted = MyFactor.__name__.replace("<", "&lt;").replace(">", "&gt;")
 
         self.assertEqual(
             repr_htmlsafe(MyFactor()),
-            '(Error Displaying {})'.format(converted),
+            "(Error Displaying {})".format(converted),
         )
 
 

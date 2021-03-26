@@ -80,6 +80,7 @@ class Term(with_metaclass(ABCMeta, object)):
        Memoization of terms means that it's generally unsafe to modify
        attributes of a term after construction.
     """
+
     # These are NotSpecified because a subclass is required to provide them.
     dtype = NotSpecified
     missing_value = NotSpecified
@@ -99,15 +100,17 @@ class Term(with_metaclass(ABCMeta, object)):
 
     _term_cache = WeakValueDictionary()
 
-    def __new__(cls,
-                domain=NotSpecified,
-                dtype=NotSpecified,
-                missing_value=NotSpecified,
-                window_safe=NotSpecified,
-                ndim=NotSpecified,
-                # params is explicitly not allowed to be passed to an instance.
-                *args,
-                **kwargs):
+    def __new__(
+        cls,
+        domain=NotSpecified,
+        dtype=NotSpecified,
+        missing_value=NotSpecified,
+        window_safe=NotSpecified,
+        ndim=NotSpecified,
+        # params is explicitly not allowed to be passed to an instance.
+        *args,
+        **kwargs
+    ):
         """
         Memoized constructor for Terms.
 
@@ -145,22 +148,27 @@ class Term(with_metaclass(ABCMeta, object)):
             window_safe=window_safe,
             ndim=ndim,
             params=params,
-            *args, **kwargs
+            *args,
+            **kwargs
         )
 
         try:
             return cls._term_cache[identity]
         except KeyError:
-            new_instance = cls._term_cache[identity] = \
-                super(Term, cls).__new__(cls)._init(
+            new_instance = cls._term_cache[identity] = (
+                super(Term, cls)
+                .__new__(cls)
+                ._init(
                     domain=domain,
                     dtype=dtype,
                     missing_value=missing_value,
                     window_safe=window_safe,
                     ndim=ndim,
                     params=params,
-                    *args, **kwargs
+                    *args,
+                    **kwargs
                 )
+            )
             return new_instance
 
     @classmethod
@@ -200,8 +208,7 @@ class Term(with_metaclass(ABCMeta, object)):
             except KeyError:
                 raise TypeError(
                     "{typename} expected a keyword parameter {name!r}.".format(
-                        typename=cls.__name__,
-                        name=key
+                        typename=cls.__name__, name=key
                     )
                 )
             except TypeError:
@@ -240,17 +247,12 @@ class Term(with_metaclass(ABCMeta, object)):
             raise NonSliceableTerm(term=self)
 
         from .mixins import SliceMixin
+
         slice_type = type(self)._with_mixin(SliceMixin)
         return slice_type(self, key)
 
     @classmethod
-    def _static_identity(cls,
-                         domain,
-                         dtype,
-                         missing_value,
-                         window_safe,
-                         ndim,
-                         params):
+    def _static_identity(cls, domain, dtype, missing_value, window_safe, ndim, params):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -323,11 +325,7 @@ class Term(with_metaclass(ABCMeta, object)):
         # call super().
         self._subclass_called_super_validate = True
 
-    def compute_extra_rows(self,
-                           all_dates,
-                           start_date,
-                           end_date,
-                           min_extra_rows):
+    def compute_extra_rows(self, all_dates, start_date, end_date, min_extra_rows):
         """
         Calculate the number of extra rows needed to compute ``self``.
 
@@ -361,14 +359,14 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         A tuple of other Terms needed as inputs for ``self``.
         """
-        raise NotImplementedError('inputs')
+        raise NotImplementedError("inputs")
 
     @abstractproperty
     def windowed(self):
         """
         Boolean indicating whether this term is a trailing-window computation.
         """
-        raise NotImplementedError('windowed')
+        raise NotImplementedError("windowed")
 
     @abstractproperty
     def mask(self):
@@ -376,7 +374,7 @@ class Term(with_metaclass(ABCMeta, object)):
         A :class:`~zipline.pipeline.Filter` representing asset/date pairs to
         while computing this Term. True means include; False means exclude.
         """
-        raise NotImplementedError('mask')
+        raise NotImplementedError("mask")
 
     @abstractproperty
     def dependencies(self):
@@ -384,17 +382,15 @@ class Term(with_metaclass(ABCMeta, object)):
         A dictionary mapping terms that must be computed before `self` to the
         number of extra rows needed for those terms.
         """
-        raise NotImplementedError('dependencies')
+        raise NotImplementedError("dependencies")
 
     def graph_repr(self):
-        """A short repr to use when rendering GraphViz graphs.
-        """
+        """A short repr to use when rendering GraphViz graphs."""
         # Default graph_repr is just the name of the type.
         return type(self).__name__
 
     def recursive_repr(self):
-        """A short repr to use when recursively rendering terms with inputs.
-        """
+        """A short repr to use when recursively rendering terms with inputs."""
         # Default recursive_repr is just the name of the type.
         return type(self).__name__
 
@@ -416,6 +412,7 @@ class AssetExists(Term):
     --------
     zipline.assets.AssetFinder.lifetimes
     """
+
     dtype = bool_dtype
     dataset = None
     inputs = ()
@@ -442,6 +439,7 @@ class InputDates(Term):
     This term is guaranteed to be available as an input for any term computed
     by SimplePipelineEngine.run_pipeline().
     """
+
     ndim = 1
     dataset = None
     dtype = datetime64ns_dtype
@@ -469,6 +467,7 @@ class LoadableTerm(Term):
 
     This is the base class for :class:`zipline.pipeline.data.BoundColumn`.
     """
+
     windowed = False
     inputs = ()
 
@@ -484,19 +483,23 @@ class ComputableTerm(Term):
     This is the base class for :class:`zipline.pipeline.Factor`,
     :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Classifier`.
     """
+
     inputs = NotSpecified
     outputs = NotSpecified
     window_length = NotSpecified
     mask = NotSpecified
     domain = NotSpecified
 
-    def __new__(cls,
-                inputs=inputs,
-                outputs=outputs,
-                window_length=window_length,
-                mask=mask,
-                domain=domain,
-                *args, **kwargs):
+    def __new__(
+        cls,
+        inputs=inputs,
+        outputs=outputs,
+        window_length=window_length,
+        mask=mask,
+        domain=domain,
+        *args,
+        **kwargs
+    ):
 
         if inputs is NotSpecified:
             inputs = cls.inputs
@@ -537,7 +540,8 @@ class ComputableTerm(Term):
             mask=mask,
             window_length=window_length,
             domain=domain,
-            *args, **kwargs
+            *args,
+            **kwargs
         )
 
     def _init(self, inputs, outputs, window_length, mask, *args, **kwargs):
@@ -548,13 +552,7 @@ class ComputableTerm(Term):
         return super(ComputableTerm, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls,
-                         inputs,
-                         outputs,
-                         window_length,
-                         mask,
-                         *args,
-                         **kwargs):
+    def _static_identity(cls, inputs, outputs, window_length, mask, *args, **kwargs):
         return (
             super(ComputableTerm, cls)._static_identity(*args, **kwargs),
             inputs,
@@ -585,16 +583,15 @@ class ComputableTerm(Term):
             # Raise an exception if there are any naming conflicts between the
             # term's output names and certain attributes.
             disallowed_names = [
-                attr for attr in dir(ComputableTerm)
-                if not attr.startswith('_')
+                attr for attr in dir(ComputableTerm) if not attr.startswith("_")
             ]
 
             # The name 'compute' is an added special case that is disallowed.
             # Use insort to add it to the list in alphabetical order.
-            insort(disallowed_names, 'compute')
+            insort(disallowed_names, "compute")
 
             for output in self.outputs:
-                if output.startswith('_') or output in disallowed_names:
+                if output.startswith("_") or output in disallowed_names:
                     raise InvalidOutputName(
                         output_name=output,
                         termname=type(self).__name__,
@@ -621,7 +618,7 @@ class ComputableTerm(Term):
         ``compute`` is reserved for user-supplied functions in
         CustomFilter/CustomFactor/CustomClassifier.
         """
-        raise NotImplementedError('_compute')
+        raise NotImplementedError("_compute")
 
     # NOTE: This is a method rather than a property because ABCMeta tries to
     #       access all abstract attributes of its child classes to see if
@@ -643,7 +640,7 @@ class ComputableTerm(Term):
         that need to produce different output types depending on the type of
         the receiver.
         """
-        raise NotImplementedError('_principal_computable_term_type')
+        raise NotImplementedError("_principal_computable_term_type")
 
     @lazyval
     def windowed(self):
@@ -656,10 +653,7 @@ class ComputableTerm(Term):
         If term.windowed is falsey, its compute_from_baseline will be called
         with instances of np.ndarray as inputs.
         """
-        return (
-            self.window_length is not NotSpecified
-            and self.window_length > 0
-        )
+        return self.window_length is not NotSpecified and self.window_length > 0
 
     @lazyval
     def dependencies(self):
@@ -707,10 +701,15 @@ class ComputableTerm(Term):
         workspace_value : array-like
             An array like value that the engine can consume.
         """
-        return result.unstack().fillna(self.missing_value).reindex(
-            columns=assets,
-            fill_value=self.missing_value,
-        ).values
+        return (
+            result.unstack()
+            .fillna(self.missing_value)
+            .reindex(
+                columns=assets,
+                fill_value=self.missing_value,
+            )
+            .values
+        )
 
     @expect_downsample_frequency
     @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
@@ -723,6 +722,7 @@ class ComputableTerm(Term):
         {frequency}
         """
         from .mixins import DownsampledMixin
+
         downsampled_type = type(self)._with_mixin(DownsampledMixin)
         return downsampled_type(term=self, frequency=frequency)
 
@@ -745,6 +745,7 @@ class ComputableTerm(Term):
         This is useful for giving a name to a numerical or boolean expression.
         """
         from .mixins import AliasedMixin
+
         aliased_type = type(self)._with_mixin(AliasedMixin)
         return aliased_type(term=self, name=name)
 
@@ -881,24 +882,24 @@ class ComputableTerm(Term):
     @classlazyval
     def _constant_type(cls):
         from .mixins import ConstantMixin
+
         return cls._with_mixin(ConstantMixin)
 
     @classlazyval
     def _if_else_type(cls):
         from .mixins import IfElseMixin
+
         return cls._with_mixin(IfElseMixin)
 
     def __repr__(self):
-        return (
-            "{type}([{inputs}], {window_length})"
-        ).format(
+        return ("{type}([{inputs}], {window_length})").format(
             type=type(self).__name__,
-            inputs=', '.join(i.recursive_repr() for i in self.inputs),
+            inputs=", ".join(i.recursive_repr() for i in self.inputs),
             window_length=self.window_length,
         )
 
     def recursive_repr(self):
-        return type(self).__name__ + '(...)'
+        return type(self).__name__ + "(...)"
 
     @classmethod
     def _with_mixin(cls, mixin_type):
@@ -972,8 +973,9 @@ def _assert_valid_categorical_missing_value(value):
     label_types = LabelArray.SUPPORTED_SCALAR_TYPES
     if not isinstance(value, label_types):
         raise TypeError(
-            "String-dtype classifiers can only produce strings or None."
-            .format(types=' or '.join([t.__name__ for t in label_types]))
+            "String-dtype classifiers can only produce strings or None.".format(
+                types=" or ".join([t.__name__ for t in label_types])
+            )
         )
 
 
@@ -993,4 +995,4 @@ def _coerce_to_dtype(value, dtype):
         # misleading, since it does allow conversion between different dtype
         # kinds in some cases. In particular, conversion from int to float is
         # allowed.
-        return array([value]).astype(dtype=dtype, casting='same_kind')[0]
+        return array([value]).astype(dtype=dtype, casting="same_kind")[0]

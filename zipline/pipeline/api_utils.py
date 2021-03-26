@@ -35,6 +35,7 @@ def restrict_to_dtype(dtype, message_template):
     def some_factor_method(self, ...):
         self.stuff_that_requires_being_float64(...)
     """
+
     def processor(term_method, _, term_instance):
         term_dtype = term_instance.dtype
         if term_dtype != dtype:
@@ -46,4 +47,5 @@ def restrict_to_dtype(dtype, message_template):
                 )
             )
         return term_instance
+
     return preprocess(self=processor)

@@ -23,8 +23,7 @@ from zipline.utils.compat import consistent_round
 
 
 class ExecutionStyle(with_metaclass(abc.ABCMeta)):
-    """Base class for order execution styles.
-    """
+    """Base class for order execution styles."""
 
     _exchange = None
 
@@ -80,8 +79,9 @@ class LimitOrder(ExecutionStyle):
         Maximum price for buys, or minimum price for sells, at which the order
         should be filled.
     """
+
     def __init__(self, limit_price, asset=None, exchange=None):
-        check_stoplimit_prices(limit_price, 'limit')
+        check_stoplimit_prices(limit_price, "limit")
 
         self.limit_price = limit_price
         self._exchange = exchange
@@ -91,7 +91,7 @@ class LimitOrder(ExecutionStyle):
         return asymmetric_round_price(
             self.limit_price,
             is_buy,
-            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size),
         )
 
     def get_stop_price(self, _is_buy):
@@ -110,8 +110,9 @@ class StopOrder(ExecutionStyle):
         order will be placed if market price falls below this value. For buys,
         the order will be placed if market price rises above this value.
     """
+
     def __init__(self, stop_price, asset=None, exchange=None):
-        check_stoplimit_prices(stop_price, 'stop')
+        check_stoplimit_prices(stop_price, "stop")
 
         self.stop_price = stop_price
         self._exchange = exchange
@@ -124,7 +125,7 @@ class StopOrder(ExecutionStyle):
         return asymmetric_round_price(
             self.stop_price,
             not is_buy,
-            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size),
         )
 
 
@@ -143,9 +144,10 @@ class StopLimitOrder(ExecutionStyle):
         order will be placed if market price falls below this value. For buys,
         the order will be placed if market price rises above this value.
     """
+
     def __init__(self, limit_price, stop_price, asset=None, exchange=None):
-        check_stoplimit_prices(limit_price, 'limit')
-        check_stoplimit_prices(stop_price, 'stop')
+        check_stoplimit_prices(limit_price, "limit")
+        check_stoplimit_prices(stop_price, "stop")
 
         self.limit_price = limit_price
         self.stop_price = stop_price
@@ -156,14 +158,14 @@ class StopLimitOrder(ExecutionStyle):
         return asymmetric_round_price(
             self.limit_price,
             is_buy,
-            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size),
         )
 
     def get_stop_price(self, is_buy):
         return asymmetric_round_price(
             self.stop_price,
             not is_buy,
-            tick_size=(0.01 if self.asset is None else self.asset.tick_size)
+            tick_size=(0.01 if self.asset is None else self.asset.tick_size),
         )
 
 
@@ -186,7 +188,7 @@ def asymmetric_round_price(price, prefer_round_down, tick_size, diff=0.95):
     precision = zp_math.number_of_decimal_places(tick_size)
     multiplier = int(tick_size * (10 ** precision))
     diff -= 0.5  # shift the difference down
-    diff *= (10 ** -precision)  # adjust diff to precision of tick size
+    diff *= 10 ** -precision  # adjust diff to precision of tick size
     diff *= multiplier  # adjust diff to value of tick_size
 
     # Subtracting an epsilon from diff to enforce the open-ness of the upper
@@ -213,13 +215,13 @@ def check_stoplimit_prices(price, label):
         if not isfinite(price):
             raise BadOrderParameters(
                 msg="Attempted to place an order with a {} price "
-                    "of {}.".format(label, price)
+                "of {}.".format(label, price)
             )
     # This catches arbitrary objects
     except TypeError:
         raise BadOrderParameters(
             msg="Attempted to place an order with a {} price "
-                "of {}.".format(label, type(price))
+            "of {}.".format(label, type(price))
         )
 
     if price < 0:

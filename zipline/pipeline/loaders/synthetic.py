@@ -61,6 +61,7 @@ class PrecomputedLoader(implements(PipelineLoader)):
     -----
     Adjustments are unsupported by this loader.
     """
+
     def __init__(self, constants, dates, sids):
         loaders = {}
         for column, const in constants.items():
@@ -90,9 +91,7 @@ class PrecomputedLoader(implements(PipelineLoader)):
                     loader = self._loaders[col.unspecialize()]
             except KeyError:
                 raise ValueError("Couldn't find loader for %s" % col)
-            out.update(
-                loader.load_adjusted_array(domain, [col], dates, sids, mask)
-            )
+            out.update(loader.load_adjusted_array(domain, [col], dates, sids, mask))
         return out
 
 
@@ -110,6 +109,7 @@ class EyeLoader(PrecomputedLoader):
     sids : iterable[int-like]
         Same as PrecomputedLoader
     """
+
     def __init__(self, columns, dates, sids):
         shape = (len(dates), len(sids))
         super(EyeLoader, self).__init__(
@@ -176,19 +176,20 @@ class SeededRandomLoader(PrecomputedLoader):
         """
         Return uniformly-distributed integers between 0 and 100.
         """
-        return (self.state.randint(low=0, high=100, size=shape)
-                .astype('int64'))  # default is system int
+        return self.state.randint(low=0, high=100, size=shape).astype(
+            "int64"
+        )  # default is system int
 
     def _datetime_values(self, shape):
         """
         Return uniformly-distributed dates in 2014.
         """
-        start = Timestamp('2014', tz='UTC').asm8
+        start = Timestamp("2014", tz="UTC").asm8
         offsets = self.state.randint(
             low=0,
             high=364,
             size=shape,
-        ).astype('timedelta64[D]')
+        ).astype("timedelta64[D]")
         return start + offsets
 
     def _bool_values(self, shape):
@@ -202,24 +203,24 @@ class SeededRandomLoader(PrecomputedLoader):
         return res
 
 
-OHLCV = ('open', 'high', 'low', 'close', 'volume')
-OHLC = ('open', 'high', 'low', 'close')
-PSEUDO_EPOCH = Timestamp('2000-01-01', tz='UTC')
+OHLCV = ("open", "high", "low", "close", "volume")
+OHLC = ("open", "high", "low", "close")
+PSEUDO_EPOCH = Timestamp("2000-01-01", tz="UTC")
 
 
 def asset_start(asset_info, asset):
-    ret = asset_info.loc[asset]['start_date']
+    ret = asset_info.loc[asset]["start_date"]
     if ret.tz is None:
-        ret = ret.tz_localize('UTC')
-    assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
+        ret = ret.tz_localize("UTC")
+    assert ret.tzname() == "UTC", "Unexpected non-UTC timestamp"
     return ret
 
 
 def asset_end(asset_info, asset):
-    ret = asset_info.loc[asset]['end_date']
+    ret = asset_info.loc[asset]["end_date"]
     if ret.tz is None:
-        ret = ret.tz_localize('UTC')
-    assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
+        ret = ret.tz_localize("UTC")
+    assert ret.tzname() == "UTC", "Unexpected non-UTC timestamp"
     return ret
 
 
@@ -261,15 +262,15 @@ def make_bar_data(asset_info, calendar, holes=None):
     """
     assert (
         # Using .value here to avoid having to care about UTC-aware dates.
-        PSEUDO_EPOCH.value <
-        calendar.normalize().min().value <=
-        asset_info['start_date'].min().value
+        PSEUDO_EPOCH.value
+        < calendar.normalize().min().value
+        <= asset_info["start_date"].min().value
     ), "calendar.min(): %s\nasset_info['start_date'].min(): %s" % (
         calendar.min(),
-        asset_info['start_date'].min(),
+        asset_info["start_date"].min(),
     )
 
-    assert (asset_info['start_date'] < asset_info['end_date']).all()
+    assert (asset_info["start_date"] < asset_info["end_date"]).all()
 
     def _raw_data_for_asset(asset_id):
         """
@@ -279,10 +280,12 @@ def make_bar_data(asset_info, calendar, holes=None):
         """
         # Get the dates for which this asset existed according to our asset
         # info.
-        datetimes = calendar[calendar.slice_indexer(
-            asset_start(asset_info, asset_id),
-            asset_end(asset_info, asset_id),
-        )]
+        datetimes = calendar[
+            calendar.slice_indexer(
+                asset_start(asset_info, asset_id),
+                asset_end(asset_info, asset_id),
+            )
+        ]
 
         data = full(
             (len(datetimes), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
@@ -305,10 +308,10 @@ def make_bar_data(asset_info, calendar, holes=None):
         if holes is not None and asset_id in holes:
             for dt in holes[asset_id]:
                 frame.loc[dt, OHLC] = nan
-                frame.loc[dt, ['volume']] = 0
+                frame.loc[dt, ["volume"]] = 0
 
-        frame['day'] = nanos_to_seconds(datetimes.asi8)
-        frame['id'] = asset_id
+        frame["day"] = nanos_to_seconds(datetimes.asi8)
+        frame["id"] = asset_id
         return frame
 
     for asset in asset_info.index:
@@ -328,11 +331,7 @@ def expected_bar_value(asset_id, date, colname):
     return from_asset + from_colname + from_date
 
 
-def expected_bar_value_with_holes(asset_id,
-                                  date,
-                                  colname,
-                                  holes,
-                                  missing_value):
+def expected_bar_value_with_holes(asset_id, date, colname, holes, missing_value):
     # Explicit holes are filled with the missing value.
     if asset_id in holes and date in holes[asset_id]:
         return missing_value
@@ -340,11 +339,7 @@ def expected_bar_value_with_holes(asset_id,
     return expected_bar_value(asset_id, date, colname)
 
 
-def expected_bar_values_2d(dates,
-                           assets,
-                           asset_info,
-                           colname,
-                           holes=None):
+def expected_bar_values_2d(dates, assets, asset_info, colname, holes=None):
     """
     Return an 2D array containing cls.expected_value(asset_id, date,
     colname) for each date/asset pair in the inputs.
@@ -355,12 +350,12 @@ def expected_bar_values_2d(dates,
         - Values for asset_ids not contained in asset_info.
         - Locs defined in `holes`.
     """
-    if colname == 'volume':
+    if colname == "volume":
         dtype = uint32
         missing = 0
     else:
         dtype = float64
-        missing = float('nan')
+        missing = float("nan")
 
     data = full((len(dates), len(assets)), missing, dtype=dtype)
     for j, asset in enumerate(assets):
@@ -398,20 +393,24 @@ class NullAdjustmentReader(SQLiteAdjustmentReader):
     """
 
     def __init__(self):
-        conn = sqlite3_connect(':memory:')
+        conn = sqlite3_connect(":memory:")
         writer = SQLiteAdjustmentWriter(conn, None, None)
-        empty = DataFrame({
-            'sid': array([], dtype=uint32),
-            'effective_date': array([], dtype=uint32),
-            'ratio': array([], dtype=float),
-        })
-        empty_dividends = DataFrame({
-            'sid': array([], dtype=uint32),
-            'amount': array([], dtype=float64),
-            'record_date': array([], dtype='datetime64[ns]'),
-            'ex_date': array([], dtype='datetime64[ns]'),
-            'declared_date': array([], dtype='datetime64[ns]'),
-            'pay_date': array([], dtype='datetime64[ns]'),
-        })
+        empty = DataFrame(
+            {
+                "sid": array([], dtype=uint32),
+                "effective_date": array([], dtype=uint32),
+                "ratio": array([], dtype=float),
+            }
+        )
+        empty_dividends = DataFrame(
+            {
+                "sid": array([], dtype=uint32),
+                "amount": array([], dtype=float64),
+                "record_date": array([], dtype="datetime64[ns]"),
+                "ex_date": array([], dtype="datetime64[ns]"),
+                "declared_date": array([], dtype="datetime64[ns]"),
+                "pay_date": array([], dtype="datetime64[ns]"),
+            }
+        )
         writer.write(splits=empty, mergers=empty, dividends=empty_dividends)
         super(NullAdjustmentReader, self).__init__(conn)

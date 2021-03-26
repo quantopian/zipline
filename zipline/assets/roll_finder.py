@@ -26,6 +26,7 @@ class RollFinder(with_metaclass(ABCMeta, object)):
     Abstract base class for calculating when futures contracts are the active
     contract.
     """
+
     @abstractmethod
     def _active_contract(self, oc, front, back, dt):
         raise NotImplementedError
@@ -98,8 +99,9 @@ class RollFinder(with_metaclass(ABCMeta, object)):
         first_contract = oc.sid_to_contract[first]
         rolls = [((first_contract >> offset).contract.sid, None)]
         tc = self.trading_calendar
-        sessions = tc.sessions_in_range(tc.minute_to_session_label(start),
-                                        tc.minute_to_session_label(end))
+        sessions = tc.sessions_in_range(
+            tc.minute_to_session_label(start), tc.minute_to_session_label(end)
+        )
         freq = sessions.freq
         if first == front:
             # This is a bit tricky to grasp. Once we have the active contract
@@ -159,6 +161,7 @@ class VolumeRollFinder(RollFinder):
     The VolumeRollFinder calculates contract rolls based on when
     volume activity transfers from one contract to another.
     """
+
     GRACE_DAYS = 7
 
     def __init__(self, trading_calendar, asset_finder, session_reader):
@@ -212,8 +215,8 @@ class VolumeRollFinder(RollFinder):
         elif back_contract.start_date > prev:
             return front
 
-        front_vol = get_value(front, prev, 'volume')
-        back_vol = get_value(back, prev, 'volume')
+        front_vol = get_value(front, prev, "volume")
+        back_vol = get_value(back, prev, "volume")
         if back_vol > front_vol:
             return back
 
@@ -233,8 +236,8 @@ class VolumeRollFinder(RollFinder):
             tc.minute_to_session_label(gap_end),
         )
         for session in sessions:
-            front_vol = get_value(front, session, 'volume')
-            back_vol = get_value(back, session, 'volume')
+            front_vol = get_value(front, session, "volume")
+            back_vol = get_value(back, session, "volume")
             if back_vol > front_vol:
                 return back
         return front
@@ -269,7 +272,10 @@ class VolumeRollFinder(RollFinder):
             self.session_reader.last_available_dt,
         )
         rolls = self.get_rolls(
-            root_symbol=root_symbol, start=dt, end=end_date, offset=offset,
+            root_symbol=root_symbol,
+            start=dt,
+            end=end_date,
+            offset=offset,
         )
         sid, acd = rolls[0]
         return self.asset_finder.retrieve_asset(sid)

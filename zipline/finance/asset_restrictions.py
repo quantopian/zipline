@@ -10,13 +10,11 @@ from zipline.utils.enum import enum
 from zipline.utils.numpy_utils import vectorized_is_element
 from zipline.assets import Asset
 
-Restriction = namedtuple(
-    'Restriction', ['asset', 'effective_date', 'state']
-)
+Restriction = namedtuple("Restriction", ["asset", "effective_date", "state"])
 
 RESTRICTION_STATES = enum(
-    'ALLOWED',
-    'FROZEN',
+    "ALLOWED",
+    "FROZEN",
 )
 
 
@@ -44,11 +42,10 @@ class Restrictions(metaclass=abc.ABCMeta):
             Is the asset or assets restricted on this dt?
 
         """
-        raise NotImplementedError('is_restricted')
+        raise NotImplementedError("is_restricted")
 
     def __or__(self, other_restriction):
-        """Base implementation for combining two restrictions.
-        """
+        """Base implementation for combining two restrictions."""
         # If the right side is a _UnionRestrictions, defers to the
         # _UnionRestrictions implementation of `|`, which intelligently
         # flattens restricted lists
@@ -94,8 +91,9 @@ class _UnionRestrictions(Restrictions):
         """
         # Flatten the underlying sub restrictions of _UnionRestrictions
         if isinstance(other_restriction, _UnionRestrictions):
-            new_sub_restrictions = \
+            new_sub_restrictions = (
                 self.sub_restrictions + other_restriction.sub_restrictions
+            )
         else:
             new_sub_restrictions = self.sub_restrictions + [other_restriction]
 
@@ -103,13 +101,10 @@ class _UnionRestrictions(Restrictions):
 
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
-            return any(
-                r.is_restricted(assets, dt) for r in self.sub_restrictions
-            )
+            return any(r.is_restricted(assets, dt) for r in self.sub_restrictions)
 
         return reduce(
-            operator.or_,
-            (r.is_restricted(assets, dt) for r in self.sub_restrictions)
+            operator.or_, (r.is_restricted(assets, dt) for r in self.sub_restrictions)
         )
 
 
@@ -146,7 +141,7 @@ class StaticRestrictions(Restrictions):
             return assets in self._restricted_set
         return pd.Series(
             index=pd.Index(assets),
-            data=vectorized_is_element(assets, self._restricted_set)
+            data=vectorized_is_element(assets, self._restricted_set),
         )
 
 
@@ -165,11 +160,10 @@ class HistoricalRestrictions(Restrictions):
         # A dict mapping each asset to its restrictions, which are sorted by
         # ascending order of effective_date
         self._restrictions_by_asset = {
-            asset: sorted(
-                restrictions_for_asset, key=lambda x: x.effective_date
-            )
-            for asset, restrictions_for_asset
-            in groupby(lambda x: x.asset, restrictions).items()
+            asset: sorted(restrictions_for_asset, key=lambda x: x.effective_date)
+            for asset, restrictions_for_asset in groupby(
+                lambda x: x.asset, restrictions
+            ).items()
         }
 
     def is_restricted(self, assets, dt):
@@ -182,8 +176,7 @@ class HistoricalRestrictions(Restrictions):
 
         is_restricted = partial(self._is_restricted_for_asset, dt=dt)
         return pd.Series(
-            index=pd.Index(assets),
-            data=vectorize(is_restricted, otypes=[bool])(assets)
+            index=pd.Index(assets), data=vectorize(is_restricted, otypes=[bool])(assets)
         )
 
     def _is_restricted_for_asset(self, asset, dt):
@@ -214,5 +207,5 @@ class SecurityListRestrictions(Restrictions):
             return assets in securities_in_list
         return pd.Series(
             index=pd.Index(assets),
-            data=vectorized_is_element(assets, securities_in_list)
+            data=vectorized_is_element(assets, securities_in_list),
         )

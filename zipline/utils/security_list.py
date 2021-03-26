@@ -14,11 +14,10 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 DATE_FORMAT = "%Y%m%d"
 zipline_dir = os.path.dirname(zipline.__file__)
-SECURITY_LISTS_DIR = os.path.join(zipline_dir, 'resources', 'security_lists')
+SECURITY_LISTS_DIR = os.path.join(zipline_dir, "resources", "security_lists")
 
 
 class SecurityList(object):
-
     def __init__(self, data, current_date_func, asset_finder):
         """
         data: a nested dictionary:
@@ -36,25 +35,24 @@ class SecurityList(object):
         self.asset_finder = asset_finder
 
     def make_knowledge_dates(self, data):
-        knowledge_dates = sorted(
-            [pd.Timestamp(k) for k in data.keys()])
+        knowledge_dates = sorted([pd.Timestamp(k) for k in data.keys()])
         return knowledge_dates
 
     def __iter__(self):
         warnings.warn(
-            'Iterating over security_lists is deprecated. Use '
-            '`for sid in <security_list>.current_securities(dt)` instead.',
+            "Iterating over security_lists is deprecated. Use "
+            "`for sid in <security_list>.current_securities(dt)` instead.",
             category=ZiplineDeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return iter(self.current_securities(self.current_date()))
 
     def __contains__(self, item):
         warnings.warn(
-            'Evaluating inclusion in security_lists is deprecated. Use '
-            '`sid in <security_list>.current_securities(dt)` instead.',
+            "Evaluating inclusion in security_lists is deprecated. Use "
+            "`sid in <security_list>.current_securities(dt)` instead.",
             category=ZiplineDeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return item in self.current_securities(self.current_date())
 
@@ -68,15 +66,11 @@ class SecurityList(object):
 
             for effective_date, changes in iter(self.data[kd].items()):
                 self.update_current(
-                    effective_date,
-                    changes['add'],
-                    self._current_set.add
+                    effective_date, changes["add"], self._current_set.add
                 )
 
                 self.update_current(
-                    effective_date,
-                    changes['delete'],
-                    self._current_set.remove
+                    effective_date, changes["delete"], self._current_set.remove
                 )
 
             self._cache[kd] = self._current_set
@@ -86,8 +80,7 @@ class SecurityList(object):
         for symbol in symbols:
             try:
                 asset = self.asset_finder.lookup_symbol(
-                    symbol,
-                    as_of_date=effective_date
+                    symbol, as_of_date=effective_date
                 )
             # Pass if no Asset exists for the symbol
             except SymbolNotFound:
@@ -109,9 +102,9 @@ class SecurityListSet(object):
     def leveraged_etf_list(self):
         if self._leveraged_etf is None:
             self._leveraged_etf = self.security_list_type(
-                load_from_directory('leveraged_etf_list'),
+                load_from_directory("leveraged_etf_list"),
                 self.current_date_func,
-                asset_finder=self.asset_finder
+                asset_finder=self.asset_finder,
             )
         return self._leveraged_etf
 
@@ -141,13 +134,11 @@ def load_from_directory(list_name):
     data = {}
     dir_path = os.path.join(SECURITY_LISTS_DIR, list_name)
     for kd_name in listdir(dir_path):
-        kd = datetime.strptime(kd_name, DATE_FORMAT).replace(
-            tzinfo=pytz.utc)
+        kd = datetime.strptime(kd_name, DATE_FORMAT).replace(tzinfo=pytz.utc)
         data[kd] = {}
         kd_path = os.path.join(dir_path, kd_name)
         for ld_name in listdir(kd_path):
-            ld = datetime.strptime(ld_name, DATE_FORMAT).replace(
-                tzinfo=pytz.utc)
+            ld = datetime.strptime(ld_name, DATE_FORMAT).replace(tzinfo=pytz.utc)
             data[kd][ld] = {}
             ld_path = os.path.join(kd_path, ld_name)
             for fname in listdir(ld_path):

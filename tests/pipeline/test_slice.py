@@ -39,9 +39,9 @@ from zipline.utils.numpy_utils import datetime64ns_dtype
 
 class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
-    START_DATE = Timestamp('2015-01-31', tz='UTC')
-    END_DATE = Timestamp('2015-03-01', tz='UTC')
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+    START_DATE = Timestamp("2015-01-31", tz="UTC")
+    END_DATE = Timestamp("2015-03-01", tz="UTC")
+    ASSET_FINDER_COUNTRY_CODE = "US"
     SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 
     @classmethod
@@ -86,7 +86,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # Assertions about the expected slice data are made in the `compute`
         # function of our custom factor above.
         self.run_pipeline(
-            Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
+            Pipeline(columns={"uses_sliced_input": UsesSlicedInput()}),
             self.pipeline_start_date,
             self.pipeline_end_date,
         )
@@ -104,7 +104,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         # Create a filter that masks out all but a single asset.
         unmasked_asset = asset_finder.retrieve_asset(sids[unmasked_column])
-        unmasked_asset_only = (AssetID().eq(unmasked_asset.sid))
+        unmasked_asset_only = AssetID().eq(unmasked_asset.sid)
 
         # Asset used to create our slice. In the cases where this is different
         # than `unmasked_asset`, our slice should still have non-missing data
@@ -116,9 +116,11 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         returns_slice = returns[slice_asset]
 
         returns_results = self.run_pipeline(
-            Pipeline(columns={'returns': returns}), start_date, end_date,
+            Pipeline(columns={"returns": returns}),
+            start_date,
+            end_date,
         )
-        returns_results = returns_results['returns'].unstack()
+        returns_results = returns_results["returns"].unstack()
 
         class UsesSlicedInput(CustomFactor):
             window_length = 1
@@ -129,12 +131,10 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 # and does not affect the `returns_slice` input.
                 assert returns.shape == (1, 1)
                 assert returns_slice.shape == (1, 1)
-                assert returns[0, 0] == \
-                    returns_results.loc[today, unmasked_asset]
-                assert returns_slice[0, 0] == \
-                    returns_results.loc[today, slice_asset]
+                assert returns[0, 0] == returns_results.loc[today, unmasked_asset]
+                assert returns_slice[0, 0] == returns_results.loc[today, slice_asset]
 
-        columns = {'masked': UsesSlicedInput(mask=unmasked_asset_only)}
+        columns = {"masked": UsesSlicedInput(mask=unmasked_asset_only)}
 
         # Assertions about the expected data are made in the `compute` function
         # of our custom factor above.
@@ -148,11 +148,11 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         open_slice = OpenPrice()[my_asset]
 
         with self.assertRaises(UnsupportedPipelineOutput):
-            Pipeline(columns={'open_slice': open_slice})
+            Pipeline(columns={"open_slice": open_slice})
 
         pipe = Pipeline(columns={})
         with self.assertRaises(UnsupportedPipelineOutput):
-            pipe.add(open_slice, 'open_slice')
+            pipe.add(open_slice, "open_slice")
 
     def test_loadable_term_slices(self):
         """
@@ -170,7 +170,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         """
         my_asset = Asset(
             0,
-            exchange_info=ExchangeInfo('TEST FULL', 'TEST', 'US'),
+            exchange_info=ExchangeInfo("TEST FULL", "TEST", "US"),
         )
         returns = Returns(window_length=2, inputs=[self.col])
         returns_slice = returns[my_asset]
@@ -184,7 +184,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         with self.assertRaises(NonExistentAssetInTimeFrame):
             self.run_pipeline(
-                Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
+                Pipeline(columns={"uses_sliced_input": UsesSlicedInput()}),
                 self.pipeline_start_date,
                 self.pipeline_end_date,
             )
@@ -210,7 +210,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         with self.assertRaises(NonWindowSafeInput):
             self.run_pipeline(
-                Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
+                Pipeline(columns={"uses_sliced_input": UsesSlicedInput()}),
                 self.pipeline_start_date,
                 self.pipeline_end_date,
             )
@@ -235,7 +235,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         with self.assertRaises(NonWindowSafeInput):
             self.run_pipeline(
-                Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
+                Pipeline(columns={"uses_sliced_input": UsesSlicedInput()}),
                 self.pipeline_start_date,
                 self.pipeline_end_date,
             )
@@ -256,12 +256,14 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         # the target slice are not window safe.
         with self.assertRaises(NonWindowSafeInput):
             my_unsafe_factor.pearsonr(
-                target=my_safe_factor_slice, correlation_length=10,
+                target=my_safe_factor_slice,
+                correlation_length=10,
             )
 
         with self.assertRaises(NonWindowSafeInput):
             my_safe_factor.pearsonr(
-                target=my_unsafe_factor_slice, correlation_length=10,
+                target=my_unsafe_factor_slice,
+                correlation_length=10,
             )
 
     def test_single_column_output(self):
@@ -301,8 +303,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         for mask in (alternating_mask, cascading_mask):
             columns = {
-                'uses_single_column_output': UsesSingleColumnOutput(),
-                'uses_single_column_output_masked': UsesSingleColumnOutput(
+                "uses_single_column_output": UsesSingleColumnOutput(),
+                "uses_single_column_output_masked": UsesSingleColumnOutput(
                     mask=mask,
                 ),
             }
@@ -324,6 +326,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         cascading_mask.window_safe = True
 
         for mask in (alternating_mask, cascading_mask):
+
             class SingleColumnOutput(CustomFactor):
                 window_length = 1
                 inputs = [self.col, mask]
@@ -344,13 +347,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 window_length = 1
                 inputs = [self.col, mask, SingleColumnOutput(mask=mask)]
 
-                def compute(self,
-                            today,
-                            assets,
-                            out,
-                            col,
-                            mask,
-                            single_column_output):
+                def compute(self, today, assets, out, col, mask, single_column_output):
                     # Make sure that `single_column` has the correct value
                     # based on the masked it used.
                     assert single_column_output.shape == (1, 1)
@@ -358,16 +355,14 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                     expected_value = where(mask, col, 0).sum()
                     assert single_column_output_value == expected_value
 
-            columns = {'uses_single_column_input': UsesSingleColumnInput()}
+            columns = {"uses_single_column_input": UsesSingleColumnInput()}
 
             # Assertions about the expected shapes of our data are made in the
             # `compute` function of our custom factors above.
             self.run_pipeline(Pipeline(columns=columns), start_date, end_date)
 
     @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
-    def test_factor_correlation_methods(self,
-                                        returns_length,
-                                        correlation_length):
+    def test_factor_correlation_methods(self, returns_length, correlation_length):
         """
         Ensure that `Factor.pearsonr` and `Factor.spearmanr` are consistent
         with the built-in factors `RollingPearsonOfReturns` and
@@ -379,10 +374,12 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         returns_slice = returns[my_asset]
 
         pearson = returns.pearsonr(
-            target=returns_slice, correlation_length=correlation_length,
+            target=returns_slice,
+            correlation_length=correlation_length,
         )
         spearman = returns.spearmanr(
-            target=returns_slice, correlation_length=correlation_length,
+            target=returns_slice,
+            correlation_length=correlation_length,
         )
         expected_pearson = RollingPearsonOfReturns(
             target=my_asset,
@@ -404,10 +401,10 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         expected_spearman.inputs = [returns, returns_slice]
 
         columns = {
-            'pearson': pearson,
-            'spearman': spearman,
-            'expected_pearson': expected_pearson,
-            'expected_spearman': expected_spearman,
+            "pearson": pearson,
+            "spearman": spearman,
+            "expected_pearson": expected_pearson,
+            "expected_spearman": expected_spearman,
         }
 
         results = self.run_pipeline(
@@ -415,10 +412,10 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             self.pipeline_start_date,
             self.pipeline_end_date,
         )
-        pearson_results = results['pearson'].unstack()
-        spearman_results = results['spearman'].unstack()
-        expected_pearson_results = results['expected_pearson'].unstack()
-        expected_spearman_results = results['expected_spearman'].unstack()
+        pearson_results = results["pearson"].unstack()
+        spearman_results = results["spearman"].unstack()
+        expected_pearson_results = results["expected_pearson"].unstack()
+        expected_spearman_results = results["expected_spearman"].unstack()
 
         assert_frame_equal(pearson_results, expected_pearson_results)
         assert_frame_equal(spearman_results, expected_spearman_results)
@@ -439,11 +436,13 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         with self.assertRaises(TypeError):
             date_factor.pearsonr(
-                target=returns_slice, correlation_length=correlation_length,
+                target=returns_slice,
+                correlation_length=correlation_length,
             )
         with self.assertRaises(TypeError):
             date_factor.spearmanr(
-                target=returns_slice, correlation_length=correlation_length,
+                target=returns_slice,
+                correlation_length=correlation_length,
             )
         with self.assertRaises(TypeError):
             returns.pearsonr(
@@ -468,7 +467,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         returns_slice = returns[my_asset]
 
         regression = returns.linear_regression(
-            target=returns_slice, regression_length=regression_length,
+            target=returns_slice,
+            regression_length=regression_length,
         )
         expected_regression = RollingLinearRegressionOfReturns(
             target=my_asset,
@@ -491,8 +491,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 out[:] = 0
 
         columns = {
-            'regression': regression,
-            'expected_regression': expected_regression,
+            "regression": regression,
+            "expected_regression": expected_regression,
         }
 
         results = self.run_pipeline(
@@ -500,8 +500,8 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             self.pipeline_start_date,
             self.pipeline_end_date,
         )
-        regression_results = results['regression'].unstack()
-        expected_regression_results = results['expected_regression'].unstack()
+        regression_results = results["regression"].unstack()
+        expected_regression_results = results["expected_regression"].unstack()
 
         assert_frame_equal(regression_results, expected_regression_results)
 
@@ -521,11 +521,13 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         with self.assertRaises(TypeError):
             date_factor.linear_regression(
-                target=returns_slice, regression_length=regression_length,
+                target=returns_slice,
+                regression_length=regression_length,
             )
         with self.assertRaises(TypeError):
             returns.linear_regression(
-                target=date_factor_slice, regression_length=regression_length,
+                target=date_factor_slice,
+                regression_length=regression_length,
             )
 
     def test_slice_repr(self):

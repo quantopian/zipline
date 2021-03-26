@@ -32,14 +32,9 @@ ALLOWED_DTYPES = (float64_dtype, int64_dtype)
 
 
 class _RollingCorrelation(CustomFactor):
-
     @expect_dtypes(base_factor=ALLOWED_DTYPES, target=ALLOWED_DTYPES)
     @expect_bounded(correlation_length=(2, None))
-    def __new__(cls,
-                base_factor,
-                target,
-                correlation_length,
-                mask=NotSpecified):
+    def __new__(cls, base_factor, target, correlation_length, mask=NotSpecified):
         if target.ndim == 2 and base_factor.mask is not target.mask:
             raise IncompatibleTerms(term_1=base_factor, term_2=target)
 
@@ -85,6 +80,7 @@ class RollingPearson(_RollingCorrelation):
     Most users should call Factor.pearsonr rather than directly construct an
     instance of this class.
     """
+
     window_safe = True
 
     def compute(self, today, assets, out, base_data, target_data):
@@ -130,6 +126,7 @@ class RollingSpearman(_RollingCorrelation):
     Most users should call Factor.spearmanr rather than directly construct an
     instance of this class.
     """
+
     window_safe = True
 
     def compute(self, today, assets, out, base_data, target_data):
@@ -174,15 +171,12 @@ class RollingLinearRegression(CustomFactor):
     Most users should call Factor.linear_regression rather than directly
     construct an instance of this class.
     """
-    outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
+
+    outputs = ["alpha", "beta", "r_value", "p_value", "stderr"]
 
     @expect_dtypes(dependent=ALLOWED_DTYPES, independent=ALLOWED_DTYPES)
     @expect_bounded(regression_length=(2, None))
-    def __new__(cls,
-                dependent,
-                independent,
-                regression_length,
-                mask=NotSpecified):
+    def __new__(cls, dependent, independent, regression_length, mask=NotSpecified):
         if independent.ndim == 2 and dependent.mask is not independent.mask:
             raise IncompatibleTerms(term_1=dependent, term_2=independent)
 
@@ -292,11 +286,8 @@ class RollingPearsonOfReturns(RollingPearson):
     :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
     :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
     """
-    def __new__(cls,
-                target,
-                returns_length,
-                correlation_length,
-                mask=NotSpecified):
+
+    def __new__(cls, target, returns_length, correlation_length, mask=NotSpecified):
         # Use the `SingleAsset` filter here because it protects against
         # inputting a non-existent target asset.
         returns = Returns(
@@ -342,11 +333,8 @@ class RollingSpearmanOfReturns(RollingSpearman):
     :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
     :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
     """
-    def __new__(cls,
-                target,
-                returns_length,
-                correlation_length,
-                mask=NotSpecified):
+
+    def __new__(cls, target, returns_length, correlation_length, mask=NotSpecified):
         # Use the `SingleAsset` filter here because it protects against
         # inputting a non-existent target asset.
         returns = Returns(
@@ -459,13 +447,10 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
     :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
     :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
     """
+
     window_safe = True
 
-    def __new__(cls,
-                target,
-                returns_length,
-                regression_length,
-                mask=NotSpecified):
+    def __new__(cls, target, returns_length, regression_length, mask=NotSpecified):
         # Use the `SingleAsset` filter here because it protects against
         # inputting a non-existent target asset.
         returns = Returns(
@@ -498,32 +483,28 @@ class SimpleBeta(CustomFactor, StandardOutputs):
         percentage of returns observations missing will produce values of
         NaN. Default behavior is that 25% of inputs can be missing.
     """
+
     window_safe = True
     dtype = float64_dtype
-    params = ('allowed_missing_count',)
+    params = ("allowed_missing_count",)
 
     @expect_types(
         target=Asset,
         regression_length=int,
         allowed_missing_percentage=(int, float),
-        __funcname='SimpleBeta',
+        __funcname="SimpleBeta",
     )
     @expect_bounded(
         regression_length=(3, None),
         allowed_missing_percentage=(0.0, 1.0),
-        __funcname='SimpleBeta',
+        __funcname="SimpleBeta",
     )
-    def __new__(cls,
-                target,
-                regression_length,
-                allowed_missing_percentage=0.25):
+    def __new__(cls, target, regression_length, allowed_missing_percentage=0.25):
         daily_returns = Returns(
             window_length=2,
             mask=(AssetExists() | SingleAsset(asset=target)),
         )
-        allowed_missing_count = int(
-            allowed_missing_percentage * regression_length
-        )
+        allowed_missing_count = int(allowed_missing_percentage * regression_length)
         return super(SimpleBeta, cls).__new__(
             cls,
             inputs=[daily_returns, daily_returns[target]],
@@ -531,13 +512,9 @@ class SimpleBeta(CustomFactor, StandardOutputs):
             allowed_missing_count=allowed_missing_count,
         )
 
-    def compute(self,
-                today,
-                assets,
-                out,
-                all_returns,
-                target_returns,
-                allowed_missing_count):
+    def compute(
+        self, today, assets, out, all_returns, target_returns, allowed_missing_count
+    ):
         vectorized_beta(
             dependents=all_returns,
             independent=target_returns,
@@ -550,13 +527,12 @@ class SimpleBeta(CustomFactor, StandardOutputs):
             type(self).__name__,
             str(self.target.symbol),  # coerce from unicode to str in py2.
             self.window_length,
-            self.params['allowed_missing_count'],
+            self.params["allowed_missing_count"],
         )
 
     @property
     def target(self):
-        """Get the target of the beta calculation.
-        """
+        """Get the target of the beta calculation."""
         return self.inputs[1].asset
 
     def __repr__(self):
@@ -564,7 +540,7 @@ class SimpleBeta(CustomFactor, StandardOutputs):
             type(self).__name__,
             self.target,
             self.window_length,
-            self.params['allowed_missing_count'],
+            self.params["allowed_missing_count"],
         )
 
 
@@ -726,12 +702,14 @@ def vectorized_pearson_r(dependents, independents, allowed_missing, out=None):
     covariances = mean(ind_residual * dep_residual, axis=0)
 
     evaluate(
-        'where(mask, nan, cov / sqrt(ind_variance * dep_variance))',
-        local_dict={'cov': covariances,
-                    'mask': isnan(independents).sum(axis=0) > allowed_missing,
-                    'nan': np.nan,
-                    'ind_variance': ind_variance,
-                    'dep_variance': dep_variance},
+        "where(mask, nan, cov / sqrt(ind_variance * dep_variance))",
+        local_dict={
+            "cov": covariances,
+            "mask": isnan(independents).sum(axis=0) > allowed_missing,
+            "nan": np.nan,
+            "ind_variance": ind_variance,
+            "dep_variance": dep_variance,
+        },
         global_dict={},
         out=out,
     )

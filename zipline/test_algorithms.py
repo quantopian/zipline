@@ -99,13 +99,9 @@ class TestAlgorithm(TradingAlgorithm):
     at the close of a simulation.
     """
 
-    def initialize(self,
-                   sid,
-                   amount,
-                   order_count,
-                   sid_filter=None,
-                   slippage=None,
-                   commission=None):
+    def initialize(
+        self, sid, amount, order_count, sid_filter=None, slippage=None, commission=None
+    ):
         self.count = order_count
         self.asset = self.sid(sid)
         self.amount = amount
@@ -151,6 +147,7 @@ class NoopAlgorithm(TradingAlgorithm):
     """
     Dolce fa niente.
     """
+
     def initialize(self):
         pass
 
@@ -159,7 +156,6 @@ class NoopAlgorithm(TradingAlgorithm):
 
 
 class DivByZeroAlgorithm(TradingAlgorithm):
-
     def initialize(self, sid):
         self.asset = self.sid(sid)
         self.incr = 0
@@ -195,15 +191,15 @@ class TALIBAlgorithm(TradingAlgorithm):
     passed at initialization with the 'talib' keyword argument. The results are
     stored in the talib_results array.
     """
+
     def initialize(self, *args, **kwargs):
 
-        if 'talib' not in kwargs:
-            raise KeyError('No TA-LIB transform specified '
-                           '(use keyword \'talib\').')
-        elif not isinstance(kwargs['talib'], (list, tuple)):
-            self.talib_transforms = (kwargs['talib'],)
+        if "talib" not in kwargs:
+            raise KeyError("No TA-LIB transform specified " "(use keyword 'talib').")
+        elif not isinstance(kwargs["talib"], (list, tuple)):
+            self.talib_transforms = (kwargs["talib"],)
         else:
-            self.talib_transforms = kwargs['talib']
+            self.talib_transforms = kwargs["talib"]
 
         self.talib_results = dict((t, []) for t in self.talib_transforms)
 
@@ -224,6 +220,7 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
     portfolio.positions in the case that a position has been entered
     and fully exited.
     """
+
     def initialize(self, sids, *args, **kwargs):
         self.ordered = False
         self.exited = False
@@ -236,13 +233,9 @@ class EmptyPositionsAlgorithm(TradingAlgorithm):
             self.ordered = True
 
         if not self.exited:
-            amounts = [pos.amount for pos
-                       in self.portfolio.positions.values()]
+            amounts = [pos.amount for pos in self.portfolio.positions.values()]
 
-            if (
-                len(amounts) > 0 and
-                all([(amount == 1) for amount in amounts])
-            ):
+            if len(amounts) > 0 and all([(amount == 1) for amount in amounts]):
                 for stock in self.portfolio.positions:
                     self.order(self.sid(stock), -1)
                 self.exited = True
@@ -256,8 +249,9 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
     An algorithm that tries to make various invalid order calls, verifying that
     appropriate exceptions are raised.
     """
+
     def initialize(self, *args, **kwargs):
-        self.asset = self.sid(kwargs.pop('sids')[0])
+        self.asset = self.sid(kwargs.pop("sids")[0])
 
     def handle_data(self, data):
         from zipline.api import (
@@ -268,8 +262,12 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
             order_value,
         )
 
-        for style in [MarketOrder(), LimitOrder(10, asset=self.asset),
-                      StopOrder(10), StopLimitOrder(10, 10, asset=self.asset)]:
+        for style in [
+            MarketOrder(),
+            LimitOrder(10, asset=self.asset),
+            StopOrder(10),
+            StopLimitOrder(10, 10, asset=self.asset),
+        ]:
 
             with assert_raises(UnsupportedOrderParameters):
                 order(self.asset, 10, limit_price=10, style=style)
@@ -284,10 +282,10 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
                 order_value(self.asset, 300, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_percent(self.asset, .1, limit_price=10, style=style)
+                order_percent(self.asset, 0.1, limit_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_percent(self.asset, .1, stop_price=10, style=style)
+                order_percent(self.asset, 0.1, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
                 order_target(self.asset, 100, limit_price=10, style=style)
@@ -296,24 +294,16 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
                 order_target(self.asset, 100, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_value(self.asset, 100,
-                                   limit_price=10,
-                                   style=style)
+                order_target_value(self.asset, 100, limit_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_value(self.asset, 100,
-                                   stop_price=10,
-                                   style=style)
+                order_target_value(self.asset, 100, stop_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_percent(self.asset, .2,
-                                     limit_price=10,
-                                     style=style)
+                order_target_percent(self.asset, 0.2, limit_price=10, style=style)
 
             with assert_raises(UnsupportedOrderParameters):
-                order_target_percent(self.asset, .2,
-                                     stop_price=10,
-                                     style=style)
+                order_target_percent(self.asset, 0.2, stop_price=10, style=style)
 
 
 ##############################
@@ -340,12 +330,10 @@ def handle_data_api(context, data):
         assert 0 not in context.portfolio.positions
     else:
         assert (
-            context.portfolio.positions[0].amount ==
-            context.incr
+            context.portfolio.positions[0].amount == context.incr
         ), "Orders not filled immediately."
         assert (
-            context.portfolio.positions[0].last_sale_date ==
-            context.get_datetime()
+            context.portfolio.positions[0].last_sale_date == context.get_datetime()
         ), "Orders not filled at current datetime."
     context.incr += 1
     order(sid(0), 1)

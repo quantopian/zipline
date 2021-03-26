@@ -8,7 +8,7 @@ from .predicates import assert_equal
 
 
 class CheckWindowsMixin(object):
-    params = ('expected_windows',)
+    params = ("expected_windows",)
 
     def compute(self, today, assets, out, input_, expected_windows):
         for asset, expected_by_day in expected_windows:
@@ -16,7 +16,7 @@ class CheckWindowsMixin(object):
 
             col_ix = np.searchsorted(assets, asset)
             if assets[col_ix] != asset:
-                raise AssertionError('asset %s is not in the window' % asset)
+                raise AssertionError("asset %s is not in the window" % asset)
 
             try:
                 expected = expected_by_day[today]
@@ -25,9 +25,11 @@ class CheckWindowsMixin(object):
             else:
                 expected = np.asanyarray(expected)
                 actual = input_[:, col_ix]
-                assert_equal(actual, expected,
-                             array_decimal=(6 if expected.dtype.kind == 'f'
-                                            else None))
+                assert_equal(
+                    actual,
+                    expected,
+                    array_decimal=(6 if expected.dtype.kind == "f" else None),
+                )
 
         # output is just latest
         out[:] = input_[-1]
@@ -51,9 +53,10 @@ class CheckWindowsClassifier(CheckWindowsMixin, CustomClassifier):
     The output of this classifier is the same as ``Latest``. Any assets or days
     not in ``expected_windows`` are not checked.
     """
+
     def __new__(cls, input_, window_length, expected_windows):
-        if input_.dtype.kind == 'V':
-            dtype = np.dtype('O')
+        if input_.dtype.kind == "V":
+            dtype = np.dtype("O")
         else:
             dtype = input_.dtype
 
@@ -86,6 +89,7 @@ class CheckWindowsFactor(CheckWindowsMixin, CustomFactor):
     The output of this factor is the same as ``Latest``. Any assets or days
     not in ``expected_windows`` are not checked.
     """
+
     def __new__(cls, input_, window_length, expected_windows):
         return super(CheckWindowsFactor, cls).__new__(
             cls,

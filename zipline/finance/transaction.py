@@ -33,31 +33,28 @@ class Transaction(object):
         return self.__dict__[name]
 
     def __repr__(self):
-        template = (
-            "{cls}(asset={asset}, dt={dt},"
-            " amount={amount}, price={price})"
-        )
+        template = "{cls}(asset={asset}, dt={dt}," " amount={amount}, price={price})"
 
         return template.format(
             cls=type(self).__name__,
             asset=self.asset,
             dt=self.dt,
             amount=self.amount,
-            price=self.price
+            price=self.price,
         )
 
     def to_dict(self):
         py = copy(self.__dict__)
-        del py['type']
-        del py['asset']
+        del py["type"]
+        del py["asset"]
 
         # Adding 'sid' for backwards compatibility with downstrean consumers.
-        py['sid'] = self.asset
+        py["sid"] = self.asset
 
         # If you think this looks dumb, that is because it is! We once stored
         # commission here, but haven't for over a year. I don't want to change
         # the perf packet structure yet.
-        py['commission'] = None
+        py["commission"] = None
 
         return py
 
@@ -73,11 +70,7 @@ def create_transaction(order, dt, price, amount):
         raise Exception("Transaction magnitude must be at least 1.")
 
     transaction = Transaction(
-        asset=order.asset,
-        amount=int(amount),
-        dt=dt,
-        price=price,
-        order_id=order.id
+        asset=order.asset, amount=int(amount), dt=dt, price=price, order_id=order.id
     )
 
     return transaction

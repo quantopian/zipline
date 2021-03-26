@@ -33,7 +33,7 @@ class TestArgCheck(TestCase):
         """
         Check the results of a non-callable object.
         """
-        not_callable = 'a'
+        not_callable = "a"
 
         with self.assertRaises(NotCallable):
             verify_callable_argspec(not_callable)
@@ -42,6 +42,7 @@ class TestArgCheck(TestCase):
         """
         Tests when a function does not have *args and it was expected.
         """
+
         def f(a):
             pass
 
@@ -52,6 +53,7 @@ class TestArgCheck(TestCase):
         """
         Tests when a function has *args and it was expected.
         """
+
         def f(*args):
             pass
 
@@ -61,6 +63,7 @@ class TestArgCheck(TestCase):
         """
         Tests a function that unexpectedly accepts *args.
         """
+
         def f(*args):
             pass
 
@@ -71,6 +74,7 @@ class TestArgCheck(TestCase):
         """
         Tests checking a function ignoring the presence of *args.
         """
+
         def f(*args):
             pass
 
@@ -84,6 +88,7 @@ class TestArgCheck(TestCase):
         """
         Tests when a function does not have **kwargs and it was expected.
         """
+
         def f():
             pass
 
@@ -94,6 +99,7 @@ class TestArgCheck(TestCase):
         """
         Tests when a function has **kwargs and it was expected.
         """
+
         def f(**kwargs):
             pass
 
@@ -103,6 +109,7 @@ class TestArgCheck(TestCase):
         """
         Tests a function that unexpectedly accepts **kwargs.
         """
+
         def f(**kwargs):
             pass
 
@@ -113,6 +120,7 @@ class TestArgCheck(TestCase):
         """
         Tests checking a function ignoring the presence of **kwargs.
         """
+
         def f(**kwargs):
             pass
 
@@ -126,67 +134,70 @@ class TestArgCheck(TestCase):
         """
         Tests when the args are a subset of the expectations.
         """
+
         def f(a, b):
             pass
 
         with self.assertRaises(NotEnoughArguments):
-            verify_callable_argspec(
-                f, [Argument('a'), Argument('b'), Argument('c')]
-            )
+            verify_callable_argspec(f, [Argument("a"), Argument("b"), Argument("c")])
 
     def test_arg_superset(self):
         def f(a, b, c):
             pass
 
         with self.assertRaises(TooManyArguments):
-            verify_callable_argspec(f, [Argument('a'), Argument('b')])
+            verify_callable_argspec(f, [Argument("a"), Argument("b")])
 
     def test_no_default(self):
         """
         Tests when an argument expects a default and it is not present.
         """
+
         def f(a):
             pass
 
         with self.assertRaises(MismatchedArguments):
-            verify_callable_argspec(f, [Argument('a', 1)])
+            verify_callable_argspec(f, [Argument("a", 1)])
 
     def test_default(self):
         """
         Tests when an argument expects a default and it is present.
         """
+
         def f(a=1):
             pass
 
-        verify_callable_argspec(f, [Argument('a', 1)])
+        verify_callable_argspec(f, [Argument("a", 1)])
 
     def test_ignore_default(self):
         """
         Tests that ignoring defaults works as intended.
         """
+
         def f(a=1):
             pass
 
-        verify_callable_argspec(f, [Argument('a')])
+        verify_callable_argspec(f, [Argument("a")])
 
     def test_mismatched_args(self):
         def f(a, b):
             pass
 
         with self.assertRaises(MismatchedArguments):
-            verify_callable_argspec(f, [Argument('c'), Argument('d')])
+            verify_callable_argspec(f, [Argument("c"), Argument("d")])
 
     def test_ignore_args(self):
         """
         Tests the ignore argument list feature.
         """
+
         def f(a):
             pass
 
         def g():
             pass
 
-        h = 'not_callable'
+        h = "not_callable"
 
         verify_callable_argspec(f)
         verify_callable_argspec(g)
@@ -197,27 +208,30 @@ class TestArgCheck(TestCase):
         """
         Tests the case where arguments are not in the correct order.
         """
+
         def f(a, b):
             pass
 
         with self.assertRaises(MismatchedArguments):
-            verify_callable_argspec(f, [Argument('b'), Argument('a')])
+            verify_callable_argspec(f, [Argument("b"), Argument("a")])
 
     def test_wrong_default(self):
         """
         Tests the case where a default is expected, but the default provided
         does not match the one expected.
         """
+
         def f(a=1):
             pass
 
         with self.assertRaises(MismatchedArguments):
-            verify_callable_argspec(f, [Argument('a', 2)])
+            verify_callable_argspec(f, [Argument("a", 2)])
 
     def test_any_default(self):
         """
         Tests the any_default option.
         """
+
         def f(a=1):
             pass
 
@@ -227,7 +241,7 @@ class TestArgCheck(TestCase):
         def h(a):
             pass
 
-        expected_args = [Argument('a', Argument.any_default)]
+        expected_args = [Argument("a", Argument.any_default)]
         verify_callable_argspec(f, expected_args)
         verify_callable_argspec(g, expected_args)
         with self.assertRaises(MismatchedArguments):
@@ -237,6 +251,7 @@ class TestArgCheck(TestCase):
         """
         Tests ignoring a param name.
         """
+
         def f(a):
             pass
 
@@ -259,10 +274,10 @@ class TestArgCheck(TestCase):
 
         method = C().f
 
-        verify_callable_argspec(method, [Argument('a'), Argument('b')])
+        verify_callable_argspec(method, [Argument("a"), Argument("b")])
         with self.assertRaises(NotEnoughArguments):
             # Assert that we don't count self.
             verify_callable_argspec(
                 method,
-                [Argument('self'), Argument('a'), Argument('b')],
+                [Argument("self"), Argument("a"), Argument("b")],
             )

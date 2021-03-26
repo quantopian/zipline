@@ -29,12 +29,13 @@ class MutableView(object):
     ob : any
         The object to take a view over.
     """
+
     # add slots so we don't accidentally add attributes to the view instead of
     # ``ob``
-    __slots__ = ('_mutable_view_ob',)
+    __slots__ = ("_mutable_view_ob",)
 
     def __init__(self, ob):
-        object.__setattr__(self, '_mutable_view_ob', ob)
+        object.__setattr__(self, "_mutable_view_ob", ob)
 
     def __getattr__(self, attr):
         return getattr(self._mutable_view_ob, attr)
@@ -43,49 +44,48 @@ class MutableView(object):
         vars(self._mutable_view_ob)[attr] = value
 
     def __repr__(self):
-        return '%s(%r)' % (type(self).__name__, self._mutable_view_ob)
+        return "%s(%r)" % (type(self).__name__, self._mutable_view_ob)
 
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
 DATASOURCE_TYPE = enum(
-    'AS_TRADED_EQUITY',
-    'MERGER',
-    'SPLIT',
-    'DIVIDEND',
-    'TRADE',
-    'TRANSACTION',
-    'ORDER',
-    'EMPTY',
-    'DONE',
-    'CUSTOM',
-    'BENCHMARK',
-    'COMMISSION',
-    'CLOSE_POSITION'
+    "AS_TRADED_EQUITY",
+    "MERGER",
+    "SPLIT",
+    "DIVIDEND",
+    "TRADE",
+    "TRANSACTION",
+    "ORDER",
+    "EMPTY",
+    "DONE",
+    "CUSTOM",
+    "BENCHMARK",
+    "COMMISSION",
+    "CLOSE_POSITION",
 )
 
 # Expected fields/index values for a dividend Series.
 DIVIDEND_FIELDS = [
-    'declared_date',
-    'ex_date',
-    'gross_amount',
-    'net_amount',
-    'pay_date',
-    'payment_sid',
-    'ratio',
-    'sid',
+    "declared_date",
+    "ex_date",
+    "gross_amount",
+    "net_amount",
+    "pay_date",
+    "payment_sid",
+    "ratio",
+    "sid",
 ]
 # Expected fields/index values for a dividend payment Series.
 DIVIDEND_PAYMENT_FIELDS = [
-    'id',
-    'payment_sid',
-    'cash_amount',
-    'share_count',
+    "id",
+    "payment_sid",
+    "cash_amount",
+    "share_count",
 ]
 
 
 class Event(object):
-
     def __init__(self, initial_values=None):
         if initial_values:
             self.__dict__.update(initial_values)
@@ -94,7 +94,7 @@ class Event(object):
         return self.__dict__.keys()
 
     def __eq__(self, other):
-        return hasattr(other, '__dict__') and self.__dict__ == other.__dict__
+        return hasattr(other, "__dict__") and self.__dict__ == other.__dict__
 
     def __contains__(self, name):
         return name in self.__dict__
@@ -123,14 +123,10 @@ def _deprecated_getitem_method(name, attrs):
         The ``__getitem__`` method to put in the class dict.
     """
     attrs = frozenset(attrs)
-    msg = (
-        "'{name}[{attr!r}]' is deprecated, please use"
-        " '{name}.{attr}' instead"
-    )
+    msg = "'{name}[{attr!r}]' is deprecated, please use" " '{name}.{attr}' instead"
 
     def __getitem__(self, key):
-        """``__getitem__`` is deprecated, please use attribute access instead.
-        """
+        """``__getitem__`` is deprecated, please use attribute access instead."""
         warn(msg.format(name=name, attr=key), DeprecationWarning, stacklevel=2)
         if key in attrs:
             return getattr(self, key)
@@ -144,18 +140,19 @@ class Order(Event):
     # is deprecated to normal attribute access so we don't want to encourage
     # new usages.
     __getitem__ = _deprecated_getitem_method(
-        'order', {
-            'dt',
-            'sid',
-            'amount',
-            'stop',
-            'limit',
-            'id',
-            'filled',
-            'commission',
-            'stop_reached',
-            'limit_reached',
-            'created',
+        "order",
+        {
+            "dt",
+            "sid",
+            "amount",
+            "stop",
+            "limit",
+            "id",
+            "filled",
+            "commission",
+            "stop_reached",
+            "limit_reached",
+            "created",
         },
     )
 
@@ -202,7 +199,7 @@ class Portfolio(object):
         return self.cash_flow
 
     def __setattr__(self, attr, value):
-        raise AttributeError('cannot mutate Portfolio objects')
+        raise AttributeError("cannot mutate Portfolio objects")
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
@@ -211,16 +208,17 @@ class Portfolio(object):
     # is deprecated to normal attribute access so we don't want to encourage
     # new usages.
     __getitem__ = _deprecated_getitem_method(
-        'portfolio', {
-            'capital_used',
-            'starting_cash',
-            'portfolio_value',
-            'pnl',
-            'returns',
-            'cash',
-            'positions',
-            'start_date',
-            'positions_value',
+        "portfolio",
+        {
+            "capital_used",
+            "starting_cash",
+            "portfolio_value",
+            "pnl",
+            "returns",
+            "cash",
+            "positions",
+            "start_date",
+            "positions_value",
         },
     )
 
@@ -234,14 +232,14 @@ class Portfolio(object):
         futures contract's value is its unit price times number of shares held
         times the multiplier.
         """
-        position_values = pd.Series({
-            asset: (
-                    position.last_sale_price *
-                    position.amount *
-                    asset.price_multiplier
-            )
-            for asset, position in self.positions.items()
-        })
+        position_values = pd.Series(
+            {
+                asset: (
+                    position.last_sale_price * position.amount * asset.price_multiplier
+                )
+                for asset, position in self.positions.items()
+            }
+        )
         return position_values / self.portfolio_value
 
 
@@ -257,24 +255,24 @@ class Account(object):
         self_ = MutableView(self)
         self_.settled_cash = 0.0
         self_.accrued_interest = 0.0
-        self_.buying_power = float('inf')
+        self_.buying_power = float("inf")
         self_.equity_with_loan = 0.0
         self_.total_positions_value = 0.0
         self_.total_positions_exposure = 0.0
         self_.regt_equity = 0.0
-        self_.regt_margin = float('inf')
+        self_.regt_margin = float("inf")
         self_.initial_margin_requirement = 0.0
         self_.maintenance_margin_requirement = 0.0
         self_.available_funds = 0.0
         self_.excess_liquidity = 0.0
         self_.cushion = 0.0
-        self_.day_trades_remaining = float('inf')
+        self_.day_trades_remaining = float("inf")
         self_.leverage = 0.0
         self_.net_leverage = 0.0
         self_.net_liquidation = 0.0
 
     def __setattr__(self, attr, value):
-        raise AttributeError('cannot mutate Account objects')
+        raise AttributeError("cannot mutate Account objects")
 
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
@@ -283,24 +281,25 @@ class Account(object):
     # is deprecated to normal attribute access so we don't want to encourage
     # new usages.
     __getitem__ = _deprecated_getitem_method(
-        'account', {
-            'settled_cash',
-            'accrued_interest',
-            'buying_power',
-            'equity_with_loan',
-            'total_positions_value',
-            'total_positions_exposure',
-            'regt_equity',
-            'regt_margin',
-            'initial_margin_requirement',
-            'maintenance_margin_requirement',
-            'available_funds',
-            'excess_liquidity',
-            'cushion',
-            'day_trades_remaining',
-            'leverage',
-            'net_leverage',
-            'net_liquidation',
+        "account",
+        {
+            "settled_cash",
+            "accrued_interest",
+            "buying_power",
+            "equity_with_loan",
+            "total_positions_value",
+            "total_positions_exposure",
+            "regt_equity",
+            "regt_margin",
+            "initial_margin_requirement",
+            "maintenance_margin_requirement",
+            "available_funds",
+            "excess_liquidity",
+            "cushion",
+            "day_trades_remaining",
+            "leverage",
+            "net_leverage",
+            "net_liquidation",
         },
     )
 
@@ -323,16 +322,17 @@ class Position(object):
     last_sale_date : pd.Timestamp
         Datetime at which ``last_sale_price`` was last updated.
     """
-    __slots__ = ('_underlying_position',)
+
+    __slots__ = ("_underlying_position",)
 
     def __init__(self, underlying_position):
-        object.__setattr__(self, '_underlying_position', underlying_position)
+        object.__setattr__(self, "_underlying_position", underlying_position)
 
     def __getattr__(self, attr):
         return getattr(self._underlying_position, attr)
 
     def __setattr__(self, attr, value):
-        raise AttributeError('cannot mutate Position objects')
+        raise AttributeError("cannot mutate Position objects")
 
     @property
     def sid(self):
@@ -340,14 +340,14 @@ class Position(object):
         return self.asset
 
     def __repr__(self):
-        return 'Position(%r)' % {
+        return "Position(%r)" % {
             k: getattr(self, k)
             for k in (
-                'asset',
-                'amount',
-                'cost_basis',
-                'last_sale_price',
-                'last_sale_date',
+                "asset",
+                "amount",
+                "cost_basis",
+                "last_sale_price",
+                "last_sale_date",
             )
         }
 
@@ -355,12 +355,13 @@ class Position(object):
     # is deprecated to normal attribute access so we don't want to encourage
     # new usages.
     __getitem__ = _deprecated_getitem_method(
-        'position', {
-            'sid',
-            'amount',
-            'cost_basis',
-            'last_sale_price',
-            'last_sale_date',
+        "position",
+        {
+            "sid",
+            "amount",
+            "cost_basis",
+            "last_sale_price",
+            "last_sale_date",
         },
     )
 
@@ -383,28 +384,32 @@ class _DeprecatedSidLookupPosition(object):
     # is deprecated to normal attribute access so we don't want to encourage
     # new usages.
     __getitem__ = _deprecated_getitem_method(
-        'position', {
-            'sid',
-            'amount',
-            'cost_basis',
-            'last_sale_price',
-            'last_sale_date',
+        "position",
+        {
+            "sid",
+            "amount",
+            "cost_basis",
+            "last_sale_price",
+            "last_sale_date",
         },
     )
 
 
 class Positions(dict):
-    """A dict-like object containing the algorithm's current positions.
-    """
+    """A dict-like object containing the algorithm's current positions."""
 
     def __missing__(self, key):
         if isinstance(key, Asset):
             return Position(InnerPosition(key))
         elif isinstance(key, int):
-            warn("Referencing positions by integer is deprecated."
-                 " Use an asset instead.")
+            warn(
+                "Referencing positions by integer is deprecated."
+                " Use an asset instead."
+            )
         else:
-            warn("Position lookup expected a value of type Asset but got {0}"
-                 " instead.".format(type(key).__name__))
+            warn(
+                "Position lookup expected a value of type Asset but got {0}"
+                " instead.".format(type(key).__name__)
+            )
 
         return _DeprecatedSidLookupPosition(key)

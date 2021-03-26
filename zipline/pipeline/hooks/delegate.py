@@ -7,8 +7,7 @@ from .no import NoHooks
 
 
 def delegating_hooks_method(method_name):
-    """Factory function for making DelegatingHooks methods.
-    """
+    """Factory function for making DelegatingHooks methods."""
     if method_name in PIPELINE_HOOKS_CONTEXT_MANAGERS:
         # Generate a contextmanager that enters the context of all child hooks.
         @wraps(getattr(PipelineHooks, method_name))
@@ -19,6 +18,7 @@ def delegating_hooks_method(method_name):
                     sub_ctx = getattr(hook, method_name)(*args, **kwargs)
                     stack.enter_context(sub_ctx)
                 yield stack
+
         return ctx
     else:
         # Generate a method that calls methods of all child hooks.
@@ -39,6 +39,7 @@ class DelegatingHooks(implements(PipelineHooks)):
     hooks : list[implements(PipelineHooks)]
         Sequence of hooks to delegate to.
     """
+
     def __new__(cls, hooks):
         if len(hooks) == 0:
             # OPTIMIZATION: Short-circuit to a NoHooks if we don't have any
@@ -55,11 +56,13 @@ class DelegatingHooks(implements(PipelineHooks)):
 
     # Implement all interface methods by delegating to corresponding methods on
     # input hooks.
-    locals().update({
-        name: delegating_hooks_method(name)
-        # TODO: Expose this publicly on interface.
-        for name in PipelineHooks._signatures
-    })
+    locals().update(
+        {
+            name: delegating_hooks_method(name)
+            # TODO: Expose this publicly on interface.
+            for name in PipelineHooks._signatures
+        }
+    )
 
 
 del delegating_hooks_method

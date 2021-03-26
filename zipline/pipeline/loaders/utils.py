@@ -10,24 +10,20 @@ def is_sorted_ascending(a):
     return (np.fmax.accumulate(a) <= a).all()
 
 
-def validate_event_metadata(event_dates,
-                            event_timestamps,
-                            event_sids):
+def validate_event_metadata(event_dates, event_timestamps, event_sids):
     assert is_sorted_ascending(event_dates), "event dates must be sorted"
-    assert len(event_sids) == len(event_dates) == len(event_timestamps), \
-        "mismatched arrays: %d != %d != %d" % (
-            len(event_sids),
-            len(event_dates),
-            len(event_timestamps),
-        )
+    assert (
+        len(event_sids) == len(event_dates) == len(event_timestamps)
+    ), "mismatched arrays: %d != %d != %d" % (
+        len(event_sids),
+        len(event_dates),
+        len(event_timestamps),
+    )
 
 
-def next_event_indexer(all_dates,
-                       data_query_cutoff,
-                       all_sids,
-                       event_dates,
-                       event_timestamps,
-                       event_sids):
+def next_event_indexer(
+    all_dates, data_query_cutoff, all_sids, event_dates, event_timestamps, event_sids
+):
     """
     Construct an index array that, when applied to an array of values, produces
     a 2D array containing the values associated with the next event for each
@@ -63,8 +59,10 @@ def next_event_indexer(all_dates,
     sid_ixs = all_sids.searchsorted(event_sids)
     # side='right' here ensures that we include the event date itself
     # if it's in all_dates.
-    dt_ixs = all_dates.searchsorted(pd.to_datetime(event_dates, utc=True), side='right')
-    ts_ixs = data_query_cutoff.searchsorted(pd.to_datetime(event_timestamps, utc=True), side='right')
+    dt_ixs = all_dates.searchsorted(pd.to_datetime(event_dates, utc=True), side="right")
+    ts_ixs = data_query_cutoff.searchsorted(
+        pd.to_datetime(event_timestamps, utc=True), side="right"
+    )
 
     # Walk backward through the events, writing the index of the event into
     # slots ranging from the event's timestamp to its asof.  This depends for
@@ -79,11 +77,9 @@ def next_event_indexer(all_dates,
     return out
 
 
-def previous_event_indexer(data_query_cutoff_times,
-                           all_sids,
-                           event_dates,
-                           event_timestamps,
-                           event_sids):
+def previous_event_indexer(
+    data_query_cutoff_times, all_sids, event_dates, event_timestamps, event_sids
+):
     """
     Construct an index array that, when applied to an array of values, produces
     a 2D array containing the values associated with the previous event for
@@ -122,7 +118,9 @@ def previous_event_indexer(data_query_cutoff_times,
 
     eff_dts = np.maximum(event_dates, event_timestamps)
     sid_ixs = all_sids.searchsorted(event_sids)
-    dt_ixs = data_query_cutoff_times.searchsorted(pd.to_datetime(eff_dts, utc=True), side='right')
+    dt_ixs = data_query_cutoff_times.searchsorted(
+        pd.to_datetime(eff_dts, utc=True), side="right"
+    )
 
     # Walk backwards through the events, writing the index of the event into
     # slots ranging from max(event_date, event_timestamp) to the start of the
@@ -133,17 +131,19 @@ def previous_event_indexer(data_query_cutoff_times,
     for i in range(len(event_dates) - 1, -1, -1):
         sid_ix = sid_ixs[i]
         dt_ix = dt_ixs[i]
-        out[dt_ix:last_written.get(sid_ix, None), sid_ix] = i
+        out[dt_ix : last_written.get(sid_ix, None), sid_ix] = i
         last_written[sid_ix] = dt_ix
     return out
 
 
-def last_in_date_group(df,
-                       data_query_cutoff_times,
-                       assets,
-                       reindex=True,
-                       have_sids=True,
-                       extra_groupers=None):
+def last_in_date_group(
+    df,
+    data_query_cutoff_times,
+    assets,
+    reindex=True,
+    have_sids=True,
+    extra_groupers=None,
+):
     """
     Determine the last piece of information known on each date in the date
     index for each group. Input df MUST be sorted such that the correct last
@@ -176,7 +176,9 @@ def last_in_date_group(df,
 
     """
     # get positions in `data_query_cutoff_times` just before `TS_FIELD_NAME` in `df`
-    idx_before_ts = data_query_cutoff_times.searchsorted(pd.to_datetime(df[TS_FIELD_NAME], utc=True))
+    idx_before_ts = data_query_cutoff_times.searchsorted(
+        pd.to_datetime(df[TS_FIELD_NAME], utc=True)
+    )
     idx = [data_query_cutoff_times[idx_before_ts]]
 
     if have_sids:
@@ -185,12 +187,13 @@ def last_in_date_group(df,
         extra_groupers = []
     idx += extra_groupers
 
-    to_unstack = idx[-1:-len(idx):-1]
-    last_in_group = (df
-                     .drop(TS_FIELD_NAME, axis=1)
-                     .groupby(idx, sort=False)
-                     .last()
-                     .unstack(level=to_unstack))
+    to_unstack = idx[-1 : -len(idx) : -1]
+    last_in_group = (
+        df.drop(TS_FIELD_NAME, axis=1)
+        .groupby(idx, sort=False)
+        .last()
+        .unstack(level=to_unstack)
+    )
 
     # For the number of things that we're grouping by (except TS), unstack
     # the df. Done this way because of an unresolved pandas bug whereby
@@ -202,10 +205,13 @@ def last_in_date_group(df,
     if reindex:
         if have_sids:
             cols = last_in_group.columns
-            columns = pd.MultiIndex.from_product(tuple(cols.levels[0:len(extra_groupers) + 1]) + (assets,),
-                                                 names=cols.names)
-            last_in_group = last_in_group.reindex(index=data_query_cutoff_times,
-                                                  columns=columns)
+            columns = pd.MultiIndex.from_product(
+                tuple(cols.levels[0 : len(extra_groupers) + 1]) + (assets,),
+                names=cols.names,
+            )
+            last_in_group = last_in_group.reindex(
+                index=data_query_cutoff_times, columns=columns
+            )
         else:
             last_in_group = last_in_group.reindex(data_query_cutoff_times)
 
@@ -249,18 +255,17 @@ def ffill_across_cols(df, columns, name_map):
         # Special logic for strings since `fillna` doesn't work if the
         # missing value is `None`.
         if column.dtype == categorical_dtype:
-            df[column_name] = df[
-                column.name
-            ].where(pd.notnull(df[column_name]),
-                    column.missing_value)
+            df[column_name] = df[column.name].where(
+                pd.notnull(df[column_name]), column.missing_value
+            )
         else:
             # We need to execute `fillna` before `astype` in case the
             # column contains NaNs and needs to be cast to bool or int.
             # This is so that the NaNs are replaced first, since pandas
             # can't convert NaNs for those types.
-            df[column_name] = df[
-                column_name
-            ].fillna(column.missing_value).astype(column.dtype)
+            df[column_name] = (
+                df[column_name].fillna(column.missing_value).astype(column.dtype)
+            )
 
 
 def shift_dates(dates, start_date, end_date, shift):
@@ -334,4 +339,4 @@ def shift_dates(dates, start_date, end_date, shift):
         else:
             raise ValueError("Query end %s not in calendar" % end_date)
 
-    return dates[start - shift:end - shift + 1]  # +1 to be inclusive
+    return dates[start - shift : end - shift + 1]  # +1 to be inclusive

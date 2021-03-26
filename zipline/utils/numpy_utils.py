@@ -23,34 +23,34 @@ from numpy import (
     isnan,
     nan,
     vectorize,
-    where
+    where,
 )
 from numpy.lib.stride_tricks import as_strided
 from toolz import flip
 
 numpy_version = StrictVersion(np.__version__)
 
-uint8_dtype = dtype('uint8')
-bool_dtype = dtype('bool')
+uint8_dtype = dtype("uint8")
+bool_dtype = dtype("bool")
 
-uint32_dtype = dtype('uint32')
-uint64_dtype = dtype('uint64')
-int64_dtype = dtype('int64')
+uint32_dtype = dtype("uint32")
+uint64_dtype = dtype("uint64")
+int64_dtype = dtype("int64")
 
-float32_dtype = dtype('float32')
-float64_dtype = dtype('float64')
+float32_dtype = dtype("float32")
+float64_dtype = dtype("float64")
 
-complex128_dtype = dtype('complex128')
+complex128_dtype = dtype("complex128")
 
-datetime64D_dtype = dtype('datetime64[D]')
-datetime64ns_dtype = dtype('datetime64[ns]')
+datetime64D_dtype = dtype("datetime64[D]")
+datetime64ns_dtype = dtype("datetime64[ns]")
 
-object_dtype = dtype('O')
+object_dtype = dtype("O")
 # We use object arrays for strings.
 categorical_dtype = object_dtype
 
-make_datetime64ns = flip(datetime64, 'ns')
-make_datetime64D = flip(datetime64, 'D')
+make_datetime64ns = flip(datetime64, "ns")
+make_datetime64D = flip(datetime64, "D")
 
 # Array compare that works across versions of numpy
 try:
@@ -59,8 +59,8 @@ except AttributeError:
     assert_array_compare = np.testing.assert_array_compare
 
 NaTmap = {
-    dtype('datetime64[%s]' % unit): datetime64('NaT', unit)
-    for unit in ('ns', 'us', 'ms', 's', 'm', 'D')
+    dtype("datetime64[%s]" % unit): datetime64("NaT", unit)
+    for unit in ("ns", "us", "ms", "s", "m", "D")
 }
 
 
@@ -84,26 +84,30 @@ NaTns = NaT_for_dtype(datetime64ns_dtype)
 NaTD = NaT_for_dtype(datetime64D_dtype)
 
 _FILLVALUE_DEFAULTS = {
-    bool_dtype        : False,
-    float32_dtype     : nan,
-    float64_dtype     : nan,
+    bool_dtype: False,
+    float32_dtype: nan,
+    float64_dtype: nan,
     datetime64ns_dtype: NaTns,
-    object_dtype      : None,
+    object_dtype: None,
 }
 
-INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
-    (1, dtype('int8')),
-    (2, dtype('int16')),
-    (4, dtype('int32')),
-    (8, dtype('int64')),
-])
+INT_DTYPES_BY_SIZE_BYTES = OrderedDict(
+    [
+        (1, dtype("int8")),
+        (2, dtype("int16")),
+        (4, dtype("int32")),
+        (8, dtype("int64")),
+    ]
+)
 
-UNSIGNED_INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
-    (1, dtype('uint8')),
-    (2, dtype('uint16')),
-    (4, dtype('uint32')),
-    (8, dtype('uint64')),
-])
+UNSIGNED_INT_DTYPES_BY_SIZE_BYTES = OrderedDict(
+    [
+        (1, dtype("uint8")),
+        (2, dtype("uint16")),
+        (4, dtype("uint32")),
+        (8, dtype("uint64")),
+    ]
+)
 
 
 def int_dtype_with_size_in_bytes(size):
@@ -117,9 +121,7 @@ def unsigned_int_dtype_with_size_in_bytes(size):
     try:
         return UNSIGNED_INT_DTYPES_BY_SIZE_BYTES[size]
     except KeyError:
-        raise ValueError(
-            "No unsigned integral dtype whose size is %d bytes." % size
-        )
+        raise ValueError("No unsigned integral dtype whose size is %d bytes." % size)
 
 
 class NoDefaultMissingValue(Exception):
@@ -133,17 +135,17 @@ def make_kind_check(python_types, numpy_kind):
     """
 
     def check(value):
-        if hasattr(value, 'dtype'):
+        if hasattr(value, "dtype"):
             return value.dtype.kind == numpy_kind
         return isinstance(value, python_types)
 
     return check
 
 
-is_float = make_kind_check(float, 'f')
-is_int = make_kind_check(int, 'i')
-is_datetime = make_kind_check(datetime, 'M')
-is_object = make_kind_check(object, 'O')
+is_float = make_kind_check(float, "f")
+is_int = make_kind_check(int, "i")
+is_datetime = make_kind_check(datetime, "M")
+is_object = make_kind_check(object, "O")
 
 
 def coerce_to_dtype(dtype, value):
@@ -153,15 +155,13 @@ def coerce_to_dtype(dtype, value):
     Only datetime64[ns] and datetime64[D] are supported for datetime dtypes.
     """
     name = dtype.name
-    if name.startswith('datetime64'):
-        if name == 'datetime64[D]':
+    if name.startswith("datetime64"):
+        if name == "datetime64[D]":
             return make_datetime64D(value)
-        elif name == 'datetime64[ns]':
+        elif name == "datetime64[ns]":
             return make_datetime64ns(value)
         else:
-            raise TypeError(
-                "Don't know how to coerce values of dtype %s" % dtype
-            )
+            raise TypeError("Don't know how to coerce values of dtype %s" % dtype)
     return dtype.type(value)
 
 
@@ -172,9 +172,7 @@ def default_missing_value_for_dtype(dtype):
     try:
         return _FILLVALUE_DEFAULTS[dtype]
     except KeyError:
-        raise NoDefaultMissingValue(
-            "No default value registered for dtype %s." % dtype
-        )
+        raise NoDefaultMissingValue("No default value registered for dtype %s." % dtype)
 
 
 def repeat_first_axis(array, count):
@@ -324,7 +322,7 @@ def rolling_window(array, length):
             )
         )
 
-    num_windows = (orig_shape[0] - length + 1)
+    num_windows = orig_shape[0] - length + 1
     new_shape = (num_windows, length) + orig_shape[1:]
 
     new_strides = (array.strides[0],) + array.strides
@@ -342,7 +340,7 @@ def isnat(obj):
     """
     Check if a value is np.NaT.
     """
-    if obj.dtype.kind not in ('m', 'M'):
+    if obj.dtype.kind not in ("m", "M"):
         raise ValueError("%s is not a numpy datetime or timedelta")
     return obj.view(int64_dtype) == iNaT
 
@@ -360,7 +358,7 @@ def is_missing(data, missing_value):
         # None. Work around this by boxing None in a 1x1 array, which causes
         # numpy to do the broadcasted comparison we want.
         return data == np.array([missing_value])
-    return (data == missing_value)
+    return data == missing_value
 
 
 def same(x, y):
@@ -436,8 +434,8 @@ def ignore_nanwarnings():
     """
     return WarningContext(
         (
-            ('ignore',),
-            {'category': RuntimeWarning, 'module': 'numpy.lib.nanfunctions'},
+            ("ignore",),
+            {"category": RuntimeWarning, "module": "numpy.lib.nanfunctions"},
         )
     )
 
@@ -528,11 +526,10 @@ def compare_datetime_arrays(x, y):
     Compare datetime64 ndarrays, treating NaT values as equal.
     """
 
-    return array_equal(x.view('int64'), y.view('int64'))
+    return array_equal(x.view("int64"), y.view("int64"))
 
 
 def bytes_array_to_native_str_object_array(a):
-    """Convert an array of dtype S to an object array containing `str`.
-    """
+    """Convert an array of dtype S to an object array containing `str`."""
 
     return a.astype(str).astype(object)

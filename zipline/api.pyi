@@ -8,7 +8,6 @@ from zipline.protocol import Order
 from zipline.utils.events import EventRule
 from zipline.utils.security_list import SecurityList
 
-
 def attach_pipeline(pipeline, name, chunks=None, eager=True):
     """Register a pipeline to be computed at the start of each day.
 
@@ -61,7 +60,7 @@ def cancel_order(order_param):
         The order_id or order object to cancel.
     """
 
-def continuous_future(root_symbol_str, offset=0, roll='volume', adjustment='mul'):
+def continuous_future(root_symbol_str, offset=0, roll="volume", adjustment="mul"):
     """Create a specifier for a continuous contract.
 
     Parameters
@@ -85,7 +84,20 @@ def continuous_future(root_symbol_str, offset=0, roll='volume', adjustment='mul'
         The continuous future specifier.
     """
 
-def fetch_csv(url, pre_func=None, post_func=None, date_column='date', date_format=None, timezone='UTC', symbol=None, mask=True, symbol_column=None, special_params_checker=None, country_code=None, **kwargs):
+def fetch_csv(
+    url,
+    pre_func=None,
+    post_func=None,
+    date_column="date",
+    date_format=None,
+    timezone="UTC",
+    symbol=None,
+    mask=True,
+    symbol_column=None,
+    special_params_checker=None,
+    country_code=None,
+    **kwargs
+):
     """Fetch a csv from a remote url and register the data so that it is
     queryable from the ``data`` object.
 
@@ -164,7 +176,7 @@ def get_datetime(tz=None):
         The current simulation datetime converted to ``tz``.
     """
 
-def get_environment(field='platform'):
+def get_environment(field="platform"):
     """Query the execution environment.
 
     Parameters
@@ -237,8 +249,7 @@ def get_order(order_id):
     """
 
 def history(bar_count, frequency, field, ffill=True):
-    """DEPRECATED: use ``data.history`` instead.
-    """
+    """DEPRECATED: use ``data.history`` instead."""
 
 def order(asset, amount, limit_price=None, stop_price=None, style=None):
     """Place an order for a fixed number of shares.
@@ -547,7 +558,9 @@ def record(*args, **kwargs):
     :func:`~zipline.run_algorithm`.
     """
 
-def schedule_function(func, date_rule=None, time_rule=None, half_days=True, calendar=None):
+def schedule_function(
+    func, date_rule=None, time_rule=None, half_days=True, calendar=None
+):
     """Schedule a function to be called repeatedly in the future.
 
     Parameters
@@ -573,7 +586,7 @@ def schedule_function(func, date_rule=None, time_rule=None, half_days=True, cale
     :class:`zipline.api.time_rules`
     """
 
-def set_asset_restrictions(restrictions, on_error='fail'):
+def set_asset_restrictions(restrictions, on_error="fail"):
     """Set a restriction on which assets can be ordered.
 
     Parameters
@@ -636,7 +649,7 @@ def set_commission(us_equities=None, us_futures=None):
     :class:`zipline.finance.commission.PerDollar`
     """
 
-def set_do_not_order_list(restricted_list, on_error='fail'):
+def set_do_not_order_list(restricted_list, on_error="fail"):
     """Set a restriction on which assets can be ordered.
 
     Parameters
@@ -645,7 +658,7 @@ def set_do_not_order_list(restricted_list, on_error='fail'):
         The assets that cannot be ordered.
     """
 
-def set_long_only(on_error='fail'):
+def set_long_only(on_error="fail"):
     """Set a rule specifying that this algorithm cannot take short
     positions.
     """
@@ -660,7 +673,7 @@ def set_max_leverage(max_leverage):
         be no maximum.
     """
 
-def set_max_order_count(max_count, on_error='fail'):
+def set_max_order_count(max_count, on_error="fail"):
     """Set a limit on the number of orders that can be placed in a single
     day.
 
@@ -670,7 +683,7 @@ def set_max_order_count(max_count, on_error='fail'):
         The maximum number of orders that can be placed on any single day.
     """
 
-def set_max_order_size(asset=None, max_shares=None, max_notional=None, on_error='fail'):
+def set_max_order_size(asset=None, max_shares=None, max_notional=None, on_error="fail"):
     """Set a limit on the number of shares and/or dollar value of any single
     order placed for sid.  Limits are treated as absolute values and are
     enforced at the time that the algo attempts to place an order for sid.
@@ -689,7 +702,9 @@ def set_max_order_size(asset=None, max_shares=None, max_notional=None, on_error=
         The maximum value that can be ordered at one time.
     """
 
-def set_max_position_size(asset=None, max_shares=None, max_notional=None, on_error='fail'):
+def set_max_position_size(
+    asset=None, max_shares=None, max_notional=None, on_error="fail"
+):
     """Set a limit on the number of shares and/or dollar value held for the
     given sid. Limits are treated as absolute values and are enforced at
     the time that the algo attempts to place an order for sid. This means

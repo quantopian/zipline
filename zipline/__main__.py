@@ -21,34 +21,33 @@ except NameError:
 
 @click.group()
 @click.option(
-    '-e',
-    '--extension',
+    "-e",
+    "--extension",
     multiple=True,
-    help='File or module path to a zipline extension to load.',
+    help="File or module path to a zipline extension to load.",
 )
 @click.option(
-    '--strict-extensions/--non-strict-extensions',
+    "--strict-extensions/--non-strict-extensions",
     is_flag=True,
-    help='If --strict-extensions is passed then zipline will not '
-         'run if it cannot load all of the specified extensions. '
-         'If this is not passed or --non-strict-extensions is passed '
-         'then the failure will be logged but execution will continue.',
+    help="If --strict-extensions is passed then zipline will not "
+    "run if it cannot load all of the specified extensions. "
+    "If this is not passed or --non-strict-extensions is passed "
+    "then the failure will be logged but execution will continue.",
 )
 @click.option(
-    '--default-extension/--no-default-extension',
+    "--default-extension/--no-default-extension",
     is_flag=True,
     default=True,
     help="Don't load the default zipline extension.py file in $ZIPLINE_HOME.",
 )
 @click.option(
-    '-x',
+    "-x",
     multiple=True,
-    help='Any custom command line arguments to define, in key=value form.'
+    help="Any custom command line arguments to define, in key=value form.",
 )
 @click.pass_context
 def main(ctx, extension, strict_extensions, default_extension, x):
-    """Top level zipline entry point.
-    """
+    """Top level zipline entry point."""
     # install a logbook handler before performing any other operations
     logbook.StderrHandler().push_application()
     create_args(x, zipline.extension_args)
@@ -111,162 +110,164 @@ def ipython_only(option):
     return d
 
 
-DEFAULT_BUNDLE = 'quantopian-quandl'
+DEFAULT_BUNDLE = "quantopian-quandl"
 
 
 @main.command()
 @click.option(
-    '-f',
-    '--algofile',
+    "-f",
+    "--algofile",
     default=None,
-    type=click.File('r'),
-    help='The file that contains the algorithm to run.',
+    type=click.File("r"),
+    help="The file that contains the algorithm to run.",
 )
 @click.option(
-    '-t',
-    '--algotext',
-    help='The algorithm script to run.',
+    "-t",
+    "--algotext",
+    help="The algorithm script to run.",
 )
 @click.option(
-    '-D',
-    '--define',
+    "-D",
+    "--define",
     multiple=True,
     help="Define a name to be bound in the namespace before executing"
-         " the algotext. For example '-Dname=value'. The value may be any "
-         "python expression. These are evaluated in order so they may refer "
-         "to previously defined names.",
+    " the algotext. For example '-Dname=value'. The value may be any "
+    "python expression. These are evaluated in order so they may refer "
+    "to previously defined names.",
 )
 @click.option(
-    '--data-frequency',
-    type=click.Choice({'daily', 'minute'}),
-    default='daily',
+    "--data-frequency",
+    type=click.Choice({"daily", "minute"}),
+    default="daily",
     show_default=True,
-    help='The data frequency of the simulation.',
+    help="The data frequency of the simulation.",
 )
 @click.option(
-    '--capital-base',
+    "--capital-base",
     type=float,
     default=10e6,
     show_default=True,
-    help='The starting capital for the simulation.',
+    help="The starting capital for the simulation.",
 )
 @click.option(
-    '-b',
-    '--bundle',
+    "-b",
+    "--bundle",
     default=DEFAULT_BUNDLE,
-    metavar='BUNDLE-NAME',
+    metavar="BUNDLE-NAME",
     show_default=True,
-    help='The data bundle to use for the simulation.',
+    help="The data bundle to use for the simulation.",
 )
 @click.option(
-    '--bundle-timestamp',
+    "--bundle-timestamp",
     type=Timestamp(),
     default=pd.Timestamp.utcnow(),
     show_default=False,
-    help='The date to lookup data on or before.\n'
-         '[default: <current-time>]'
+    help="The date to lookup data on or before.\n" "[default: <current-time>]",
 )
 @click.option(
-    '-bf',
-    '--benchmark-file',
+    "-bf",
+    "--benchmark-file",
     default=None,
     type=click.Path(exists=True, dir_okay=False, readable=True, path_type=str),
-    help='The csv file that contains the benchmark returns',
+    help="The csv file that contains the benchmark returns",
 )
 @click.option(
-    '--benchmark-symbol',
+    "--benchmark-symbol",
     default=None,
     type=click.STRING,
     help="The symbol of the instrument to be used as a benchmark "
-         "(should exist in the ingested bundle)",
+    "(should exist in the ingested bundle)",
 )
 @click.option(
-    '--benchmark-sid',
+    "--benchmark-sid",
     default=None,
     type=int,
     help="The sid of the instrument to be used as a benchmark "
-         "(should exist in the ingested bundle)",
+    "(should exist in the ingested bundle)",
 )
 @click.option(
-    '--no-benchmark',
+    "--no-benchmark",
     is_flag=True,
     default=False,
     help="If passed, use a benchmark of zero returns.",
 )
 @click.option(
-    '-s',
-    '--start',
-    type=Date(tz='utc', as_timestamp=True),
-    help='The start date of the simulation.',
+    "-s",
+    "--start",
+    type=Date(tz="utc", as_timestamp=True),
+    help="The start date of the simulation.",
 )
 @click.option(
-    '-e',
-    '--end',
-    type=Date(tz='utc', as_timestamp=True),
-    help='The end date of the simulation.',
+    "-e",
+    "--end",
+    type=Date(tz="utc", as_timestamp=True),
+    help="The end date of the simulation.",
 )
 @click.option(
-    '-o',
-    '--output',
-    default='-',
-    metavar='FILENAME',
+    "-o",
+    "--output",
+    default="-",
+    metavar="FILENAME",
     show_default=True,
     help="The location to write the perf data. If this is '-' the perf will"
-         " be written to stdout.",
+    " be written to stdout.",
 )
 @click.option(
-    '--trading-calendar',
-    metavar='TRADING-CALENDAR',
-    default='XNYS',
-    help="The calendar you want to use e.g. XLON. XNYS is the default."
+    "--trading-calendar",
+    metavar="TRADING-CALENDAR",
+    default="XNYS",
+    help="The calendar you want to use e.g. XLON. XNYS is the default.",
 )
 @click.option(
-    '--print-algo/--no-print-algo',
+    "--print-algo/--no-print-algo",
     is_flag=True,
     default=False,
-    help='Print the algorithm to stdout.',
+    help="Print the algorithm to stdout.",
 )
 @click.option(
-    '--metrics-set',
-    default='default',
-    help='The metrics set to use. New metrics sets may be registered in your'
-         ' extension.py.',
+    "--metrics-set",
+    default="default",
+    help="The metrics set to use. New metrics sets may be registered in your"
+    " extension.py.",
 )
 @click.option(
-    '--blotter',
-    default='default',
+    "--blotter",
+    default="default",
     help="The blotter to use.",
     show_default=True,
 )
-@ipython_only(click.option(
-    '--local-namespace/--no-local-namespace',
-    is_flag=True,
-    default=None,
-    help='Should the algorithm methods be resolved in the local namespace.'
-))
+@ipython_only(
+    click.option(
+        "--local-namespace/--no-local-namespace",
+        is_flag=True,
+        default=None,
+        help="Should the algorithm methods be resolved in the local namespace.",
+    )
+)
 @click.pass_context
-def run(ctx,
-        algofile,
-        algotext,
-        define,
-        data_frequency,
-        capital_base,
-        bundle,
-        bundle_timestamp,
-        benchmark_file,
-        benchmark_symbol,
-        benchmark_sid,
-        no_benchmark,
-        start,
-        end,
-        output,
-        trading_calendar,
-        print_algo,
-        metrics_set,
-        local_namespace,
-        blotter):
-    """Run a backtest for the given algorithm.
-    """
+def run(
+    ctx,
+    algofile,
+    algotext,
+    define,
+    data_frequency,
+    capital_base,
+    bundle,
+    bundle_timestamp,
+    benchmark_file,
+    benchmark_symbol,
+    benchmark_sid,
+    no_benchmark,
+    start,
+    end,
+    output,
+    trading_calendar,
+    print_algo,
+    metrics_set,
+    local_namespace,
+    blotter,
+):
+    """Run a backtest for the given algorithm."""
     # check that the start and end dates are passed correctly
     if start is None and end is None:
         # check both at the same time to avoid the case where a user
@@ -282,8 +283,7 @@ def run(ctx,
 
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
-            "must specify exactly one of '-f' / '--algofile' or"
-            " '-t' / '--algotext'",
+            "must specify exactly one of '-f' / '--algofile' or" " '-t' / '--algotext'",
         )
 
     trading_calendar = get_calendar(trading_calendar)
@@ -322,8 +322,7 @@ def run(ctx,
 
 
 def zipline_magic(line, cell=None):
-    """The zipline IPython cell magic.
-    """
+    """The zipline IPython cell magic."""
     load_extensions(
         default=True,
         extensions=[],
@@ -335,15 +334,24 @@ def zipline_magic(line, cell=None):
             # put our overrides at the start of the parameter list so that
             # users may pass values with higher precedence
             [
-                '--algotext', cell,
-                '--output', os.devnull,  # don't write the results by default
-            ] + ([
-                     # these options are set when running in line magic mode
-                     # set a non None algo text to use the ipython user_ns
-                     '--algotext', '',
-                     '--local-namespace',
-                 ] if cell is None else []) + line.split(),
-            '%s%%zipline' % ((cell or '') and '%'),
+                "--algotext",
+                cell,
+                "--output",
+                os.devnull,  # don't write the results by default
+            ]
+            + (
+                [
+                    # these options are set when running in line magic mode
+                    # set a non None algo text to use the ipython user_ns
+                    "--algotext",
+                    "",
+                    "--local-namespace",
+                ]
+                if cell is None
+                else []
+            )
+            + line.split(),
+            "%s%%zipline" % ((cell or "") and "%"),
             # don't use system exit and propogate errors to the caller
             standalone_mode=False,
         )
@@ -351,32 +359,31 @@ def zipline_magic(line, cell=None):
         # https://github.com/mitsuhiko/click/pull/533
         # even in standalone_mode=False `--help` really wants to kill us ;_;
         if e.code:
-            raise ValueError('main returned non-zero status code: %d' % e.code)
+            raise ValueError("main returned non-zero status code: %d" % e.code)
 
 
 @main.command()
 @click.option(
-    '-b',
-    '--bundle',
+    "-b",
+    "--bundle",
     default=DEFAULT_BUNDLE,
-    metavar='BUNDLE-NAME',
+    metavar="BUNDLE-NAME",
     show_default=True,
-    help='The data bundle to ingest.',
+    help="The data bundle to ingest.",
 )
 @click.option(
-    '--assets-version',
+    "--assets-version",
     type=int,
     multiple=True,
-    help='Version of the assets db to which to downgrade.',
+    help="Version of the assets db to which to downgrade.",
 )
 @click.option(
-    '--show-progress/--no-show-progress',
+    "--show-progress/--no-show-progress",
     default=True,
-    help='Print progress information to the terminal.'
+    help="Print progress information to the terminal.",
 )
 def ingest(bundle, assets_version, show_progress):
-    """Ingest the data for the given bundle.
-    """
+    """Ingest the data for the given bundle."""
     bundles_module.ingest(
         bundle,
         os.environ,
@@ -388,38 +395,37 @@ def ingest(bundle, assets_version, show_progress):
 
 @main.command()
 @click.option(
-    '-b',
-    '--bundle',
+    "-b",
+    "--bundle",
     default=DEFAULT_BUNDLE,
-    metavar='BUNDLE-NAME',
+    metavar="BUNDLE-NAME",
     show_default=True,
-    help='The data bundle to clean.',
+    help="The data bundle to clean.",
 )
 @click.option(
-    '-e',
-    '--before',
+    "-e",
+    "--before",
     type=Timestamp(),
-    help='Clear all data before TIMESTAMP.'
-         ' This may not be passed with -k / --keep-last',
+    help="Clear all data before TIMESTAMP."
+    " This may not be passed with -k / --keep-last",
 )
 @click.option(
-    '-a',
-    '--after',
+    "-a",
+    "--after",
     type=Timestamp(),
-    help='Clear all data after TIMESTAMP'
-         ' This may not be passed with -k / --keep-last',
+    help="Clear all data after TIMESTAMP"
+    " This may not be passed with -k / --keep-last",
 )
 @click.option(
-    '-k',
-    '--keep-last',
+    "-k",
+    "--keep-last",
     type=int,
-    metavar='N',
-    help='Clear all but the last N downloads.'
-         ' This may not be passed with -e / --before or -a / --after',
+    metavar="N",
+    help="Clear all but the last N downloads."
+    " This may not be passed with -e / --before or -a / --after",
 )
 def clean(bundle, before, after, keep_last):
-    """Clean up data downloaded with the ingest command.
-    """
+    """Clean up data downloaded with the ingest command."""
     bundles_module.clean(
         bundle,
         before,
@@ -430,16 +436,13 @@ def clean(bundle, before, after, keep_last):
 
 @main.command()
 def bundles():
-    """List all of the available data bundles.
-    """
+    """List all of the available data bundles."""
     for bundle in sorted(bundles_module.bundles.keys()):
-        if bundle.startswith('.'):
+        if bundle.startswith("."):
             # hide the test data
             continue
         try:
-            ingestions = list(
-                map(str, bundles_module.ingestions_for_bundle(bundle))
-            )
+            ingestions = list(map(str, bundles_module.ingestions_for_bundle(bundle)))
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
@@ -451,5 +454,6 @@ def bundles():
         for timestamp in ingestions or ["<no ingestions>"]:
             click.echo("%s %s" % (bundle, timestamp))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

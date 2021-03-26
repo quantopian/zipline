@@ -9,7 +9,6 @@ from zipline.utils.memoize import remember_last
 
 
 class TestRememberLast(TestCase):
-
     def test_remember_last(self):
 
         # Store the count in a list so we can mutate it from inside `func`.
@@ -52,38 +51,48 @@ class TestRememberLast(TestCase):
         self.assertEqual((inst1.func(1), call_count), (1, {(inst1, 1): 1}))
 
         # Calling with a new value should increment the counter.
-        self.assertEqual((inst1.func(2), call_count), (2, {(inst1, 1): 1,
-                                                           (inst1, 2): 1}))
-        self.assertEqual((inst1.func(2), call_count), (2, {(inst1, 1): 1,
-                                                           (inst1, 2): 1}))
+        self.assertEqual(
+            (inst1.func(2), call_count), (2, {(inst1, 1): 1, (inst1, 2): 1})
+        )
+        self.assertEqual(
+            (inst1.func(2), call_count), (2, {(inst1, 1): 1, (inst1, 2): 1})
+        )
 
         # Calling the old value should still increment the counter.
-        self.assertEqual((inst1.func(1), call_count), (1, {(inst1, 1): 2,
-                                                           (inst1, 2): 1}))
-        self.assertEqual((inst1.func(1), call_count), (1, {(inst1, 1): 2,
-                                                           (inst1, 2): 1}))
+        self.assertEqual(
+            (inst1.func(1), call_count), (1, {(inst1, 1): 2, (inst1, 2): 1})
+        )
+        self.assertEqual(
+            (inst1.func(1), call_count), (1, {(inst1, 1): 2, (inst1, 2): 1})
+        )
 
         inst2 = clz()
-        self.assertEqual((inst2.func(1), call_count),
-                         (1, {(inst1, 1): 2, (inst1, 2): 1,
-                              (inst2, 1): 1}))
-        self.assertEqual((inst2.func(1), call_count),
-                         (1, {(inst1, 1): 2, (inst1, 2): 1,
-                              (inst2, 1): 1}))
+        self.assertEqual(
+            (inst2.func(1), call_count),
+            (1, {(inst1, 1): 2, (inst1, 2): 1, (inst2, 1): 1}),
+        )
+        self.assertEqual(
+            (inst2.func(1), call_count),
+            (1, {(inst1, 1): 2, (inst1, 2): 1, (inst2, 1): 1}),
+        )
 
-        self.assertEqual((inst2.func(2), call_count),
-                         (2, {(inst1, 1): 2, (inst1, 2): 1,
-                              (inst2, 1): 1, (inst2, 2): 1}))
-        self.assertEqual((inst2.func(2), call_count),
-                         (2, {(inst1, 1): 2, (inst1, 2): 1,
-                              (inst2, 1): 1, (inst2, 2): 1}))
+        self.assertEqual(
+            (inst2.func(2), call_count),
+            (2, {(inst1, 1): 2, (inst1, 2): 1, (inst2, 1): 1, (inst2, 2): 1}),
+        )
+        self.assertEqual(
+            (inst2.func(2), call_count),
+            (2, {(inst1, 1): 2, (inst1, 2): 1, (inst2, 1): 1, (inst2, 2): 1}),
+        )
 
-        self.assertEqual((inst2.func(1), call_count),
-                         (1, {(inst1, 1): 2, (inst1, 2): 1,
-                              (inst2, 1): 2, (inst2, 2): 1}))
-        self.assertEqual((inst2.func(1), call_count),
-                         (1, {(inst1, 1): 2, (inst1, 2): 1,
-                              (inst2, 1): 2, (inst2, 2): 1}))
+        self.assertEqual(
+            (inst2.func(1), call_count),
+            (1, {(inst1, 1): 2, (inst1, 2): 1, (inst2, 1): 2, (inst2, 2): 1}),
+        )
+        self.assertEqual(
+            (inst2.func(1), call_count),
+            (1, {(inst1, 1): 2, (inst1, 2): 1, (inst2, 1): 2, (inst2, 2): 1}),
+        )
 
         # Remove the above references to the instances and ensure that
         # remember_last has not made its own.
@@ -92,5 +101,4 @@ class TestRememberLast(TestCase):
         while gc.collect():
             pass
 
-        self.assertFalse([inst for inst in gc.get_objects()
-                          if type(inst) == clz])
+        self.assertFalse([inst for inst in gc.get_objects() if type(inst) == clz])

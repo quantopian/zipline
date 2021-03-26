@@ -28,15 +28,15 @@ def alter_columns(op, name, *columns, **kwargs):
     The columns are passed explicitly because this should only be used in a
     downgrade where ``zipline.assets.asset_db_schema`` could change.
     """
-    selection_string = kwargs.pop('selection_string', None)
+    selection_string = kwargs.pop("selection_string", None)
     if kwargs:
         raise TypeError(
-            'alter_columns received extra arguments: %r' % sorted(kwargs),
+            "alter_columns received extra arguments: %r" % sorted(kwargs),
         )
     if selection_string is None:
-        selection_string = ', '.join(column.name for column in columns)
+        selection_string = ", ".join(column.name for column in columns)
 
-    tmp_name = '_alter_columns_' + name
+    tmp_name = "_alter_columns_" + name
     op.rename_table(name, tmp_name)
 
     for column in columns:
@@ -46,13 +46,14 @@ def alter_columns(op, name, *columns, **kwargs):
         # will just get recreated.
         for table in name, tmp_name:
             try:
-                op.drop_index('ix_%s_%s' % (table, column.name))
+                op.drop_index("ix_%s_%s" % (table, column.name))
             except sa.exc.OperationalError:
                 pass
 
     op.create_table(name, *columns)
     op.execute(
-        'insert into %s select %s from %s' % (
+        "insert into %s select %s from %s"
+        % (
             name,
             selection_string,
             tmp_name,
@@ -77,13 +78,14 @@ def downgrade(engine, desired_version):
     with engine.begin() as conn:
         metadata = sa.MetaData(conn)
         metadata.reflect()
-        version_info_table = metadata.tables['version_info']
+        version_info_table = metadata.tables["version_info"]
         starting_version = sa.select((version_info_table.c.version,)).scalar()
 
         # Check for accidental upgrade
         if starting_version < desired_version:
-            raise AssetDBImpossibleDowngrade(db_version=starting_version,
-                                             desired_version=desired_version)
+            raise AssetDBImpossibleDowngrade(
+                db_version=starting_version, desired_version=desired_version
+            )
 
         # Check if the desired version is already the db version
         if starting_version == desired_version:
@@ -144,6 +146,7 @@ def downgrades(src):
     decorator : callable[(callable) -> callable]
         The decorator to apply.
     """
+
     def _(f):
         destination = src - 1
 
@@ -155,6 +158,7 @@ def downgrades(src):
             write_version_info(conn, version_info_table, destination)
 
         return wrapper
+
     return _
 
 
@@ -166,27 +170,32 @@ def _downgrade_v1(op):
     """
     # Drop indices before batch
     # This is to prevent index collision when creating the temp table
-    op.drop_index('ix_futures_contracts_root_symbol')
-    op.drop_index('ix_futures_contracts_symbol')
+    op.drop_index("ix_futures_contracts_root_symbol")
+    op.drop_index("ix_futures_contracts_symbol")
 
     # Execute batch op to allow column modification in SQLite
-    with op.batch_alter_table('futures_contracts') as batch_op:
+    with op.batch_alter_table("futures_contracts") as batch_op:
 
         # Rename 'multiplier'
-        batch_op.alter_column(column_name='multiplier',
-                              new_column_name='contract_multiplier')
+        batch_op.alter_column(
+            column_name="multiplier", new_column_name="contract_multiplier"
+        )
 
         # Delete 'tick_size'
-        batch_op.drop_column('tick_size')
+        batch_op.drop_column("tick_size")
 
     # Recreate indices after batch
-    op.create_index('ix_futures_contracts_root_symbol',
-                    table_name='futures_contracts',
-                    columns=['root_symbol'])
-    op.create_index('ix_futures_contracts_symbol',
-                    table_name='futures_contracts',
-                    columns=['symbol'],
-                    unique=True)
+    op.create_index(
+        "ix_futures_contracts_root_symbol",
+        table_name="futures_contracts",
+        columns=["root_symbol"],
+    )
+    op.create_index(
+        "ix_futures_contracts_symbol",
+        table_name="futures_contracts",
+        columns=["symbol"],
+        unique=True,
+    )
 
 
 @downgrades(2)
@@ -196,20 +205,20 @@ def _downgrade_v2(op):
     """
     # Drop indices before batch
     # This is to prevent index collision when creating the temp table
-    op.drop_index('ix_equities_fuzzy_symbol')
-    op.drop_index('ix_equities_company_symbol')
+    op.drop_index("ix_equities_fuzzy_symbol")
+    op.drop_index("ix_equities_company_symbol")
 
     # Execute batch op to allow column modification in SQLite
-    with op.batch_alter_table('equities') as batch_op:
-        batch_op.drop_column('auto_close_date')
+    with op.batch_alter_table("equities") as batch_op:
+        batch_op.drop_column("auto_close_date")
 
     # Recreate indices after batch
-    op.create_index('ix_equities_fuzzy_symbol',
-                    table_name='equities',
-                    columns=['fuzzy_symbol'])
-    op.create_index('ix_equities_company_symbol',
-                    table_name='equities',
-                    columns=['company_symbol'])
+    op.create_index(
+        "ix_equities_fuzzy_symbol", table_name="equities", columns=["fuzzy_symbol"]
+    )
+    op.create_index(
+        "ix_equities_company_symbol", table_name="equities", columns=["company_symbol"]
+    )
 
 
 @downgrades(3)
@@ -219,24 +228,24 @@ def _downgrade_v3(op):
     ``equities.first_traded``
     """
     op.create_table(
-        '_new_equities',
+        "_new_equities",
         sa.Column(
-            'sid',
+            "sid",
             sa.Integer,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('symbol', sa.Text),
-        sa.Column('company_symbol', sa.Text),
-        sa.Column('share_class_symbol', sa.Text),
-        sa.Column('fuzzy_symbol', sa.Text),
-        sa.Column('asset_name', sa.Text),
-        sa.Column('start_date', sa.Integer, default=0, nullable=False),
-        sa.Column('end_date', sa.Integer, nullable=False),
-        sa.Column('first_traded', sa.Integer, nullable=False),
-        sa.Column('auto_close_date', sa.Integer),
-        sa.Column('exchange', sa.Text),
+        sa.Column("symbol", sa.Text),
+        sa.Column("company_symbol", sa.Text),
+        sa.Column("share_class_symbol", sa.Text),
+        sa.Column("fuzzy_symbol", sa.Text),
+        sa.Column("asset_name", sa.Text),
+        sa.Column("start_date", sa.Integer, default=0, nullable=False),
+        sa.Column("end_date", sa.Integer, nullable=False),
+        sa.Column("first_traded", sa.Integer, nullable=False),
+        sa.Column("auto_close_date", sa.Integer),
+        sa.Column("exchange", sa.Text),
     )
     op.execute(
         """
@@ -245,18 +254,18 @@ def _downgrade_v3(op):
         where equities.first_traded is not null
         """,
     )
-    op.drop_table('equities')
-    op.rename_table('_new_equities', 'equities')
+    op.drop_table("equities")
+    op.rename_table("_new_equities", "equities")
     # we need to make sure the indices have the proper names after the rename
     op.create_index(
-        'ix_equities_company_symbol',
-        'equities',
-        ['company_symbol'],
+        "ix_equities_company_symbol",
+        "equities",
+        ["company_symbol"],
     )
     op.create_index(
-        'ix_equities_fuzzy_symbol',
-        'equities',
-        ['fuzzy_symbol'],
+        "ix_equities_fuzzy_symbol",
+        "equities",
+        ["fuzzy_symbol"],
     )
 
 
@@ -266,44 +275,44 @@ def _downgrade_v4(op):
     Downgrades assets db by copying the `exchange_full` column to `exchange`,
     then dropping the `exchange_full` column.
     """
-    op.drop_index('ix_equities_fuzzy_symbol')
-    op.drop_index('ix_equities_company_symbol')
+    op.drop_index("ix_equities_fuzzy_symbol")
+    op.drop_index("ix_equities_company_symbol")
 
     op.execute("UPDATE equities SET exchange = exchange_full")
 
-    with op.batch_alter_table('equities') as batch_op:
-        batch_op.drop_column('exchange_full')
+    with op.batch_alter_table("equities") as batch_op:
+        batch_op.drop_column("exchange_full")
 
-    op.create_index('ix_equities_fuzzy_symbol',
-                    table_name='equities',
-                    columns=['fuzzy_symbol'])
-    op.create_index('ix_equities_company_symbol',
-                    table_name='equities',
-                    columns=['company_symbol'])
+    op.create_index(
+        "ix_equities_fuzzy_symbol", table_name="equities", columns=["fuzzy_symbol"]
+    )
+    op.create_index(
+        "ix_equities_company_symbol", table_name="equities", columns=["company_symbol"]
+    )
 
 
 @downgrades(5)
 def _downgrade_v5(op):
     op.create_table(
-        '_new_equities',
+        "_new_equities",
         sa.Column(
-            'sid',
+            "sid",
             sa.Integer,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('symbol', sa.Text),
-        sa.Column('company_symbol', sa.Text),
-        sa.Column('share_class_symbol', sa.Text),
-        sa.Column('fuzzy_symbol', sa.Text),
-        sa.Column('asset_name', sa.Text),
-        sa.Column('start_date', sa.Integer, default=0, nullable=False),
-        sa.Column('end_date', sa.Integer, nullable=False),
-        sa.Column('first_traded', sa.Integer),
-        sa.Column('auto_close_date', sa.Integer),
-        sa.Column('exchange', sa.Text),
-        sa.Column('exchange_full', sa.Text)
+        sa.Column("symbol", sa.Text),
+        sa.Column("company_symbol", sa.Text),
+        sa.Column("share_class_symbol", sa.Text),
+        sa.Column("fuzzy_symbol", sa.Text),
+        sa.Column("asset_name", sa.Text),
+        sa.Column("start_date", sa.Integer, default=0, nullable=False),
+        sa.Column("end_date", sa.Integer, nullable=False),
+        sa.Column("first_traded", sa.Integer),
+        sa.Column("auto_close_date", sa.Integer),
+        sa.Column("exchange", sa.Text),
+        sa.Column("exchange_full", sa.Text),
     )
 
     op.execute(
@@ -338,50 +347,48 @@ def _downgrade_v5(op):
             equities.sid == sym.sid
         """,
     )
-    op.drop_table('equity_symbol_mappings')
-    op.drop_table('equities')
-    op.rename_table('_new_equities', 'equities')
+    op.drop_table("equity_symbol_mappings")
+    op.drop_table("equities")
+    op.rename_table("_new_equities", "equities")
     # we need to make sure the indicies have the proper names after the rename
     op.create_index(
-        'ix_equities_company_symbol',
-        'equities',
-        ['company_symbol'],
+        "ix_equities_company_symbol",
+        "equities",
+        ["company_symbol"],
     )
     op.create_index(
-        'ix_equities_fuzzy_symbol',
-        'equities',
-        ['fuzzy_symbol'],
+        "ix_equities_fuzzy_symbol",
+        "equities",
+        ["fuzzy_symbol"],
     )
 
 
 @downgrades(6)
 def _downgrade_v6(op):
-    op.drop_table('equity_supplementary_mappings')
+    op.drop_table("equity_supplementary_mappings")
 
 
 @downgrades(7)
 def _downgrade_v7(op):
-    tmp_name = '_new_equities'
+    tmp_name = "_new_equities"
     op.create_table(
         tmp_name,
         sa.Column(
-            'sid',
+            "sid",
             sa.Integer,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('asset_name', sa.Text),
-        sa.Column('start_date', sa.Integer, default=0, nullable=False),
-        sa.Column('end_date', sa.Integer, nullable=False),
-        sa.Column('first_traded', sa.Integer),
-        sa.Column('auto_close_date', sa.Integer),
-
+        sa.Column("asset_name", sa.Text),
+        sa.Column("start_date", sa.Integer, default=0, nullable=False),
+        sa.Column("end_date", sa.Integer, nullable=False),
+        sa.Column("first_traded", sa.Integer),
+        sa.Column("auto_close_date", sa.Integer),
         # remove foreign key to exchange
-        sa.Column('exchange', sa.Text),
-
+        sa.Column("exchange", sa.Text),
         # add back exchange full column
-        sa.Column('exchange_full', sa.Text),
+        sa.Column("exchange_full", sa.Text),
     )
     op.execute(
         """
@@ -406,118 +413,118 @@ def _downgrade_v7(op):
             ex.country_code in ('US', '??')
         """,
     )
-    op.drop_table('equities')
-    op.rename_table(tmp_name, 'equities')
+    op.drop_table("equities")
+    op.rename_table(tmp_name, "equities")
 
     # rebuild all tables without a foreign key to ``exchanges``
     alter_columns(
         op,
-        'futures_root_symbols',
+        "futures_root_symbols",
         sa.Column(
-            'root_symbol',
+            "root_symbol",
             sa.Text,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('root_symbol_id', sa.Integer),
-        sa.Column('sector', sa.Text),
-        sa.Column('description', sa.Text),
-        sa.Column('exchange', sa.Text),
+        sa.Column("root_symbol_id", sa.Integer),
+        sa.Column("sector", sa.Text),
+        sa.Column("description", sa.Text),
+        sa.Column("exchange", sa.Text),
     )
     alter_columns(
         op,
-        'futures_contracts',
+        "futures_contracts",
         sa.Column(
-            'sid',
+            "sid",
             sa.Integer,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('symbol', sa.Text, unique=True, index=True),
-        sa.Column('root_symbol', sa.Text, index=True),
-        sa.Column('asset_name', sa.Text),
-        sa.Column('start_date', sa.Integer, default=0, nullable=False),
-        sa.Column('end_date', sa.Integer, nullable=False),
-        sa.Column('first_traded', sa.Integer),
-        sa.Column('exchange', sa.Text),
-        sa.Column('notice_date', sa.Integer, nullable=False),
-        sa.Column('expiration_date', sa.Integer, nullable=False),
-        sa.Column('auto_close_date', sa.Integer, nullable=False),
-        sa.Column('multiplier', sa.Float),
-        sa.Column('tick_size', sa.Float),
+        sa.Column("symbol", sa.Text, unique=True, index=True),
+        sa.Column("root_symbol", sa.Text, index=True),
+        sa.Column("asset_name", sa.Text),
+        sa.Column("start_date", sa.Integer, default=0, nullable=False),
+        sa.Column("end_date", sa.Integer, nullable=False),
+        sa.Column("first_traded", sa.Integer),
+        sa.Column("exchange", sa.Text),
+        sa.Column("notice_date", sa.Integer, nullable=False),
+        sa.Column("expiration_date", sa.Integer, nullable=False),
+        sa.Column("auto_close_date", sa.Integer, nullable=False),
+        sa.Column("multiplier", sa.Float),
+        sa.Column("tick_size", sa.Float),
     )
 
     # drop the ``country_code`` and ``canonical_name`` columns
     alter_columns(
         op,
-        'exchanges',
+        "exchanges",
         sa.Column(
-            'exchange',
+            "exchange",
             sa.Text,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('timezone', sa.Text),
+        sa.Column("timezone", sa.Text),
         # Set the timezone to NULL because we don't know what it was before.
         # Nothing in zipline reads the timezone so it doesn't matter.
         selection_string="exchange, NULL",
     )
-    op.rename_table('exchanges', 'futures_exchanges')
+    op.rename_table("exchanges", "futures_exchanges")
 
     # add back the foreign keys that previously existed
     alter_columns(
         op,
-        'futures_root_symbols',
+        "futures_root_symbols",
         sa.Column(
-            'root_symbol',
+            "root_symbol",
             sa.Text,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('root_symbol_id', sa.Integer),
-        sa.Column('sector', sa.Text),
-        sa.Column('description', sa.Text),
+        sa.Column("root_symbol_id", sa.Integer),
+        sa.Column("sector", sa.Text),
+        sa.Column("description", sa.Text),
         sa.Column(
-            'exchange',
+            "exchange",
             sa.Text,
-            sa.ForeignKey('futures_exchanges.exchange'),
+            sa.ForeignKey("futures_exchanges.exchange"),
         ),
     )
     alter_columns(
         op,
-        'futures_contracts',
+        "futures_contracts",
         sa.Column(
-            'sid',
+            "sid",
             sa.Integer,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
-        sa.Column('symbol', sa.Text, unique=True, index=True),
+        sa.Column("symbol", sa.Text, unique=True, index=True),
         sa.Column(
-            'root_symbol',
+            "root_symbol",
             sa.Text,
-            sa.ForeignKey('futures_root_symbols.root_symbol'),
-            index=True
+            sa.ForeignKey("futures_root_symbols.root_symbol"),
+            index=True,
         ),
-        sa.Column('asset_name', sa.Text),
-        sa.Column('start_date', sa.Integer, default=0, nullable=False),
-        sa.Column('end_date', sa.Integer, nullable=False),
-        sa.Column('first_traded', sa.Integer),
+        sa.Column("asset_name", sa.Text),
+        sa.Column("start_date", sa.Integer, default=0, nullable=False),
+        sa.Column("end_date", sa.Integer, nullable=False),
+        sa.Column("first_traded", sa.Integer),
         sa.Column(
-            'exchange',
+            "exchange",
             sa.Text,
-            sa.ForeignKey('futures_exchanges.exchange'),
+            sa.ForeignKey("futures_exchanges.exchange"),
         ),
-        sa.Column('notice_date', sa.Integer, nullable=False),
-        sa.Column('expiration_date', sa.Integer, nullable=False),
-        sa.Column('auto_close_date', sa.Integer, nullable=False),
-        sa.Column('multiplier', sa.Float),
-        sa.Column('tick_size', sa.Float),
+        sa.Column("notice_date", sa.Integer, nullable=False),
+        sa.Column("expiration_date", sa.Integer, nullable=False),
+        sa.Column("auto_close_date", sa.Integer, nullable=False),
+        sa.Column("multiplier", sa.Float),
+        sa.Column("tick_size", sa.Float),
     )
 
     # Delete equity_symbol_mappings records that no longer refer to valid sids.

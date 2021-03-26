@@ -50,7 +50,7 @@ def _make_metrics_set_core():
             return partial(register, name)
 
         if name in _metrics_sets:
-            raise ValueError('metrics set %r is already registered' % name)
+            raise ValueError("metrics set %r is already registered" % name)
 
         _metrics_sets[name] = function
 
@@ -72,7 +72,7 @@ def _make_metrics_set_core():
             del _metrics_sets[name]
         except KeyError:
             raise ValueError(
-                'metrics set %r was not already registered' % name,
+                "metrics set %r was not already registered" % name,
             )
 
     def load(name):
@@ -92,7 +92,8 @@ def _make_metrics_set_core():
             function = _metrics_sets[name]
         except KeyError:
             raise ValueError(
-                'no metrics set registered as %r, options are: %r' % (
+                "no metrics set registered as %r, options are: %r"
+                % (
                     name,
                     sorted(_metrics_sets),
                 ),

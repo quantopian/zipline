@@ -17,6 +17,6 @@ from .simulation_blotter import SimulationBlotter
 from .blotter import Blotter
 
 __all__ = [
-    'SimulationBlotter',
-    'Blotter',
+    "SimulationBlotter",
+    "Blotter",
 ]

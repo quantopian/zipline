@@ -32,12 +32,11 @@ def all_ufuncs():
 
 
 class LabelArrayTestCase(ZiplineTestCase):
-
     @classmethod
     def init_class_fixtures(cls):
         super(LabelArrayTestCase, cls).init_class_fixtures()
 
-        cls.rowvalues = row = ['', 'a', 'b', 'ab', 'a', '', 'b', 'ab', 'z']
+        cls.rowvalues = row = ["", "a", "b", "ab", "a", "", "b", "ab", "z"]
         cls.strs = np.array([rotN(row, i) for i in range(3)], dtype=object)
 
     def test_fail_on_direct_construction(self):
@@ -47,22 +46,17 @@ class LabelArrayTestCase(ZiplineTestCase):
             np.ndarray.__new__(LabelArray, (5, 5))
 
         self.assertEqual(
-            str(e.exception),
-            "Direct construction of LabelArrays is not supported."
+            str(e.exception), "Direct construction of LabelArrays is not supported."
         )
 
     @parameter_space(
         __fail_fast=True,
-        compval=['', 'a', 'z', 'not in the array'],
+        compval=["", "a", "z", "not in the array"],
         shape=[(27,), (3, 9), (3, 3, 3)],
         array_astype=(bytes, unicode, object),
-        missing_value=('', 'a', 'not in the array', None),
+        missing_value=("", "a", "not in the array", None),
     )
-    def test_compare_to_str(self,
-                            compval,
-                            shape,
-                            array_astype,
-                            missing_value):
+    def test_compare_to_str(self, compval, shape, array_astype, missing_value):
 
         strs = self.strs.reshape(shape).astype(array_astype)
         if missing_value is None:
@@ -73,13 +67,13 @@ class LabelArrayTestCase(ZiplineTestCase):
             notmissing = np.not_equal(strs, missing_value)
         else:
             if not isinstance(missing_value, array_astype):
-                missing_value = array_astype(missing_value, 'utf-8')
-            notmissing = (strs != missing_value)
+                missing_value = array_astype(missing_value, "utf-8")
+            notmissing = strs != missing_value
 
         arr = LabelArray(strs, missing_value=missing_value)
 
         if not isinstance(compval, array_astype):
-            compval = array_astype(compval, 'utf-8')
+            compval = array_astype(compval, "utf-8")
 
         # arr.missing_value should behave like NaN.
         check_arrays(
@@ -114,16 +108,18 @@ class LabelArrayTestCase(ZiplineTestCase):
         f=[
             lambda s: str(len(s)),
             lambda s: s[0],
-            lambda s: ''.join(reversed(s)),
-            lambda s: '',
-        ]
+            lambda s: "".join(reversed(s)),
+            lambda s: "",
+        ],
     )
     def test_map(self, f):
         data = np.array(
-            [['E', 'GHIJ', 'HIJKLMNOP', 'DEFGHIJ'],
-             ['CDE', 'ABCDEFGHIJKLMNOPQ', 'DEFGHIJKLMNOPQRS', 'ABCDEFGHIJK'],
-             ['DEFGHIJKLMNOPQR', 'DEFGHI', 'DEFGHIJ', 'FGHIJK'],
-             ['EFGHIJKLM', 'EFGHIJKLMNOPQRS', 'ABCDEFGHI', 'DEFGHIJ']],
+            [
+                ["E", "GHIJ", "HIJKLMNOP", "DEFGHIJ"],
+                ["CDE", "ABCDEFGHIJKLMNOPQ", "DEFGHIJKLMNOPQRS", "ABCDEFGHIJK"],
+                ["DEFGHIJKLMNOPQR", "DEFGHI", "DEFGHIJ", "FGHIJK"],
+                ["EFGHIJKLM", "EFGHIJKLMNOPQRS", "ABCDEFGHI", "DEFGHIJ"],
+            ],
             dtype=object,
         )
         la = LabelArray(data, missing_value=None)
@@ -133,16 +129,16 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         assert_equal(numpy_transformed, la_transformed)
 
-    @parameter_space(missing=['A', None])
+    @parameter_space(missing=["A", None])
     def test_map_ignores_missing_value(self, missing):
-        data = np.array([missing, 'B', 'C'], dtype=object)
+        data = np.array([missing, "B", "C"], dtype=object)
         la = LabelArray(data, missing_value=missing)
 
         def increment_char(c):
             return chr(ord(c) + 1)
 
         result = la.map(increment_char)
-        expected = LabelArray([missing, 'C', 'D'], missing_value=missing)
+        expected = LabelArray([missing, "C", "D"], missing_value=missing)
         assert_equal(result.as_string_array(), expected.as_string_array())
 
     @parameter_space(
@@ -151,7 +147,7 @@ class LabelArrayTestCase(ZiplineTestCase):
             lambda s: 0,
             lambda s: 0.0,
             lambda s: object(),
-        ]
+        ],
     )
     def test_map_requires_f_to_return_a_string_or_none(self, f):
         la = LabelArray(self.strs, missing_value=None)
@@ -176,7 +172,7 @@ class LabelArrayTestCase(ZiplineTestCase):
 
     @parameter_space(
         __fail_fast=True,
-        missing_value=('', 'a', 'not in the array', None),
+        missing_value=("", "a", "not in the array", None),
     )
     def test_compare_to_str_array(self, missing_value):
         strs = self.strs
@@ -190,7 +186,7 @@ class LabelArrayTestCase(ZiplineTestCase):
             # using the ufunc.
             notmissing = np.not_equal(strs, missing_value)
         else:
-            notmissing = (strs != missing_value)
+            notmissing = strs != missing_value
 
         check_arrays(arr.not_missing(), notmissing)
         check_arrays(arr.is_missing(), ~notmissing)
@@ -208,9 +204,9 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         # Test comparison between arr and a like-shap 2D array, a column
         # vector, and a row vector.
-        for comparator, dtype, value in product((eq, ne),
-                                                (bytes, unicode, object),
-                                                set(self.rowvalues)):
+        for comparator, dtype, value in product(
+            (eq, ne), (bytes, unicode, object), set(self.rowvalues)
+        ):
             check_arrays(
                 comparator(arr, np.full_like(strs, value)),
                 comparator(strs, value) & notmissing,
@@ -227,7 +223,9 @@ class LabelArrayTestCase(ZiplineTestCase):
     @parameter_space(
         __fail_fast=True,
         slice_=[
-            0, 1, -1,
+            0,
+            1,
+            -1,
             slice(None),
             slice(0, 0),
             slice(0, 3),
@@ -238,10 +236,10 @@ class LabelArrayTestCase(ZiplineTestCase):
             (slice(None), 1),
             (slice(None), slice(None)),
             (slice(None), slice(1, 2)),
-        ]
+        ],
     )
     def test_slicing_preserves_attributes(self, slice_):
-        arr = LabelArray(self.strs.reshape((9, 3)), missing_value='')
+        arr = LabelArray(self.strs.reshape((9, 3)), missing_value="")
         sliced = arr[slice_]
         self.assertIsInstance(sliced, LabelArray)
         self.assertIs(sliced.categories, arr.categories)
@@ -253,7 +251,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         Test that categories are inferred in sorted order if they're not
         explicitly passed.
         """
-        arr1d = LabelArray(self.strs, missing_value='')
+        arr1d = LabelArray(self.strs, missing_value="")
         codes1d = arr1d.as_int_array()
         self.assertEqual(arr1d.shape, self.strs.shape)
         self.assertEqual(arr1d.shape, codes1d.shape)
@@ -265,10 +263,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         # each integer stored in the data array should be an index into
         # categories.
         self.assertEqual(list(categories), sorted(set(self.rowvalues)))
-        self.assertEqual(
-            set(codes1d.ravel()),
-            set(range(len(unique_rowvalues)))
-        )
+        self.assertEqual(set(codes1d.ravel()), set(range(len(unique_rowvalues))))
         for idx, value in enumerate(arr1d.categories):
             check_arrays(
                 self.strs == value,
@@ -278,14 +273,14 @@ class LabelArrayTestCase(ZiplineTestCase):
         # It should be equivalent to pass the same set of categories manually.
         arr1d_explicit_categories = LabelArray(
             self.strs,
-            missing_value='',
+            missing_value="",
             categories=arr1d.categories,
         )
         check_arrays(arr1d, arr1d_explicit_categories)
 
         for shape in (9, 3), (3, 9), (3, 3, 3):
             strs2d = self.strs.reshape(shape)
-            arr2d = LabelArray(strs2d, missing_value='')
+            arr2d = LabelArray(strs2d, missing_value="")
             codes2d = arr2d.as_int_array()
 
             self.assertEqual(arr2d.shape, shape)
@@ -300,19 +295,19 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         Test that all unfuncs fail.
         """
-        labels = LabelArray(self.strs, '')
+        labels = LabelArray(self.strs, "")
         ints = np.arange(len(labels))
 
         with warnings.catch_warnings():
             # Some ufuncs return NotImplemented, but warn that they will fail
             # in the future.  Both outcomes are fine, so ignore the warnings.
             warnings.filterwarnings(
-                'ignore',
+                "ignore",
                 message="unorderable dtypes.*",
                 category=DeprecationWarning,
             )
             warnings.filterwarnings(
-                'ignore',
+                "ignore",
                 message="elementwise comparison failed.*",
                 category=FutureWarning,
             )
@@ -335,15 +330,15 @@ class LabelArrayTestCase(ZiplineTestCase):
 
     @parameter_space(
         __fail_fast=True,
-        val=['', 'a', 'not in the array', None],
-        missing_value=['', 'a', 'not in the array', None],
+        val=["", "a", "not in the array", None],
+        missing_value=["", "a", "not in the array", None],
     )
     def test_setitem_scalar(self, val, missing_value):
         arr = LabelArray(self.strs, missing_value=missing_value)
 
         if not arr.has_label(val):
             self.assertTrue(
-                (val == 'not in the array')
+                (val == "not in the array")
                 or (val is None and missing_value is not None)
             )
             for slicer in [(0, 0), (0, 1), 1]:
@@ -386,7 +381,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         self.assertFalse(
             (arr[0] == arr[1]).all(),
             "This test doesn't test anything because rows 0"
-            " and 1 are already equal!"
+            " and 1 are already equal!",
         )
         arr[0] = arr[1]
         for i in range(arr.shape[1]):
@@ -396,7 +391,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         self.assertFalse(
             (arr[:, 0] == arr[:, 1]).all(),
             "This test doesn't test anything because columns 0"
-            " and 1 are already equal!"
+            " and 1 are already equal!",
         )
         arr[:, 0] = arr[:, 1]
         for i in range(arr.shape[0]):
@@ -420,7 +415,7 @@ class LabelArrayTestCase(ZiplineTestCase):
     def create_categories(width, plus_one):
         length = int(width / 8) + plus_one
         return [
-            ''.join(cs)
+            "".join(cs)
             for cs in take(
                 2 ** width + plus_one,
                 product([chr(c) for c in range(256)], repeat=length),
@@ -504,7 +499,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         self.assertEqual(arr.itemsize, 2)
 
     def test_narrow_condense_back_to_valid_size(self):
-        categories = ['a'] * (2 ** 8 + 1)
+        categories = ["a"] * (2 ** 8 + 1)
         arr = LabelArray(categories, missing_value=categories[0])
         assert_equal(arr.itemsize, 1)
         self.check_roundtrip(arr)
@@ -527,11 +522,11 @@ class LabelArrayTestCase(ZiplineTestCase):
         self.assertEqual(arr.itemsize, 2)
 
         def either_A_or_B(s):
-            return ('A', 'B')[sum(ord(c) for c in s) % 2]
+            return ("A", "B")[sum(ord(c) for c in s) % 2]
 
         result = arr.map(either_A_or_B)
 
-        self.assertEqual(set(result.categories), {'A', 'B', None})
+        self.assertEqual(set(result.categories), {"A", "B", None})
         self.assertEqual(result.itemsize, 1)
 
         assert_equal(
@@ -578,14 +573,13 @@ class LabelArrayTestCase(ZiplineTestCase):
         # Result should be the first `len(categories)` entries from the larger
         # categories, repeated twice.
         expected = LabelArray(
-            larger_categories[:len(categories)] * 2,
+            larger_categories[: len(categories)] * 2,
             missing_value=None,
         )
         assert_equal(result.as_string_array(), expected.as_string_array())
 
     def manual_narrow_condense_back_to_valid_size_slow(self):
-        """This test is really slow so we don't want it run by default.
-        """
+        """This test is really slow so we don't want it run by default."""
         # tests that we don't try to create an 'int24' (which is meaningless)
         categories = self.create_categories(24, plus_one=False)
         categories.append(categories[0])
@@ -594,32 +588,32 @@ class LabelArrayTestCase(ZiplineTestCase):
         self.check_roundtrip(arr)
 
     def test_copy_categories_list(self):
-        """regression test for #1927
-        """
-        categories = ['a', 'b', 'c']
+        """regression test for #1927"""
+        categories = ["a", "b", "c"]
 
         LabelArray(
-            [None, 'a', 'b', 'c'],
+            [None, "a", "b", "c"],
             missing_value=None,
             categories=categories,
         )
 
         # before #1927 we didn't take a copy and would insert the missing value
         # (None) into the list
-        assert_equal(categories, ['a', 'b', 'c'])
+        assert_equal(categories, ["a", "b", "c"])
 
     def test_fortran_contiguous_input(self):
 
-        strs = np.array([['a', 'b', 'c', 'd'],
-                         ['a', 'b', 'c', 'd'],
-                         ['a', 'b', 'c', 'd']], dtype=object)
+        strs = np.array(
+            [["a", "b", "c", "d"], ["a", "b", "c", "d"], ["a", "b", "c", "d"]],
+            dtype=object,
+        )
         strs_F = strs.T
         self.assertTrue(strs_F.flags.f_contiguous)
 
         arr = LabelArray(
             strs_F,
             missing_value=None,
-            categories=['a', 'b', 'c', 'd', None],
+            categories=["a", "b", "c", "d", None],
         )
         assert_equal(arr.as_string_array(), strs_F)
 

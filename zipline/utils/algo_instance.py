@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import threading
+
 context = threading.local()
 
 
 def get_algo_instance():
-    return getattr(context, 'algorithm', None)
+    return getattr(context, "algorithm", None)
 
 
 def set_algo_instance(algo):

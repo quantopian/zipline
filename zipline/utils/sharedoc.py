@@ -28,7 +28,7 @@ PIPELINE_ALIAS_NAME_DOC = dedent(
 
 def pad_lines_after_first(prefix, s):
     """Apply a prefix to each line in s after the first."""
-    return ('\n' + prefix).join(s.splitlines())
+    return ("\n" + prefix).join(s.splitlines())
 
 
 def format_docstring(owner_name, docstring, formatters):
@@ -54,7 +54,7 @@ def format_docstring(owner_name, docstring, formatters):
     format_params = {}
     for target, doc_for_target in formatters.items():
         # Search for '{name}', with optional leading whitespace.
-        regex = re.compile(r'^(\s*)' + '({' + target + '})$', re.MULTILINE)
+        regex = re.compile(r"^(\s*)" + "({" + target + "})$", re.MULTILINE)
         matches = regex.findall(docstring)
         if not matches:
             raise ValueError(
@@ -67,9 +67,7 @@ def format_docstring(owner_name, docstring, formatters):
             raise ValueError(
                 "Couldn't found multiple templates for parameter {!r}"
                 "in docstring for {}."
-                "\nParameter should only appear once.".format(
-                    target, owner_name
-                )
+                "\nParameter should only appear once.".format(target, owner_name)
             )
 
         (leading_whitespace, _) = matches[0]
@@ -94,9 +92,11 @@ def templated_docstring(**docs):
     >>> my_func.__doc__
     'bar'
     """
+
     def decorator(f):
         f.__doc__ = format_docstring(f.__name__, f.__doc__, docs)
         return f
+
     return decorator
 
 

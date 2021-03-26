@@ -33,13 +33,9 @@ class RollingPanel(object):
     Restrictions: major_axis can only be a DatetimeIndex for now
     """
 
-    def __init__(self,
-                 window,
-                 items,
-                 sids,
-                 cap_multiple=2,
-                 dtype=np.float64,
-                 initial_dates=None):
+    def __init__(
+        self, window, items, sids, cap_multiple=2, dtype=np.float64, initial_dates=None
+    ):
 
         self._pos = window
         self._window = window
@@ -51,16 +47,16 @@ class RollingPanel(object):
 
         self.dtype = dtype
         if initial_dates is None:
-            self.date_buf = np.empty(self.cap, dtype='M8[ns]') * pd.NaT
+            self.date_buf = np.empty(self.cap, dtype="M8[ns]") * pd.NaT
         elif len(initial_dates) != window:
-            raise ValueError('initial_dates must be of length window')
+            raise ValueError("initial_dates must be of length window")
         else:
             self.date_buf = np.hstack(
                 (
                     initial_dates,
                     np.empty(
                         window * (cap_multiple - 1),
-                        dtype='datetime64[ns]',
+                        dtype="datetime64[ns]",
                     ),
                 ),
             )
@@ -113,7 +109,7 @@ class RollingPanel(object):
 
         if not delta:
             raise ValueError(
-                'missing_dts must be a non-empty index',
+                "missing_dts must be a non-empty index",
             )
 
         self._window += delta
@@ -130,9 +126,11 @@ class RollingPanel(object):
         nan_arr.fill(np.nan)
 
         new_vals = np.column_stack(
-            (nan_arr,
-             old_vals,
-             np.empty((shape[0], delta * (self.cap_multiple - 1), shape[2]))),
+            (
+                nan_arr,
+                old_vals,
+                np.empty((shape[0], delta * (self.cap_multiple - 1), shape[2])),
+            ),
         )
 
         self.buffer = pd.Panel(
@@ -148,8 +146,7 @@ class RollingPanel(object):
         self.date_buf[where] = missing_dts
 
     def add_frame(self, tick, frame, minor_axis=None, items=None):
-        """
-        """
+        """"""
         if self._pos == self.cap:
             self._roll_data()
 
@@ -192,7 +189,7 @@ class RollingPanel(object):
 
         if end:
             end = convert_datelike_to_long(end)
-            _end = current_dates.searchsorted(end, 'right')
+            _end = current_dates.searchsorted(end, "right")
             end_index -= len(current_dates) - _end
 
         where = slice(start_index, end_index)
@@ -204,14 +201,14 @@ class RollingPanel(object):
             # return copy so we can change it without side effects here
             return values.copy()
 
-        major_axis = pd.DatetimeIndex(deepcopy(current_dates), tz='utc')
+        major_axis = pd.DatetimeIndex(deepcopy(current_dates), tz="utc")
         if values.ndim == 3:
-            return pd.Panel(values, self.items, major_axis, self.minor_axis,
-                            dtype=self.dtype)
+            return pd.Panel(
+                values, self.items, major_axis, self.minor_axis, dtype=self.dtype
+            )
 
         elif values.ndim == 2:
-            return pd.DataFrame(values, major_axis, self.minor_axis,
-                                dtype=self.dtype)
+            return pd.DataFrame(values, major_axis, self.minor_axis, dtype=self.dtype)
 
     def set_current(self, panel):
         """
@@ -224,7 +221,7 @@ class RollingPanel(object):
 
     def current_dates(self):
         where = slice(self._start_index, self._pos)
-        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="utc")
 
     def _roll_data(self):
         """
@@ -232,9 +229,10 @@ class RollingPanel(object):
         Save the effort of having to expensively roll at each iteration
         """
 
-        self.buffer.values[:, :self._window, :] = \
-            self.buffer.values[:, -self._window:, :]
-        self.date_buf[:self._window] = self.date_buf[-self._window:]
+        self.buffer.values[:, : self._window, :] = self.buffer.values[
+            :, -self._window :, :
+        ]
+        self.date_buf[: self._window] = self.date_buf[-self._window :]
         self._pos = self._window
 
     @property
@@ -251,6 +249,7 @@ class MutableIndexRollingPanel(object):
     This code should be considered frozen, and should not be used in the
     future. Instead, see RollingPanel.
     """
+
     def __init__(self, window, items, sids, cap_multiple=2, dtype=np.float64):
 
         self._pos = 0
@@ -263,7 +262,7 @@ class MutableIndexRollingPanel(object):
         self.cap = cap_multiple * window
 
         self.dtype = dtype
-        self.date_buf = np.empty(self.cap, dtype='M8[ns]')
+        self.date_buf = np.empty(self.cap, dtype="M8[ns]")
 
         self.buffer = self._create_buffer()
 
@@ -298,9 +297,14 @@ class MutableIndexRollingPanel(object):
         """
 
         where = slice(self._oldest_frame_idx(), self._pos)
-        major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
-        return pd.Panel(self.buffer.values[:, where, :], self.items,
-                        major_axis, self.minor_axis, dtype=self.dtype)
+        major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="utc")
+        return pd.Panel(
+            self.buffer.values[:, where, :],
+            self.items,
+            major_axis,
+            self.minor_axis,
+            dtype=self.dtype,
+        )
 
     def set_current(self, panel):
         """
@@ -313,7 +317,7 @@ class MutableIndexRollingPanel(object):
 
     def current_dates(self):
         where = slice(self._oldest_frame_idx(), self._pos)
-        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz='utc')
+        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="utc")
 
     def _roll_data(self):
         """
@@ -321,14 +325,14 @@ class MutableIndexRollingPanel(object):
         Save the effort of having to expensively roll at each iteration
         """
 
-        self.buffer.values[:, :self._window, :] = \
-            self.buffer.values[:, -self._window:, :]
-        self.date_buf[:self._window] = self.date_buf[-self._window:]
+        self.buffer.values[:, : self._window, :] = self.buffer.values[
+            :, -self._window :, :
+        ]
+        self.date_buf[: self._window] = self.date_buf[-self._window :]
         self._pos = self._window
 
     def add_frame(self, tick, frame, minor_axis=None, items=None):
-        """
-        """
+        """"""
         if self._pos == self.cap:
             self._roll_data()
 
@@ -336,8 +340,9 @@ class MutableIndexRollingPanel(object):
             minor_axis = frame.columns
             items = frame.index
 
-        if set(minor_axis).difference(set(self.minor_axis)) or \
-                set(items).difference(set(self.items)):
+        if set(minor_axis).difference(set(self.minor_axis)) or set(items).difference(
+            set(self.items)
+        ):
             self._update_buffer(frame)
 
         vals = frame.T.astype(self.dtype)
@@ -386,7 +391,6 @@ class MutableIndexRollingPanel(object):
         # seems to work fine.
 
         new_buffer = self._create_buffer()
-        new_buffer.update(
-            self.buffer.loc[non_nan_items, :, non_nan_cols])
+        new_buffer.update(self.buffer.loc[non_nan_items, :, non_nan_cols])
 
         self.buffer = new_buffer

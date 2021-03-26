@@ -6,8 +6,8 @@ from .iface import PipelineHooks
 
 
 class NoHooks(implements(PipelineHooks)):
-    """A PipelineHooks that defines no-op methods for all available hooks.
-    """
+    """A PipelineHooks that defines no-op methods for all available hooks."""
+
     @contextmanager
     def running_pipeline(self, pipeline, start_date, end_date):
         yield

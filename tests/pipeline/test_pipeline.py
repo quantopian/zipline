@@ -42,13 +42,12 @@ class SomeOtherFilter(Filter):
 
 
 class PipelineTestCase(TestCase):
-
     def test_construction(self):
         p0 = Pipeline()
         self.assertEqual(p0.columns, {})
         self.assertIs(p0.screen, None)
 
-        columns = {'f': SomeFactor()}
+        columns = {"f": SomeFactor()}
         p1 = Pipeline(columns=columns)
         self.assertEqual(p1.columns, columns)
 
@@ -75,7 +74,7 @@ class PipelineTestCase(TestCase):
             Pipeline({}, SomeFactor())
 
         with self.assertRaises(TypeError):
-            Pipeline({'open': USEquityPricing.open})
+            Pipeline({"open": USEquityPricing.open})
 
         Pipeline({}, SomeFactor() > 5)
 
@@ -83,47 +82,47 @@ class PipelineTestCase(TestCase):
         p = Pipeline()
         f = SomeFactor()
 
-        p.add(f, 'f')
-        self.assertEqual(p.columns, {'f': f})
+        p.add(f, "f")
+        self.assertEqual(p.columns, {"f": f})
 
-        p.add(f > 5, 'g')
-        self.assertEqual(p.columns, {'f': f, 'g': f > 5})
+        p.add(f > 5, "g")
+        self.assertEqual(p.columns, {"f": f, "g": f > 5})
 
         with self.assertRaises(TypeError):
             p.add(f, 1)
 
         with self.assertRaises(TypeError):
-            p.add(USEquityPricing.open, 'open')
+            p.add(USEquityPricing.open, "open")
 
     def test_overwrite(self):
         p = Pipeline()
         f = SomeFactor()
         other_f = SomeOtherFactor()
 
-        p.add(f, 'f')
-        self.assertEqual(p.columns, {'f': f})
+        p.add(f, "f")
+        self.assertEqual(p.columns, {"f": f})
 
         with self.assertRaises(KeyError) as e:
-            p.add(other_f, 'f')
+            p.add(other_f, "f")
         [message] = e.exception.args
         self.assertEqual(message, "Column 'f' already exists.")
 
-        p.add(other_f, 'f', overwrite=True)
-        self.assertEqual(p.columns, {'f': other_f})
+        p.add(other_f, "f", overwrite=True)
+        self.assertEqual(p.columns, {"f": other_f})
 
     def test_remove(self):
         f = SomeFactor()
-        p = Pipeline(columns={'f': f})
+        p = Pipeline(columns={"f": f})
 
         with self.assertRaises(KeyError) as e:
-            p.remove('not_a_real_name')
+            p.remove("not_a_real_name")
 
-        self.assertEqual(f, p.remove('f'))
+        self.assertEqual(f, p.remove("f"))
 
         with self.assertRaises(KeyError) as e:
-            p.remove('f')
+            p.remove("f")
 
-        self.assertEqual(e.exception.args, ('f',))
+        self.assertEqual(e.exception.args, ("f",))
 
     def test_set_screen(self):
         f, g = SomeFilter(), SomeOtherFilter()
@@ -151,55 +150,49 @@ class PipelineTestCase(TestCase):
 
     def test_show_graph(self):
         f = SomeFactor()
-        p = Pipeline(columns={'f': SomeFactor()})
+        p = Pipeline(columns={"f": SomeFactor()})
 
         # The real display_graph call shells out to GraphViz, which isn't a
         # requirement, so patch it out for testing.
 
-        def mock_display_graph(g, format='svg', include_asset_exists=False):
+        def mock_display_graph(g, format="svg", include_asset_exists=False):
             return (g, format, include_asset_exists)
 
         self.assertEqual(
             getargspec(display_graph),
             getargspec(mock_display_graph),
-            msg="Mock signature doesn't match signature for display_graph."
+            msg="Mock signature doesn't match signature for display_graph.",
         )
 
         patch_display_graph = patch(
-            'zipline.pipeline.graph.display_graph',
+            "zipline.pipeline.graph.display_graph",
             mock_display_graph,
         )
 
         with patch_display_graph:
             graph, format, include_asset_exists = p.show_graph()
-            self.assertIs(graph.outputs['f'], f)
+            self.assertIs(graph.outputs["f"], f)
             # '' is a sentinel used for screen if it's not supplied.
             self.assertEqual(
                 sorted(graph.outputs.keys()),
-                ['f', graph.screen_name],
+                ["f", graph.screen_name],
             )
-            self.assertEqual(format, 'svg')
+            self.assertEqual(format, "svg")
             self.assertEqual(include_asset_exists, False)
 
         with patch_display_graph:
-            graph, format, include_asset_exists = p.show_graph(format='png')
-            self.assertIs(graph.outputs['f'], f)
+            graph, format, include_asset_exists = p.show_graph(format="png")
+            self.assertIs(graph.outputs["f"], f)
             # '' is a sentinel used for screen if it's not supplied.
-            self.assertEqual(
-                sorted(graph.outputs.keys()),
-                ['f', graph.screen_name]
-            )
-            self.assertEqual(format, 'png')
+            self.assertEqual(sorted(graph.outputs.keys()), ["f", graph.screen_name])
+            self.assertEqual(format, "png")
             self.assertEqual(include_asset_exists, False)
 
         with patch_display_graph:
-            graph, format, include_asset_exists = p.show_graph(format='jpeg')
-            self.assertIs(graph.outputs['f'], f)
-            self.assertEqual(
-                sorted(graph.outputs.keys()),
-                ['f', graph.screen_name]
-            )
-            self.assertEqual(format, 'jpeg')
+            graph, format, include_asset_exists = p.show_graph(format="jpeg")
+            self.assertIs(graph.outputs["f"], f)
+            self.assertEqual(sorted(graph.outputs.keys()), ["f", graph.screen_name])
+            self.assertEqual(format, "jpeg")
             self.assertEqual(include_asset_exists, False)
 
         expected = (
@@ -209,7 +202,7 @@ class PipelineTestCase(TestCase):
         )
 
         with self.assertRaisesRegex(ValueError, expected):
-            p.show_graph(format='fizzbuzz')
+            p.show_graph(format="fizzbuzz")
 
     def test_infer_domain_no_terms(self):
         self.assertEqual(Pipeline().domain(default=GENERIC), GENERIC)

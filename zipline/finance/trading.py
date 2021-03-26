@@ -19,33 +19,35 @@ import pandas as pd
 from zipline.utils.memoize import remember_last
 from zipline.utils.pandas_utils import normalize_date
 
-log = logbook.Logger('Trading')
+log = logbook.Logger("Trading")
 
 
 DEFAULT_CAPITAL_BASE = 1e5
 
 
 class SimulationParameters(object):
-    def __init__(self,
-                 start_session,
-                 end_session,
-                 trading_calendar,
-                 capital_base=DEFAULT_CAPITAL_BASE,
-                 emission_rate='daily',
-                 data_frequency='daily',
-                 arena='backtest'):
+    def __init__(
+        self,
+        start_session,
+        end_session,
+        trading_calendar,
+        capital_base=DEFAULT_CAPITAL_BASE,
+        emission_rate="daily",
+        data_frequency="daily",
+        arena="backtest",
+    ):
 
         assert type(start_session) == pd.Timestamp
         assert type(end_session) == pd.Timestamp
 
-        assert trading_calendar is not None, \
-            "Must pass in trading calendar!"
-        assert start_session <= end_session, \
-            "Period start falls after period end."
-        assert start_session <= trading_calendar.last_trading_session, \
-            "Period start falls after the last known trading day."
-        assert end_session >= trading_calendar.first_trading_session, \
-            "Period end falls before the first known trading day."
+        assert trading_calendar is not None, "Must pass in trading calendar!"
+        assert start_session <= end_session, "Period start falls after period end."
+        assert (
+            start_session <= trading_calendar.last_trading_session
+        ), "Period start falls after the last known trading day."
+        assert (
+            end_session >= trading_calendar.first_trading_session
+        ), "Period end falls before the first known trading day."
 
         # chop off any minutes or hours on the given start and end dates,
         # as we only support session labels here (and we represent session
@@ -132,8 +134,7 @@ class SimulationParameters(object):
     @remember_last
     def sessions(self):
         return self._trading_calendar.sessions_in_range(
-            self.start_session,
-            self.end_session
+            self.start_session, self.end_session
         )
 
     def create_new(self, start_session, end_session, data_frequency=None):
@@ -147,7 +148,7 @@ class SimulationParameters(object):
             capital_base=self.capital_base,
             emission_rate=self.emission_rate,
             data_frequency=data_frequency,
-            arena=self.arena
+            arena=self.arena,
         )
 
     def __repr__(self):
@@ -162,12 +163,14 @@ class SimulationParameters(object):
     last_close={last_close},
     trading_calendar={trading_calendar}
 )\
-""".format(class_name=self.__class__.__name__,
-           start_session=self.start_session,
-           end_session=self.end_session,
-           capital_base=self.capital_base,
-           data_frequency=self.data_frequency,
-           emission_rate=self.emission_rate,
-           first_open=self.first_open,
-           last_close=self.last_close,
-           trading_calendar=self._trading_calendar)
+""".format(
+            class_name=self.__class__.__name__,
+            start_session=self.start_session,
+            end_session=self.end_session,
+            capital_base=self.capital_base,
+            data_frequency=self.data_frequency,
+            emission_rate=self.emission_rate,
+            first_open=self.first_open,
+            last_close=self.last_close,
+            trading_calendar=self._trading_calendar,
+        )

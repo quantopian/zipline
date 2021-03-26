@@ -1,8 +1,8 @@
-
 class DummyMapping(object):
     """
     Dummy object used to provide a mapping interface for singular values.
     """
+
     def __init__(self, value):
         self._value = value
 

@@ -43,23 +43,21 @@ def make_array(dtype, value):
 
 
 CASES = {
-    int: mapall(
-        (int, int16, int32, int64, make_array(int)),
-        [0, 1, -1]
-    ),
+    int: mapall((int, int16, int32, int64, make_array(int)), [0, 1, -1]),
     float: mapall(
         (float16, float32, float64, float, make_array(float)),
-        [0., 1., -1., float('nan'), float('inf'), -float('inf')],
+        [0.0, 1.0, -1.0, float("nan"), float("inf"), -float("inf")],
     ),
     datetime: mapall(
         (
             make_datetime64D,
             make_datetime64ns,
             Timestamp,
-            make_array('datetime64[ns]'),
+            make_array("datetime64[ns]"),
         ),
         [0, 1, 2],
-    ) + [NaTD, NaTns],
+    )
+    + [NaTD, NaTns],
 }
 
 
@@ -72,7 +70,6 @@ def everything_but(k, d):
 
 
 class TypeCheckTestCase(TestCase):
-
     def test_is_float(self):
         for good_value in CASES[float]:
             self.assertTrue(is_float(good_value))
@@ -96,10 +93,9 @@ class TypeCheckTestCase(TestCase):
 
 
 class ArrayUtilsTestCase(TestCase):
-
     def test_bytes_array_to_native_str_object_array(self):
-        a = array([b'abc', b'def'], dtype='S3')
+        a = array([b"abc", b"def"], dtype="S3")
         result = bytes_array_to_native_str_object_array(a)
-        expected = array(['abc', 'def'], dtype=object)
+        expected = array(["abc", "def"], dtype=object)
 
         assert_equal(result, expected)

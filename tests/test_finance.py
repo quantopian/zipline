@@ -48,16 +48,14 @@ EXTENDED_TIMEOUT = 90
 _multiprocess_can_split_ = False
 
 
-class FinanceTestCase(zf.WithAssetFinder,
-                      zf.WithTradingCalendars,
-                      zf.ZiplineTestCase):
+class FinanceTestCase(zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 133
-    start = START_DATE = pd.Timestamp('2006-01-01', tz='utc')
-    end = END_DATE = pd.Timestamp('2006-12-31', tz='utc')
+    start = START_DATE = pd.Timestamp("2006-01-01", tz="utc")
+    end = END_DATE = pd.Timestamp("2006-12-31", tz="utc")
 
     def init_instance_fixtures(self):
         super(FinanceTestCase, self).init_instance_fixtures()
-        self.zipline_test_config = {'sid': 133}
+        self.zipline_test_config = {"sid": 133}
 
     # TODO: write tests for short sales
     # TODO: write a test to do massive buying or shorting.
@@ -68,33 +66,33 @@ class FinanceTestCase(zf.WithAssetFinder,
         # create a scenario where order size and trade size are equal
         # so that orders must be spread out over several trades.
         params = {
-            'trade_count': 360,
-            'trade_interval': timedelta(minutes=1),
-            'order_count': 2,
-            'order_amount': 100,
-            'order_interval': timedelta(minutes=1),
+            "trade_count": 360,
+            "trade_interval": timedelta(minutes=1),
+            "order_count": 2,
+            "order_amount": 100,
+            "order_interval": timedelta(minutes=1),
             # because we placed two orders for 100 shares each, and the volume
             # of each trade is 100, and by default you can take up 10% of the
             # bar's volume (per FixedBasisPointsSlippage, the default slippage
             # model), the simulator should spread the order into 20 trades of
             # 10 shares per order.
-            'expected_txn_count': 20,
-            'expected_txn_volume': 2 * 100,
-            'default_slippage': True
+            "expected_txn_count": 20,
+            "expected_txn_volume": 2 * 100,
+            "default_slippage": True,
         }
 
         self.transaction_sim(**params)
 
         # same scenario, but with short sales
         params2 = {
-            'trade_count': 360,
-            'trade_interval': timedelta(minutes=1),
-            'order_count': 2,
-            'order_amount': -100,
-            'order_interval': timedelta(minutes=1),
-            'expected_txn_count': 20,
-            'expected_txn_volume': 2 * -100,
-            'default_slippage': True
+            "trade_count": 360,
+            "trade_interval": timedelta(minutes=1),
+            "order_count": 2,
+            "order_amount": -100,
+            "order_interval": timedelta(minutes=1),
+            "expected_txn_count": 20,
+            "expected_txn_volume": 2 * -100,
+            "default_slippage": True,
         }
 
         self.transaction_sim(**params2)
@@ -105,40 +103,40 @@ class FinanceTestCase(zf.WithAssetFinder,
         # to test that several orders can be covered properly by one trade,
         # but are represented by multiple transactions.
         params1 = {
-            'trade_count': 6,
-            'trade_interval': timedelta(hours=1),
-            'order_count': 24,
-            'order_amount': 1,
-            'order_interval': timedelta(minutes=1),
+            "trade_count": 6,
+            "trade_interval": timedelta(hours=1),
+            "order_count": 24,
+            "order_amount": 1,
+            "order_interval": timedelta(minutes=1),
             # because we placed an orders totaling less than 25% of one trade
             # the simulator should produce just one transaction.
-            'expected_txn_count': 24,
-            'expected_txn_volume': 24
+            "expected_txn_count": 24,
+            "expected_txn_volume": 24,
         }
         self.transaction_sim(**params1)
 
         # second verse, same as the first. except short!
         params2 = {
-            'trade_count': 6,
-            'trade_interval': timedelta(hours=1),
-            'order_count': 24,
-            'order_amount': -1,
-            'order_interval': timedelta(minutes=1),
-            'expected_txn_count': 24,
-            'expected_txn_volume': -24
+            "trade_count": 6,
+            "trade_interval": timedelta(hours=1),
+            "order_count": 24,
+            "order_amount": -1,
+            "order_interval": timedelta(minutes=1),
+            "expected_txn_count": 24,
+            "expected_txn_volume": -24,
         }
         self.transaction_sim(**params2)
 
         # Runs the collapsed trades over daily trade intervals.
         # Ensuring that our delay works for daily intervals as well.
         params3 = {
-            'trade_count': 6,
-            'trade_interval': timedelta(days=1),
-            'order_count': 24,
-            'order_amount': 1,
-            'order_interval': timedelta(minutes=1),
-            'expected_txn_count': 24,
-            'expected_txn_volume': 24
+            "trade_count": 6,
+            "trade_interval": timedelta(days=1),
+            "order_count": 24,
+            "order_amount": 1,
+            "order_interval": timedelta(minutes=1),
+            "expected_txn_count": 24,
+            "expected_txn_volume": 24,
         }
         self.transaction_sim(**params3)
 
@@ -146,15 +144,15 @@ class FinanceTestCase(zf.WithAssetFinder,
     def test_alternating_long_short(self):
         # create a scenario where we alternate buys and sells
         params1 = {
-            'trade_count': int(6.5 * 60 * 4),
-            'trade_interval': timedelta(minutes=1),
-            'order_count': 4,
-            'order_amount': 10,
-            'order_interval': timedelta(hours=24),
-            'alternate': True,
-            'complete_fill': True,
-            'expected_txn_count': 4,
-            'expected_txn_volume': 0  # equal buys and sells
+            "trade_count": int(6.5 * 60 * 4),
+            "trade_interval": timedelta(minutes=1),
+            "order_count": 4,
+            "order_amount": 10,
+            "order_interval": timedelta(hours=24),
+            "alternate": True,
+            "complete_fill": True,
+            "expected_txn_count": 4,
+            "expected_txn_volume": 0,  # equal buys and sells
         }
         self.transaction_sim(**params1)
 
@@ -163,58 +161,54 @@ class FinanceTestCase(zf.WithAssetFinder,
         results for conversion of orders to transactions given a
         trade history
         """
-        trade_count = params['trade_count']
-        trade_interval = params['trade_interval']
-        order_count = params['order_count']
-        order_amount = params['order_amount']
-        order_interval = params['order_interval']
-        expected_txn_count = params['expected_txn_count']
-        expected_txn_volume = params['expected_txn_volume']
+        trade_count = params["trade_count"]
+        trade_interval = params["trade_interval"]
+        order_count = params["order_count"]
+        order_amount = params["order_amount"]
+        order_interval = params["order_interval"]
+        expected_txn_count = params["expected_txn_count"]
+        expected_txn_volume = params["expected_txn_volume"]
 
         # optional parameters
         # ---------------------
         # if present, alternate between long and short sales
-        alternate = params.get('alternate')
+        alternate = params.get("alternate")
 
         # if present, expect transaction amounts to match orders exactly.
-        complete_fill = params.get('complete_fill')
+        complete_fill = params.get("complete_fill")
 
         asset1 = self.asset_finder.retrieve_asset(1)
         with TempDirectory() as tempdir:
 
             if trade_interval < timedelta(days=1):
                 sim_params = factory.create_simulation_parameters(
-                    start=self.start,
-                    end=self.end,
-                    data_frequency="minute"
+                    start=self.start, end=self.end, data_frequency="minute"
                 )
 
                 minutes = self.trading_calendar.minutes_window(
                     sim_params.first_open,
-                    int((trade_interval.total_seconds() / 60) * trade_count)
-                    + 100)
+                    int((trade_interval.total_seconds() / 60) * trade_count) + 100,
+                )
 
                 price_data = np.array([10.1] * len(minutes))
                 assets = {
-                    asset1.sid: pd.DataFrame({
-                        "open": price_data,
-                        "high": price_data,
-                        "low": price_data,
-                        "close": price_data,
-                        "volume": np.array([100] * len(minutes)),
-                        "dt": minutes
-                    }).set_index("dt")
+                    asset1.sid: pd.DataFrame(
+                        {
+                            "open": price_data,
+                            "high": price_data,
+                            "low": price_data,
+                            "close": price_data,
+                            "volume": np.array([100] * len(minutes)),
+                            "dt": minutes,
+                        }
+                    ).set_index("dt")
                 }
 
                 write_bcolz_minute_data(
                     self.trading_calendar,
                     self.trading_calendar.sessions_in_range(
-                        self.trading_calendar.minute_to_session_label(
-                            minutes[0]
-                        ),
-                        self.trading_calendar.minute_to_session_label(
-                            minutes[-1]
-                        )
+                        self.trading_calendar.minute_to_session_label(minutes[0]),
+                        self.trading_calendar.minute_to_session_label(minutes[-1]),
                     ),
                     tempdir.path,
                     assets.items(),
@@ -223,7 +217,8 @@ class FinanceTestCase(zf.WithAssetFinder,
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
                 data_portal = DataPortal(
-                    self.asset_finder, self.trading_calendar,
+                    self.asset_finder,
+                    self.trading_calendar,
                     first_trading_day=equity_minute_reader.first_trading_day,
                     equity_minute_reader=equity_minute_reader,
                 )
@@ -235,32 +230,34 @@ class FinanceTestCase(zf.WithAssetFinder,
                 days = sim_params.sessions
 
                 assets = {
-                    1: pd.DataFrame({
-                        "open": [10.1] * len(days),
-                        "high": [10.1] * len(days),
-                        "low": [10.1] * len(days),
-                        "close": [10.1] * len(days),
-                        "volume": [100] * len(days),
-                        "day": [day.value for day in days]
-                    }, index=days)
+                    1: pd.DataFrame(
+                        {
+                            "open": [10.1] * len(days),
+                            "high": [10.1] * len(days),
+                            "low": [10.1] * len(days),
+                            "close": [10.1] * len(days),
+                            "volume": [100] * len(days),
+                            "day": [day.value for day in days],
+                        },
+                        index=days,
+                    )
                 }
 
                 path = os.path.join(tempdir.path, "testdata.bcolz")
-                BcolzDailyBarWriter(path, self.trading_calendar, days[0],
-                                    days[-1]).write(
-                    assets.items()
-                )
+                BcolzDailyBarWriter(
+                    path, self.trading_calendar, days[0], days[-1]
+                ).write(assets.items())
 
                 equity_daily_reader = BcolzDailyBarReader(path)
 
                 data_portal = DataPortal(
-                    self.asset_finder, self.trading_calendar,
+                    self.asset_finder,
+                    self.trading_calendar,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
 
-            if "default_slippage" not in params or \
-               not params["default_slippage"]:
+            if "default_slippage" not in params or not params["default_slippage"]:
                 slippage_func = FixedBasisPointsSlippage()
             else:
                 slippage_func = None
@@ -282,7 +279,7 @@ class FinanceTestCase(zf.WithAssetFinder,
                 emission_rate=sim_params.emission_rate,
                 data_frequency=sim_params.data_frequency,
                 asset_finder=self.asset_finder,
-                metrics=load_metrics_set('none'),
+                metrics=load_metrics_set("none"),
             )
 
             # replicate what tradesim does by going through every minute or day
@@ -357,11 +354,7 @@ class FinanceTestCase(zf.WithAssetFinder,
 
             # the open orders should not contain the asset.
             oo = blotter.open_orders
-            self.assertNotIn(
-                asset1,
-                oo,
-                "Entry is removed when no open orders"
-            )
+            self.assertNotIn(asset1, oo, "Entry is removed when no open orders")
 
     def test_blotter_processes_splits(self):
         blotter = SimulationBlotter(equity_slippage=FixedSlippage())
@@ -403,10 +396,11 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
     """
     Tests for date management utilities in zipline.finance.trading.
     """
+
     def test_simulation_parameters(self):
         sp = SimulationParameters(
-            start_session=pd.Timestamp("2008-01-01", tz='UTC'),
-            end_session=pd.Timestamp("2008-12-31", tz='UTC'),
+            start_session=pd.Timestamp("2008-01-01", tz="UTC"),
+            end_session=pd.Timestamp("2008-12-31", tz="UTC"),
             capital_base=100000,
             trading_calendar=self.trading_calendar,
         )
@@ -426,8 +420,8 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
         #  27 28 29 30 31
 
         params = SimulationParameters(
-            start_session=pd.Timestamp("2007-12-31", tz='UTC'),
-            end_session=pd.Timestamp("2008-01-07", tz='UTC'),
+            start_session=pd.Timestamp("2007-12-31", tz="UTC"),
+            end_session=pd.Timestamp("2008-01-07", tz="UTC"),
             capital_base=100000,
             trading_calendar=self.trading_calendar,
         )
@@ -441,13 +435,9 @@ class SimParamsTestCase(zf.WithTradingCalendars, zf.ZiplineTestCase):
             datetime(2008, 1, 4, tzinfo=pytz.utc),
             # Skip Saturday
             # Skip Sunday
-            datetime(2008, 1, 7, tzinfo=pytz.utc)
+            datetime(2008, 1, 7, tzinfo=pytz.utc),
         )
 
         num_expected_trading_days = 5
-        self.assertEquals(
-            num_expected_trading_days,
-            len(params.sessions)
-        )
-        np.testing.assert_array_equal(expected_trading_days,
-                                      params.sessions.tolist())
+        self.assertEquals(num_expected_trading_days, len(params.sessions))
+        np.testing.assert_array_equal(expected_trading_days, params.sessions.tolist())

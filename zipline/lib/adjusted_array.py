@@ -45,11 +45,11 @@ INT_DTYPES = frozenset(
     map(dtype, [int16, uint16, int32, int64, uint32]),
 )
 DATETIME_DTYPES = frozenset(
-    map(dtype, ['datetime64[ns]', 'datetime64[D]']),
+    map(dtype, ["datetime64[ns]", "datetime64[D]"]),
 )
 # We use object arrays for strings.
-OBJECT_DTYPES = frozenset(map(dtype, ['O']))
-STRING_KINDS = frozenset(['S', 'U'])
+OBJECT_DTYPES = frozenset(map(dtype, ["O"]))
+STRING_KINDS = frozenset(["S", "U"])
 
 REPRESENTABLE_DTYPES = BOOL_DTYPES.union(
     FLOAT_DTYPES,
@@ -106,11 +106,11 @@ def _normalize_array(data, missing_value):
 
     data_dtype = data.dtype
     if data_dtype in BOOL_DTYPES:
-        return data.astype(uint8, copy=False), {'dtype': dtype(bool_)}
+        return data.astype(uint8, copy=False), {"dtype": dtype(bool_)}
     elif data_dtype in FLOAT_DTYPES:
-        return data.astype(float64, copy=False), {'dtype': dtype(float64)}
+        return data.astype(float64, copy=False), {"dtype": dtype(float64)}
     elif data_dtype in INT_DTYPES:
-        return data.astype(int64, copy=False), {'dtype': dtype(int64)}
+        return data.astype(int64, copy=False), {"dtype": dtype(int64)}
     elif is_categorical(data_dtype):
         if not isinstance(missing_value, LabelArray.SUPPORTED_SCALAR_TYPES):
             raise TypeError(
@@ -118,17 +118,16 @@ def _normalize_array(data, missing_value):
                 "Expected None, bytes or unicode. Got %r." % missing_value,
             )
         return LabelArray(data, missing_value), {}
-    elif data_dtype.kind == 'M':
+    elif data_dtype.kind == "M":
         try:
-            outarray = data.astype('datetime64[ns]', copy=False).view('int64')
-            return outarray, {'dtype': datetime64ns_dtype}
+            outarray = data.astype("datetime64[ns]", copy=False).view("int64")
+            return outarray, {"dtype": datetime64ns_dtype}
         except OverflowError:
             raise ValueError(
                 "AdjustedArray received a datetime array "
                 "not representable as datetime64[ns].\n"
                 "Min Date: %s\n"
-                "Max Date: %s\n"
-                % (data.min(), data.max())
+                "Max Date: %s\n" % (data.min(), data.max())
             )
     else:
         raise TypeError(
@@ -172,8 +171,8 @@ def _merge_simple(adjustment_lists, front_idx, back_idx):
 
 
 _merge_methods = {
-    'append': partial(_merge_simple, front_idx=0, back_idx=1),
-    'prepend': partial(_merge_simple, front_idx=1, back_idx=0),
+    "append": partial(_merge_simple, front_idx=0, back_idx=1),
+    "prepend": partial(_merge_simple, front_idx=1, back_idx=0),
 }
 
 
@@ -194,13 +193,14 @@ class AdjustedArray(object):
         A value to use to fill missing data in yielded windows.
         Should be a value coercible to `data.dtype`.
     """
+
     __slots__ = (
-        '_data',
-        '_view_kwargs',
-        'adjustments',
-        'missing_value',
-        '_invalidated',
-        '__weakref__',
+        "_data",
+        "_view_kwargs",
+        "adjustments",
+        "missing_value",
+        "_invalidated",
+        "__weakref__",
     )
 
     def __init__(self, data, adjustments, missing_value):
@@ -211,13 +211,12 @@ class AdjustedArray(object):
         self._invalidated = False
 
     def copy(self):
-        """Copy an adjusted array, deep-copying the ``data`` array.
-        """
+        """Copy an adjusted array, deep-copying the ``data`` array."""
         if self._invalidated:
-            raise ValueError('cannot copy invalidated AdjustedArray')
+            raise ValueError("cannot copy invalidated AdjustedArray")
 
         return type(self)(
-            self.data.copy(order='F'),
+            self.data.copy(order="F"),
             self.adjustments,
             self.missing_value,
         )
@@ -242,7 +241,7 @@ class AdjustedArray(object):
         except KeyError:
             raise ValueError(
                 "Invalid merge method %s\n"
-                "Valid methods are: %s" % (method, ', '.join(_merge_methods))
+                "Valid methods are: %s" % (method, ", ".join(_merge_methods))
             )
 
         self.adjustments = merge_with(
@@ -263,7 +262,7 @@ class AdjustedArray(object):
         """
         The dtype of the data stored in this array.
         """
-        return self._view_kwargs.get('dtype') or self._data.dtype
+        return self._view_kwargs.get("dtype") or self._data.dtype
 
     @lazyval
     def _iterator_type(self):
@@ -274,11 +273,7 @@ class AdjustedArray(object):
             return LabelWindow
         return CONCRETE_WINDOW_TYPES[self._data.dtype]
 
-    def traverse(self,
-                 window_length,
-                 offset=0,
-                 perspective_offset=0,
-                 copy=True):
+    def traverse(self, window_length, offset=0, perspective_offset=0, copy=True):
         """
         Produce an iterator rolling windows rows over our data.
         Each emitted window will have `window_length` rows.
@@ -297,11 +292,11 @@ class AdjustedArray(object):
             will be invalidated and cannot be traversed again.
         """
         if self._invalidated:
-            raise ValueError('cannot traverse invalidated AdjustedArray')
+            raise ValueError("cannot traverse invalidated AdjustedArray")
 
         data = self._data
         if copy:
-            data = data.copy(order='F')
+            data = data.copy(order="F")
         else:
             self._invalidated = True
 
@@ -344,7 +339,7 @@ class AdjustedArray(object):
         """
         if not isinstance(self.data, LabelArray):
             raise TypeError(
-                'update_labels only supported if data is of type LabelArray.'
+                "update_labels only supported if data is of type LabelArray."
             )
 
         # Map the baseline values.
@@ -361,12 +356,14 @@ def ensure_adjusted_array(ndarray_or_adjusted_array, missing_value):
         return ndarray_or_adjusted_array
     elif isinstance(ndarray_or_adjusted_array, ndarray):
         return AdjustedArray(
-            ndarray_or_adjusted_array, {}, missing_value,
+            ndarray_or_adjusted_array,
+            {},
+            missing_value,
         )
     else:
         raise TypeError(
-            "Can't convert %s to AdjustedArray" %
-            type(ndarray_or_adjusted_array).__name__
+            "Can't convert %s to AdjustedArray"
+            % type(ndarray_or_adjusted_array).__name__
         )
 
 
@@ -391,8 +388,7 @@ def ensure_ndarray(ndarray_or_adjusted_array):
         return ndarray_or_adjusted_array.data
     else:
         raise TypeError(
-            "Can't convert %s to ndarray" %
-            type(ndarray_or_adjusted_array).__name__
+            "Can't convert %s to ndarray" % type(ndarray_or_adjusted_array).__name__
         )
 
 

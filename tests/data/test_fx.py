@@ -9,8 +9,7 @@ from zipline.testing.predicates import assert_equal
 import zipline.testing.fixtures as zp_fixtures
 
 
-class _FXReaderTestCase(zp_fixtures.WithFXRates,
-                        zp_fixtures.ZiplineTestCase):
+class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
     """
     Base class for testing FXRateReader implementations.
 
@@ -18,11 +17,12 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     and implement the ``reader`` property, returning an FXRateReader that uses
     the data stored in ``cls.fx_rates``.
     """
-    FX_RATES_START_DATE = pd.Timestamp('2014-01-01', tz='UTC')
-    FX_RATES_END_DATE = pd.Timestamp('2014-01-31', tz='UTC')
+
+    FX_RATES_START_DATE = pd.Timestamp("2014-01-01", tz="UTC")
+    FX_RATES_END_DATE = pd.Timestamp("2014-01-31", tz="UTC")
 
     # Calendar to which exchange rates data is aligned.
-    FX_RATES_CALENDAR = '24/5'
+    FX_RATES_CALENDAR = "24/5"
 
     # Currencies between which exchange rates can be calculated.
     FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
@@ -31,7 +31,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
     FX_RATES_RATE_NAMES = ["london_mid", "tokyo_mid"]
 
     # Field to be used on a lookup of `'default'`.
-    FX_RATES_DEFAULT_RATE = 'london_mid'
+    FX_RATES_DEFAULT_RATE = "london_mid"
 
     # Used by WithFXRates.
     @classmethod
@@ -40,12 +40,16 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
         # Give each currency a timeseries of "true" values, and compute fx
         # rates as ratios between true values.
-        reference = pd.DataFrame({
-            'USD': np.linspace(1.0, 2.0, num=ndays),
-            'CAD': np.linspace(2.0, 3.0, num=ndays),
-            'GBP': np.linspace(3.0, 4.0, num=ndays),
-            'EUR': np.linspace(4.0, 5.0, num=ndays),
-        }, index=sessions, columns=currencies)
+        reference = pd.DataFrame(
+            {
+                "USD": np.linspace(1.0, 2.0, num=ndays),
+                "CAD": np.linspace(2.0, 3.0, num=ndays),
+                "GBP": np.linspace(3.0, 4.0, num=ndays),
+                "EUR": np.linspace(4.0, 5.0, num=ndays),
+            },
+            index=sessions,
+            columns=currencies,
+        )
 
         cls.tokyo_mid_rates = cls.make_fx_rates_from_reference(reference)
         # Make london_mid different by adding +1 to reference values.
@@ -53,8 +57,8 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
         # This will be set as cls.fx_rates by WithFXRates.
         return {
-            'london_mid': cls.london_mid_rates,
-            'tokyo_mid': cls.tokyo_mid_rates,
+            "london_mid": cls.london_mid_rates,
+            "tokyo_mid": cls.tokyo_mid_rates,
         }
 
     @property
@@ -68,13 +72,13 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         quotes = self.FX_RATES_CURRENCIES
         bases = self.FX_RATES_CURRENCIES + [None]
         dates = pd.date_range(
-            self.FX_RATES_START_DATE - pd.Timedelta('1 day'),
-            self.FX_RATES_END_DATE + pd.Timedelta('1 day'),
+            self.FX_RATES_START_DATE - pd.Timedelta("1 day"),
+            self.FX_RATES_END_DATE + pd.Timedelta("1 day"),
         )
         cases = itertools.product(rates, quotes, bases, dates)
 
         for rate, quote, base, dt in cases:
-            dts = pd.DatetimeIndex([dt], tz='UTC')
+            dts = pd.DatetimeIndex([dt], tz="UTC")
             bases = np.array([base], dtype=object)
 
             result = reader.get_rates(rate, quote, bases, dts)
@@ -97,8 +101,8 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         rand = np.random.RandomState(42)
 
         dates = pd.date_range(
-            self.FX_RATES_START_DATE - pd.Timedelta('2 days'),
-            self.FX_RATES_END_DATE + pd.Timedelta('2 days'),
+            self.FX_RATES_START_DATE - pd.Timedelta("2 days"),
+            self.FX_RATES_END_DATE + pd.Timedelta("2 days"),
         )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
         possible_quotes = self.FX_RATES_CURRENCIES
@@ -110,13 +114,12 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             # Choose N random distinct days...
             for ndays in 1, 2, 7, 20:
                 dts_raw = rand.choice(dates, ndays, replace=False)
-                dts = pd.DatetimeIndex(dts_raw, tz='utc').sort_values()
+                dts = pd.DatetimeIndex(dts_raw, tz="utc").sort_values()
 
                 # Choose M random possibly-non-distinct currencies...
                 for nbases in 1, 2, 10, 200:
-                    bases = (
-                        rand.choice(possible_bases, nbases, replace=True)
-                        .astype(object)
+                    bases = rand.choice(possible_bases, nbases, replace=True).astype(
+                        object
                     )
 
                 # ...And check that we get the expected result when querying
@@ -130,8 +133,8 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         rand = np.random.RandomState(42)
 
         dates = pd.date_range(
-            self.FX_RATES_START_DATE - pd.Timedelta('2 days'),
-            self.FX_RATES_END_DATE + pd.Timedelta('2 days'),
+            self.FX_RATES_START_DATE - pd.Timedelta("2 days"),
+            self.FX_RATES_END_DATE + pd.Timedelta("2 days"),
         )
         rates = self.FX_RATES_RATE_NAMES + [DEFAULT_FX_RATE]
         possible_quotes = self.FX_RATES_CURRENCIES
@@ -143,11 +146,8 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
             for N in 1, 2, 10, 200:
                 # Choose N (date, base) pairs randomly with replacement.
                 dts_raw = rand.choice(dates, N, replace=True)
-                dts = pd.DatetimeIndex(dts_raw, tz='utc')
-                bases = (
-                    rand.choice(possible_bases, N, replace=True)
-                    .astype(object)
-                )
+                dts = pd.DatetimeIndex(dts_raw, tz="utc")
+                bases = rand.choice(possible_bases, N, replace=True).astype(object)
 
                 # ... And check that we get the expected result when querying
                 # for those dates/currencies.
@@ -168,7 +168,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         for currency in self.FX_RATES_CURRENCIES:
             tokyo_rates = self.tokyo_mid_rates[currency]
             tokyo_result = self.reader.get_rates(
-                'tokyo_mid',
+                "tokyo_mid",
                 currency,
                 tokyo_rates.columns,
                 tokyo_rates.index,
@@ -177,7 +177,7 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
             london_rates = self.london_mid_rates[currency]
             london_result = self.reader.get_rates(
-                'london_mid',
+                "london_mid",
                 currency,
                 london_rates.columns,
                 london_rates.index,
@@ -197,12 +197,14 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         # input asof dates, so we end up making queries for asof_dates that
         # might be before the start of FX data. When that happens, we want to
         # emit NaN, but we don't want to fail.
-        for bad_date in (self.FX_RATES_START_DATE - pd.Timedelta('1 day'),
-                         self.FX_RATES_START_DATE - pd.Timedelta('1000 days')):
+        for bad_date in (
+            self.FX_RATES_START_DATE - pd.Timedelta("1 day"),
+            self.FX_RATES_START_DATE - pd.Timedelta("1000 days"),
+        ):
 
             for rate in self.FX_RATES_RATE_NAMES:
-                quote = 'USD'
-                bases = np.array(['CAD'], dtype=object)
+                quote = "USD"
+                bases = np.array(["CAD"], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
 
                 result = self.reader.get_rates(rate, quote, bases, dts)
@@ -214,12 +216,14 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
         # fail. We can always upper bound the relevant asofs that we're
         # interested in, and having fx rates forward-fill past the end of data
         # is confusing and takes a while to debug.
-        for bad_date in (self.FX_RATES_END_DATE + pd.Timedelta('1 day'),
-                         self.FX_RATES_END_DATE + pd.Timedelta('1000 days')):
+        for bad_date in (
+            self.FX_RATES_END_DATE + pd.Timedelta("1 day"),
+            self.FX_RATES_END_DATE + pd.Timedelta("1000 days"),
+        ):
 
             for rate in self.FX_RATES_RATE_NAMES:
-                quote = 'USD'
-                bases = np.array(['CAD'], dtype=object)
+                quote = "USD"
+                bases = np.array(["CAD"], dtype=object)
                 dts = pd.DatetimeIndex([bad_date])
 
                 result = self.reader.get_rates(rate, quote, bases, dts)
@@ -227,15 +231,15 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
                 expected = self.get_expected_fx_rate_scalar(
                     rate,
                     quote,
-                    'CAD',
+                    "CAD",
                     self.FX_RATES_END_DATE,
                 )
                 assert_equal(expected, result[0, 0])
 
     def test_read_unknown_base(self):
         for rate in self.FX_RATES_RATE_NAMES:
-            quote = 'USD'
-            for unknown_base in 'XXX', None:
+            quote = "USD"
+            for unknown_base in "XXX", None:
                 bases = np.array([unknown_base], dtype=object)
                 dts = pd.DatetimeIndex([self.FX_RATES_START_DATE])
                 result = self.reader.get_rates(rate, quote, bases, dts)[0, 0]
@@ -243,19 +247,16 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates,
 
 
 class InMemoryFXReaderTestCase(_FXReaderTestCase):
-
     @property
     def reader(self):
         return self.in_memory_fx_rate_reader
 
 
-class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
-                           _FXReaderTestCase):
-
+class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir, _FXReaderTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(HDF5FXReaderTestCase, cls).init_class_fixtures()
-        path = cls.tmpdir.getpath('fx_rates.h5')
+        path = cls.tmpdir.getpath("fx_rates.h5")
         cls.h5_fx_reader = cls.write_h5_fx_rates(path)
 
     @property
@@ -264,23 +265,24 @@ class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir,
 
 
 class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
-
     def test_fast_get_loc_ffilled(self):
-        dts = pd.to_datetime([
-            '2014-01-02',
-            '2014-01-03',
-            # Skip 2014-01-04
-            '2014-01-05',
-            '2014-01-06',
-        ])
+        dts = pd.to_datetime(
+            [
+                "2014-01-02",
+                "2014-01-03",
+                # Skip 2014-01-04
+                "2014-01-05",
+                "2014-01-06",
+            ]
+        )
 
-        for dt in pd.date_range('2014-01-02', '2014-01-08'):
+        for dt in pd.date_range("2014-01-02", "2014-01-08"):
             result = zp_fixtures.fast_get_loc_ffilled(dts.values, dt.asm8)
-            expected = dts.get_loc(dt, method='ffill')
+            expected = dts.get_loc(dt, method="ffill")
             assert_equal(result, expected)
 
         with self.assertRaises(KeyError):
-            dts.get_loc(pd.Timestamp('2014-01-01'), method='ffill')
+            dts.get_loc(pd.Timestamp("2014-01-01"), method="ffill")
 
         with self.assertRaises(KeyError):
-            zp_fixtures.fast_get_loc_ffilled(dts, pd.Timestamp('2014-01-01'))
+            zp_fixtures.fast_get_loc_ffilled(dts, pd.Timestamp("2014-01-01"))

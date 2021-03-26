@@ -12,28 +12,24 @@ import pytz
 import requests
 from six import with_metaclass
 from io import StringIO
-from zipline.errors import (
-    MultipleSymbolsFound,
-    SymbolNotFound,
-    ZiplineError
-)
-from zipline.protocol import (
-    DATASOURCE_TYPE,
-    Event
-)
+from zipline.errors import MultipleSymbolsFound, SymbolNotFound, ZiplineError
+from zipline.protocol import DATASOURCE_TYPE, Event
 from zipline.assets import Equity
 
-logger = Logger('Requests Source Logger')
+logger = Logger("Requests Source Logger")
 
 
 def roll_dts_to_midnight(dts, trading_day):
     if len(dts) == 0:
         return dts
 
-    return pd.DatetimeIndex(
-        (dts.tz_convert('US/Eastern') - pd.Timedelta(hours=16)).date,
-        tz='UTC',
-    ) + trading_day
+    return (
+        pd.DatetimeIndex(
+            (dts.tz_convert("US/Eastern") - pd.Timedelta(hours=16)).date,
+            tz="UTC",
+        )
+        + trading_day
+    )
 
 
 class FetcherEvent(Event):
@@ -60,80 +56,76 @@ class FetcherCSVRedirectError(ZiplineError):
 # requests backed data sources.
 # see https://requests.readthedocs.io/en/latest/api/#main-interface
 # for a full list.
-ALLOWED_REQUESTS_KWARGS = {
-    'params',
-    'headers',
-    'auth',
-    'cert'
-}
+ALLOWED_REQUESTS_KWARGS = {"params", "headers", "auth", "cert"}
 
 # The following optional arguments are supported for pandas' read_csv
 # function, and may be passed as kwargs to the datasource below.
 # see https://pandas.pydata.org/
 # pandas-docs/stable/generated/pandas.io.parsers.read_csv.html
 ALLOWED_READ_CSV_KWARGS = {
-    'sep',
-    'dialect',
-    'doublequote',
-    'escapechar',
-    'quotechar',
-    'quoting',
-    'skipinitialspace',
-    'lineterminator',
-    'header',
-    'index_col',
-    'names',
-    'prefix',
-    'skiprows',
-    'skipfooter',
-    'skip_footer',
-    'na_values',
-    'true_values',
-    'false_values',
-    'delimiter',
-    'converters',
-    'dtype',
-    'delim_whitespace',
-    'as_recarray',
-    'na_filter',
-    'compact_ints',
-    'use_unsigned',
-    'buffer_lines',
-    'warn_bad_lines',
-    'error_bad_lines',
-    'keep_default_na',
-    'thousands',
-    'comment',
-    'decimal',
-    'keep_date_col',
-    'nrows',
-    'chunksize',
-    'encoding',
-    'usecols'
+    "sep",
+    "dialect",
+    "doublequote",
+    "escapechar",
+    "quotechar",
+    "quoting",
+    "skipinitialspace",
+    "lineterminator",
+    "header",
+    "index_col",
+    "names",
+    "prefix",
+    "skiprows",
+    "skipfooter",
+    "skip_footer",
+    "na_values",
+    "true_values",
+    "false_values",
+    "delimiter",
+    "converters",
+    "dtype",
+    "delim_whitespace",
+    "as_recarray",
+    "na_filter",
+    "compact_ints",
+    "use_unsigned",
+    "buffer_lines",
+    "warn_bad_lines",
+    "error_bad_lines",
+    "keep_default_na",
+    "thousands",
+    "comment",
+    "decimal",
+    "keep_date_col",
+    "nrows",
+    "chunksize",
+    "encoding",
+    "usecols",
 }
 
 SHARED_REQUESTS_KWARGS = {
-    'stream'         : True,
-    'allow_redirects': False,
+    "stream": True,
+    "allow_redirects": False,
 }
 
 
 def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
-    requests_kwargs = {key: val for (key, val) in kwargs.items()
-                       if key in ALLOWED_REQUESTS_KWARGS}
+    requests_kwargs = {
+        key: val for (key, val) in kwargs.items() if key in ALLOWED_REQUESTS_KWARGS
+    }
     if params_checker is not None:
         url, s_params = params_checker(url)
         if s_params:
-            if 'params' in requests_kwargs:
-                requests_kwargs['params'].update(s_params)
+            if "params" in requests_kwargs:
+                requests_kwargs["params"].update(s_params)
             else:
-                requests_kwargs['params'] = s_params
+                requests_kwargs["params"] = s_params
 
     # Giving the connection 30 seconds. This timeout does not
     # apply to the download of the response body.
     # (Note that Quandl links can take >10 seconds to return their
     # first byte on occasion)
-    requests_kwargs['timeout'] = 1.0 if validating else 30.0
+    requests_kwargs["timeout"] = 1.0 if validating else 30.0
     requests_kwargs.update(SHARED_REQUESTS_KWARGS)
 
     request_pair = namedtuple("RequestPair", ("requests_kwargs", "url"))
@@ -141,23 +133,24 @@ def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
 
 
 class PandasCSV(with_metaclass(ABCMeta, object)):
-
-    def __init__(self,
-                 pre_func,
-                 post_func,
-                 asset_finder,
-                 trading_day,
-                 start_date,
-                 end_date,
-                 date_column,
-                 date_format,
-                 timezone,
-                 symbol,
-                 mask,
-                 symbol_column,
-                 data_frequency,
-                 country_code,
-                 **kwargs):
+    def __init__(
+        self,
+        pre_func,
+        post_func,
+        asset_finder,
+        trading_day,
+        start_date,
+        end_date,
+        date_column,
+        date_format,
+        timezone,
+        symbol,
+        mask,
+        symbol_column,
+        data_frequency,
+        country_code,
+        **kwargs
+    ):
 
         self.start_date = start_date
         self.end_date = end_date
@@ -197,8 +190,9 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         return
 
     @staticmethod
-    def parse_date_str_series(format_str, tz, date_str_series, data_frequency,
-                              trading_day):
+    def parse_date_str_series(
+        format_str, tz, date_str_series, data_frequency, trading_day
+    ):
         """
         Efficient parsing for a 1d Pandas/numpy object containing string
         representations of dates.
@@ -227,34 +221,39 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
                 date_str_series.values,
                 format=format_str,
                 utc=True,
-                errors='coerce',
+                errors="coerce",
             )
         else:
-            parsed = pd.to_datetime(
-                date_str_series.values,
-                format=format_str,
-                errors='coerce',
-            ).tz_localize(tz_str).tz_convert('UTC')
+            parsed = (
+                pd.to_datetime(
+                    date_str_series.values,
+                    format=format_str,
+                    errors="coerce",
+                )
+                .tz_localize(tz_str)
+                .tz_convert("UTC")
+            )
 
-        if data_frequency == 'daily':
+        if data_frequency == "daily":
             parsed = roll_dts_to_midnight(parsed, trading_day)
         return parsed
 
     def mask_pandas_args(self, kwargs):
-        pandas_kwargs = {key: val for (key, val) in kwargs.items()
-                         if key in ALLOWED_READ_CSV_KWARGS}
-        if 'usecols' in pandas_kwargs:
-            usecols = pandas_kwargs['usecols']
+        pandas_kwargs = {
+            key: val for (key, val) in kwargs.items() if key in ALLOWED_READ_CSV_KWARGS
+        }
+        if "usecols" in pandas_kwargs:
+            usecols = pandas_kwargs["usecols"]
             if usecols and self.date_column not in usecols:
                 # make a new list so we don't modify user's,
                 # and to ensure it is mutable
                 with_date = list(usecols)
                 with_date.append(self.date_column)
-                pandas_kwargs['usecols'] = with_date
+                pandas_kwargs["usecols"] = with_date
 
         # No strings in the 'symbol' column should be interpreted as NaNs
-        pandas_kwargs.setdefault('keep_default_na', False)
-        pandas_kwargs.setdefault('na_values', {'symbol': []})
+        pandas_kwargs.setdefault("keep_default_na", False)
+        pandas_kwargs.setdefault("na_values", {"symbol": []})
 
         return pandas_kwargs
 
@@ -293,7 +292,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             df = self.pre_func(df)
 
         # Batch-convert the user-specifed date column into timestamps.
-        df['dt'] = self.parse_date_str_series(
+        df["dt"] = self.parse_date_str_series(
             self.date_format,
             self.timezone,
             df[self.date_column],
@@ -302,10 +301,10 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         ).values
 
         # ignore rows whose dates we couldn't parse
-        df = df[df['dt'].notnull()]
+        df = df[df["dt"].notnull()]
 
         if self.symbol is not None:
-            df['sid'] = self.symbol
+            df["sid"] = self.symbol
         elif self.finder:
 
             df.sort_values(by=self.symbol_column, inplace=True)
@@ -313,7 +312,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             # Pop the 'sid' column off of the DataFrame, just in case the user
             # has assigned it, and throw a warning
             try:
-                df.pop('sid')
+                df.pop("sid")
                 warnings.warn(
                     "Assignment of the 'sid' column of a DataFrame is "
                     "not supported by Fetcher. The 'sid' column has been "
@@ -333,45 +332,47 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             sid_series = pd.Series(
                 data=map(self._lookup_unconflicted_symbol, unique_symbols),
                 index=unique_symbols,
-                name='sid',
+                name="sid",
             )
             df = df.join(sid_series, on=self.symbol_column)
 
             # Fill any zero entries left in our sid column by doing a lookup
             # using both symbol and the row date.
-            conflict_rows = df[df['sid'] == 0]
+            conflict_rows = df[df["sid"] == 0]
             for row_idx, row in conflict_rows.iterrows():
                 try:
-                    asset = self.finder.lookup_symbol(
-                        row[self.symbol_column],
-                        # Replacing tzinfo here is necessary because of the
-                        # timezone metadata bug described below.
-                        row['dt'].replace(tzinfo=pytz.utc),
-                        country_code=self.country_code,
-
-                        # It's possible that no asset comes back here if our
-                        # lookup date is from before any asset held the
-                        # requested symbol.  Mark such cases as NaN so that
-                        # they get dropped in the next step.
-                    ) or numpy.nan
+                    asset = (
+                        self.finder.lookup_symbol(
+                            row[self.symbol_column],
+                            # Replacing tzinfo here is necessary because of the
+                            # timezone metadata bug described below.
+                            row["dt"].replace(tzinfo=pytz.utc),
+                            country_code=self.country_code,
+                            # It's possible that no asset comes back here if our
+                            # lookup date is from before any asset held the
+                            # requested symbol.  Mark such cases as NaN so that
+                            # they get dropped in the next step.
+                        )
+                        or numpy.nan
+                    )
                 except SymbolNotFound:
                     asset = numpy.nan
 
                 # Assign the resolved asset to the cell
-                df.iloc[row_idx, df.columns.get_loc('sid')] = asset
+                df.iloc[row_idx, df.columns.get_loc("sid")] = asset
 
             # Filter out rows containing symbols that we failed to find.
             length_before_drop = len(df)
-            df = df[df['sid'].notnull()]
+            df = df[df["sid"].notnull()]
             no_sid_count = length_before_drop - len(df)
             if no_sid_count:
                 logger.warn(
                     "Dropped {} rows from fetched csv.".format(no_sid_count),
                     no_sid_count,
-                    extra={'syslog': True},
+                    extra={"syslog": True},
                 )
         else:
-            df['sid'] = df['symbol']
+            df["sid"] = df["symbol"]
 
         # Dates are localized to UTC when they come out of
         # parse_date_str_series, but we need to re-localize them here because
@@ -384,8 +385,8 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         # operations above depend on having a unique index for the dataframe,
         # and the 'dt' column can contain multiple dates for the same entry.
         df.drop_duplicates(["sid", "dt"])
-        df.set_index(['dt'], inplace=True)
-        df = df.tz_localize('UTC')
+        df.set_index(["dt"], inplace=True)
+        df = df.tz_localize("UTC")
         df.sort_index(inplace=True)
 
         cols_to_drop = [self.date_column]
@@ -432,12 +433,11 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             # faster than isinstance.
             if event.sid in asset_cache:
                 event.sid = asset_cache[event.sid]
-            elif hasattr(event.sid, 'start_date'):
+            elif hasattr(event.sid, "start_date"):
                 # Clone for user algo code, if we haven't already.
                 asset_cache[event.sid] = event.sid
             elif self.finder and isinstance(event.sid, int):
-                asset = self.finder.retrieve_asset(event.sid,
-                                                   default_none=True)
+                asset = self.finder.retrieve_asset(event.sid, default_none=True)
                 if asset:
                     # Clone for user algo code.
                     event.sid = asset_cache[asset] = asset
@@ -461,37 +461,37 @@ class PandasRequestsCSV(PandasCSV):
     # maximum number of bytes to read in at a time
     CONTENT_CHUNK_SIZE = 4096
 
-    def __init__(self,
-                 url,
-                 pre_func,
-                 post_func,
-                 asset_finder,
-                 trading_day,
-                 start_date,
-                 end_date,
-                 date_column,
-                 date_format,
-                 timezone,
-                 symbol,
-                 mask,
-                 symbol_column,
-                 data_frequency,
-                 country_code,
-                 special_params_checker=None,
-                 **kwargs):
+    def __init__(
+        self,
+        url,
+        pre_func,
+        post_func,
+        asset_finder,
+        trading_day,
+        start_date,
+        end_date,
+        date_column,
+        date_format,
+        timezone,
+        symbol,
+        mask,
+        symbol_column,
+        data_frequency,
+        country_code,
+        special_params_checker=None,
+        **kwargs
+    ):
 
         # Peel off extra requests kwargs, forwarding the remaining kwargs to
         # the superclass.
         # Also returns possible https updated url if sent to http quandl ds
         # If url hasn't changed, will just return the original.
-        self._requests_kwargs, self.url = \
-            mask_requests_args(url,
-                               params_checker=special_params_checker,
-                               **kwargs)
+        self._requests_kwargs, self.url = mask_requests_args(
+            url, params_checker=special_params_checker, **kwargs
+        )
 
         remaining_kwargs = {
-            k: v for k, v in kwargs.items()
-            if k not in self.requests_kwargs
+            k: v for k, v in kwargs.items() if k not in self.requests_kwargs
         }
 
         self.namestring = type(self).__name__
@@ -534,33 +534,32 @@ class PandasRequestsCSV(PandasCSV):
         try:
             response = requests.get(url, **self.requests_kwargs)
         except requests.exceptions.ConnectionError:
-            raise Exception('Could not connect to %s' % url)
+            raise Exception("Could not connect to %s" % url)
 
         if not response.ok:
-            raise Exception('Problem reaching %s' % url)
+            raise Exception("Problem reaching %s" % url)
         elif response.is_redirect:
             # On the offchance we don't catch a redirect URL
             # in validation, this will catch it.
-            new_url = response.headers['location']
+            new_url = response.headers["location"]
             raise FetcherCSVRedirectError(
-                url=url,
-                new_url=new_url,
-                extra={
-                    'old_url': url,
-                    'new_url': new_url
-                }
+                url=url, new_url=new_url, extra={"old_url": url, "new_url": new_url}
             )
 
         content_length = 0
-        logger.info('{} connection established in {:.1f} seconds'.format(
-            url, response.elapsed.total_seconds()))
+        logger.info(
+            "{} connection established in {:.1f} seconds".format(
+                url, response.elapsed.total_seconds()
+            )
+        )
 
         # use the decode_unicode flag to ensure that the output of this is
         # a string, and not bytes.
-        for chunk in response.iter_content(self.CONTENT_CHUNK_SIZE,
-                                           decode_unicode=True):
+        for chunk in response.iter_content(
+            self.CONTENT_CHUNK_SIZE, decode_unicode=True
+        ):
             if content_length > self.MAX_DOCUMENT_SIZE:
-                raise Exception('Document size too big.')
+                raise Exception("Document size too big.")
             if chunk:
                 content_length += len(chunk)
                 yield chunk
@@ -587,11 +586,11 @@ class PandasRequestsCSV(PandasCSV):
             # see if pandas can parse csv data
             frames = read_csv(fd, **self.pandas_kwargs)
 
-            frames_hash = hashlib.md5(str(fd.getvalue()).encode('utf-8'))
+            frames_hash = hashlib.md5(str(fd.getvalue()).encode("utf-8"))
             self.fetch_hash = frames_hash.hexdigest()
         except pd.parser.CParserError:
             # could not parse the data, raise exception
-            raise Exception('Error parsing remote CSV data.')
+            raise Exception("Error parsing remote CSV data.")
         finally:
             fd.close()
 

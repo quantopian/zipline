@@ -23,7 +23,7 @@ def create_args(args, root):
         parse_extension_arg(arg, extension_args)
 
     for name in sorted(extension_args, key=len):
-        path = name.split('.')
+        path = name.split(".")
         update_namespace(root, path, extension_args[name])
 
 
@@ -41,7 +41,7 @@ def parse_extension_arg(arg, arg_dict):
         The dictionary into which the key/value pair will be added
     """
 
-    match = re.match(r'^(([^\d\W]\w*)(\.[^\d\W]\w*)*)=(.*)$', arg)
+    match = re.match(r"^(([^\d\W]\w*)(\.[^\d\W]\w*)*)=(.*)$", arg)
     if match is None:
         raise ValueError(
             "invalid extension argument '%s', must be in key=value form" % arg
@@ -73,8 +73,9 @@ def update_namespace(namespace, path, name):
     else:
         if hasattr(namespace, path[0]):
             if isinstance(getattr(namespace, path[0]), str):
-                raise ValueError("Conflicting assignments at namespace"
-                                 " level '%s'" % path[0])
+                raise ValueError(
+                    "Conflicting assignments at namespace" " level '%s'" % path[0]
+                )
         else:
             a = Namespace()
             setattr(namespace, path[0], a)
@@ -119,21 +120,20 @@ class Registry(object):
             return self._factories[name]()
         except KeyError:
             raise ValueError(
-                "no %s factory registered under name %r, options are: %r" %
-                (self.interface.__name__, name, sorted(self._factories)),
+                "no %s factory registered under name %r, options are: %r"
+                % (self.interface.__name__, name, sorted(self._factories)),
             )
 
     def is_registered(self, name):
-        """Check whether we have a factory registered under ``name``.
-        """
+        """Check whether we have a factory registered under ``name``."""
         return name in self._factories
 
     @curry
     def register(self, name, factory):
         if self.is_registered(name):
             raise ValueError(
-                "%s factory with name %r is already registered" %
-                (self.interface.__name__, name)
+                "%s factory with name %r is already registered"
+                % (self.interface.__name__, name)
             )
 
         self._factories[name] = factory
@@ -145,8 +145,8 @@ class Registry(object):
             del self._factories[name]
         except KeyError:
             raise ValueError(
-                "%s factory %r was not already registered" %
-                (self.interface.__name__, name)
+                "%s factory %r was not already registered"
+                % (self.interface.__name__, name)
             )
 
     def clear(self):
@@ -154,6 +154,7 @@ class Registry(object):
 
 
 # Public wrapper methods for Registry:
+
 
 def get_registry(interface):
     """
@@ -257,8 +258,9 @@ def create_registry(interface):
         The data type specified/decorated, unaltered.
     """
     if interface in custom_types:
-        raise ValueError('there is already a Registry instance '
-                         'for the specified type')
+        raise ValueError(
+            "there is already a Registry instance " "for the specified type"
+        )
     custom_types[interface] = Registry(interface)
     return interface
 

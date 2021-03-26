@@ -19,7 +19,7 @@ def hidden(path):
     path : str
         A filepath.
     """
-    return os.path.split(path)[1].startswith('.')
+    return os.path.split(path)[1].startswith(".")
 
 
 def ensure_directory(path):
@@ -56,7 +56,7 @@ def ensure_file(path):
         The file path to ensure exists.
     """
     ensure_directory_containing(path)
-    open(path, 'a+').close()  # touch the file
+    open(path, "a+").close()  # touch the file
 
 
 def update_modified_time(path, times=None):
@@ -79,7 +79,7 @@ def last_modified_time(path):
     """
     Get the last modified time of path as a Timestamp.
     """
-    return pd.Timestamp(os.path.getmtime(path), unit='s', tz='UTC')
+    return pd.Timestamp(os.path.getmtime(path), unit="s", tz="UTC")
 
 
 def modified_since(path, dt):
@@ -124,9 +124,9 @@ def zipline_root(environ=None):
     if environ is None:
         environ = os.environ
 
-    root = environ.get('ZIPLINE_ROOT', None)
+    root = environ.get("ZIPLINE_ROOT", None)
     if root is None:
-        root = expanduser('~/.zipline')
+        root = expanduser("~/.zipline")
 
     return root
 
@@ -164,7 +164,7 @@ def default_extension(environ=None):
     default_extension_path : str
         The file path to the default zipline extension file.
     """
-    return zipline_path(['extension.py'], environ=environ)
+    return zipline_path(["extension.py"], environ=environ)
 
 
 def data_root(environ=None):
@@ -181,7 +181,7 @@ def data_root(environ=None):
     data_root : str
        The zipline data root.
     """
-    return zipline_path(['data'], environ=environ)
+    return zipline_path(["data"], environ=environ)
 
 
 def ensure_data_root(environ=None):
@@ -207,7 +207,7 @@ def data_path(paths, environ=None):
     newpath : str
         The requested path joined with the zipline data root.
     """
-    return zipline_path(['data'] + list(paths), environ=environ)
+    return zipline_path(["data"] + list(paths), environ=environ)
 
 
 def cache_root(environ=None):
@@ -224,7 +224,7 @@ def cache_root(environ=None):
     cache_root : str
        The zipline cache root.
     """
-    return zipline_path(['cache'], environ=environ)
+    return zipline_path(["cache"], environ=environ)
 
 
 def ensure_cache_root(environ=None):
@@ -250,4 +250,4 @@ def cache_path(paths, environ=None):
     newpath : str
         The requested path joined with the zipline cache root.
     """
-    return zipline_path(['cache'] + list(paths), environ=environ)
+    return zipline_path(["cache"] + list(paths), environ=environ)

@@ -3,7 +3,6 @@ from zipline.utils.sharedoc import copydoc
 
 
 class TestSharedoc(ZiplineTestCase):
-
     def test_copydoc(self):
         def original_docstring_function():
             """
@@ -16,6 +15,5 @@ class TestSharedoc(ZiplineTestCase):
             pass
 
         self.assertEqual(
-            original_docstring_function.__doc__,
-            copied_docstring_function.__doc__
+            original_docstring_function.__doc__, copied_docstring_function.__doc__
         )

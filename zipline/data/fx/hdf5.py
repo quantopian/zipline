@@ -107,11 +107,11 @@ from .utils import check_dts, is_sorted_ascending
 HDF5_FX_VERSION = 0
 HDF5_FX_DEFAULT_CHUNK_SIZE = 75
 
-INDEX = 'index'
-DATA = 'data'
-CURRENCIES = 'currencies'
-DTS = 'dts'
-RATES = 'rates'
+INDEX = "index"
+DATA = "data"
+CURRENCIES = "currencies"
+DTS = "dts"
+RATES = "rates"
 
 log = Logger(__name__)
 
@@ -134,7 +134,8 @@ class HDF5FXRateReader(implements(FXRateReader)):
         if self.version != HDF5_FX_VERSION:
             raise ValueError(
                 "FX Reader version ({}) != File Version ({})".format(
-                    HDF5_FX_VERSION, self.version,
+                    HDF5_FX_VERSION,
+                    self.version,
                 )
             )
 
@@ -156,25 +157,23 @@ class HDF5FXRateReader(implements(FXRateReader)):
     @lazyval
     def version(self):
         try:
-            return self._group.attrs['version']
+            return self._group.attrs["version"]
         except KeyError:
             # TODO: Remove this.
             return 0
 
     @lazyval
     def dts(self):
-        """Column labels for rate groups.
-        """
-        raw_dts = self._group[INDEX][DTS][:].astype('M8[ns]')
+        """Column labels for rate groups."""
+        raw_dts = self._group[INDEX][DTS][:].astype("M8[ns]")
         if not is_sorted_ascending(raw_dts):
             raise ValueError("dts are not sorted for {}!".format(self._group))
 
-        return pd.DatetimeIndex(raw_dts, tz='UTC')
+        return pd.DatetimeIndex(raw_dts, tz="UTC")
 
     @lazyval
     def currencies(self):
-        """Row labels for rate groups.
-        """
+        """Row labels for rate groups."""
         # Currencies are stored as fixed-length bytes in the file, but we want
         # `str` objects in memory.
         bytes_array = self._group[INDEX][CURRENCIES][:]
@@ -191,15 +190,16 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
         check_dts(dts)
 
-        col_ixs = self.dts.searchsorted(dts, side='right') - 1
+        col_ixs = self.dts.searchsorted(dts, side="right") - 1
         row_ixs = self.currencies.get_indexer(bases)
 
         try:
             dataset = self._group[DATA][rate][quote][RATES]
         except KeyError:
             raise ValueError(
-                "FX rates not available for rate={}, quote_currency={}."
-                .format(rate, quote)
+                "FX rates not available for rate={}, quote_currency={}.".format(
+                    rate, quote
+                )
             )
 
         # OPTIMIZATION: Column indices correspond to dates, which must be in
@@ -241,8 +241,8 @@ class HDF5FXRateReader(implements(FXRateReader)):
 
 
 class HDF5FXRateWriter(object):
-    """Writer class for HDF5 files consumed by HDF5FXRateReader.
-    """
+    """Writer class for HDF5 files consumed by HDF5FXRateReader."""
+
     def __init__(self, group, date_chunk_size=HDF5_FX_DEFAULT_CHUNK_SIZE):
         self._group = group
         self._date_chunk_size = date_chunk_size
@@ -274,12 +274,11 @@ class HDF5FXRateWriter(object):
         self._write_data_group(dts, currencies, data, chunks)
 
     def _write_metadata(self):
-        self._group.attrs['version'] = HDF5_FX_VERSION
-        self._group.attrs['last_updated_utc'] = str(pd.Timestamp.utcnow())
+        self._group.attrs["version"] = HDF5_FX_VERSION
+        self._group.attrs["last_updated_utc"] = str(pd.Timestamp.utcnow())
 
     def _write_index_group(self, dts, currencies):
-        """Write content of /index.
-        """
+        """Write content of /index."""
         if not is_sorted_ascending(dts):
             raise ValueError("dts is not sorted")
 
@@ -290,14 +289,13 @@ class HDF5FXRateWriter(object):
         index_group = self._group.create_group(INDEX)
 
         self._log_writing(INDEX, DTS)
-        index_group.create_dataset(DTS, data=dts.astype('int64'))
+        index_group.create_dataset(DTS, data=dts.astype("int64"))
 
         self._log_writing(INDEX, CURRENCIES)
-        index_group.create_dataset(CURRENCIES, data=currencies.astype('S3'))
+        index_group.create_dataset(CURRENCIES, data=currencies.astype("S3"))
 
     def _write_data_group(self, dts, currencies, data, chunks):
-        """Write content of /data.
-        """
+        """Write content of /data."""
         data_group = self._group.create_group(DATA)
 
         expected_shape = (len(dts), len(currencies))
@@ -305,23 +303,26 @@ class HDF5FXRateWriter(object):
             if array.shape != expected_shape:
                 raise ValueError(
                     "Unexpected shape for rate={}, quote={}."
-                    "\nExpected shape: {}. Got {}."
-                    .format(rate, quote, expected_shape, array.shape)
+                    "\nExpected shape: {}. Got {}.".format(
+                        rate, quote, expected_shape, array.shape
+                    )
                 )
 
             self._log_writing(DATA, rate, quote)
-            target = data_group.require_group('/'.join((rate, quote)))
+            target = data_group.require_group("/".join((rate, quote)))
 
             # Transpose the rates array so that the hdf5 file holds arrays
             # with currencies as row labels and dates as column labels. This
             # helps with compression, as the *rows* (rather than the columns)
             # all have similar values, which lends itself to the HDF5 file's
             # C-contiguous storage.
-            target.create_dataset(RATES,
-                                  data=array.transpose(),
-                                  chunks=chunks,
-                                  compression='lzf',
-                                  shuffle=True)
+            target.create_dataset(
+                RATES,
+                data=array.transpose(),
+                chunks=chunks,
+                compression="lzf",
+                shuffle=True,
+            )
 
     def _log_writing(self, *path):
-        log.debug("Writing {}", '/'.join(path))
+        log.debug("Writing {}", "/".join(path))

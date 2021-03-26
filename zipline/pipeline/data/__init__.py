@@ -8,11 +8,11 @@ from .dataset import (
 )
 
 __all__ = [
-    'BoundColumn',
-    'Column',
-    'DataSet',
-    'EquityPricing',
-    'DataSetFamily',
-    'DataSetFamilySlice',
-    'USEquityPricing',
+    "BoundColumn",
+    "Column",
+    "DataSet",
+    "EquityPricing",
+    "DataSetFamily",
+    "DataSetFamilySlice",
+    "USEquityPricing",
 ]

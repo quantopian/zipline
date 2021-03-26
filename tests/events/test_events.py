@@ -18,7 +18,7 @@ import random
 from unittest import TestCase
 import warnings
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import pandas as pd
 from trading_calendars import get_calendar
 
@@ -46,7 +46,7 @@ from zipline.utils.events import (
     MAX_MONTH_RANGE,
     MAX_WEEK_RANGE,
     TradingDayOfMonthRule,
-    TradingDayOfWeekRule
+    TradingDayOfWeekRule,
 )
 
 
@@ -55,10 +55,12 @@ def param_range(*args):
 
 
 class TestUtils(TestCase):
-    @parameterized.expand([
-        ('_build_date', _build_date),
-        ('_build_time', _build_time),
-    ])
+    @parameterized.expand(
+        [
+            ("_build_date", _build_date),
+            ("_build_time", _build_time),
+        ]
+    )
     def test_build_none(self, name, f):
         with self.assertRaises(ValueError):
             f(None, {})
@@ -69,7 +71,7 @@ class TestUtils(TestCase):
 
     def test_build_offset_both(self):
         with self.assertRaises(ValueError):
-            _build_offset(datetime.timedelta(minutes=1), {'minutes': 1}, None)
+            _build_offset(datetime.timedelta(minutes=1), {"minutes": 1}, None)
 
     def test_build_offset_exc(self):
         with self.assertRaises(TypeError):
@@ -77,7 +79,7 @@ class TestUtils(TestCase):
             _build_offset(object(), {}, None)
 
     def test_build_offset_kwargs(self):
-        kwargs = {'minutes': 1}
+        kwargs = {"minutes": 1}
         self.assertEqual(
             _build_offset(None, kwargs, None),
             datetime.timedelta(**kwargs),
@@ -93,15 +95,16 @@ class TestUtils(TestCase):
     def test_build_date_both(self):
         with self.assertRaises(ValueError):
             _build_date(
-                datetime.date(year=2014, month=9, day=25), {
-                    'year' : 2014,
-                    'month': 9,
-                    'day'  : 25,
+                datetime.date(year=2014, month=9, day=25),
+                {
+                    "year": 2014,
+                    "month": 9,
+                    "day": 25,
                 },
             )
 
     def test_build_date_kwargs(self):
-        kwargs = {'year': 2014, 'month': 9, 'day': 25}
+        kwargs = {"year": 2014, "month": 9, "day": 25}
         self.assertEqual(
             _build_date(None, kwargs),
             datetime.date(**kwargs),
@@ -117,14 +120,15 @@ class TestUtils(TestCase):
     def test_build_time_both(self):
         with self.assertRaises(ValueError):
             _build_time(
-                datetime.time(hour=1, minute=5), {
-                    'hour'  : 1,
-                    'minute': 5,
+                datetime.time(hour=1, minute=5),
+                {
+                    "hour": 1,
+                    "minute": 5,
                 },
             )
 
     def test_build_time_kwargs(self):
-        kwargs = {'hour': 1, 'minute': 5}
+        kwargs = {"hour": 1, "minute": 5}
         self.assertEqual(
             _build_time(None, kwargs),
             datetime.time(**kwargs),
@@ -174,7 +178,7 @@ class TestEventRule(TestCase):
 
     def test_not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            super(Always, Always()).should_trigger('a')
+            super(Always, Always()).should_trigger("a")
 
 
 def minutes_for_days(cal, ordered_days=False):
@@ -193,7 +197,7 @@ def minutes_for_days(cal, ordered_days=False):
     Iterating over this yields a single day, iterating over the day yields
     the minutes for that day.
     """
-    random.seed('deterministic')
+    random.seed("deterministic")
     if ordered_days:
         # Get a list of 500 trading days, in order. As a performance
         # optimization in AfterOpen and BeforeClose, we rely on the fact that
@@ -204,14 +208,14 @@ def minutes_for_days(cal, ordered_days=False):
 
         def session_picker(day):
             return ordered_session_list[day]
+
     else:
         # Other than AfterOpen and BeforeClose, we don't rely on the the nature
         # of the clock, so we don't care.
         def session_picker(day):
             return random.choice(cal.all_sessions[:-1])
 
-    return [cal.minutes_for_session(session_picker(cnt))
-            for cnt in range(500)]
+    return [cal.minutes_for_session(session_picker(cnt)) for cnt in range(500)]
 
 
 class RuleTestCase(object):
@@ -244,21 +248,19 @@ class RuleTestCase(object):
         classes_to_ignore = [TradingDayOfWeekRule, TradingDayOfMonthRule]
 
         dem = {
-            k for k, v in vars(zipline.utils.events).items()
-            if isinstance(v, type) and
-               issubclass(v, self.class_) and
-               v is not self.class_ and
-               v not in classes_to_ignore and
-               not isabstract(v)
+            k
+            for k, v in vars(zipline.utils.events).items()
+            if isinstance(v, type)
+            and issubclass(v, self.class_)
+            and v is not self.class_
+            and v not in classes_to_ignore
+            and not isabstract(v)
         }
-        ds = {
-            k[5:] for k in dir(self)
-            if k.startswith('test') and k[5:] in dem
-        }
+        ds = {k[5:] for k in dir(self) if k.startswith("test") and k[5:] in dem}
         self.assertTrue(
             dem <= ds,
-            msg='This suite is missing tests for the following classes:\n' +
-                '\n'.join(map(repr, dem - ds)),
+            msg="This suite is missing tests for the following classes:\n"
+            + "\n".join(map(repr, dem - ds)),
         )
 
 
@@ -272,17 +274,16 @@ class StatelessRulesTests(RuleTestCase):
 
         # First day of 09/2014 is closed whereas that for 10/2014 is open
         cls.sept_sessions = cls.cal.sessions_in_range(
-            pd.Timestamp('2014-09-01', tz='UTC'),
-            pd.Timestamp('2014-09-30', tz='UTC'),
+            pd.Timestamp("2014-09-01", tz="UTC"),
+            pd.Timestamp("2014-09-30", tz="UTC"),
         )
         cls.oct_sessions = cls.cal.sessions_in_range(
-            pd.Timestamp('2014-10-01', tz='UTC'),
-            pd.Timestamp('2014-10-31', tz='UTC'),
+            pd.Timestamp("2014-10-01", tz="UTC"),
+            pd.Timestamp("2014-10-31", tz="UTC"),
         )
 
         cls.sept_week = cls.cal.minutes_for_sessions_in_range(
-            pd.Timestamp("2014-09-22", tz='UTC'),
-            pd.Timestamp("2014-09-26", tz='UTC')
+            pd.Timestamp("2014-09-22", tz="UTC"), pd.Timestamp("2014-09-26", tz="UTC")
         )
 
         cls.HALF_SESSION = None
@@ -352,9 +353,7 @@ class StatelessRulesTests(RuleTestCase):
         """
         rule = NthTradingDayOfWeek(0)
         rule.cal = self.cal
-        first_open = self.cal.open_and_close_for_session(
-            self.cal.all_sessions[0]
-        )
+        first_open = self.cal.open_and_close_for_session(self.cal.all_sessions[0])
         self.assertTrue(first_open)
 
     def test_NthTradingDayOfWeek(self):
@@ -384,10 +383,7 @@ class StatelessRulesTests(RuleTestCase):
             for minute in self.sept_week:
                 if should_trigger(minute):
                     n_tdays = 0
-                    session = self.cal.minute_to_session_label(
-                        minute,
-                        direction="none"
-                    )
+                    session = self.cal.minute_to_session_label(minute, direction="none")
                     next_session = self.cal.next_session_label(session)
                     while next_session.dayofweek > session.dayofweek:
                         session = next_session
@@ -436,15 +432,17 @@ class StatelessRulesTests(RuleTestCase):
             self.assertIs(composed.second, rule2)
             self.assertFalse(any(map(should_trigger, minute)))
 
-    @parameterized.expand([
-        ('month_start', NthTradingDayOfMonth),
-        ('month_end', NDaysBeforeLastTradingDayOfMonth),
-        ('week_start', NthTradingDayOfWeek),
-        ('week_end', NthTradingDayOfWeek),
-    ])
+    @parameterized.expand(
+        [
+            ("month_start", NthTradingDayOfMonth),
+            ("month_end", NDaysBeforeLastTradingDayOfMonth),
+            ("week_start", NthTradingDayOfWeek),
+            ("week_end", NthTradingDayOfWeek),
+        ]
+    )
     def test_pass_float_to_day_of_period_rule(self, name, rule_type):
         with warnings.catch_warnings(record=True) as raised_warnings:
-            warnings.simplefilter('always')
+            warnings.simplefilter("always")
             rule_type(n=3)  # Shouldn't trigger a warning.
             rule_type(n=3.0)  # Should trigger a warning about float coercion.
 
@@ -485,6 +483,7 @@ class StatefulRulesTests(RuleTestCase):
             A rule that counts the number of times another rule triggers
             but forwards the results out.
             """
+
             count = 0
 
             def should_trigger(self, dt):

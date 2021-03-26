@@ -9,8 +9,8 @@ from subprocess import check_call
 
 HERE = dirname(abspath(__file__))
 ZIPLINE_ROOT = dirname(HERE)
-TEMP_LOCATION = '/tmp/zipline-doc'
-TEMP_LOCATION_GLOB = TEMP_LOCATION + '/*'
+TEMP_LOCATION = "/tmp/zipline-doc"
+TEMP_LOCATION_GLOB = TEMP_LOCATION + "/*"
 
 
 @contextmanager
@@ -37,29 +37,26 @@ def main():
 
     try:
         print("Cleaning docs with 'make clean'")
-        check_call(['make', 'clean'])
+        check_call(["make", "clean"])
         print("Building docs with 'make html'")
-        check_call(['make', 'html'])
+        check_call(["make", "html"])
 
         print("Clearing temp location '%s'" % TEMP_LOCATION)
         rmtree(TEMP_LOCATION, ignore_errors=True)
 
         with removing(TEMP_LOCATION):
             print("Copying built files to temp location.")
-            move('build/html', TEMP_LOCATION)
+            move("build/html", TEMP_LOCATION)
 
             print("Moving to '%s'" % ZIPLINE_ROOT)
             os.chdir(ZIPLINE_ROOT)
 
             print("Checking out gh-pages branch.")
             check_call(
-                [
-                    'git', 'branch', '-f',
-                    '--track', 'gh-pages', 'origin/gh-pages'
-                ]
+                ["git", "branch", "-f", "--track", "gh-pages", "origin/gh-pages"]
             )
-            check_call(['git', 'checkout', 'gh-pages'])
-            check_call(['git', 'reset', '--hard', 'origin/gh-pages'])
+            check_call(["git", "checkout", "gh-pages"])
+            check_call(["git", "reset", "--hard", "origin/gh-pages"])
 
             print("Copying built files:")
             for file_ in glob(TEMP_LOCATION_GLOB):
@@ -67,7 +64,7 @@ def main():
 
                 print("%s -> %s" % (file_, base))
                 ensure_not_exists(base)
-                move(file_, '.')
+                move(file_, ".")
     finally:
         os.chdir(old_dir)
 
@@ -76,5 +73,5 @@ def main():
     print("If you are happy with these changes, commit and push to gh-pages.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -34,7 +34,7 @@ from .basic import (  # noqa reexport
     MaxDrawdown,
     SimpleMovingAverage,
     VWAP,
-    WeightedAverageValue
+    WeightedAverageValue,
 )
 
 
@@ -46,6 +46,7 @@ class RSI(SingleInputMixin, CustomFactor):
 
     **Default Window Length**: 15
     """
+
     window_length = 15
     inputs = (EquityPricing.close,)
     window_safe = True
@@ -56,7 +57,7 @@ class RSI(SingleInputMixin, CustomFactor):
         downs = abs(nanmean(clip(diffs, -inf, 0), axis=0))
         return evaluate(
             "100 - (100 / (1 + (ups / downs)))",
-            local_dict={'ups': ups, 'downs': downs},
+            local_dict={"ups": ups, "downs": downs},
             global_dict={},
             out=out,
         )
@@ -80,9 +81,10 @@ class BollingerBands(CustomFactor):
         The number of standard deviations to add or subtract to create the
         upper and lower bands.
     """
-    params = ('k',)
+
+    params = ("k",)
     inputs = (EquityPricing.close,)
-    outputs = 'lower', 'middle', 'upper'
+    outputs = "lower", "middle", "upper"
 
     def compute(self, today, assets, out, close, k):
         difference = k * nanstd(close, axis=0)
@@ -104,28 +106,28 @@ class Aroon(CustomFactor):
     window_length : int > 0
         Length of the lookback window over which to compute the Aroon
         indicator.
-    """ # noqa
+    """  # noqa
 
     inputs = (EquityPricing.low, EquityPricing.high)
-    outputs = ('down', 'up')
+    outputs = ("down", "up")
 
     def compute(self, today, assets, out, lows, highs):
         wl = self.window_length
         high_date_index = nanargmax(highs, axis=0)
         low_date_index = nanargmin(lows, axis=0)
         evaluate(
-            '(100 * high_date_index) / (wl - 1)',
+            "(100 * high_date_index) / (wl - 1)",
             local_dict={
-                'high_date_index': high_date_index,
-                'wl': wl,
+                "high_date_index": high_date_index,
+                "wl": wl,
             },
             out=out.up,
         )
         evaluate(
-            '(100 * low_date_index) / (wl - 1)',
+            "(100 * low_date_index) / (wl - 1)",
             local_dict={
-                'low_date_index': low_date_index,
-                'wl': wl,
+                "low_date_index": low_date_index,
+                "wl": wl,
             },
             out=out.down,
         )
@@ -150,6 +152,7 @@ class FastStochasticOscillator(CustomFactor):
     -------
     out: %K oscillator
     """
+
     inputs = (EquityPricing.close, EquityPricing.low, EquityPricing.high)
     window_safe = True
     window_length = 14
@@ -161,11 +164,11 @@ class FastStochasticOscillator(CustomFactor):
         today_closes = closes[-1]
 
         evaluate(
-            '((tc - ll) / (hh - ll)) * 100',
+            "((tc - ll) / (hh - ll)) * 100",
             local_dict={
-                'tc': today_closes,
-                'll': lowest_lows,
-                'hh': highest_highs,
+                "tc": today_closes,
+                "ll": lowest_lows,
+                "hh": highest_highs,
             },
             global_dict={},
             out=out,
@@ -192,20 +195,20 @@ class IchimokuKinkoHyo(CustomFactor):
         The length of the window for the kijou-sen.
     chikou_span_length : int >= 0, <= window_length
         The lag for the chikou span.
-    """ # noqa
+    """  # noqa
 
     params = {
-        'tenkan_sen_length': 9,
-        'kijun_sen_length': 26,
-        'chikou_span_length': 26,
+        "tenkan_sen_length": 9,
+        "kijun_sen_length": 26,
+        "chikou_span_length": 26,
     }
     inputs = (EquityPricing.high, EquityPricing.low, EquityPricing.close)
     outputs = (
-        'tenkan_sen',
-        'kijun_sen',
-        'senkou_span_a',
-        'senkou_span_b',
-        'chikou_span',
+        "tenkan_sen",
+        "kijun_sen",
+        "senkou_span_a",
+        "senkou_span_b",
+        "chikou_span",
     )
     window_length = 52
 
@@ -214,29 +217,32 @@ class IchimokuKinkoHyo(CustomFactor):
         for k, v in self.params.items():
             if v > self.window_length:
                 raise ValueError(
-                    '%s must be <= the window_length: %s > %s' % (
-                        k, v, self.window_length,
+                    "%s must be <= the window_length: %s > %s"
+                    % (
+                        k,
+                        v,
+                        self.window_length,
                     ),
                 )
 
-    def compute(self,
-                today,
-                assets,
-                out,
-                high,
-                low,
-                close,
-                tenkan_sen_length,
-                kijun_sen_length,
-                chikou_span_length):
+    def compute(
+        self,
+        today,
+        assets,
+        out,
+        high,
+        low,
+        close,
+        tenkan_sen_length,
+        kijun_sen_length,
+        chikou_span_length,
+    ):
 
         out.tenkan_sen = tenkan_sen = (
-            high[-tenkan_sen_length:].max(axis=0) +
-            low[-tenkan_sen_length:].min(axis=0)
+            high[-tenkan_sen_length:].max(axis=0) + low[-tenkan_sen_length:].min(axis=0)
         ) / 2
         out.kijun_sen = kijun_sen = (
-            high[-kijun_sen_length:].max(axis=0) +
-            low[-kijun_sen_length:].min(axis=0)
+            high[-kijun_sen_length:].max(axis=0) + low[-kijun_sen_length:].min(axis=0)
         ) / 2
         out.senkou_span_a = (tenkan_sen + kijun_sen) / 2
         out.senkou_span_b = (high.max(axis=0) + low.min(axis=0)) / 2
@@ -253,17 +259,16 @@ class RateOfChangePercentage(CustomFactor):
     price - the current price
     prevPrice - the price n days ago, equals window length
     """
+
     def compute(self, today, assets, out, close):
         today_close = close[-1]
         prev_close = close[0]
-        evaluate('((tc - pc) / pc) * 100',
-                 local_dict={
-                     'tc': today_close,
-                     'pc': prev_close
-                 },
-                 global_dict={},
-                 out=out,
-                 )
+        evaluate(
+            "((tc - pc) / pc) * 100",
+            local_dict={"tc": today_close, "pc": prev_close},
+            global_dict={},
+            out=out,
+        )
 
 
 class TrueRange(CustomFactor):
@@ -279,6 +284,7 @@ class TrueRange(CustomFactor):
 
     **Default Window Length:** 2
     """
+
     inputs = (
         EquityPricing.high,
         EquityPricing.low,
@@ -291,12 +297,14 @@ class TrueRange(CustomFactor):
         high_to_prev_close = abs(highs[1:] - closes[:-1])
         low_to_prev_close = abs(lows[1:] - closes[:-1])
         out[:] = nanmax(
-            dstack((
-                high_to_low,
-                high_to_prev_close,
-                low_to_prev_close,
-            )),
-            2
+            dstack(
+                (
+                    high_to_low,
+                    high_to_prev_close,
+                    low_to_prev_close,
+                )
+            ),
+            2,
         )
 
 
@@ -327,24 +335,20 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
     ``window_length`` parameter. ``window_length`` is inferred from
     ``slow_period`` and ``signal_period``.
     """
+
     inputs = (EquityPricing.close,)
     # We don't use the default form of `params` here because we want to
     # dynamically calculate `window_length` from the period lengths in our
     # __new__.
-    params = ('fast_period', 'slow_period', 'signal_period')
+    params = ("fast_period", "slow_period", "signal_period")
 
     @expect_bounded(
-        __funcname='MACDSignal',
+        __funcname="MACDSignal",
         fast_period=(1, None),  # These must all be >= 1.
         slow_period=(1, None),
         signal_period=(1, None),
     )
-    def __new__(cls,
-                fast_period=12,
-                slow_period=26,
-                signal_period=9,
-                *args,
-                **kwargs):
+    def __new__(cls, fast_period=12, slow_period=26, signal_period=9, *args, **kwargs):
 
         if slow_period <= fast_period:
             raise ValueError(
@@ -361,26 +365,20 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
             slow_period=slow_period,
             signal_period=signal_period,
             window_length=slow_period + signal_period - 1,
-            *args, **kwargs
+            *args,
+            **kwargs
         )
 
     def _ewma(self, data, length):
         decay_rate = 1.0 - (2.0 / (1.0 + length))
-        return average(
-            data,
-            axis=1,
-            weights=exponential_weights(length, decay_rate)
-        )
+        return average(data, axis=1, weights=exponential_weights(length, decay_rate))
 
-    def compute(self, today, assets, out, close, fast_period, slow_period,
-                signal_period):
-        slow_EWMA = self._ewma(
-            rolling_window(close, slow_period),
-            slow_period
-        )
+    def compute(
+        self, today, assets, out, close, fast_period, slow_period, signal_period
+    ):
+        slow_EWMA = self._ewma(rolling_window(close, slow_period), slow_period)
         fast_EWMA = self._ewma(
-            rolling_window(close, fast_period)[-signal_period:],
-            fast_period
+            rolling_window(close, fast_period)[-signal_period:], fast_period
         )
         macd = fast_EWMA - slow_EWMA
         out[:] = self._ewma(macd.T, signal_period)

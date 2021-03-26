@@ -18,7 +18,7 @@ class All(CustomFilter):
     """
 
     def compute(self, today, assets, out, arg):
-        out[:] = (arg.sum(axis=0) == self.window_length)
+        out[:] = arg.sum(axis=0) == self.window_length
 
 
 class Any(CustomFilter):
@@ -32,7 +32,7 @@ class Any(CustomFilter):
     """
 
     def compute(self, today, assets, out, arg):
-        out[:] = (arg.sum(axis=0) > 0)
+        out[:] = arg.sum(axis=0) > 0
 
 
 class AtLeastN(CustomFilter):
@@ -45,7 +45,7 @@ class AtLeastN(CustomFilter):
     **Default Window Length:** None
     """
 
-    params = ('N',)
+    params = ("N",)
 
     def compute(self, today, assets, out, arg, N):
-        out[:] = (arg.sum(axis=0) >= N)
+        out[:] = arg.sum(axis=0) >= N

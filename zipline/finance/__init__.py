@@ -15,7 +15,4 @@
 
 from . import execution, trading
 
-__all__ = [
-    'trading',
-    'execution'
-]
+__all__ = ["trading", "execution"]

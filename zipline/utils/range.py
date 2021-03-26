@@ -25,7 +25,8 @@ def from_tuple(tup):
     """
     if len(tup) not in (2, 3):
         raise ValueError(
-            'tuple must contain 2 or 3 elements, not: %d (%r' % (
+            "tuple must contain 2 or 3 elements, not: %d (%r"
+            % (
                 len(tup),
                 tup,
             ),
@@ -62,7 +63,8 @@ def maybe_from_tuple(tup_or_range):
         return tup_or_range
 
     raise ValueError(
-        'maybe_from_tuple expects a tuple or range, got %r: %r' % (
+        "maybe_from_tuple expects a tuple or range, got %r: %r"
+        % (
             type(tup_or_range).__name__,
             tup_or_range,
         ),
@@ -85,9 +87,9 @@ def _check_steps(a, b):
         Raised when either step is not 1.
     """
     if a.step != 1:
-        raise ValueError('a.step must be equal to 1, got: %s' % a.step)
+        raise ValueError("a.step must be equal to 1, got: %s" % a.step)
     if b.step != 1:
-        raise ValueError('b.step must be equal to 1, got: %s' % b.step)
+        raise ValueError("b.step must be equal to 1, got: %s" % b.step)
 
 
 def overlap(a, b):
@@ -128,8 +130,7 @@ def merge(a, b):
 
 
 def _combine(n, rs):
-    """helper for ``_group_ranges``
-    """
+    """helper for ``_group_ranges``"""
     try:
         r, rs = peek(rs)
     except StopIteration:
@@ -217,5 +218,5 @@ def intersecting_ranges(ranges):
     >>> list(intersecting_ranges(ranges))
     [range(0, 1), range(1, 2)]
     """
-    ranges = sorted(ranges, key=op.attrgetter('start'))
+    ranges = sorted(ranges, key=op.attrgetter("start"))
     return sorted_diff(ranges, group_ranges(ranges))

@@ -18,18 +18,20 @@ import pandas as pd
 from zipline.errors import (
     InvalidBenchmarkAsset,
     BenchmarkAssetNotAvailableTooEarly,
-    BenchmarkAssetNotAvailableTooLate
+    BenchmarkAssetNotAvailableTooLate,
 )
 
 
 class BenchmarkSource(object):
-    def __init__(self,
-                 benchmark_asset,
-                 trading_calendar,
-                 sessions,
-                 data_portal,
-                 emission_rate="daily",
-                 benchmark_returns=None):
+    def __init__(
+        self,
+        benchmark_asset,
+        trading_calendar,
+        sessions,
+        data_portal,
+        emission_rate="daily",
+        benchmark_returns=None,
+    ):
         self.benchmark_asset = benchmark_asset
         self.sessions = sessions
         self.emission_rate = emission_rate
@@ -39,13 +41,12 @@ class BenchmarkSource(object):
             self._precalculated_series = pd.Series()
         elif benchmark_asset is not None:
             self._validate_benchmark(benchmark_asset)
-            (self._precalculated_series,
-             self._daily_returns) = self._initialize_precalculated_series(
-                 benchmark_asset,
-                 trading_calendar,
-                 sessions,
-                 data_portal
-              )
+            (
+                self._precalculated_series,
+                self._daily_returns,
+            ) = self._initialize_precalculated_series(
+                benchmark_asset, trading_calendar, sessions, data_portal
+            )
         elif benchmark_returns is not None:
             self._daily_returns = daily_series = benchmark_returns.reindex(
                 sessions,
@@ -55,21 +56,18 @@ class BenchmarkSource(object):
                 # we need to take the env's benchmark returns, which are daily,
                 # and resample them to minute
                 minutes = trading_calendar.minutes_for_sessions_in_range(
-                    sessions[0],
-                    sessions[-1]
+                    sessions[0], sessions[-1]
                 )
 
-                minute_series = daily_series.reindex(
-                    index=minutes,
-                    method="ffill"
-                )
+                minute_series = daily_series.reindex(index=minutes, method="ffill")
 
                 self._precalculated_series = minute_series
             else:
                 self._precalculated_series = daily_series
         else:
-            raise Exception("Must provide either benchmark_asset or "
-                            "benchmark_returns.")
+            raise Exception(
+                "Must provide either benchmark_asset or " "benchmark_returns."
+            )
 
     def get_value(self, dt):
         """Look up the returns for a given dt.
@@ -148,14 +146,13 @@ class BenchmarkSource(object):
         # check if this security has a stock dividend.  if so, raise an
         # error suggesting that the user pick a different asset to use
         # as benchmark.
-        stock_dividends = \
-            self.data_portal.get_stock_dividends(self.benchmark_asset,
-                                                 self.sessions)
+        stock_dividends = self.data_portal.get_stock_dividends(
+            self.benchmark_asset, self.sessions
+        )
 
         if len(stock_dividends) > 0:
             raise InvalidBenchmarkAsset(
-                sid=str(self.benchmark_asset),
-                dt=stock_dividends[0]["ex_date"]
+                sid=str(self.benchmark_asset), dt=stock_dividends[0]["ex_date"]
             )
 
         if benchmark_asset.start_date > self.sessions[0]:
@@ -163,7 +160,7 @@ class BenchmarkSource(object):
             raise BenchmarkAssetNotAvailableTooEarly(
                 sid=str(self.benchmark_asset),
                 dt=self.sessions[0],
-                start_dt=benchmark_asset.start_date
+                start_dt=benchmark_asset.start_date,
             )
 
         if benchmark_asset.end_date < self.sessions[-1]:
@@ -171,7 +168,7 @@ class BenchmarkSource(object):
             raise BenchmarkAssetNotAvailableTooLate(
                 sid=str(self.benchmark_asset),
                 dt=self.sessions[-1],
-                end_dt=benchmark_asset.end_date
+                end_dt=benchmark_asset.end_date,
             )
 
     @staticmethod
@@ -179,9 +176,7 @@ class BenchmarkSource(object):
         return (g[-1] - g[0]) / g[0]
 
     @classmethod
-    def downsample_minute_return_series(cls,
-                                        trading_calendar,
-                                        minutely_returns):
+    def downsample_minute_return_series(cls, trading_calendar, minutely_returns):
         sessions = trading_calendar.minute_index_to_session_labels(
             minutely_returns.index,
         )
@@ -193,11 +188,9 @@ class BenchmarkSource(object):
         daily_returns.index = closes.index
         return daily_returns.iloc[1:]
 
-    def _initialize_precalculated_series(self,
-                                         asset,
-                                         trading_calendar,
-                                         trading_days,
-                                         data_portal):
+    def _initialize_precalculated_series(
+        self, asset, trading_calendar, trading_days, data_portal
+    ):
         """
         Internal method that pre-calculates the benchmark return series for
         use in the simulation.
@@ -244,7 +237,7 @@ class BenchmarkSource(object):
                 frequency="1m",
                 field="price",
                 data_frequency=self.emission_rate,
-                ffill=True
+                ffill=True,
             )[asset]
 
             return (
@@ -268,7 +261,7 @@ class BenchmarkSource(object):
                 frequency="1d",
                 field="price",
                 data_frequency=self.emission_rate,
-                ffill=True
+                ffill=True,
             )[asset]
 
             returns = benchmark_series.pct_change()[1:]
@@ -283,21 +276,21 @@ class BenchmarkSource(object):
                 frequency="1d",
                 field="price",
                 data_frequency=self.emission_rate,
-                ffill=True
+                ffill=True,
             )[asset]
 
             # get a minute history window of the first day
             first_open = data_portal.get_spot_value(
                 asset,
-                'open',
+                "open",
                 trading_days[0],
-                'daily',
+                "daily",
             )
             first_close = data_portal.get_spot_value(
                 asset,
-                'close',
+                "close",
                 trading_days[0],
-                'daily',
+                "daily",
             )
 
             first_day_return = (first_close - first_open) / first_open
@@ -307,6 +300,6 @@ class BenchmarkSource(object):
             return returns, returns
         else:
             raise ValueError(
-                'cannot set benchmark to asset that does not exist during'
-                ' the simulation period (asset start date=%r)' % start_date
+                "cannot set benchmark to asset that does not exist during"
+                " the simulation period (asset start date=%r)" % start_date
             )

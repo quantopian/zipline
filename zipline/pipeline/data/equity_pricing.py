@@ -12,6 +12,7 @@ class EquityPricing(DataSet):
     :class:`~zipline.pipeline.data.DataSet` containing daily trading prices and
     volumes.
     """
+
     open = Column(float64_dtype, currency_aware=True)
     high = Column(float64_dtype, currency_aware=True)
     low = Column(float64_dtype, currency_aware=True)

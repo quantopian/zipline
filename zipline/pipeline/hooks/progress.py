@@ -21,6 +21,7 @@ class ProgressHooks(implements(PipelineHooks)):
         Function producing a new object with a ``publish()`` method that takes
         a ``ProgressModel`` and publishes progress to a consumer.
     """
+
     def __init__(self, publisher_factory):
         self._publisher_factory = publisher_factory
         self._reset_transient_state()
@@ -41,8 +42,7 @@ class ProgressHooks(implements(PipelineHooks)):
 
     @classmethod
     def with_static_publisher(cls, publisher):
-        """Construct a ProgressHooks that uses an already-constructed publisher.
-        """
+        """Construct a ProgressHooks that uses an already-constructed publisher."""
         return cls(publisher_factory=lambda: publisher)
 
     def _publish(self):
@@ -160,7 +160,7 @@ class ProgressModel(object):
         self._progress = 0.0
         self._days_completed = 0
 
-        self._state = 'init'
+        self._state = "init"
 
         # Number of days in current chunk.
         self._current_chunk_size = None
@@ -195,9 +195,7 @@ class ProgressModel(object):
     @property
     def execution_time(self):
         if self._end_time is None:
-            raise ValueError(
-                "Can't get execution_time until execution is complete."
-            )
+            raise ValueError("Can't get execution_time until execution is complete.")
         return self._end_time - self._start_time
 
     @property
@@ -237,14 +235,14 @@ class ProgressModel(object):
         self._progress += self._completed_chunk_increment
 
     def start_load_terms(self, terms):
-        self._state = 'loading'
+        self._state = "loading"
         self._current_work = terms
 
     def finish_load_terms(self, terms):
         self._finish_terms(nterms=len(terms))
 
     def start_compute_term(self, term):
-        self._state = 'computing'
+        self._state = "computing"
         self._current_work = [term]
 
     def finish_compute_term(self, term):
@@ -253,9 +251,9 @@ class ProgressModel(object):
     def finish(self, success):
         self._end_time = time.time()
         if success:
-            self._state = 'success'
+            self._state = "success"
         else:
-            self._state = 'error'
+            self._state = "error"
 
     def _finish_terms(self, nterms):
         self._progress += nterms * self._completed_term_increment
@@ -263,6 +261,7 @@ class ProgressModel(object):
 
 try:
     import ipywidgets
+
     HAVE_WIDGETS = True
 
     # This VBox subclass exists to work around a strange display issue but
@@ -274,11 +273,13 @@ try:
         def __repr__(self):
             return ""
 
+
 except ImportError:
     HAVE_WIDGETS = False
 
 try:
     from IPython.display import display, HTML as IPython_HTML
+
     HAVE_IPYTHON = True
 except ImportError:
     HAVE_IPYTHON = False
@@ -287,15 +288,14 @@ except ImportError:
 # XXX: This class is currently untested, because we don't require ipywidgets as
 #      a test dependency. Be careful if you make changes to this.
 class IPythonWidgetProgressPublisher(object):
-    """A progress publisher that publishes to an IPython/Jupyter widget.
-    """
+    """A progress publisher that publishes to an IPython/Jupyter widget."""
 
     def __init__(self):
         missing = []
         if not HAVE_WIDGETS:
-            missing.append('ipywidgets')
+            missing.append("ipywidgets")
         elif not HAVE_IPYTHON:
-            missing.append('IPython')
+            missing.append("IPython")
 
         if missing:
             raise ValueError(
@@ -307,9 +307,9 @@ class IPythonWidgetProgressPublisher(object):
         self._heading = ipywidgets.HTML()
 
         # Percent Complete Indicator to the left of the bar.
-        indicator_width = '120px'
+        indicator_width = "120px"
         self._percent_indicator = ipywidgets.HTML(
-            layout={'width': indicator_width},
+            layout={"width": indicator_width},
         )
 
         # The progress bar itself.
@@ -317,9 +317,9 @@ class IPythonWidgetProgressPublisher(object):
             value=0.0,
             min=0.0,
             max=100.0,
-            bar_style='info',
+            bar_style="info",
             # Leave enough space for the percent indicator.
-            layout={'width': 'calc(100% - {})'.format(indicator_width)},
+            layout={"width": "calc(100% - {})".format(indicator_width)},
         )
         bar_and_percent = ipywidgets.HBox([self._percent_indicator, self._bar])
 
@@ -331,11 +331,11 @@ class IPythonWidgetProgressPublisher(object):
             layout={
                 # Override default border settings to make details tab less
                 # heavy.
-                'border': '1px',
+                "border": "1px",
             },
         )
         # There's no public interface for setting title in the constructor :/.
-        self._details_tab.set_title(0, 'Details')
+        self._details_tab.set_title(0, "Details")
 
         # Container for the combined widget.
         self._layout = ProgressBarContainer(
@@ -345,51 +345,54 @@ class IPythonWidgetProgressPublisher(object):
                 self._details_tab,
             ],
             # Overall layout consumes 75% of the page.
-            layout={'width': '75%'},
+            layout={"width": "75%"},
         )
 
         self._displayed = False
 
     def publish(self, model):
-        if model.state == 'init':
-            self._heading.value = '<b>Analyzing Pipeline...</b>'
+        if model.state == "init":
+            self._heading.value = "<b>Analyzing Pipeline...</b>"
             self._set_progress(0.0)
             self._ensure_displayed()
 
-        elif model.state in ('loading', 'computing'):
+        elif model.state in ("loading", "computing"):
 
             term_list = self._render_term_list(model.current_work)
-            if model.state == 'loading':
-                details_heading = '<b>Loading Inputs:</b>'
+            if model.state == "loading":
+                details_heading = "<b>Loading Inputs:</b>"
             else:
-                details_heading = '<b>Computing Expression:</b>'
+                details_heading = "<b>Computing Expression:</b>"
             self._details_body.value = details_heading + term_list
 
             chunk_start, chunk_end = model.current_chunk_bounds
             self._heading.value = (
-                "<b>Running Pipeline</b>: Chunk Start={}, Chunk End={}"
-                .format(chunk_start.date(), chunk_end.date())
+                "<b>Running Pipeline</b>: Chunk Start={}, Chunk End={}".format(
+                    chunk_start.date(), chunk_end.date()
+                )
             )
 
             self._set_progress(model.percent_complete)
 
             self._ensure_displayed()
 
-        elif model.state == 'success':
+        elif model.state == "success":
             # Replace widget layout with html that can be persisted.
             self._stop_displaying()
             display(
-                IPython_HTML("<b>Pipeline Execution Time:</b> {}".format(
-                    self._format_execution_time(model.execution_time)
-                )),
+                IPython_HTML(
+                    "<b>Pipeline Execution Time:</b> {}".format(
+                        self._format_execution_time(model.execution_time)
+                    )
+                ),
             )
 
-        elif model.state == 'error':
-            self._bar.bar_style = 'danger'
+        elif model.state == "error":
+            self._bar.bar_style = "danger"
             self._stop_displaying()
         else:
             self._layout.close()
-            raise ValueError('Unknown display state: {!r}'.format(model.state))
+            raise ValueError("Unknown display state: {!r}".format(model.state))
 
     def _ensure_displayed(self):
         if not self._displayed:
@@ -401,16 +404,15 @@ class IPythonWidgetProgressPublisher(object):
 
     @staticmethod
     def _render_term_list(terms):
-        list_elements = ''.join([
-             '<li><pre>{}</pre></li>'.format(repr_htmlsafe(t))
-             for t in terms
-        ])
-        return '<ul>{}</ul>'.format(list_elements)
+        list_elements = "".join(
+            ["<li><pre>{}</pre></li>".format(repr_htmlsafe(t)) for t in terms]
+        )
+        return "<ul>{}</ul>".format(list_elements)
 
     def _set_progress(self, percent_complete):
         self._bar.value = percent_complete
-        self._percent_indicator.value = (
-            "<b>{:.2f}% Complete</b>".format(percent_complete)
+        self._percent_indicator.value = "<b>{:.2f}% Complete</b>".format(
+            percent_complete
         )
 
     @staticmethod
@@ -427,10 +429,11 @@ class IPythonWidgetProgressPublisher(object):
         formatted : str
             User-facing text representation of elapsed time.
         """
+
         def maybe_s(n):
             if n == 1:
-                return ''
-            return 's'
+                return ""
+            return "s"
 
         minutes, seconds = divmod(total_seconds, 60)
         minutes = int(minutes)
@@ -438,8 +441,10 @@ class IPythonWidgetProgressPublisher(object):
             hours, minutes = divmod(minutes, 60)
             t = "{hours} Hour{hs}, {minutes} Minute{ms}, {seconds:.2f} Seconds"
             return t.format(
-                hours=hours, hs=maybe_s(hours),
-                minutes=minutes, ms=maybe_s(minutes),
+                hours=hours,
+                hs=maybe_s(hours),
+                minutes=minutes,
+                ms=maybe_s(minutes),
                 seconds=seconds,
             )
         elif minutes >= 1:
@@ -454,15 +459,18 @@ class IPythonWidgetProgressPublisher(object):
 
 
 class TestingProgressPublisher(object):
-    """A progress publisher that records a trace of model states for testing.
-    """
-    TraceState = namedtuple('TraceState', [
-        'state',
-        'percent_complete',
-        'execution_bounds',
-        'current_chunk_bounds',
-        'current_work',
-    ])
+    """A progress publisher that records a trace of model states for testing."""
+
+    TraceState = namedtuple(
+        "TraceState",
+        [
+            "state",
+            "percent_complete",
+            "execution_bounds",
+            "current_chunk_bounds",
+            "current_work",
+        ],
+    )
 
     def __init__(self):
         self.trace = []
@@ -474,7 +482,7 @@ class TestingProgressPublisher(object):
                 percent_complete=model.percent_complete,
                 execution_bounds=model.execution_bounds,
                 current_chunk_bounds=model.current_chunk_bounds,
-                current_work=model.current_work
+                current_work=model.current_work,
             ),
         )
 

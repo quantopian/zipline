@@ -1,4 +1,4 @@
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 import pandas as pd
 import talib
@@ -25,7 +25,6 @@ from .base import BaseUSEquityPipelineTestCase
 
 
 class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
-
     def closes(self, mask_last_sid):
         data = self.arange_data(dtype=np.float64)
         if mask_last_sid:
@@ -64,7 +63,7 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
         # Stack all of our uppers, middles, lowers into three 2d arrays
         # whose columns are the sids. After that, slice off only the
         # rows we care about.
-        where = np.s_[window_length - 1:]
+        where = np.s_[window_length - 1 :]
         uppers = np.column_stack(upper_cols)[where]
         middles = np.column_stack(middle_cols)[where]
         lowers = np.column_stack(lower_cols)[where]
@@ -85,14 +84,14 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
 
         self.check_terms(
             terms={
-                'upper': bbands.upper,
-                'middle': bbands.middle,
-                'lower': bbands.lower,
+                "upper": bbands.upper,
+                "middle": bbands.middle,
+                "lower": bbands.lower,
             },
             expected={
-                'upper': expected[0],
-                'middle': expected[1],
-                'lower': expected[2],
+                "upper": expected[0],
+                "middle": expected[1],
+                "lower": expected[2],
             },
             initial_workspace={
                 USEquityPricing.close: AdjustedArray(
@@ -115,30 +114,47 @@ class BollingerBandsTestCase(BaseUSEquityPipelineTestCase):
 class AroonTestCase(ZiplineTestCase):
     window_length = 10
     nassets = 5
-    dtype = [('down', 'f8'), ('up', 'f8')]
+    dtype = [("down", "f8"), ("up", "f8")]
 
-    @parameterized.expand([
-        (np.arange(window_length),
-         np.arange(window_length) + 1,
-         np.recarray(shape=(nassets,), dtype=dtype,
-                     buf=np.array([0, 100] * nassets, dtype='f8'))),
-        (np.arange(window_length, 0, -1),
-         np.arange(window_length, 0, -1) - 1,
-         np.recarray(shape=(nassets,), dtype=dtype,
-                     buf=np.array([100, 0] * nassets, dtype='f8'))),
-        (np.array([10, 10, 10, 1, 10, 10, 10, 10, 10, 10]),
-         np.array([1, 1, 1, 1, 1, 10, 1, 1, 1, 1]),
-         np.recarray(shape=(nassets,), dtype=dtype,
-                     buf=np.array([100 * 3 / 9, 100 * 5 / 9] * nassets,
-                                  dtype='f8'))),
-    ])
+    @parameterized.expand(
+        [
+            (
+                np.arange(window_length),
+                np.arange(window_length) + 1,
+                np.recarray(
+                    shape=(nassets,),
+                    dtype=dtype,
+                    buf=np.array([0, 100] * nassets, dtype="f8"),
+                ),
+            ),
+            (
+                np.arange(window_length, 0, -1),
+                np.arange(window_length, 0, -1) - 1,
+                np.recarray(
+                    shape=(nassets,),
+                    dtype=dtype,
+                    buf=np.array([100, 0] * nassets, dtype="f8"),
+                ),
+            ),
+            (
+                np.array([10, 10, 10, 1, 10, 10, 10, 10, 10, 10]),
+                np.array([1, 1, 1, 1, 1, 10, 1, 1, 1, 1]),
+                np.recarray(
+                    shape=(nassets,),
+                    dtype=dtype,
+                    buf=np.array([100 * 3 / 9, 100 * 5 / 9] * nassets, dtype="f8"),
+                ),
+            ),
+        ]
+    )
     def test_aroon_basic(self, lows, highs, expected_out):
         aroon = Aroon(window_length=self.window_length)
-        today = pd.Timestamp('2014', tz='utc')
+        today = pd.Timestamp("2014", tz="utc")
         assets = pd.Index(np.arange(self.nassets, dtype=np.int64))
         shape = (self.nassets,)
-        out = np.recarray(shape=shape, dtype=self.dtype,
-                          buf=np.empty(shape=shape, dtype=self.dtype))
+        out = np.recarray(
+            shape=shape, dtype=self.dtype, buf=np.empty(shape=shape, dtype=self.dtype)
+        )
 
         aroon.compute(today, assets, out, lows, highs)
 
@@ -156,7 +172,7 @@ class TestFastStochasticOscillator(ZiplineTestCase):
         """
         fso = FastStochasticOscillator()
 
-        today = pd.Timestamp('2015')
+        today = pd.Timestamp("2015")
         assets = np.arange(3, dtype=np.float64)
         out = np.empty(shape=(3,), dtype=np.float64)
 
@@ -203,14 +219,12 @@ class TestFastStochasticOscillator(ZiplineTestCase):
             expected_out_k.append(fastk[-1])
         expected_out_k = np.array(expected_out_k)
 
-        today = pd.Timestamp('2015')
+        today = pd.Timestamp("2015")
         out = np.empty(shape=(nassets,), dtype=np.float)
         assets = np.arange(nassets, dtype=np.float)
 
         fso = FastStochasticOscillator()
-        fso.compute(
-            today, assets, out, closes, lows, highs
-        )
+        fso.compute(today, assets, out, closes, lows, highs)
 
         assert_equal(out, expected_out_k, array_decimal=6)
 
@@ -218,7 +232,7 @@ class TestFastStochasticOscillator(ZiplineTestCase):
 class IchimokuKinkoHyoTestCase(ZiplineTestCase):
     def test_ichimoku_kinko_hyo(self):
         window_length = 52
-        today = pd.Timestamp('2014', tz='utc')
+        today = pd.Timestamp("2014", tz="utc")
         nassets = 5
         assets = pd.Index(np.arange(nassets))
         days_col = np.arange(window_length)[:, np.newaxis]
@@ -237,11 +251,11 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
         )
 
         dtype = [
-            ('tenkan_sen', 'f8'),
-            ('kijun_sen', 'f8'),
-            ('senkou_span_a', 'f8'),
-            ('senkou_span_b', 'f8'),
-            ('chikou_span', 'f8'),
+            ("tenkan_sen", "f8"),
+            ("kijun_sen", "f8"),
+            ("senkou_span_a", "f8"),
+            ("senkou_span_b", "f8"),
+            ("chikou_span", "f8"),
         ]
         out = np.recarray(
             shape=(nassets,),
@@ -260,64 +274,72 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
             chikou_span_length,
         )
 
-        expected_tenkan_sen = np.array([
-            (53 + 43) / 2,
-            (54 + 44) / 2,
-            (55 + 45) / 2,
-            (56 + 46) / 2,
-            (57 + 47) / 2,
-        ])
-        expected_kijun_sen = np.array([
-            (53 + 26) / 2,
-            (54 + 27) / 2,
-            (55 + 28) / 2,
-            (56 + 29) / 2,
-            (57 + 30) / 2,
-        ])
+        expected_tenkan_sen = np.array(
+            [
+                (53 + 43) / 2,
+                (54 + 44) / 2,
+                (55 + 45) / 2,
+                (56 + 46) / 2,
+                (57 + 47) / 2,
+            ]
+        )
+        expected_kijun_sen = np.array(
+            [
+                (53 + 26) / 2,
+                (54 + 27) / 2,
+                (55 + 28) / 2,
+                (56 + 29) / 2,
+                (57 + 30) / 2,
+            ]
+        )
         expected_senkou_span_a = (expected_tenkan_sen + expected_kijun_sen) / 2
-        expected_senkou_span_b = np.array([
-            (53 + 0) / 2,
-            (54 + 1) / 2,
-            (55 + 2) / 2,
-            (56 + 3) / 2,
-            (57 + 4) / 2,
-        ])
-        expected_chikou_span = np.array([
-            27.0,
-            28.0,
-            29.0,
-            30.0,
-            31.0,
-        ])
+        expected_senkou_span_b = np.array(
+            [
+                (53 + 0) / 2,
+                (54 + 1) / 2,
+                (55 + 2) / 2,
+                (56 + 3) / 2,
+                (57 + 4) / 2,
+            ]
+        )
+        expected_chikou_span = np.array(
+            [
+                27.0,
+                28.0,
+                29.0,
+                30.0,
+                31.0,
+            ]
+        )
 
         assert_equal(
             out.tenkan_sen,
             expected_tenkan_sen,
-            msg='tenkan_sen',
+            msg="tenkan_sen",
         )
         assert_equal(
             out.kijun_sen,
             expected_kijun_sen,
-            msg='kijun_sen',
+            msg="kijun_sen",
         )
         assert_equal(
             out.senkou_span_a,
             expected_senkou_span_a,
-            msg='senkou_span_a',
+            msg="senkou_span_a",
         )
         assert_equal(
             out.senkou_span_b,
             expected_senkou_span_b,
-            msg='senkou_span_b',
+            msg="senkou_span_b",
         )
         assert_equal(
             out.chikou_span,
             expected_chikou_span,
-            msg='chikou_span',
+            msg="chikou_span",
         )
 
     @parameter_space(
-        arg={'tenkan_sen_length', 'kijun_sen_length', 'chikou_span_length'},
+        arg={"tenkan_sen_length", "kijun_sen_length", "chikou_span_length"},
     )
     def test_input_validation(self, arg):
         window_length = 52
@@ -327,17 +349,19 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
 
         assert_equal(
             str(e.exception),
-            '%s must be <= the window_length: 53 > 52' % arg,
+            "%s must be <= the window_length: 53 > 52" % arg,
         )
 
 
 class TestRateOfChangePercentage(ZiplineTestCase):
-    @parameterized.expand([
-        ('constant', [2.] * 10, 0.0),
-        ('step', [2.] + [1.] * 9, -50.0),
-        ('linear', [2. + x for x in range(10)], 450.0),
-        ('quadratic', [2. + x**2 for x in range(10)], 4050.0),
-    ])
+    @parameterized.expand(
+        [
+            ("constant", [2.0] * 10, 0.0),
+            ("step", [2.0] + [1.0] * 9, -50.0),
+            ("linear", [2.0 + x for x in range(10)], 450.0),
+            ("quadratic", [2.0 + x ** 2 for x in range(10)], 4050.0),
+        ]
+    )
     def test_rate_of_change_percentage(self, test_name, data, expected):
         window_length = len(data)
 
@@ -345,7 +369,7 @@ class TestRateOfChangePercentage(ZiplineTestCase):
             inputs=(USEquityPricing.close,),
             window_length=window_length,
         )
-        today = pd.Timestamp('2014')
+        today = pd.Timestamp("2014")
         assets = np.arange(5, dtype=np.int64)
         # broadcast data across assets
         data = np.array(data)[:, np.newaxis] * np.ones(len(assets))
@@ -358,11 +382,10 @@ class TestRateOfChangePercentage(ZiplineTestCase):
 class TestLinearWeightedMovingAverage(ZiplineTestCase):
     def test_wma1(self):
         wma1 = LinearWeightedMovingAverage(
-            inputs=(USEquityPricing.close,),
-            window_length=10
+            inputs=(USEquityPricing.close,), window_length=10
         )
 
-        today = pd.Timestamp('2015')
+        today = pd.Timestamp("2015")
         assets = np.arange(5, dtype=np.int64)
 
         data = np.ones((10, 5))
@@ -373,39 +396,36 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
 
     def test_wma2(self):
         wma2 = LinearWeightedMovingAverage(
-            inputs=(USEquityPricing.close,),
-            window_length=10
+            inputs=(USEquityPricing.close,), window_length=10
         )
 
-        today = pd.Timestamp('2015')
+        today = pd.Timestamp("2015")
         assets = np.arange(5, dtype=np.int64)
 
         data = np.arange(50, dtype=np.float64).reshape((10, 5))
         out = np.zeros(data.shape[1])
 
         wma2.compute(today, assets, out, data)
-        assert_equal(out, np.array([30.,  31.,  32.,  33.,  34.]))
+        assert_equal(out, np.array([30.0, 31.0, 32.0, 33.0, 34.0]))
 
 
 class TestTrueRange(ZiplineTestCase):
-
     def test_tr_basic(self):
         tr = TrueRange()
 
-        today = pd.Timestamp('2014')
+        today = pd.Timestamp("2014")
         assets = np.arange(3, dtype=np.int64)
         out = np.empty(3, dtype=np.float64)
 
-        highs = np.full((2, 3), 3.)
-        lows = np.full((2, 3), 2.)
-        closes = np.full((2, 3), 1.)
+        highs = np.full((2, 3), 3.0)
+        lows = np.full((2, 3), 2.0)
+        closes = np.full((2, 3), 1.0)
 
         tr.compute(today, assets, out, highs, lows, closes)
-        assert_equal(out, np.full((3,), 2.))
+        assert_equal(out, np.full((3,), 2.0))
 
 
 class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
-
     def expected_ewma(self, data_df, window):
         # Comment copied from `test_engine.py`:
         # XXX: This is a comically inefficient way to compute a windowed EWMA.
@@ -413,10 +433,8 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         # ewma (which is itself a rolling-window function) because we only want
         # to look at ``window_length`` rows at a time.
         return data_df.rolling(window).apply(
-            lambda sub: pd.DataFrame(sub)
-            .ewm(span=window)
-            .mean()
-            .values[-1])
+            lambda sub: pd.DataFrame(sub).ewm(span=window).mean().values[-1]
+        )
 
     @parameter_space(seed=range(5))
     def test_MACD_window_length_generation(self, seed):
@@ -442,15 +460,15 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         )
         with self.assertRaises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(fast_period=0)
-        self.assertEqual(template % 'fast_period', str(e.exception))
+        self.assertEqual(template % "fast_period", str(e.exception))
 
         with self.assertRaises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(slow_period=0)
-        self.assertEqual(template % 'slow_period', str(e.exception))
+        self.assertEqual(template % "slow_period", str(e.exception))
 
         with self.assertRaises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(signal_period=0)
-        self.assertEqual(template % 'signal_period', str(e.exception))
+        self.assertEqual(template % "signal_period", str(e.exception))
 
         with self.assertRaises(ValueError) as e:
             MovingAverageConvergenceDivergenceSignal(
@@ -471,11 +489,9 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         signal_period=[3, 9],
         __fail_fast=True,
     )
-    def test_moving_average_convergence_divergence(self,
-                                                   seed,
-                                                   fast_period,
-                                                   slow_period,
-                                                   signal_period):
+    def test_moving_average_convergence_divergence(
+        self, seed, fast_period, slow_period, signal_period
+    ):
         rng = RandomState(seed)
 
         nassets = 3
@@ -486,7 +502,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             signal_period=signal_period,
         )
 
-        today = pd.Timestamp('2016', tz='utc')
+        today = pd.Timestamp("2016", tz="utc")
         assets = pd.Index(np.arange(nassets))
         out = np.empty(shape=(nassets,), dtype=np.float64)
         close = rng.rand(macd.window_length, nassets)
@@ -510,10 +526,7 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
             close_df,
             slow_period,
         )
-        signal_ewma = self.expected_ewma(
-            fast_ewma - slow_ewma,
-            signal_period
-        )
+        signal_ewma = self.expected_ewma(fast_ewma - slow_ewma, signal_period)
 
         # Everything but the last row should be NaN.
         self.assertTrue(signal_ewma.iloc[:-1].isnull().all().all())
@@ -522,30 +535,28 @@ class MovingAverageConvergenceDivergenceTestCase(ZiplineTestCase):
         # to the last row of the frame we calculated with pandas.
         expected_signal = signal_ewma.values[-1]
 
-        np.testing.assert_almost_equal(
-            out,
-            expected_signal,
-            decimal=8
-        )
+        np.testing.assert_almost_equal(out, expected_signal, decimal=8)
 
 
 class RSITestCase(ZiplineTestCase):
-    @parameterized.expand([
-        # Test cases computed by doing:
-        # from numpy.random import seed, randn
-        # from talib import RSI
-        # seed(seed_value)
-        # data = abs(randn(15, 3))
-        # expected = [RSI(data[:, i])[-1] for i in range(3)]
-        (100, np.array([41.032913785966, 51.553585468393, 51.022005016446])),
-        (101, np.array([43.506969935466, 46.145367530182, 50.57407044197])),
-        (102, np.array([46.610102205934, 47.646892444315, 52.13182788538])),
-    ])
+    @parameterized.expand(
+        [
+            # Test cases computed by doing:
+            # from numpy.random import seed, randn
+            # from talib import RSI
+            # seed(seed_value)
+            # data = abs(randn(15, 3))
+            # expected = [RSI(data[:, i])[-1] for i in range(3)]
+            (100, np.array([41.032913785966, 51.553585468393, 51.022005016446])),
+            (101, np.array([43.506969935466, 46.145367530182, 50.57407044197])),
+            (102, np.array([46.610102205934, 47.646892444315, 52.13182788538])),
+        ]
+    )
     def test_rsi(self, seed_value, expected):
 
         rsi = RSI()
 
-        today = np.datetime64(1, 'ns')
+        today = np.datetime64(1, "ns")
         assets = np.arange(3)
         out = np.empty((3,), dtype=float)
 
@@ -564,7 +575,7 @@ class RSITestCase(ZiplineTestCase):
 
         rsi = RSI()
 
-        today = np.datetime64(1, 'ns')
+        today = np.datetime64(1, "ns")
         assets = np.arange(1)
         out = np.empty((1,), dtype=float)
 
@@ -579,7 +590,7 @@ class RSITestCase(ZiplineTestCase):
         """
         rsi = RSI()
 
-        today = np.datetime64(1, 'ns')
+        today = np.datetime64(1, "ns")
         assets = np.arange(1)
         out = np.empty((1,), dtype=float)
 
@@ -596,13 +607,29 @@ class RSITestCase(ZiplineTestCase):
         """
         rsi = RSI()
 
-        today = np.datetime64(1, 'ns')
+        today = np.datetime64(1, "ns")
         assets = np.arange(2)
         out = np.empty((2,), dtype=float)
 
-        example_case = np.array([46.125, 47.125, 46.4375, 46.9375, 44.9375,
-                                 44.25, 44.625, 45.75, 47.8125, 47.5625, 47.,
-                                 44.5625, 46.3125, 47.6875, 46.6875])
+        example_case = np.array(
+            [
+                46.125,
+                47.125,
+                46.4375,
+                46.9375,
+                44.9375,
+                44.25,
+                44.625,
+                45.75,
+                47.8125,
+                47.5625,
+                47.0,
+                44.5625,
+                46.3125,
+                47.6875,
+                46.6875,
+            ]
+        )
         double = example_case * 2
 
         closes = np.vstack((example_case, double)).T
@@ -614,27 +641,22 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
     """
     Test Annualized Volatility
     """
+
     def test_simple_volatility(self):
         """
         Simple test for uniform returns should generate 0 volatility
         """
         nassets = 3
         ann_vol = AnnualizedVolatility()
-        today = pd.Timestamp('2016', tz='utc')
+        today = pd.Timestamp("2016", tz="utc")
         assets = np.arange(nassets, dtype=np.float64)
-        returns = np.full((ann_vol.window_length, nassets),
-                          0.004,
-                          dtype=np.float64)
+        returns = np.full((ann_vol.window_length, nassets), 0.004, dtype=np.float64)
         out = np.empty(shape=(nassets,), dtype=np.float64)
 
         ann_vol.compute(today, assets, out, returns, 252)
 
         expected_vol = np.zeros(nassets)
-        np.testing.assert_almost_equal(
-            out,
-            expected_vol,
-            decimal=8
-        )
+        np.testing.assert_almost_equal(out, expected_vol, decimal=8)
 
     def test_volatility(self):
         """
@@ -642,21 +664,18 @@ class AnnualizedVolatilityTestCase(ZiplineTestCase):
         """
         nassets = 3
         ann_vol = AnnualizedVolatility()
-        today = pd.Timestamp('2016', tz='utc')
+        today = pd.Timestamp("2016", tz="utc")
         assets = np.arange(nassets, dtype=np.float64)
-        returns = np.random.normal(loc=0.001,
-                                   scale=0.01,
-                                   size=(ann_vol.window_length, nassets))
+        returns = np.random.normal(
+            loc=0.001, scale=0.01, size=(ann_vol.window_length, nassets)
+        )
         out = np.empty(shape=(nassets,), dtype=np.float64)
         ann_vol.compute(today, assets, out, returns, 252)
 
         mean = np.mean(returns, axis=0)
-        annualized_variance = ((returns - mean) ** 2).sum(axis=0) / \
-            returns.shape[0] * 252
+        annualized_variance = (
+            ((returns - mean) ** 2).sum(axis=0) / returns.shape[0] * 252
+        )
         expected_vol = np.sqrt(annualized_variance)
 
-        np.testing.assert_almost_equal(
-            out,
-            expected_vol,
-            decimal=8
-        )
+        np.testing.assert_almost_equal(out, expected_vol, decimal=8)

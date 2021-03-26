@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 import pandas as pd
 
@@ -43,13 +43,11 @@ from zipline.testing.fixtures import (
 from zipline.utils.classproperty import classproperty
 
 
-class BlotterTestCase(WithCreateBarData,
-                      WithLogger,
-                      WithDataPortal,
-                      WithSimParams,
-                      ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+class BlotterTestCase(
+    WithCreateBarData, WithLogger, WithDataPortal, WithSimParams, ZiplineTestCase
+):
+    START_DATE = pd.Timestamp("2006-01-05", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-06", tz="utc")
     ASSET_FINDER_EQUITY_SIDS = 24, 25
 
     @classmethod
@@ -63,21 +61,21 @@ class BlotterTestCase(WithCreateBarData,
     def make_equity_daily_bar_data(cls, country_code, sids):
         yield 24, pd.DataFrame(
             {
-                'open': [50, 50],
-                'high': [50, 50],
-                'low': [50, 50],
-                'close': [50, 50],
-                'volume': [100, 400],
+                "open": [50, 50],
+                "high": [50, 50],
+                "low": [50, 50],
+                "close": [50, 50],
+                "volume": [100, 400],
             },
             index=cls.sim_params.sessions,
         )
         yield 25, pd.DataFrame(
             {
-                'open': [50, 50],
-                'high': [50, 50],
-                'low': [50, 50],
-                'close': [50, 50],
-                'volume': [100, 400],
+                "open": [50, 50],
+                "high": [50, 50],
+                "low": [50, 50],
+                "close": [50, 50],
+                "volume": [100, 400],
             },
             index=cls.sim_params.sessions,
         )
@@ -87,26 +85,30 @@ class BlotterTestCase(WithCreateBarData,
         return pd.DataFrame.from_dict(
             {
                 1000: {
-                    'symbol': 'CLF06',
-                    'root_symbol': 'CL',
-                    'start_date': cls.START_DATE,
-                    'end_date': cls.END_DATE,
-                    'expiration_date': cls.END_DATE,
-                    'auto_close_date': cls.END_DATE,
-                    'exchange': 'CMES',
+                    "symbol": "CLF06",
+                    "root_symbol": "CL",
+                    "start_date": cls.START_DATE,
+                    "end_date": cls.END_DATE,
+                    "expiration_date": cls.END_DATE,
+                    "auto_close_date": cls.END_DATE,
+                    "exchange": "CMES",
                 },
             },
-            orient='index',
+            orient="index",
         )
 
     @classproperty
     def CREATE_BARDATA_DATA_FREQUENCY(cls):
         return cls.sim_params.data_frequency
 
-    @parameterized.expand([(MarketOrder(), None, None),
-                           (LimitOrder(10), 10, None),
-                           (StopOrder(10), None, 10),
-                           (StopLimitOrder(10, 20), 10, 20)])
+    @parameterized.expand(
+        [
+            (MarketOrder(), None, None),
+            (LimitOrder(10), 10, None),
+            (StopOrder(10), None, 10),
+            (StopLimitOrder(10, 20), 10, 20),
+        ]
+    )
     def test_blotter_order_types(self, style_obj, expected_lmt, expected_stp):
         style_obj.asset = self.asset_24
 
@@ -215,7 +217,7 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(still_open_order.status, ORDER_STATUS.OPEN)
         rejected_order = blotter.new_orders[1]
         self.assertEqual(rejected_order.status, ORDER_STATUS.REJECTED)
-        self.assertEqual(rejected_order.reason, '')
+        self.assertEqual(rejected_order.reason, "")
 
         # Do it again, but reject it at a later time (after tradesimulation
         # pulls it from new_orders)
@@ -278,7 +280,7 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(len(blotter.open_orders[self.asset_24]), 1)
         held_order = blotter.new_orders[0]
         self.assertEqual(held_order.status, ORDER_STATUS.HELD)
-        self.assertEqual(held_order.reason, '')
+        self.assertEqual(held_order.reason, "")
 
         blotter.cancel(held_order.id)
         self.assertEqual(len(blotter.new_orders), 1)
@@ -287,18 +289,20 @@ class BlotterTestCase(WithCreateBarData,
         self.assertEqual(cancelled_order.id, held_order.id)
         self.assertEqual(cancelled_order.status, ORDER_STATUS.CANCELLED)
 
-        for data in ([100, self.sim_params.sessions[0]],
-                     [400, self.sim_params.sessions[1]]):
+        for data in (
+            [100, self.sim_params.sessions[0]],
+            [400, self.sim_params.sessions[1]],
+        ):
             # Verify that incoming fills will change the order status.
             trade_amt = data[0]
             dt = data[1]
 
             order_size = 100
-            expected_filled = int(trade_amt *
-                                  DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT)
+            expected_filled = int(trade_amt * DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT)
             expected_open = order_size - expected_filled
-            expected_status = ORDER_STATUS.OPEN if expected_open else \
-                ORDER_STATUS.FILLED
+            expected_status = (
+                ORDER_STATUS.OPEN if expected_open else ORDER_STATUS.FILLED
+            )
 
             blotter = SimulationBlotter(equity_slippage=VolumeShareSlippage())
             open_id = blotter.order(self.asset_24, order_size, MarketOrder())
@@ -336,11 +340,7 @@ class BlotterTestCase(WithCreateBarData,
         # prune an order that isn't in our our open orders list, make sure
         # nothing blows up
 
-        other_order = Order(
-            dt=blotter.current_dt,
-            asset=self.asset_25,
-            amount=1
-        )
+        other_order = Order(dt=blotter.current_dt, asset=self.asset_25, amount=1)
 
         blotter.prune_orders([other_order])
 
@@ -363,18 +363,16 @@ class BlotterTestCase(WithCreateBarData,
                 order_ids.append(blotter2.order(*order_args))
             self.assertEqual(len(order_batch_ids), len(order_ids))
 
-            self.assertEqual(len(blotter1.open_orders),
-                             len(blotter2.open_orders))
+            self.assertEqual(len(blotter1.open_orders), len(blotter2.open_orders))
 
             for (asset, _, _), order_batch_id, order_id in zip(
-                    order_arg_lists, order_batch_ids, order_ids
+                order_arg_lists, order_batch_ids, order_ids
             ):
-                self.assertEqual(len(blotter1.open_orders[asset]),
-                                 len(blotter2.open_orders[asset]))
-                self.assertEqual(order_batch_id,
-                                 blotter1.open_orders[asset][i-1].id)
-                self.assertEqual(order_id,
-                                 blotter2.open_orders[asset][i-1].id)
+                self.assertEqual(
+                    len(blotter1.open_orders[asset]), len(blotter2.open_orders[asset])
+                )
+                self.assertEqual(order_batch_id, blotter1.open_orders[asset][i - 1].id)
+                self.assertEqual(order_id, blotter2.open_orders[asset][i - 1].id)
 
     def test_slippage_and_commission_dispatching(self):
         blotter = SimulationBlotter(
@@ -397,9 +395,9 @@ class BlotterTestCase(WithCreateBarData,
         equity_txn = txns[0]
         self.assertEqual(
             equity_txn.price,
-            bar_data.current(equity_txn.asset, 'price'),
+            bar_data.current(equity_txn.asset, "price"),
         )
-        self.assertEqual(commissions[0]['cost'], 1.0)
+        self.assertEqual(commissions[0]["cost"], 1.0)
 
         # The future transaction price should be 1.0 more than its current
         # price because half of the 'future_slippage' spread is added. Its
@@ -407,6 +405,6 @@ class BlotterTestCase(WithCreateBarData,
         future_txn = txns[1]
         self.assertEqual(
             future_txn.price,
-            bar_data.current(future_txn.asset, 'price') + 1.0,
+            bar_data.current(future_txn.asset, "price") + 1.0,
         )
-        self.assertEqual(commissions[1]['cost'], 2.0)
+        self.assertEqual(commissions[1]["cost"], 2.0)

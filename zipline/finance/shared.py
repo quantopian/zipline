@@ -23,7 +23,7 @@ class FinancialModelMeta(ABCMeta):
     """
 
     def __new__(mcls, name, bases, dict_):
-        if 'allowed_asset_types' not in dict_:
+        if "allowed_asset_types" not in dict_:
             allowed_asset_types = tuple(
                 chain.from_iterable(
                     marker.allowed_asset_types
@@ -32,10 +32,13 @@ class FinancialModelMeta(ABCMeta):
                 )
             )
             if allowed_asset_types:
-                dict_['allowed_asset_types'] = allowed_asset_types
+                dict_["allowed_asset_types"] = allowed_asset_types
 
         return super(FinancialModelMeta, mcls).__new__(
-            mcls, name, bases, dict_,
+            mcls,
+            name,
+            bases,
+            dict_,
         )
 
 

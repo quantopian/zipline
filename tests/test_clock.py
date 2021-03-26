@@ -9,7 +9,7 @@ from zipline.gens.sim_engine import (
     SESSION_START,
     BEFORE_TRADING_START_BAR,
     BAR,
-    SESSION_END
+    SESSION_END,
 )
 
 
@@ -20,13 +20,12 @@ class TestClock(TestCase):
 
         # july 15 is friday, so there are 3 sessions in this range (15, 18, 19)
         cls.sessions = cls.nyse_calendar.sessions_in_range(
-            pd.Timestamp("2016-07-15"),
-            pd.Timestamp("2016-07-19")
+            pd.Timestamp("2016-07-15"), pd.Timestamp("2016-07-19")
         )
 
         trading_o_and_c = cls.nyse_calendar.schedule.loc[cls.sessions]
-        cls.opens = trading_o_and_c['market_open']
-        cls.closes = trading_o_and_c['market_close']
+        cls.opens = trading_o_and_c["market_open"]
+        cls.closes = trading_o_and_c["market_close"]
 
     def test_bts_before_session(self):
         clock = MinuteSimulationClock(
@@ -34,7 +33,7 @@ class TestClock(TestCase):
             self.opens,
             self.closes,
             days_at_time(self.sessions, time(6, 17), "US/Eastern"),
-            False
+            False,
         )
 
         all_events = list(clock)
@@ -53,49 +52,52 @@ class TestClock(TestCase):
         _check_session_bts_first(
             self.sessions[0],
             all_events[0:393],
-            pd.Timestamp("2016-07-15 6:17", tz='US/Eastern')
+            pd.Timestamp("2016-07-15 6:17", tz="US/Eastern"),
         )
 
         _check_session_bts_first(
             self.sessions[1],
             all_events[393:786],
-            pd.Timestamp("2016-07-18 6:17", tz='US/Eastern')
+            pd.Timestamp("2016-07-18 6:17", tz="US/Eastern"),
         )
 
         _check_session_bts_first(
             self.sessions[2],
             all_events[786:],
-            pd.Timestamp("2016-07-19 6:17", tz='US/Eastern')
+            pd.Timestamp("2016-07-19 6:17", tz="US/Eastern"),
         )
 
     def test_bts_during_session(self):
         self.verify_bts_during_session(
-            time(11, 45), [
-                pd.Timestamp("2016-07-15 11:45", tz='US/Eastern'),
-                pd.Timestamp("2016-07-18 11:45", tz='US/Eastern'),
-                pd.Timestamp("2016-07-19 11:45", tz='US/Eastern')
+            time(11, 45),
+            [
+                pd.Timestamp("2016-07-15 11:45", tz="US/Eastern"),
+                pd.Timestamp("2016-07-18 11:45", tz="US/Eastern"),
+                pd.Timestamp("2016-07-19 11:45", tz="US/Eastern"),
             ],
-            135
+            135,
         )
 
     def test_bts_on_first_minute(self):
         self.verify_bts_during_session(
-            time(9, 30), [
-                pd.Timestamp("2016-07-15 9:30", tz='US/Eastern'),
-                pd.Timestamp("2016-07-18 9:30", tz='US/Eastern'),
-                pd.Timestamp("2016-07-19 9:30", tz='US/Eastern')
+            time(9, 30),
+            [
+                pd.Timestamp("2016-07-15 9:30", tz="US/Eastern"),
+                pd.Timestamp("2016-07-18 9:30", tz="US/Eastern"),
+                pd.Timestamp("2016-07-19 9:30", tz="US/Eastern"),
             ],
-            1
+            1,
         )
 
     def test_bts_on_last_minute(self):
         self.verify_bts_during_session(
-            time(16, 00), [
-                pd.Timestamp("2016-07-15 16:00", tz='US/Eastern'),
-                pd.Timestamp("2016-07-18 16:00", tz='US/Eastern'),
-                pd.Timestamp("2016-07-19 16:00", tz='US/Eastern')
+            time(16, 00),
+            [
+                pd.Timestamp("2016-07-15 16:00", tz="US/Eastern"),
+                pd.Timestamp("2016-07-18 16:00", tz="US/Eastern"),
+                pd.Timestamp("2016-07-19 16:00", tz="US/Eastern"),
             ],
-            390
+            390,
         )
 
     def verify_bts_during_session(self, bts_time, bts_session_times, bts_idx):
@@ -109,10 +111,7 @@ class TestClock(TestCase):
             for i in range(1, bts_idx):
                 self.assertEqual(events[i], (minutes[i - 1], BAR))
 
-            self.assertEqual(
-                events[bts_idx],
-                (bts_dt, BEFORE_TRADING_START_BAR)
-            )
+            self.assertEqual(events[bts_idx], (bts_dt, BEFORE_TRADING_START_BAR))
 
             for i in range(bts_idx + 1, 391):
                 self.assertEqual(events[i], (minutes[i - 2], BAR))
@@ -124,27 +123,21 @@ class TestClock(TestCase):
             self.opens,
             self.closes,
             days_at_time(self.sessions, bts_time, "US/Eastern"),
-            False
+            False,
         )
 
         all_events = list(clock)
 
         _check_session_bts_during(
-            self.sessions[0],
-            all_events[0:393],
-            bts_session_times[0]
+            self.sessions[0], all_events[0:393], bts_session_times[0]
         )
 
         _check_session_bts_during(
-            self.sessions[1],
-            all_events[393:786],
-            bts_session_times[1]
+            self.sessions[1], all_events[393:786], bts_session_times[1]
         )
 
         _check_session_bts_during(
-            self.sessions[2],
-            all_events[786:],
-            bts_session_times[2]
+            self.sessions[2], all_events[786:], bts_session_times[2]
         )
 
     def test_bts_after_session(self):
@@ -153,7 +146,7 @@ class TestClock(TestCase):
             self.opens,
             self.closes,
             days_at_time(self.sessions, time(19, 5), "US/Eastern"),
-            False
+            False,
         )
 
         all_events = list(clock)
@@ -175,6 +168,5 @@ class TestClock(TestCase):
 
         for i in range(0, 2):
             _check_session_bts_after(
-                self.sessions[i],
-                all_events[(i * 392): ((i + 1) * 392)]
+                self.sessions[i], all_events[(i * 392) : ((i + 1) * 392)]
             )

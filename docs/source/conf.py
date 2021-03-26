@@ -6,63 +6,63 @@ from zipline import __version__ as version
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, os.path.abspath(".."))
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.doctest',
-    'sphinx.ext.extlinks',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.todo',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.doctest",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.todo",
 ]
 
 
 extlinks = {
-    'issue': ('https://github.com/stefan-jansen/zipline/issues/%s', '#'),
-    'commit': ('https://github.com/stefan-jansen/zipline/commit/%s', ''),
+    "issue": ("https://github.com/stefan-jansen/zipline/issues/%s", "#"),
+    "commit": ("https://github.com/stefan-jansen/zipline/commit/%s", ""),
 }
 
 # -- Docstrings ---------------------------------------------------------------
 
-extensions += ['sphinx.ext.napoleon']
+extensions += ["sphinx.ext.napoleon"]
 numpydoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['.templates']
+templates_path = [".templates"]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'Zipline'
-copyright = u'2020, Quantopian Inc.'
+project = u"Zipline"
+copyright = u"2020, Quantopian Inc."
 
 # The full version, including alpha/beta/rc tags, but excluding the commit hash
-version = release = version.split('+', 1)[0]
+version = release = version.split("+", 1)[0]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns = []
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 if not on_rtd:  # only import and set the theme if we're building docs locally
     try:
         import sphinx_rtd_theme
     except ImportError:
-        html_theme = 'default'
+        html_theme = "default"
         html_theme_path = []
     else:
-        html_theme = 'sphinx_rtd_theme'
+        html_theme = "sphinx_rtd_theme"
         html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # The name of the Pygments (syntax highlighting) style to use.
-highlight_language = 'python'
+highlight_language = "python"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -84,13 +84,13 @@ html_show_sphinx = True
 html_show_copyright = True
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'ziplinedoc'
+htmlhelp_basename = "ziplinedoc"
 
 intersphinx_mapping = {
-    'https://docs.python.org/dev/': None,
-    'numpy': ('https://numpy.org/doc/stable/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    "https://docs.python.org/dev/": None,
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
 }
 
 doctest_global_setup = "import zipline"

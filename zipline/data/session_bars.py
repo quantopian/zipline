@@ -20,9 +20,10 @@ class SessionBarReader(BarReader):
     """
     Reader for OHCLV pricing data at a session frequency.
     """
+
     @property
     def data_frequency(self):
-        return 'session'
+        return "session"
 
     @abstractproperty
     def sessions(self):
@@ -36,7 +37,6 @@ class SessionBarReader(BarReader):
 
 
 class CurrencyAwareSessionBarReader(SessionBarReader):
-
     @abstractmethod
     def currency_codes(self, sids):
         """

@@ -4,6 +4,6 @@ from .equity_pricing_loader import (
 )
 
 __all__ = [
-    'EquityPricingLoader',
-    'USEquityPricingLoader',
+    "EquityPricingLoader",
+    "USEquityPricingLoader",
 ]

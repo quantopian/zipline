@@ -6,9 +6,9 @@ from .testing import TestingHooks
 
 
 __all__ = [
-    'PipelineHooks',
-    'NoHooks',
-    'DelegatingHooks',
-    'ProgressHooks',
-    'TestingHooks',
+    "PipelineHooks",
+    "NoHooks",
+    "DelegatingHooks",
+    "ProgressHooks",
+    "TestingHooks",
 ]

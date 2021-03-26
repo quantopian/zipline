@@ -2,7 +2,7 @@
 """
 from itertools import cycle, islice
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 import numpy as np
 import pandas as pd
 
@@ -27,7 +27,7 @@ import zipline.testing.fixtures as zf
 
 
 def T(s):
-    return pd.Timestamp(s, tz='UTC')
+    return pd.Timestamp(s, tz="UTC")
 
 
 class WithInternationalDailyBarData(zf.WithAssetFinder):
@@ -37,24 +37,25 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
     Eventually this should be moved into zipline.testing.fixtures and should
     replace most of the existing machinery
     """
-    DAILY_BAR_START_DATE = zf.alias('START_DATE')
-    DAILY_BAR_END_DATE = zf.alias('END_DATE')
+
+    DAILY_BAR_START_DATE = zf.alias("START_DATE")
+    DAILY_BAR_END_DATE = zf.alias("END_DATE")
     DAILY_BAR_LOOKBACK_DAYS = 0
 
     INTERNATIONAL_PRICING_STARTING_PRICES = {
-        'XNYS': 100,  # NYSE
-        'XTSE': 50,  # Toronto Stock Exchange
-        'XLON': 25,  # London Stock Exchange
+        "XNYS": 100,  # NYSE
+        "XTSE": 50,  # Toronto Stock Exchange
+        "XLON": 25,  # London Stock Exchange
     }
     # Assets in these countries will be quoted in one of the listed currencies.
     INTERNATIONAL_PRICING_CURRENCIES = {
-        'XNYS': ['USD'],
-        'XTSE': ['CAD'],
-        'XLON': ['GBP', 'EUR', 'USD'],
+        "XNYS": ["USD"],
+        "XTSE": ["CAD"],
+        "XLON": ["GBP", "EUR", "USD"],
     }
     assert (
-            INTERNATIONAL_PRICING_STARTING_PRICES.keys()
-            == INTERNATIONAL_PRICING_CURRENCIES.keys()
+        INTERNATIONAL_PRICING_STARTING_PRICES.keys()
+        == INTERNATIONAL_PRICING_CURRENCIES.keys()
     )
 
     FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
@@ -71,13 +72,16 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         lows = closes - 0.10
         volumes = np.arange(10000, 10000 + len(closes))
 
-        base_frame = pd.DataFrame({
-            'close' : closes,
-            'open'  : opens,
-            'high'  : highs,
-            'low'   : lows,
-            'volume': volumes,
-        }, index=sessions)
+        base_frame = pd.DataFrame(
+            {
+                "close": closes,
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "volume": volumes,
+            },
+            index=sessions,
+        )
 
         for asset in assets:
             sid = asset.sid
@@ -87,8 +91,7 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
     def make_currency_codes(cls, calendar, assets):
         currencies = cls.INTERNATIONAL_PRICING_CURRENCIES[calendar.name]
         return pd.Series(
-            index=assets,
-            data=list(islice(cycle(currencies), len(assets)))
+            index=assets, data=list(islice(cycle(currencies), len(assets)))
         )
 
     @classmethod
@@ -100,23 +103,36 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
         cls.daily_bar_readers = {}
         cls.daily_bar_currency_codes = {}
 
-        for calendar, assets, in cls.assets_by_calendar.items():
+        for (
+            calendar,
+            assets,
+        ) in cls.assets_by_calendar.items():
             name = calendar.name
             start_delta = cls.DAILY_BAR_LOOKBACK_DAYS * calendar.day
             start_session = cls.DAILY_BAR_START_DATE - start_delta
 
             sessions = calendar.sessions_in_range(
-                start_session, cls.DAILY_BAR_END_DATE,
+                start_session,
+                cls.DAILY_BAR_END_DATE,
             )
 
             cls.daily_bar_sessions[name] = sessions
-            cls.daily_bar_data[name] = dict(cls.make_daily_bar_data(
-                assets=assets, calendar=calendar, sessions=sessions,
-            ))
+            cls.daily_bar_data[name] = dict(
+                cls.make_daily_bar_data(
+                    assets=assets,
+                    calendar=calendar,
+                    sessions=sessions,
+                )
+            )
 
             bar_data = cls.daily_bar_data[name]
-            df = pd.concat(bar_data, keys=bar_data.keys()).stack().unstack(0).swaplevel()
-            frames = {field: frame.reset_index(level=0, drop=True) for field, frame in df.groupby(level=0)}
+            df = (
+                pd.concat(bar_data, keys=bar_data.keys()).stack().unstack(0).swaplevel()
+            )
+            frames = {
+                field: frame.reset_index(level=0, drop=True)
+                for field, frame in df.groupby(level=0)
+            }
 
             # panel = (pd.Panel.from_dict(cls.daily_bar_data[name])
             #          .transpose(2, 1, 0))
@@ -133,31 +149,30 @@ class WithInternationalDailyBarData(zf.WithAssetFinder):
             )
 
 
-class WithInternationalPricingPipelineEngine(zf.WithFXRates,
-                                             WithInternationalDailyBarData):
-
+class WithInternationalPricingPipelineEngine(
+    zf.WithFXRates, WithInternationalDailyBarData
+):
     @classmethod
     def init_class_fixtures(cls):
-        (super(WithInternationalPricingPipelineEngine, cls)
-         .init_class_fixtures())
+        (super(WithInternationalPricingPipelineEngine, cls).init_class_fixtures())
 
         adjustments = NullAdjustmentReader()
         cls.loaders = {
             GB_EQUITIES: EquityPricingLoader(
-                cls.daily_bar_readers['XLON'],
+                cls.daily_bar_readers["XLON"],
                 adjustments,
                 cls.in_memory_fx_rate_reader,
             ),
             US_EQUITIES: EquityPricingLoader(
-                cls.daily_bar_readers['XNYS'],
+                cls.daily_bar_readers["XNYS"],
                 adjustments,
                 cls.in_memory_fx_rate_reader,
             ),
             CA_EQUITIES: EquityPricingLoader(
-                cls.daily_bar_readers['XTSE'],
+                cls.daily_bar_readers["XTSE"],
                 adjustments,
                 cls.in_memory_fx_rate_reader,
-            )
+            ),
         }
         cls.engine = SimplePipelineEngine(
             get_loader=cls.get_loader,
@@ -172,16 +187,19 @@ class WithInternationalPricingPipelineEngine(zf.WithFXRates,
         return self.engine.run_pipeline(pipeline, start_date, end_date)
 
 
-class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
-                                  zf.ZiplineTestCase):
-    START_DATE = T('2014-01-02')
-    END_DATE = T('2014-02-06')  # Chosen to match the asset setup data below.
+class InternationalEquityTestCase(
+    WithInternationalPricingPipelineEngine, zf.ZiplineTestCase
+):
+    START_DATE = T("2014-01-02")
+    END_DATE = T("2014-02-06")  # Chosen to match the asset setup data below.
 
-    EXCHANGE_INFO = pd.DataFrame.from_records([
-        {'exchange': 'XNYS', 'country_code': 'US'},
-        {'exchange': 'XTSE', 'country_code': 'CA'},
-        {'exchange': 'XLON', 'country_code': 'GB'},
-    ])
+    EXCHANGE_INFO = pd.DataFrame.from_records(
+        [
+            {"exchange": "XNYS", "country_code": "US"},
+            {"exchange": "XTSE", "country_code": "CA"},
+            {"exchange": "XLON", "country_code": "GB"},
+        ]
+    )
 
     @classmethod
     def make_equity_info(cls):
@@ -219,13 +237,16 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
     @parameter_space(domain=[CA_EQUITIES, US_EQUITIES, GB_EQUITIES])
     def test_generic_pipeline_with_explicit_domain(self, domain):
         calendar = domain.calendar
-        pipe = Pipeline({
-            'open'  : EquityPricing.open.latest,
-            'high'  : EquityPricing.high.latest,
-            'low'   : EquityPricing.low.latest,
-            'close' : EquityPricing.close.latest,
-            'volume': EquityPricing.volume.latest,
-        }, domain=domain)
+        pipe = Pipeline(
+            {
+                "open": EquityPricing.open.latest,
+                "high": EquityPricing.high.latest,
+                "low": EquityPricing.low.latest,
+                "close": EquityPricing.close.latest,
+                "volume": EquityPricing.volume.latest,
+            },
+            domain=domain,
+        )
 
         sessions = self.daily_bar_sessions[calendar.name]
 
@@ -243,7 +264,8 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
         # alive during the interval between our start and end (not including
         # the asset's IPO date).
         expected_assets = [
-            a for a in all_assets
+            a
+            for a in all_assets
             if alive_in_range(a, start, end, include_asset_start_date=False)
         ]
         # off by 1 from above to be inclusive of the end date
@@ -272,25 +294,34 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
                 for date in expected_dates:
                     value = result_data.at[date, asset]
                     self.check_expected_latest_value(
-                        calendar, col, date, asset, value,
+                        calendar,
+                        col,
+                        date,
+                        asset,
+                        value,
                     )
 
-    @parameterized.expand([
-        ('US', US_EQUITIES, 'XNYS'),
-        ('CA', CA_EQUITIES, 'XTSE'),
-        ('GB', GB_EQUITIES, 'XLON'),
-    ])
+    @parameterized.expand(
+        [
+            ("US", US_EQUITIES, "XNYS"),
+            ("CA", CA_EQUITIES, "XTSE"),
+            ("GB", GB_EQUITIES, "XLON"),
+        ]
+    )
     def test_currency_convert_prices(self, name, domain, calendar_name):
         # Test running a pipeline on a domain whose assets are all denominated
         # in the same currency.
 
-        pipe = Pipeline({
-            'close'    : EquityPricing.close.latest,
-            'close_USD': EquityPricing.close.fx('USD').latest,
-            'close_CAD': EquityPricing.close.fx('CAD').latest,
-            'close_EUR': EquityPricing.close.fx('EUR').latest,
-            'close_GBP': EquityPricing.close.fx('GBP').latest,
-        }, domain=domain)
+        pipe = Pipeline(
+            {
+                "close": EquityPricing.close.latest,
+                "close_USD": EquityPricing.close.fx("USD").latest,
+                "close_CAD": EquityPricing.close.fx("CAD").latest,
+                "close_EUR": EquityPricing.close.fx("EUR").latest,
+                "close_GBP": EquityPricing.close.fx("GBP").latest,
+            },
+            domain=domain,
+        )
 
         sessions = self.daily_bar_sessions[calendar_name]
 
@@ -301,15 +332,13 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
         result = self.run_pipeline(pipe, start, end)
 
         # Raw closes as a (dates, assets) dataframe.
-        closes_2d = result['close'].unstack(fill_value=np.nan)
+        closes_2d = result["close"].unstack(fill_value=np.nan)
 
         # Currency codes for all sids on this domain.
         all_currency_codes = self.daily_bar_currency_codes[calendar_name]
 
         # Currency codes for sids in the pipeline result.
-        currency_codes = all_currency_codes.loc[[
-            a.sid for a in closes_2d.columns
-        ]]
+        currency_codes = all_currency_codes.loc[[a.sid for a in closes_2d.columns]]
 
         # For each possible target currency, we should be able to reconstruct
         # the currency-converted pipeline result by manually fetching exchange
@@ -318,12 +347,12 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
         for target in self.FX_RATES_CURRENCIES:
             # Closes, converted to target currency, as reported by pipeline, as
             # a (dates, assets) dataframe.
-            result_2d = result['close_' + target].unstack(fill_value=np.nan)
+            result_2d = result["close_" + target].unstack(fill_value=np.nan)
 
             # (dates, sids) dataframe giving the exchange rate from each
             # asset's currency to the target currency.
             expected_rates = fx_reader.get_rates(
-                rate='mid',
+                rate="mid",
                 quote=target,
                 bases=np.array(currency_codes, dtype=object),
                 # Exchange rates used for pipeline output with label N should
@@ -336,18 +365,23 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
 
             assert_equal(result_2d, expected_result_2d)
 
-    @parameterized.expand([
-        ('US', US_EQUITIES, 'XNYS'),
-        ('CA', CA_EQUITIES, 'XTSE'),
-        ('GB', GB_EQUITIES, 'XLON'),
-    ])
+    @parameterized.expand(
+        [
+            ("US", US_EQUITIES, "XNYS"),
+            ("CA", CA_EQUITIES, "XTSE"),
+            ("GB", GB_EQUITIES, "XLON"),
+        ]
+    )
     def test_only_currency_converted_data(self, name, domain, calendar_name):
         # Test running a pipeline on a domain whose assets are all denominated
         # in the same currency.
-        pipe = Pipeline({
-            'close_USD': EquityPricing.close.fx('USD').latest,
-            'close_EUR': EquityPricing.close.fx('EUR').latest,
-        }, domain=domain)
+        pipe = Pipeline(
+            {
+                "close_USD": EquityPricing.close.fx("USD").latest,
+                "close_EUR": EquityPricing.close.fx("EUR").latest,
+            },
+            domain=domain,
+        )
 
         start, end = self.daily_bar_sessions[calendar_name][-2:]
         result = self.run_pipeline(pipe, start, end)
@@ -360,12 +394,12 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
             # Subtract a day b/c pipeline output on day N should have prior
             # day's price.
             price_date = dt - calendar.day
-            expected_close = daily_bars[asset].loc[price_date, 'close']
+            expected_close = daily_bars[asset].loc[price_date, "close"]
             expected_base = currency_codes.loc[asset]
 
             expected_rate_USD = self.in_memory_fx_rate_reader.get_rate_scalar(
-                rate='mid',
-                quote='USD',
+                rate="mid",
+                quote="USD",
                 base=expected_base,
                 dt=price_date.asm8,
             )
@@ -373,8 +407,8 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
             assert_equal(row.close_USD, expected_price)
 
             expected_rate_EUR = self.in_memory_fx_rate_reader.get_rate_scalar(
-                rate='mid',
-                quote='EUR',
+                rate="mid",
+                quote="EUR",
                 base=expected_base,
                 dt=price_date.asm8,
             )
@@ -382,22 +416,27 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
             assert_equal(row.close_EUR, expected_price)
 
     def test_explicit_specialization_matches_implicit(self):
-        pipeline_specialized = Pipeline({
-            'open'  : EquityPricing.open.latest,
-            'high'  : EquityPricing.high.latest,
-            'low'   : EquityPricing.low.latest,
-            'close' : EquityPricing.close.latest,
-            'volume': EquityPricing.volume.latest,
-        }, domain=US_EQUITIES)
-        dataset_specialized = Pipeline({
-            'open'  : USEquityPricing.open.latest,
-            'high'  : USEquityPricing.high.latest,
-            'low'   : USEquityPricing.low.latest,
-            'close' : USEquityPricing.close.latest,
-            'volume': USEquityPricing.volume.latest,
-        })
+        pipeline_specialized = Pipeline(
+            {
+                "open": EquityPricing.open.latest,
+                "high": EquityPricing.high.latest,
+                "low": EquityPricing.low.latest,
+                "close": EquityPricing.close.latest,
+                "volume": EquityPricing.volume.latest,
+            },
+            domain=US_EQUITIES,
+        )
+        dataset_specialized = Pipeline(
+            {
+                "open": USEquityPricing.open.latest,
+                "high": USEquityPricing.high.latest,
+                "low": USEquityPricing.low.latest,
+                "close": USEquityPricing.close.latest,
+                "volume": USEquityPricing.volume.latest,
+            }
+        )
 
-        sessions = self.daily_bar_sessions['XNYS']
+        sessions = self.daily_bar_sessions["XNYS"]
         self.assert_identical_results(
             pipeline_specialized,
             dataset_specialized,
@@ -407,17 +446,16 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
 
     def test_cannot_convert_volume_data(self):
         with self.assertRaises(TypeError) as exc:
-            EquityPricing.volume.fx('EUR')
+            EquityPricing.volume.fx("EUR")
 
         assert_equal(
             str(exc.exception),
-            'The .fx() method cannot be called on EquityPricing.volume '
-            'because it does not produce currency-denominated data.',
+            "The .fx() method cannot be called on EquityPricing.volume "
+            "because it does not produce currency-denominated data.",
         )
 
     def check_expected_latest_value(self, calendar, col, date, asset, value):
-        """Check the expected result of column.latest from a pipeline.
-        """
+        """Check the expected result of column.latest from a pipeline."""
         if np.isnan(value):
             # If we got a NaN, we should be outside the asset's
             # lifetime.
@@ -430,8 +468,7 @@ class InternationalEquityTestCase(WithInternationalPricingPipelineEngine,
             assert_equal(value, expected_value)
 
     def assert_identical_results(self, left, right, start_date, end_date):
-        """Assert that two pipelines produce the same results.
-        """
+        """Assert that two pipelines produce the same results."""
         left_result = self.run_pipeline(left, start_date, end_date)
         right_result = self.run_pipeline(right, start_date, end_date)
         assert_equal(left_result, right_result)
@@ -461,7 +498,7 @@ def alive_in_range(asset, start, end, include_asset_start_date=False):
     if include_asset_start_date:
         asset_start = asset.start_date
     else:
-        asset_start = asset.start_date + pd.Timedelta('1 day')
+        asset_start = asset.start_date + pd.Timedelta("1 day")
     return intervals_overlap((asset_start, asset.end_date), (start, end))
 
 

@@ -15,7 +15,7 @@ from functools import partial
 import warnings
 
 with warnings.catch_warnings():
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     from bcolz import carray, ctable
     import numpy as np
 
@@ -50,11 +50,17 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.cli import maybe_show_progress
 from ._equities import _compute_row_slices, _read_bcolz_data
 
-logger = logbook.Logger('UsEquityPricing')
+logger = logbook.Logger("UsEquityPricing")
 
-OHLC = frozenset(['open', 'high', 'low', 'close'])
+OHLC = frozenset(["open", "high", "low", "close"])
 US_EQUITY_PRICING_BCOLZ_COLUMNS = (
-    'open', 'high', 'low', 'close', 'volume', 'day', 'id'
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "day",
+    "id",
 )
 
 UINT32_MAX = iinfo(np.uint32).max
@@ -62,12 +68,10 @@ UINT32_MAX = iinfo(np.uint32).max
 
 def check_uint32_safe(value, colname):
     if value >= UINT32_MAX:
-        raise ValueError(
-            "Value %s from column '%s' is too large" % (value, colname)
-        )
+        raise ValueError("Value %s from column '%s' is too large" % (value, colname))
 
 
-@expect_element(invalid_data_behavior={'warn', 'raise', 'ignore'})
+@expect_element(invalid_data_behavior={"warn", "raise", "ignore"})
 def winsorise_uint32(df, invalid_data_behavior, column, *columns):
     """Drops any record where a value would not fit into a uint32.
 
@@ -88,7 +92,7 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
     columns = list((column,) + columns)
     mask = df[columns] > UINT32_MAX
 
-    if invalid_data_behavior != 'ignore':
+    if invalid_data_behavior != "ignore":
         mask |= df[columns].isnull()
     else:
         # we are not going to generate a warning or error for this so just use
@@ -97,17 +101,21 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
 
     mv = mask.values
     if mv.any():
-        if invalid_data_behavior == 'raise':
+        if invalid_data_behavior == "raise":
             raise ValueError(
-                '%d values out of bounds for uint32: %r' % (
-                    mv.sum(), df[mask.any(axis=1)],
+                "%d values out of bounds for uint32: %r"
+                % (
+                    mv.sum(),
+                    df[mask.any(axis=1)],
                 ),
             )
-        if invalid_data_behavior == 'warn':
+        if invalid_data_behavior == "warn":
             warnings.warn(
-                'Ignoring %d values because they are out of bounds for'
-                ' uint32: %r' % (
-                    mv.sum(), df[mask.any(axis=1)],
+                "Ignoring %d values because they are out of bounds for"
+                " uint32: %r"
+                % (
+                    mv.sum(),
+                    df[mask.any(axis=1)],
                 ),
                 stacklevel=3,  # one extra frame for `expect_element`
             )
@@ -136,12 +144,13 @@ class BcolzDailyBarWriter(object):
     --------
     zipline.data.bcolz_daily_bars.BcolzDailyBarReader
     """
+
     _csv_dtypes = {
-        'open'  : float64_dtype,
-        'high'  : float64_dtype,
-        'low'   : float64_dtype,
-        'close' : float64_dtype,
-        'volume': float64_dtype,
+        "open": float64_dtype,
+        "high": float64_dtype,
+        "low": float64_dtype,
+        "close": float64_dtype,
+        "volume": float64_dtype,
     }
 
     def __init__(self, filename, calendar, start_session, end_session):
@@ -149,13 +158,9 @@ class BcolzDailyBarWriter(object):
 
         if start_session != end_session:
             if not calendar.is_session(start_session):
-                raise ValueError(
-                    "Start session %s is invalid!" % start_session
-                )
+                raise ValueError("Start session %s is invalid!" % start_session)
             if not calendar.is_session(end_session):
-                raise ValueError(
-                    "End session %s is invalid!" % end_session
-                )
+                raise ValueError("End session %s is invalid!" % end_session)
 
         self._start_session = start_session
         self._end_session = end_session
@@ -169,11 +174,9 @@ class BcolzDailyBarWriter(object):
     def progress_bar_item_show_func(self, value):
         return value if value is None else str(value[0])
 
-    def write(self,
-              data,
-              assets=None,
-              show_progress=False,
-              invalid_data_behavior='warn'):
+    def write(
+        self, data, assets=None, show_progress=False, invalid_data_behavior="warn"
+    ):
         """
         Parameters
         ----------
@@ -196,10 +199,7 @@ class BcolzDailyBarWriter(object):
             The newly-written table.
         """
         ctx = maybe_show_progress(
-            (
-                (sid, self.to_ctable(df, invalid_data_behavior))
-                for sid, df in data
-            ),
+            ((sid, self.to_ctable(df, invalid_data_behavior)) for sid, df in data),
             show_progress=show_progress,
             item_show_func=self.progress_bar_item_show_func,
             label=self.progress_bar_message,
@@ -208,10 +208,7 @@ class BcolzDailyBarWriter(object):
         with ctx as it:
             return self._write_internal(it, assets)
 
-    def write_csvs(self,
-                   asset_map,
-                   show_progress=False,
-                   invalid_data_behavior='warn'):
+    def write_csvs(self, asset_map, show_progress=False, invalid_data_behavior="warn"):
         """Read CSVs as DataFrames from our asset map.
 
         Parameters
@@ -227,8 +224,8 @@ class BcolzDailyBarWriter(object):
         """
         read = partial(
             read_csv,
-            parse_dates=['day'],
-            index_col='day',
+            parse_dates=["day"],
+            index_col="day",
             dtype=self._csv_dtypes,
         )
         return self.write(
@@ -261,21 +258,22 @@ class BcolzDailyBarWriter(object):
         )
 
         if assets is not None:
+
             @apply
             def iterator(iterator=iterator, assets=set(assets)):
                 for asset_id, table in iterator:
                     if asset_id not in assets:
-                        raise ValueError('unknown asset id %r' % asset_id)
+                        raise ValueError("unknown asset id %r" % asset_id)
                     yield asset_id, table
 
         for asset_id, table in iterator:
             nrows = len(table)
             for column_name in columns:
-                if column_name == 'id':
+                if column_name == "id":
                     # We know what the content of this column is, so don't
                     # bother reading it.
-                    columns['id'].append(
-                        full((nrows,), asset_id, dtype='uint32'),
+                    columns["id"].append(
+                        full((nrows,), asset_id, dtype="uint32"),
                     )
                     continue
 
@@ -299,35 +297,37 @@ class BcolzDailyBarWriter(object):
 
             table_day_to_session = compose(
                 self._calendar.minute_to_session_label,
-                partial(Timestamp, unit='s', tz='UTC'),
+                partial(Timestamp, unit="s", tz="UTC"),
             )
-            asset_first_day = table_day_to_session(table['day'][0])
-            asset_last_day = table_day_to_session(table['day'][-1])
+            asset_first_day = table_day_to_session(table["day"][0])
+            asset_last_day = table_day_to_session(table["day"][-1])
 
             asset_sessions = sessions[
                 sessions.slice_indexer(asset_first_day, asset_last_day)
             ]
             assert len(table) == len(asset_sessions), (
-                'Got {} rows for daily bars table with first day={}, last '
-                'day={}, expected {} rows.\n'
-                'Missing sessions: {}\n'
-                'Extra sessions: {}'.format(
+                "Got {} rows for daily bars table with first day={}, last "
+                "day={}, expected {} rows.\n"
+                "Missing sessions: {}\n"
+                "Extra sessions: {}".format(
                     len(table),
                     asset_first_day.date(),
                     asset_last_day.date(),
                     len(asset_sessions),
                     asset_sessions.difference(
                         to_datetime(
-                            np.array(table['day']),
-                            unit='s',
+                            np.array(table["day"]),
+                            unit="s",
                             utc=True,
                         )
                     ).tolist(),
                     to_datetime(
-                        np.array(table['day']),
-                        unit='s',
+                        np.array(table["day"]),
+                        unit="s",
                         utc=True,
-                    ).difference(asset_sessions).tolist(),
+                    )
+                    .difference(asset_sessions)
+                    .tolist(),
                 )
             )
 
@@ -338,40 +338,37 @@ class BcolzDailyBarWriter(object):
 
         # This writes the table to disk.
         full_table = ctable(
-            columns=[
-                columns[colname]
-                for colname in US_EQUITY_PRICING_BCOLZ_COLUMNS
-            ],
+            columns=[columns[colname] for colname in US_EQUITY_PRICING_BCOLZ_COLUMNS],
             names=US_EQUITY_PRICING_BCOLZ_COLUMNS,
             rootdir=self._filename,
-            mode='w',
+            mode="w",
         )
 
-        full_table.attrs['first_trading_day'] = (
+        full_table.attrs["first_trading_day"] = (
             earliest_date if earliest_date is not None else iNaT
         )
 
-        full_table.attrs['first_row'] = first_row
-        full_table.attrs['last_row'] = last_row
-        full_table.attrs['calendar_offset'] = calendar_offset
-        full_table.attrs['calendar_name'] = self._calendar.name
-        full_table.attrs['start_session_ns'] = self._start_session.value
-        full_table.attrs['end_session_ns'] = self._end_session.value
+        full_table.attrs["first_row"] = first_row
+        full_table.attrs["last_row"] = last_row
+        full_table.attrs["calendar_offset"] = calendar_offset
+        full_table.attrs["calendar_name"] = self._calendar.name
+        full_table.attrs["start_session_ns"] = self._start_session.value
+        full_table.attrs["end_session_ns"] = self._end_session.value
         full_table.flush()
         return full_table
 
-    @expect_element(invalid_data_behavior={'warn', 'raise', 'ignore'})
+    @expect_element(invalid_data_behavior={"warn", "raise", "ignore"})
     def to_ctable(self, raw_data, invalid_data_behavior):
         if isinstance(raw_data, ctable):
             # we already have a ctable so do nothing
             return raw_data
 
-        winsorise_uint32(raw_data, invalid_data_behavior, 'volume', *OHLC)
-        processed = (raw_data[list(OHLC)] * 1000).round().astype('uint32')
-        dates = raw_data.index.values.astype('datetime64[s]')
-        check_uint32_safe(dates.max().view(np.int64), 'day')
-        processed['day'] = dates.astype('uint32')
-        processed['volume'] = raw_data.volume.astype('uint32')
+        winsorise_uint32(raw_data, invalid_data_behavior, "volume", *OHLC)
+        processed = (raw_data[list(OHLC)] * 1000).round().astype("uint32")
+        dates = raw_data.index.values.astype("datetime64[s]")
+        check_uint32_safe(dates.max().view(np.int64), "day")
+        processed["day"] = dates.astype("uint32")
+        processed["volume"] = raw_data.volume.astype("uint32")
         return ctable.fromdataframe(processed)
 
 
@@ -462,20 +459,20 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         maybe_table_rootdir = self._maybe_table_rootdir
         if isinstance(maybe_table_rootdir, ctable):
             return maybe_table_rootdir
-        return ctable(rootdir=maybe_table_rootdir, mode='r')
+        return ctable(rootdir=maybe_table_rootdir, mode="r")
 
     @lazyval
     def sessions(self):
-        if 'calendar' in self._table.attrs.attrs:
+        if "calendar" in self._table.attrs.attrs:
             # backwards compatibility with old formats, will remove
-            return DatetimeIndex(self._table.attrs['calendar'], tz='UTC')
+            return DatetimeIndex(self._table.attrs["calendar"], tz="UTC")
         else:
-            cal = get_calendar(self._table.attrs['calendar_name'])
-            start_session_ns = self._table.attrs['start_session_ns']
-            start_session = Timestamp(start_session_ns, tz='UTC')
+            cal = get_calendar(self._table.attrs["calendar_name"])
+            start_session_ns = self._table.attrs["start_session_ns"]
+            start_session = Timestamp(start_session_ns, tz="UTC")
 
-            end_session_ns = self._table.attrs['end_session_ns']
-            end_session = Timestamp(end_session_ns, tz='UTC')
+            end_session_ns = self._table.attrs["end_session_ns"]
+            end_session = Timestamp(end_session_ns, tz="UTC")
 
             sessions = cal.sessions_in_range(start_session, end_session)
 
@@ -484,40 +481,35 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
     @lazyval
     def _first_rows(self):
         return {
-            int(asset_id): start_index for asset_id, start_index in self._table.attrs['first_row'].items()
+            int(asset_id): start_index
+            for asset_id, start_index in self._table.attrs["first_row"].items()
         }
 
     @lazyval
     def _last_rows(self):
         return {
             int(asset_id): end_index
-            for asset_id, end_index
-            in self._table.attrs['last_row'].items()
+            for asset_id, end_index in self._table.attrs["last_row"].items()
         }
 
     @lazyval
     def _calendar_offsets(self):
         return {
             int(id_): offset
-            for id_, offset in
-            self._table.attrs['calendar_offset'].items()
+            for id_, offset in self._table.attrs["calendar_offset"].items()
         }
 
     @lazyval
     def first_trading_day(self):
         try:
-            return Timestamp(
-                self._table.attrs['first_trading_day'],
-                unit='s',
-                tz='UTC'
-            )
+            return Timestamp(self._table.attrs["first_trading_day"], unit="s", tz="UTC")
         except KeyError:
             return None
 
     @lazyval
     def trading_calendar(self):
-        if 'calendar_name' in self._table.attrs.attrs:
-            return get_calendar(self._table.attrs['calendar_name'])
+        if "calendar_name" in self._table.attrs.attrs:
+            return get_calendar(self._table.attrs["calendar_name"])
         else:
             return None
 
@@ -616,7 +608,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         return col
 
     def get_last_traded_dt(self, asset, day):
-        volumes = self._spot_col('volume')
+        volumes = self._spot_col("volume")
 
         search_day = day
 
@@ -659,18 +651,19 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         try:
             day_loc = self.sessions.get_loc(day)
         except Exception:
-            raise NoDataOnDate("day={0} is outside of calendar={1}".format(
-                day, self.sessions))
+            raise NoDataOnDate(
+                "day={0} is outside of calendar={1}".format(day, self.sessions)
+            )
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
             raise NoDataBeforeDate(
-                "No data on or before day={0} for sid={1}".format(
-                    day, sid))
+                "No data on or before day={0} for sid={1}".format(day, sid)
+            )
         ix = self._first_rows[sid] + offset
         if ix > self._last_rows[sid]:
             raise NoDataAfterDate(
-                "No data on or after day={0} for sid={1}".format(
-                    day, sid))
+                "No data on or after day={0} for sid={1}".format(day, sid)
+            )
         return ix
 
     def get_value(self, sid, dt, field):
@@ -695,7 +688,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         """
         ix = self.sid_day_index(sid, dt)
         price = self._spot_col(field)[ix]
-        if field != 'volume':
+        if field != "volume":
             if price == 0:
                 return nan
             else:
@@ -711,7 +704,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         out = []
         for sid in sids:
             if sid in first_rows:
-                out.append('USD')
+                out.append("USD")
             else:
                 out.append(None)
         return np.array(out, dtype=object)

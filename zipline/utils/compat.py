@@ -28,15 +28,15 @@ def getargspec(f):
     )
 
 
-unicode = type(u'')
+unicode = type(u"")
 
 __all__ = [
-    'ExitStack',
-    'consistent_round',
-    'contextmanager',
-    'escape_html',
-    'mappingproxy',
-    'unicode',
-    'update_wrapper',
-    'wraps',
+    "ExitStack",
+    "consistent_round",
+    "contextmanager",
+    "escape_html",
+    "mappingproxy",
+    "unicode",
+    "update_wrapper",
+    "wraps",
 ]

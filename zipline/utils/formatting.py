@@ -1,4 +1,4 @@
-def s(word, seq, suffix='s'):
+def s(word, seq, suffix="s"):
     """Adds a suffix to ``word`` if some sequence has anything other than
     exactly one element.
 
@@ -45,7 +45,7 @@ def plural(singular, plural, seq):
     return plural
 
 
-def bulleted_list(items, indent=0, bullet_type='-'):
+def bulleted_list(items, indent=0, bullet_type="-"):
     """Format a bulleted list of values.
 
     Parameters
@@ -62,5 +62,5 @@ def bulleted_list(items, indent=0, bullet_type='-'):
     formatted_list : str
         The formatted list as a single string.
     """
-    format_string = ' ' * indent + bullet_type + ' {}'
+    format_string = " " * indent + bullet_type + " {}"
     return "\n".join(map(format_string.format, items))

@@ -26,8 +26,7 @@ from zipline.finance.shared import AllowedAssetMarker, FinancialModelMeta
 from zipline.finance.transaction import create_transaction
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.dummy import DummyMapping
-from zipline.utils.input_validation import (expect_bounded,
-                                            expect_strictly_bounded)
+from zipline.utils.input_validation import expect_bounded, expect_strictly_bounded
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -70,8 +69,9 @@ def fill_price_worse_than_limit_price(fill_price, order):
         # buy order is worse if the impacted price is greater than
         # the limit price. sell order is worse if the impacted price
         # is less than the limit price
-        if (order.direction > 0 and fill_price > order.limit) or \
-                (order.direction < 0 and fill_price < order.limit):
+        if (order.direction > 0 and fill_price > order.limit) or (
+            order.direction < 0 and fill_price < order.limit
+        ):
             return True
 
     return False
@@ -156,7 +156,7 @@ class SlippageModel(metaclass=FinancialModelMeta):
         :meth:`process_order` is not called by the base class on bars for which
         there was no historical volume.
         """
-        raise NotImplementedError('process_order')
+        raise NotImplementedError("process_order")
 
     def simulate(self, data, asset, orders_for_asset):
         self._volume_for_bar = 0
@@ -189,15 +189,11 @@ class SlippageModel(metaclass=FinancialModelMeta):
             txn = None
 
             try:
-                execution_price, execution_volume = \
-                    self.process_order(data, order)
+                execution_price, execution_volume = self.process_order(data, order)
 
                 if execution_price is not None:
                     txn = create_transaction(
-                        order,
-                        data.current_dt,
-                        execution_price,
-                        execution_volume
+                        order, data.current_dt, execution_price, execution_volume
                     )
 
             except LiquidityExceeded:
@@ -223,7 +219,7 @@ class NoSlippage(SlippageModel):
     @staticmethod
     def process_order(data, order):
         return (
-            data.current(order.asset, 'close'),
+            data.current(order.asset, "close"),
             order.amount,
         )
 
@@ -233,6 +229,7 @@ class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     """
     Base class for slippage models which only support equities.
     """
+
     allowed_asset_types = (Equity,)
 
 
@@ -241,6 +238,7 @@ class FutureSlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     """
     Base class for slippage models which only support futures.
     """
+
     allowed_asset_types = (Future,)
 
 
@@ -271,9 +269,9 @@ class VolumeShareSlippage(SlippageModel):
         price impact. Default is 0.1.
     """
 
-    def __init__(self,
-                 volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
-                 price_impact=0.1):
+    def __init__(
+        self, volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT, price_impact=0.1
+    ):
 
         super(VolumeShareSlippage, self).__init__()
 
@@ -285,9 +283,11 @@ class VolumeShareSlippage(SlippageModel):
 {class_name}(
     volume_limit={volume_limit},
     price_impact={price_impact})
-""".strip().format(class_name=self.__class__.__name__,
-                   volume_limit=self.volume_limit,
-                   price_impact=self.price_impact)
+""".strip().format(
+            class_name=self.__class__.__name__,
+            volume_limit=self.volume_limit,
+            price_impact=self.price_impact,
+        )
 
     def process_order(self, data, order):
         volume = data.current(order.asset, "volume")
@@ -312,8 +312,7 @@ class VolumeShareSlippage(SlippageModel):
         # total amount will be used to calculate price impact
         total_volume = self.volume_for_bar + cur_volume
 
-        volume_share = min(total_volume / volume,
-                           self.volume_limit)
+        volume_share = min(total_volume / volume, self.volume_limit)
 
         price = data.current(order.asset, "close")
 
@@ -325,18 +324,17 @@ class VolumeShareSlippage(SlippageModel):
             return
         # END
 
-        simulated_impact = volume_share ** 2 \
-                           * math.copysign(self.price_impact, order.direction) \
-                           * price
+        simulated_impact = (
+            volume_share ** 2
+            * math.copysign(self.price_impact, order.direction)
+            * price
+        )
         impacted_price = price + simulated_impact
 
         if fill_price_worse_than_limit_price(impacted_price, order):
             return None, None
 
-        return (
-            impacted_price,
-            math.copysign(cur_volume, order.direction)
-        )
+        return (impacted_price, math.copysign(cur_volume, order.direction))
 
 
 class FixedSlippage(SlippageModel):
@@ -363,17 +361,15 @@ class FixedSlippage(SlippageModel):
         self.spread = spread
 
     def __repr__(self):
-        return '{class_name}(spread={spread})'.format(
-            class_name=self.__class__.__name__, spread=self.spread,
+        return "{class_name}(spread={spread})".format(
+            class_name=self.__class__.__name__,
+            spread=self.spread,
         )
 
     def process_order(self, data, order):
         price = data.current(order.asset, "close")
 
-        return (
-            price + (self.spread / 2.0 * order.direction),
-            order.amount
-        )
+        return (price + (self.spread / 2.0 * order.direction), order.amount)
 
 
 class MarketImpactBase(SlippageModel):
@@ -402,16 +398,12 @@ class MarketImpactBase(SlippageModel):
         ------
         int : the number of shares
         """
-        raise NotImplementedError('get_txn_volume')
+        raise NotImplementedError("get_txn_volume")
 
     @abstractmethod
-    def get_simulated_impact(self,
-                             order,
-                             current_price,
-                             current_volume,
-                             txn_volume,
-                             mean_volume,
-                             volatility):
+    def get_simulated_impact(
+        self, order, current_price, current_volume, txn_volume, mean_volume, volatility
+    ):
         """
         Calculate simulated price impact.
 
@@ -428,25 +420,23 @@ class MarketImpactBase(SlippageModel):
         ------
         int : impact on the current price.
         """
-        raise NotImplementedError('get_simulated_impact')
+        raise NotImplementedError("get_simulated_impact")
 
     def process_order(self, data, order):
         if order.open_amount == 0:
             return None, None
 
-        minute_data = data.current(order.asset, ['volume', 'high', 'low'])
+        minute_data = data.current(order.asset, ["volume", "high", "low"])
         mean_volume, volatility = self._get_window_data(data, order.asset, 20)
 
         # Price to use is the average of the minute bar's open and close.
-        price = np.mean([minute_data['high'], minute_data['low']])
+        price = np.mean([minute_data["high"], minute_data["low"]])
 
-        volume = minute_data['volume']
+        volume = minute_data["volume"]
         if not volume:
             return None, None
 
-        txn_volume = int(
-            min(self.get_txn_volume(data, order), abs(order.open_amount))
-        )
+        txn_volume = int(min(self.get_txn_volume(data, order), abs(order.open_amount)))
 
         # If the computed transaction volume is zero or a decimal value, 'int'
         # will round it down to zero. In that case just bail.
@@ -467,8 +457,7 @@ class MarketImpactBase(SlippageModel):
                 volatility=volatility,
             )
 
-        impacted_price = \
-            price + math.copysign(simulated_impact, order.direction)
+        impacted_price = price + math.copysign(simulated_impact, order.direction)
 
         if fill_price_worse_than_limit_price(impacted_price, order):
             return None, None
@@ -499,10 +488,16 @@ class MarketImpactBase(SlippageModel):
                 # Add a day because we want 'window_length' complete days,
                 # excluding the current day.
                 volume_history = data.history(
-                    asset, 'volume', window_length + 1, '1d',
+                    asset,
+                    "volume",
+                    window_length + 1,
+                    "1d",
                 )
                 close_history = data.history(
-                    asset, 'close', window_length + 1, '1d',
+                    asset,
+                    "close",
+                    window_length + 1,
+                    "1d",
                 )
             except HistoryWindowStartsBeforeData:
                 # If there is not enough data to do a full history call, return
@@ -511,16 +506,20 @@ class MarketImpactBase(SlippageModel):
 
             # Exclude the first value of the percent change array because it is
             # always just NaN.
-            close_volatility = close_history[:-1].pct_change()[1:].std(
-                skipna=False,
+            close_volatility = (
+                close_history[:-1]
+                .pct_change()[1:]
+                .std(
+                    skipna=False,
+                )
             )
             values = {
-                'volume': volume_history[:-1].mean(),
-                'close' : close_volatility * SQRT_252,
+                "volume": volume_history[:-1].mean(),
+                "close": close_volatility * SQRT_252,
             }
             self._window_data_cache.set(asset, values, data.current_session)
 
-        return values['volume'], values['close']
+        return values["volume"], values["close"]
 
 
 class VolatilityVolumeShare(MarketImpactBase):
@@ -570,22 +569,18 @@ class VolatilityVolumeShare(MarketImpactBase):
     def __repr__(self):
         if isinstance(self._eta, DummyMapping):
             # Eta is a constant, so extract it.
-            eta = self._eta['dummy key']
+            eta = self._eta["dummy key"]
         else:
-            eta = '<varies>'
-        return '{class_name}(volume_limit={volume_limit}, eta={eta})'.format(
+            eta = "<varies>"
+        return "{class_name}(volume_limit={volume_limit}, eta={eta})".format(
             class_name=self.__class__.__name__,
             volume_limit=self.volume_limit,
             eta=eta,
         )
 
-    def get_simulated_impact(self,
-                             order,
-                             current_price,
-                             current_volume,
-                             txn_volume,
-                             mean_volume,
-                             volatility):
+    def get_simulated_impact(
+        self, order, current_price, current_volume, txn_volume, mean_volume, volatility
+    ):
         eta = self._eta[order.asset.root_symbol]
         psi = txn_volume / mean_volume
 
@@ -597,7 +592,7 @@ class VolatilityVolumeShare(MarketImpactBase):
         return (current_price * market_impact) / 10000
 
     def get_txn_volume(self, data, order):
-        volume = data.current(order.asset, 'volume')
+        volume = data.current(order.asset, "volume")
         return volume * self.volume_limit
 
 
@@ -637,11 +632,11 @@ class FixedBasisPointsSlippage(SlippageModel):
 
     @expect_bounded(
         basis_points=(0, None),
-        __funcname='FixedBasisPointsSlippage',
+        __funcname="FixedBasisPointsSlippage",
     )
     @expect_strictly_bounded(
         volume_limit=(0, None),
-        __funcname='FixedBasisPointsSlippage',
+        __funcname="FixedBasisPointsSlippage",
     )
     def __init__(self, basis_points=5.0, volume_limit=0.1):
         super(FixedBasisPointsSlippage, self).__init__()
@@ -666,19 +661,18 @@ class FixedBasisPointsSlippage(SlippageModel):
         max_volume = int(self.volume_limit * volume)
 
         price = data.current(order.asset, "close")
-        shares_to_fill = min(abs(order.open_amount),
-                             max_volume - self.volume_for_bar)
+        shares_to_fill = min(abs(order.open_amount), max_volume - self.volume_for_bar)
 
         if shares_to_fill == 0:
             raise LiquidityExceeded()
 
         return (
             price + price * (self.percentage * order.direction),
-            shares_to_fill * order.direction
+            shares_to_fill * order.direction,
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     f = EquitySlippageModel()
     # print(f.__meta__)
     print(f.__class__)

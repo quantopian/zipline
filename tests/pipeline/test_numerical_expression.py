@@ -70,9 +70,8 @@ class DateFactor(Factor):
 
 
 class NumericalExpressionTestCase(TestCase):
-
     def setUp(self):
-        self.dates = date_range('2014-01-01', periods=5, freq='D')
+        self.dates = date_range("2014-01-01", periods=5, freq="D")
         self.assets = Int64Index(range(5))
         self.f = F()
         self.g = G()
@@ -82,7 +81,7 @@ class NumericalExpressionTestCase(TestCase):
             self.f: full((5, 5), 3, float),
             self.g: full((5, 5), 2, float),
             self.h: full((5, 5), 1, float),
-            self.d: full((5, 5), 0, dtype='datetime64[ns]'),
+            self.d: full((5, 5), 0, dtype="datetime64[ns]"),
         }
         self.mask = DataFrame(True, index=self.dates, columns=self.assets)
 
@@ -168,10 +167,8 @@ class NumericalExpressionTestCase(TestCase):
         # correct order.
         ops = (add, sub)
 
-        for i, name in enumerate(
-            islice(product(ascii_uppercase, ascii_uppercase), 64)
-        ):
-            name = ''.join(name)
+        for i, name in enumerate(islice(product(ascii_uppercase, ascii_uppercase), 64)):
+            name = "".join(name)
             op = ops[i % 2]
 
             new_expr_inputs = []
@@ -231,7 +228,7 @@ class NumericalExpressionTestCase(TestCase):
     def test_combine_datetime_with_float(self):
         # Test with both float-type factors and numeric values.
         for float_value in (self.f, float64(1.0), 1.0):
-            for op, sym in ((add, '+'), (mul, '*')):
+            for op, sym in ((add, "+"), (mul, "*")):
                 with self.assertRaises(TypeError) as e:
                     op(self.f, self.d)
                 message = e.exception.args[0]
@@ -310,22 +307,22 @@ class NumericalExpressionTestCase(TestCase):
 
         self.check_constant_output(f - g, 1.0)  # 3 - 2
 
-        self.check_constant_output((1 - f) - g, -4.)   # (1 - 3) - 2
-        self.check_constant_output(1 - (f - g), 0.0)   # 1 - (3 - 2)
-        self.check_constant_output((f - 1) - g, 0.0)   # (3 - 1) - 2
-        self.check_constant_output(f - (1 - g), 4.0)   # 3 - (1 - 2)
-        self.check_constant_output((f - g) - 1, 0.0)   # (3 - 2) - 1
-        self.check_constant_output(f - (g - 1), 2.0)   # 3 - (2 - 1)
+        self.check_constant_output((1 - f) - g, -4.0)  # (1 - 3) - 2
+        self.check_constant_output(1 - (f - g), 0.0)  # 1 - (3 - 2)
+        self.check_constant_output((f - 1) - g, 0.0)  # (3 - 1) - 2
+        self.check_constant_output(f - (1 - g), 4.0)  # 3 - (1 - 2)
+        self.check_constant_output((f - g) - 1, 0.0)  # (3 - 2) - 1
+        self.check_constant_output(f - (g - 1), 2.0)  # 3 - (2 - 1)
 
-        self.check_constant_output((f - f) - f, -3.)   # (3 - 3) - 3
-        self.check_constant_output(f - (f - f), 3.0)   # 3 - (3 - 3)
+        self.check_constant_output((f - f) - f, -3.0)  # (3 - 3) - 3
+        self.check_constant_output(f - (f - f), 3.0)  # 3 - (3 - 3)
 
-        self.check_constant_output((f - g) - f, -2.)   # (3 - 2) - 3
-        self.check_constant_output(f - (g - f), 4.0)   # 3 - (2 - 3)
+        self.check_constant_output((f - g) - f, -2.0)  # (3 - 2) - 3
+        self.check_constant_output(f - (g - f), 4.0)  # 3 - (2 - 3)
 
         self.check_constant_output((f - g) - (f - g), 0.0)  # (3 - 2) - (3 - 2)
         self.check_constant_output((f - g) - (g - f), 2.0)  # (3 - 2) - (2 - 3)
-        self.check_constant_output((g - f) - (f - g), -2.)  # (2 - 3) - (3 - 2)
+        self.check_constant_output((g - f) - (f - g), -2.0)  # (2 - 3) - (3 - 2)
         self.check_constant_output((g - f) - (g - f), 0.0)  # (2 - 3) - (2 - 3)
 
     def test_multiply(self):
@@ -358,10 +355,7 @@ class NumericalExpressionTestCase(TestCase):
 
         self.check_constant_output(f / g, 3.0 / 2.0)
 
-        self.check_constant_output(
-            (2 / f) / g,
-            (2 / 3.0) / 2.0
-        )
+        self.check_constant_output((2 / f) / g, (2 / 3.0) / 2.0)
         self.check_constant_output(
             2 / (f / g),
             2 / (3.0 / 2.0),
@@ -382,10 +376,7 @@ class NumericalExpressionTestCase(TestCase):
             f / (g / 2),
             3.0 / (2.0 / 2),
         )
-        self.check_constant_output(
-            (f / f) / f,
-            (3.0 / 3.0) / 3.0
-        )
+        self.check_constant_output((f / f) / f, (3.0 / 3.0) / 3.0)
         self.check_constant_output(
             f / (f / f),
             3.0 / (3.0 / 3.0),
@@ -454,8 +445,8 @@ class NumericalExpressionTestCase(TestCase):
 
         fake_raw_data = self.fake_raw_data
         alt_fake_raw_data = {
-            self.f: full((5, 5), .5),
-            self.g: full((5, 5), -.5),
+            self.f: full((5, 5), 0.5),
+            self.g: full((5, 5), -0.5),
         }
 
         for funcname in NUMEXPR_MATH_FUNCS:
@@ -464,7 +455,7 @@ class NumericalExpressionTestCase(TestCase):
 
             # These methods have domains in [0, 1], so we need alternate inputs
             # that are in the domain.
-            if funcname in ('arcsin', 'arccos', 'arctanh'):
+            if funcname in ("arcsin", "arccos", "arctanh"):
                 self.fake_raw_data = alt_fake_raw_data
             else:
                 self.fake_raw_data = fake_raw_data
@@ -478,8 +469,8 @@ class NumericalExpressionTestCase(TestCase):
             self.check_constant_output(method(f) + 1, func(f_val) + 1)
             self.check_constant_output(1 + method(f), 1 + func(f_val))
 
-            self.check_constant_output(method(f + .25), func(f_val + .25))
-            self.check_constant_output(method(.25 + f), func(.25 + f_val))
+            self.check_constant_output(method(f + 0.25), func(f_val + 0.25))
+            self.check_constant_output(method(0.25 + f), func(0.25 + f_val))
 
             self.check_constant_output(
                 method(f) + method(g),
@@ -528,11 +519,13 @@ class NumericalExpressionTestCase(TestCase):
         # delegation to NumericalExpression.
         custom_filter = NonExprFilter()
         custom_filter_mask = array(
-            [[0, 1, 0, 1, 0],
-             [0, 0, 1, 0, 0],
-             [1, 0, 0, 0, 0],
-             [0, 0, 1, 1, 0],
-             [0, 0, 0, 1, 0]],
+            [
+                [0, 1, 0, 1, 0],
+                [0, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0],
+                [0, 0, 1, 1, 0],
+                [0, 0, 0, 1, 0],
+            ],
             dtype=bool,
         )
 
@@ -544,7 +537,7 @@ class NumericalExpressionTestCase(TestCase):
         }
 
         # Should be True on the diagonal.
-        eye_filter = (f > g)
+        eye_filter = f > g
 
         # Should be True in the first row only.
         first_row_filter = f < h

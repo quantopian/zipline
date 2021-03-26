@@ -20,13 +20,12 @@ from zipline.finance.transaction import Transaction
 
 
 class TransactionTestCase(TestCase):
-
     def test_transaction_repr(self):
-        dt = pd.Timestamp('2017-01-01')
+        dt = pd.Timestamp("2017-01-01")
 
         asset = Equity(
             1,
-            exchange_info=ExchangeInfo('test', 'test full', 'US'),
+            exchange_info=ExchangeInfo("test", "test full", "US"),
         )
         txn = Transaction(asset, amount=100, dt=dt, price=10, order_id=0)
 

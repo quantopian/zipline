@@ -22,7 +22,7 @@ from copy import deepcopy
 import logbook
 import toolz
 from logbook import TestHandler, WARNING
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from testfixtures import TempDirectory
 
 import numpy as np
@@ -49,7 +49,7 @@ from zipline.errors import (
     TradingControlViolation,
     UnsupportedCancelPolicy,
     UnsupportedDatetimeFormat,
-    ZeroCapitalError
+    ZeroCapitalError,
 )
 
 from zipline.finance.commission import PerShare, PerTrade
@@ -136,41 +136,36 @@ _multiprocess_can_split_ = False
 
 class TestRecord(zf.WithMakeAlgo, zf.ZiplineTestCase):
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     def test_record_incr(self):
-
         def initialize(self):
             self.incr = 0
 
         def handle_data(self, data):
             self.incr += 1
             self.record(incr=self.incr)
-            name = 'name'
+            name = "name"
             self.record(name, self.incr)
-            zipline.api.record(name, self.incr, 'name2', 2, name3=self.incr)
+            zipline.api.record(name, self.incr, "name2", 2, name3=self.incr)
 
         output = self.run_algorithm(
             initialize=initialize,
             handle_data=handle_data,
         )
 
-        np.testing.assert_array_equal(output['incr'].values,
-                                      range(1, len(output) + 1))
-        np.testing.assert_array_equal(output['name'].values,
-                                      range(1, len(output) + 1))
-        np.testing.assert_array_equal(output['name2'].values,
-                                      [2] * len(output))
-        np.testing.assert_array_equal(output['name3'].values,
-                                      range(1, len(output) + 1))
+        np.testing.assert_array_equal(output["incr"].values, range(1, len(output) + 1))
+        np.testing.assert_array_equal(output["name"].values, range(1, len(output) + 1))
+        np.testing.assert_array_equal(output["name2"].values, [2] * len(output))
+        np.testing.assert_array_equal(output["name3"].values, range(1, len(output) + 1))
 
 
 class TestMiscellaneousAPI(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-03', tz='UTC')
-    END_DATE = pd.Timestamp('2006-01-04', tz='UTC')
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    START_DATE = pd.Timestamp("2006-01-03", tz="UTC")
+    END_DATE = pd.Timestamp("2006-01-04", tz="UTC")
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
     sids = 1, 2
 
     # FIXME: Pass a benchmark source instead of this.
@@ -178,59 +173,67 @@ class TestMiscellaneousAPI(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     @classmethod
     def make_equity_info(cls):
-        return pd.concat((
-            make_simple_equity_info(cls.sids, '2002-02-1', '2007-01-01'),
-            pd.DataFrame.from_dict(
-                {3: {'symbol': 'PLAY',
-                     'start_date': '2002-01-01',
-                     'end_date': '2004-01-01',
-                     'exchange': 'TEST'},
-                 4: {'symbol': 'PLAY',
-                     'start_date': '2005-01-01',
-                     'end_date': '2006-01-01',
-                     'exchange': 'TEST'}},
-                orient='index',
-            ),
-        ))
+        return pd.concat(
+            (
+                make_simple_equity_info(cls.sids, "2002-02-1", "2007-01-01"),
+                pd.DataFrame.from_dict(
+                    {
+                        3: {
+                            "symbol": "PLAY",
+                            "start_date": "2002-01-01",
+                            "end_date": "2004-01-01",
+                            "exchange": "TEST",
+                        },
+                        4: {
+                            "symbol": "PLAY",
+                            "start_date": "2005-01-01",
+                            "end_date": "2006-01-01",
+                            "exchange": "TEST",
+                        },
+                    },
+                    orient="index",
+                ),
+            )
+        )
 
     @classmethod
     def make_futures_info(cls):
         return pd.DataFrame.from_dict(
             {
                 5: {
-                    'symbol': 'CLG06',
-                    'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
-                    'exchange': 'TEST'
+                    "symbol": "CLG06",
+                    "root_symbol": "CL",
+                    "start_date": pd.Timestamp("2005-12-01", tz="UTC"),
+                    "notice_date": pd.Timestamp("2005-12-20", tz="UTC"),
+                    "expiration_date": pd.Timestamp("2006-01-20", tz="UTC"),
+                    "exchange": "TEST",
                 },
                 6: {
-                    'root_symbol': 'CL',
-                    'symbol': 'CLK06',
-                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-04-20', tz='UTC'),
-                    'exchange': 'TEST',
+                    "root_symbol": "CL",
+                    "symbol": "CLK06",
+                    "start_date": pd.Timestamp("2005-12-01", tz="UTC"),
+                    "notice_date": pd.Timestamp("2006-03-20", tz="UTC"),
+                    "expiration_date": pd.Timestamp("2006-04-20", tz="UTC"),
+                    "exchange": "TEST",
                 },
                 7: {
-                    'symbol': 'CLQ06',
-                    'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-07-20', tz='UTC'),
-                    'exchange': 'TEST',
+                    "symbol": "CLQ06",
+                    "root_symbol": "CL",
+                    "start_date": pd.Timestamp("2005-12-01", tz="UTC"),
+                    "notice_date": pd.Timestamp("2006-06-20", tz="UTC"),
+                    "expiration_date": pd.Timestamp("2006-07-20", tz="UTC"),
+                    "exchange": "TEST",
                 },
                 8: {
-                    'symbol': 'CLX06',
-                    'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-10-20', tz='UTC'),
-                    'exchange': 'TEST',
-                }
+                    "symbol": "CLX06",
+                    "root_symbol": "CL",
+                    "start_date": pd.Timestamp("2006-02-01", tz="UTC"),
+                    "notice_date": pd.Timestamp("2006-09-20", tz="UTC"),
+                    "expiration_date": pd.Timestamp("2006-10-20", tz="UTC"),
+                    "exchange": "TEST",
+                },
             },
-            orient='index',
+            orient="index",
         )
 
     def test_cancel_policy_outside_init(self):
@@ -276,6 +279,7 @@ def handle_data(algo, data):
 
             def fake_method(*args, **kwargs):
                 return sentinel
+
             setattr(algo, name, fake_method)
             with ZiplineAPI(algo):
                 self.assertIs(sentinel, getattr(zipline.api, name)())
@@ -293,7 +297,7 @@ def handle_data(context, data):
 """
         self.run_algorithm(
             script=algo_text,
-            namespace={'assert_equal': self.assertEqual},
+            namespace={"assert_equal": self.assertEqual},
         )
 
     def test_datetime_bad_params(self):
@@ -311,10 +315,12 @@ def handle_data(context, data):
         with self.assertRaises(TypeError):
             algo.run()
 
-    @parameterized.expand([
-        (-1000, 'invalid_base'),
-        (0, 'invalid_base'),
-    ])
+    @parameterized.expand(
+        [
+            (-1000, "invalid_base"),
+            (0, "invalid_base"),
+        ]
+    )
     def test_invalid_capital_base(self, cap_base, name):
         """
         Test that the appropriate error is being raised and orders aren't
@@ -328,11 +334,11 @@ def handle_data(context, data):
     order(sid(24), 1000)
         """
         sim_params = SimulationParameters(
-            start_session=pd.Timestamp("2006-01-03", tz='UTC'),
-            end_session=pd.Timestamp("2006-01-06", tz='UTC'),
+            start_session=pd.Timestamp("2006-01-03", tz="UTC"),
+            end_session=pd.Timestamp("2006-01-06", tz="UTC"),
             capital_base=cap_base,
             data_frequency="minute",
-            trading_calendar=self.trading_calendar
+            trading_calendar=self.trading_calendar,
         )
 
         with self.assertRaises(ZeroCapitalError) as exc:
@@ -341,22 +347,21 @@ def handle_data(context, data):
             self.make_algo(script=algo_text, sim_params=sim_params)
         # Make sure the correct error was raised
         error = exc.exception
-        self.assertEqual(str(error),
-                         'initial capital base must be greater than zero')
+        self.assertEqual(str(error), "initial capital base must be greater than zero")
 
     def test_get_environment(self):
         expected_env = {
-            'arena': 'backtest',
-            'data_frequency': 'minute',
-            'start': pd.Timestamp('2006-01-03 14:31:00+0000', tz='utc'),
-            'end': pd.Timestamp('2006-01-04 21:00:00+0000', tz='utc'),
-            'capital_base': 100000.0,
-            'platform': 'zipline'
+            "arena": "backtest",
+            "data_frequency": "minute",
+            "start": pd.Timestamp("2006-01-03 14:31:00+0000", tz="utc"),
+            "end": pd.Timestamp("2006-01-04 21:00:00+0000", tz="utc"),
+            "capital_base": 100000.0,
+            "platform": "zipline",
         }
 
         def initialize(algo):
-            self.assertEqual('zipline', algo.get_environment())
-            self.assertEqual(expected_env, algo.get_environment('*'))
+            self.assertEqual("zipline", algo.get_environment())
+            self.assertEqual(expected_env, algo.get_environment("*"))
 
         def handle_data(algo, data):
             pass
@@ -374,15 +379,9 @@ def handle_data(context, data):
                 algo.order(algo.sid(1), 1)
 
                 # Won't be filled because the price is too low.
-                algo.order(
-                    algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2))
-                )
-                algo.order(
-                    algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2))
-                )
-                algo.order(
-                    algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2))
-                )
+                algo.order(algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2)))
+                algo.order(algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2)))
+                algo.order(algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2)))
 
                 all_orders = algo.get_open_orders()
                 self.assertEqual(list(all_orders.keys()), [1, 2])
@@ -452,7 +451,7 @@ def log_nyse_close(context, data):
             script=algotext,
             sim_params=self.make_simparams(
                 trading_calendar=get_calendar("CMES"),
-            )
+            ),
         )
         algo.run()
 
@@ -495,7 +494,7 @@ def log_nyse_close(context, data):
             algo.run()
 
     def test_schedule_function(self):
-        us_eastern = pytz.timezone('US/Eastern')
+        us_eastern = pytz.timezone("US/Eastern")
 
         def incrementer(algo, data):
             algo.func_called += 1
@@ -503,10 +502,7 @@ def log_nyse_close(context, data):
             self.assertEqual(
                 curdt,
                 us_eastern.localize(
-                    datetime.datetime.combine(
-                        curdt.date(),
-                        datetime.time(9, 31)
-                    ),
+                    datetime.datetime.combine(curdt.date(), datetime.time(9, 31)),
                 ),
             )
 
@@ -578,22 +574,23 @@ def log_nyse_close(context, data):
         self.assertEqual(
             len(function_stack),
             3900,
-            'Incorrect number of functions called: %s != 3900' %
-            len(function_stack),
+            "Incorrect number of functions called: %s != 3900" % len(function_stack),
         )
         expected_functions = [pre, handle_data, f, g, post] * 97530
         for n, (f, g) in enumerate(zip(function_stack, expected_functions)):
             self.assertEqual(
                 f,
                 g,
-                'function at position %d was incorrect, expected %s but got %s'
+                "function at position %d was incorrect, expected %s but got %s"
                 % (n, g.__name__, f.__name__),
             )
 
-    @parameterized.expand([
-        ('daily',),
-        ('minute'),
-    ])
+    @parameterized.expand(
+        [
+            ("daily",),
+            ("minute"),
+        ]
+    )
     def test_schedule_function_rule_creation(self, mode):
         def nop(*args, **kwargs):
             return None
@@ -625,7 +622,7 @@ def log_nyse_close(context, data):
         self.assertEqual(first.cal, algo.trading_calendar)
         self.assertEqual(second.cal, algo.trading_calendar)
 
-        if mode == 'daily':
+        if mode == "daily":
             self.assertIsInstance(second, Always)
         else:
             self.assertIsInstance(second, ComposedRule)
@@ -645,43 +642,38 @@ def log_nyse_close(context, data):
 
         # Test before either PLAY existed
         algo.sim_params = algo.sim_params.create_new(
-            start_session,
-            pd.Timestamp('2001-12-01', tz='UTC')
+            start_session, pd.Timestamp("2001-12-01", tz="UTC")
         )
         with self.assertRaises(SymbolNotFound):
-            algo.symbol('PLAY')
+            algo.symbol("PLAY")
         with self.assertRaises(SymbolNotFound):
-            algo.symbols('PLAY')
+            algo.symbols("PLAY")
 
         # Test when first PLAY exists
         algo.sim_params = algo.sim_params.create_new(
-            start_session,
-            pd.Timestamp('2002-12-01', tz='UTC')
+            start_session, pd.Timestamp("2002-12-01", tz="UTC")
         )
-        list_result = algo.symbols('PLAY')
+        list_result = algo.symbols("PLAY")
         self.assertEqual(3, list_result[0])
 
         # Test after first PLAY ends
         algo.sim_params = algo.sim_params.create_new(
-            start_session,
-            pd.Timestamp('2004-12-01', tz='UTC')
+            start_session, pd.Timestamp("2004-12-01", tz="UTC")
         )
-        self.assertEqual(3, algo.symbol('PLAY'))
+        self.assertEqual(3, algo.symbol("PLAY"))
 
         # Test after second PLAY begins
         algo.sim_params = algo.sim_params.create_new(
-            start_session,
-            pd.Timestamp('2005-12-01', tz='UTC')
+            start_session, pd.Timestamp("2005-12-01", tz="UTC")
         )
-        self.assertEqual(4, algo.symbol('PLAY'))
+        self.assertEqual(4, algo.symbol("PLAY"))
 
         # Test after second PLAY ends
         algo.sim_params = algo.sim_params.create_new(
-            start_session,
-            pd.Timestamp('2006-12-01', tz='UTC')
+            start_session, pd.Timestamp("2006-12-01", tz="UTC")
         )
-        self.assertEqual(4, algo.symbol('PLAY'))
-        list_result = algo.symbols('PLAY')
+        self.assertEqual(4, algo.symbol("PLAY"))
+        list_result = algo.symbols("PLAY")
         self.assertEqual(4, list_result[0])
 
         # Test lookup SID
@@ -703,32 +695,30 @@ def log_nyse_close(context, data):
             algo.symbol([1])
 
         with self.assertRaises(TypeError):
-            algo.symbol({'foo': 'bar'})
+            algo.symbol({"foo": "bar"})
 
     def test_future_symbol(self):
-        """ Tests the future_symbol API function.
-        """
+        """Tests the future_symbol API function."""
         algo = self.make_algo()
-        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
+        algo.datetime = pd.Timestamp("2006-12-01", tz="UTC")
 
         # Check that we get the correct fields for the CLG06 symbol
-        cl = algo.future_symbol('CLG06')
+        cl = algo.future_symbol("CLG06")
         self.assertEqual(cl.sid, 5)
-        self.assertEqual(cl.symbol, 'CLG06')
-        self.assertEqual(cl.root_symbol, 'CL')
-        self.assertEqual(cl.start_date, pd.Timestamp('2005-12-01', tz='UTC'))
-        self.assertEqual(cl.notice_date, pd.Timestamp('2005-12-20', tz='UTC'))
-        self.assertEqual(cl.expiration_date,
-                         pd.Timestamp('2006-01-20', tz='UTC'))
+        self.assertEqual(cl.symbol, "CLG06")
+        self.assertEqual(cl.root_symbol, "CL")
+        self.assertEqual(cl.start_date, pd.Timestamp("2005-12-01", tz="UTC"))
+        self.assertEqual(cl.notice_date, pd.Timestamp("2005-12-20", tz="UTC"))
+        self.assertEqual(cl.expiration_date, pd.Timestamp("2006-01-20", tz="UTC"))
 
         with self.assertRaises(SymbolNotFound):
-            algo.future_symbol('')
+            algo.future_symbol("")
 
         with self.assertRaises(SymbolNotFound):
-            algo.future_symbol('PLAY')
+            algo.future_symbol("PLAY")
 
         with self.assertRaises(SymbolNotFound):
-            algo.future_symbol('FOOBAR')
+            algo.future_symbol("FOOBAR")
 
         # Supplying a non-string argument to future_symbol()
         # should result in a TypeError.
@@ -745,7 +735,7 @@ def log_nyse_close(context, data):
             algo.future_symbol([1])
 
         with self.assertRaises(TypeError):
-            algo.future_symbol({'foo': 'bar'})
+            algo.future_symbol({"foo": "bar"})
 
 
 class TestSetSymbolLookupDate(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -756,10 +746,10 @@ class TestSetSymbolLookupDate(zf.WithMakeAlgo, zf.ZiplineTestCase):
     # 15 16 17 18 19 20 21
     # 22 23 24 25 26 27 28
     # 29 30 31
-    START_DATE = pd.Timestamp('2006-01-03', tz='UTC')
-    END_DATE = pd.Timestamp('2006-01-06', tz='UTC')
-    SIM_PARAMS_START_DATE = pd.Timestamp('2006-01-04', tz='UTC')
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    START_DATE = pd.Timestamp("2006-01-03", tz="UTC")
+    END_DATE = pd.Timestamp("2006-01-06", tz="UTC")
+    SIM_PARAMS_START_DATE = pd.Timestamp("2006-01-04", tz="UTC")
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
     BENCHMARK_SID = 3
 
@@ -773,23 +763,32 @@ class TestSetSymbolLookupDate(zf.WithMakeAlgo, zf.ZiplineTestCase):
         cls.sids = [1, 2, 3]
         cls.asset_starts = [dates[0], dates[2]]
         cls.asset_ends = [dates[1], dates[3]]
-        return pd.DataFrame.from_records([
-            {'symbol': 'DUP',
-             'start_date': cls.asset_starts[0],
-             'end_date': cls.asset_ends[0],
-             'exchange': 'TEST',
-             'asset_name': 'FIRST'},
-            {'symbol': 'DUP',
-             'start_date': cls.asset_starts[1],
-             'end_date': cls.asset_ends[1],
-             'exchange': 'TEST',
-             'asset_name': 'SECOND'},
-            {'symbol': 'BENCH',
-             'start_date': cls.START_DATE,
-             'end_date': cls.END_DATE,
-             'exchange': 'TEST',
-             'asset_name': 'BENCHMARK'},
-        ], index=cls.sids)
+        return pd.DataFrame.from_records(
+            [
+                {
+                    "symbol": "DUP",
+                    "start_date": cls.asset_starts[0],
+                    "end_date": cls.asset_ends[0],
+                    "exchange": "TEST",
+                    "asset_name": "FIRST",
+                },
+                {
+                    "symbol": "DUP",
+                    "start_date": cls.asset_starts[1],
+                    "end_date": cls.asset_ends[1],
+                    "exchange": "TEST",
+                    "asset_name": "SECOND",
+                },
+                {
+                    "symbol": "BENCH",
+                    "start_date": cls.START_DATE,
+                    "end_date": cls.END_DATE,
+                    "exchange": "TEST",
+                    "asset_name": "BENCHMARK",
+                },
+            ],
+            index=cls.sids,
+        )
 
     def test_set_symbol_lookup_date(self):
         """
@@ -799,35 +798,35 @@ class TestSetSymbolLookupDate(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         def initialize(context):
             set_symbol_lookup_date(self.asset_ends[0])
-            self.assertEqual(zipline.api.symbol('DUP').sid, self.sids[0])
+            self.assertEqual(zipline.api.symbol("DUP").sid, self.sids[0])
 
             set_symbol_lookup_date(self.asset_ends[1])
-            self.assertEqual(zipline.api.symbol('DUP').sid, self.sids[1])
+            self.assertEqual(zipline.api.symbol("DUP").sid, self.sids[1])
 
             with self.assertRaises(UnsupportedDatetimeFormat):
-                set_symbol_lookup_date('foobar')
+                set_symbol_lookup_date("foobar")
 
         self.run_algorithm(initialize=initialize)
 
 
 class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+    START_DATE = pd.Timestamp("2006-01-03", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-06", tz="utc")
     SIM_PARAMS_CAPITAL_BASE = 1000
 
     ASSET_FINDER_EQUITY_SIDS = (1, 133)
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         frame = pd.DataFrame(
             {
-                'open': [90, 95, 100, 105],
-                'high': [90, 95, 100, 105],
-                'low': [90, 95, 100, 105],
-                'close': [90, 95, 100, 105],
-                'volume': 100,
+                "open": [90, 95, 100, 105],
+                "high": [90, 95, 100, 105],
+                "low": [90, 95, 100, 105],
+                "close": [90, 95, 100, 105],
+                "volume": 100,
             },
             index=cls.equity_daily_bar_days,
         )
@@ -838,16 +837,16 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
         return pd.DataFrame.from_dict(
             {
                 1000: {
-                    'symbol': 'CLF06',
-                    'root_symbol': 'CL',
-                    'start_date': cls.START_DATE,
-                    'end_date': cls.END_DATE,
-                    'auto_close_date': cls.END_DATE + cls.trading_calendar.day,
-                    'exchange': 'CMES',
-                    'multiplier': 100,
+                    "symbol": "CLF06",
+                    "root_symbol": "CL",
+                    "start_date": cls.START_DATE,
+                    "end_date": cls.END_DATE,
+                    "auto_close_date": cls.END_DATE + cls.trading_calendar.day,
+                    "exchange": "CMES",
+                    "multiplier": 100,
                 },
             },
-            orient='index',
+            orient="index",
         )
 
     @classmethod
@@ -861,11 +860,11 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
         )
         frame = pd.DataFrame(
             {
-                'open': 2.0,
-                'high': 2.0,
-                'low': 2.0,
-                'close': 2.0,
-                'volume': 100,
+                "open": 2.0,
+                "high": 2.0,
+                "low": 2.0,
+                "close": 2.0,
+                "volume": 100,
             },
             index=minutes,
         )
@@ -888,13 +887,9 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 context.ordered = True
 
             if not context.exited:
-                amounts = [pos.amount for pos
-                           in context.portfolio.positions.values()]
+                amounts = [pos.amount for pos in context.portfolio.positions.values()]
 
-                if (
-                    len(amounts) > 0 and
-                    all([(amount == 1) for amount in amounts])
-                ):
+                if len(amounts) > 0 and all([(amount == 1) for amount in amounts]):
                     for stock in context.portfolio.positions:
                         context.order(context.sid(stock), -1)
                     context.exited = True
@@ -915,7 +910,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
             0,
         ]
         for i, expected in enumerate(expected_position_count):
-            self.assertEqual(result.iloc[i]['num_positions'], expected)
+            self.assertEqual(result.iloc[i]["num_positions"], expected)
 
     def test_noop_orders(self):
         asset = self.asset_finder.retrieve_asset(1)
@@ -964,8 +959,8 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
             ###################
             # Rounding Checks #
             ###################
-            algo.order(asset, 100, limit_price=.00000001)
-            algo.order(asset, -100, stop_price=.00000001)
+            algo.order(asset, 100, limit_price=0.00000001)
+            algo.order(asset, -100, stop_price=0.00000001)
 
         daily_stats = self.run_algorithm(handle_data=handle_data)
 
@@ -975,14 +970,14 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     def test_position_weights(self):
         sids = (1, 133, 1000)
-        equity_1, equity_133, future_1000 = \
-            self.asset_finder.retrieve_all(sids)
+        equity_1, equity_133, future_1000 = self.asset_finder.retrieve_all(sids)
 
         def initialize(algo, sids_and_amounts, *args, **kwargs):
             algo.ordered = False
             algo.sids_and_amounts = sids_and_amounts
             algo.set_commission(
-                us_equities=PerTrade(0), us_futures=PerTrade(0),
+                us_equities=PerTrade(0),
+                us_futures=PerTrade(0),
             )
             algo.set_slippage(
                 us_equities=FixedSlippage(0),
@@ -1017,41 +1012,47 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
             # For a futures contract, its weight is the unit price times number
             # of shares held times the multiplier. For future_1000, this is
             # (2.0 * 1 * 100) = 200.0 divided by total portfolio value.
-            pd.Series({
-                equity_1: 190.0 / (190.0 - 95.0 + 905.0),
-                equity_133: -95.0 / (190.0 - 95.0 + 905.0),
-                future_1000: 200.0 / (190.0 - 95.0 + 905.0),
-            }),
-            pd.Series({
-                equity_1: 200.0 / (200.0 - 100.0 + 905.0),
-                equity_133: -100.0 / (200.0 - 100.0 + 905.0),
-                future_1000: 200.0 / (200.0 - 100.0 + 905.0),
-            }),
-            pd.Series({
-                equity_1: 210.0 / (210.0 - 105.0 + 905.0),
-                equity_133: -105.0 / (210.0 - 105.0 + 905.0),
-                future_1000: 200.0 / (210.0 - 105.0 + 905.0),
-            }),
+            pd.Series(
+                {
+                    equity_1: 190.0 / (190.0 - 95.0 + 905.0),
+                    equity_133: -95.0 / (190.0 - 95.0 + 905.0),
+                    future_1000: 200.0 / (190.0 - 95.0 + 905.0),
+                }
+            ),
+            pd.Series(
+                {
+                    equity_1: 200.0 / (200.0 - 100.0 + 905.0),
+                    equity_133: -100.0 / (200.0 - 100.0 + 905.0),
+                    future_1000: 200.0 / (200.0 - 100.0 + 905.0),
+                }
+            ),
+            pd.Series(
+                {
+                    equity_1: 210.0 / (210.0 - 105.0 + 905.0),
+                    equity_133: -105.0 / (210.0 - 105.0 + 905.0),
+                    future_1000: 200.0 / (210.0 - 105.0 + 905.0),
+                }
+            ),
         ]
 
         for i, expected in enumerate(expected_position_weights):
-            assert_equal(daily_stats.iloc[i]['position_weights'], expected)
+            assert_equal(daily_stats.iloc[i]["position_weights"], expected)
 
 
 class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2016-01-06', tz='utc')
-    END_DATE = pd.Timestamp('2016-01-07', tz='utc')
+    START_DATE = pd.Timestamp("2016-01-06", tz="utc")
+    END_DATE = pd.Timestamp("2016-01-07", tz="utc")
     SIM_PARAMS_CAPITAL_BASE = 10000
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
     EQUITY_DAILY_BAR_LOOKBACK_DAYS = EQUITY_MINUTE_BAR_LOOKBACK_DAYS = 1
 
-    DATA_PORTAL_FIRST_TRADING_DAY = pd.Timestamp("2016-01-05", tz='UTC')
-    EQUITY_MINUTE_BAR_START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
-    FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
+    DATA_PORTAL_FIRST_TRADING_DAY = pd.Timestamp("2016-01-05", tz="UTC")
+    EQUITY_MINUTE_BAR_START_DATE = pd.Timestamp("2016-01-05", tz="UTC")
+    FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp("2016-01-05", tz="UTC")
 
     data_start = ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp(
-        '2016-01-05',
-        tz='utc',
+        "2016-01-05",
+        tz="utc",
     )
 
     SPLIT_ASSET_SID = 3
@@ -1059,20 +1060,19 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     @classmethod
     def make_equity_minute_bar_data(cls):
-        asset_minutes = \
-            cls.trading_calendar.minutes_in_range(
-                cls.data_start,
-                cls.END_DATE,
-            )
+        asset_minutes = cls.trading_calendar.minutes_in_range(
+            cls.data_start,
+            cls.END_DATE,
+        )
         minutes_count = len(asset_minutes)
         minutes_arr = np.arange(minutes_count) + 1
         split_data = pd.DataFrame(
             {
-                'open': minutes_arr + 1,
-                'high': minutes_arr + 2,
-                'low': minutes_arr - 1,
-                'close': minutes_arr,
-                'volume': 100 * minutes_arr,
+                "open": minutes_arr + 1,
+                "high": minutes_arr + 2,
+                "low": minutes_arr - 1,
+                "close": minutes_arr,
+                "volume": 100 * minutes_arr,
             },
             index=asset_minutes,
         )
@@ -1094,13 +1094,15 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     @classmethod
     def make_splits_data(cls):
-        return pd.DataFrame.from_records([
-            {
-                'effective_date': str_to_seconds('2016-01-07'),
-                'ratio': 0.5,
-                'sid': cls.SPLIT_ASSET_SID,
-            }
-        ])
+        return pd.DataFrame.from_records(
+            [
+                {
+                    "effective_date": str_to_seconds("2016-01-07"),
+                    "ratio": 0.5,
+                    "sid": cls.SPLIT_ASSET_SID,
+                }
+            ]
+        )
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
@@ -1112,7 +1114,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
             )
 
     def test_data_in_bts_minute(self):
-        algo_code = dedent("""
+        algo_code = dedent(
+            """
         from zipline.api import record, sid
         def initialize(context):
             context.history_values = []
@@ -1132,7 +1135,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         def handle_data(context, data):
             pass
-        """)
+        """
+        )
 
         algo = self.make_algo(script=algo_code)
         results = algo.run()
@@ -1149,38 +1153,44 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         # asset1 day1 price should be 331-390
         np.testing.assert_array_equal(
-            range(331, 391), algo.history_values[0].loc[pd.IndexSlice[:, 1], 'price']
+            range(331, 391), algo.history_values[0].loc[pd.IndexSlice[:, 1], "price"]
         )
 
         # asset1 day1 high should be 333-392
         np.testing.assert_array_equal(
-            range(333, 393), algo.history_values[0].loc[pd.IndexSlice[:, 1], 'high']
-
+            range(333, 393), algo.history_values[0].loc[pd.IndexSlice[:, 1], "high"]
         )
 
         # asset2 day1 price should be 19 300s, then 40 350s
         np.testing.assert_array_equal(
-            [300] * 19, algo.history_values[0].loc[pd.IndexSlice[:, 2], 'price'].iloc[:19]
+            [300] * 19,
+            algo.history_values[0].loc[pd.IndexSlice[:, 2], "price"].iloc[:19],
         )
 
         np.testing.assert_array_equal(
-            [350] * 40, algo.history_values[0].loc[pd.IndexSlice[:, 2], 'price'].iloc[20:]
+            [350] * 40,
+            algo.history_values[0].loc[pd.IndexSlice[:, 2], "price"].iloc[20:],
         )
 
         # asset2 day1 high should be all NaNs except for the 19th item
         # = 2016-01-05 20:20:00+00:00
         np.testing.assert_array_equal(
-            np.full(19, np.nan), algo.history_values[0].loc[pd.IndexSlice[:, 2], 'high'].iloc[:19]
+            np.full(19, np.nan),
+            algo.history_values[0].loc[pd.IndexSlice[:, 2], "high"].iloc[:19],
         )
 
-        self.assertEqual(352, algo.history_values[0].loc[pd.IndexSlice[:, 2], 'high'].iloc[19])
+        self.assertEqual(
+            352, algo.history_values[0].loc[pd.IndexSlice[:, 2], "high"].iloc[19]
+        )
 
         np.testing.assert_array_equal(
-            np.full(40, np.nan), algo.history_values[0].loc[pd.IndexSlice[:, 2], 'high'].iloc[20:]
+            np.full(40, np.nan),
+            algo.history_values[0].loc[pd.IndexSlice[:, 2], "high"].iloc[20:],
         )
 
     def test_data_in_bts_daily(self):
-        algo_code = dedent("""
+        algo_code = dedent(
+            """
         from zipline.api import record, sid
         def initialize(context):
             context.history_values = []
@@ -1200,7 +1210,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         def handle_data(context, data):
             pass
-        """)
+        """
+        )
 
         algo = self.make_algo(script=algo_code)
         results = algo.run()
@@ -1220,7 +1231,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertEqual(350, algo.history_values[0]["price"][1])
 
     def test_portfolio_bts(self):
-        algo_code = dedent("""
+        algo_code = dedent(
+            """
         from zipline.api import order, sid, record
 
         def initialize(context):
@@ -1240,7 +1252,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 order(sid(1), 1)
                 context.ordered = True
             context.hd_portfolio = context.portfolio
-        """)
+        """
+        )
 
         algo = self.make_algo(script=algo_code)
         results = algo.run()
@@ -1253,7 +1266,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertEqual(results.pos_value.iloc[1], 780)
 
     def test_account_bts(self):
-        algo_code = dedent("""
+        algo_code = dedent(
+            """
         from zipline.api import order, sid, record, set_slippage, slippage
 
         def initialize(context):
@@ -1274,7 +1288,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 order(sid(1), 1)
                 context.ordered = True
             context.hd_account = context.account
-        """)
+        """
+        )
 
         algo = self.make_algo(script=algo_code)
         results = algo.run()
@@ -1284,12 +1299,13 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # commission of 0. On 1/07, the price is 780, and the increase in
         # portfolio value is 780-392-0
         self.assertEqual(results.port_value.iloc[0], 10000)
-        self.assertAlmostEqual(results.port_value.iloc[1],
-                               10000 + 780 - 392 - 0,
-                               places=2)
+        self.assertAlmostEqual(
+            results.port_value.iloc[1], 10000 + 780 - 392 - 0, places=2
+        )
 
     def test_portfolio_bts_with_overnight_split(self):
-        algo_code = dedent("""
+        algo_code = dedent(
+            """
         from zipline.api import order, sid, record
 
         def initialize(context):
@@ -1315,7 +1331,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 order(sid(3), 1)
                 context.ordered = True
             context.hd_portfolio = context.portfolio
-        """)
+        """
+        )
 
         results = self.run_algorithm(script=algo_code)
 
@@ -1332,7 +1349,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertEqual(results.last_sale_price.iloc[1], 390)
 
     def test_account_bts_with_overnight_split(self):
-        algo_code = dedent("""
+        algo_code = dedent(
+            """
         from zipline.api import order, sid, record, set_slippage, slippage
 
         def initialize(context):
@@ -1353,71 +1371,80 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 order(sid(1), 1)
                 context.ordered = True
             context.hd_account = context.account
-        """)
+        """
+        )
 
         results = self.run_algorithm(script=algo_code)
 
         # On 1/07, portfolio value is the same as without split
         self.assertEqual(results.port_value.iloc[0], 10000)
-        self.assertAlmostEqual(results.port_value.iloc[1],
-                               10000 + 780 - 392 - 0, places=2)
+        self.assertAlmostEqual(
+            results.port_value.iloc[1], 10000 + 780 - 392 - 0, places=2
+        )
 
 
 class TestAlgoScript(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-12-31', tz='utc')
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    START_DATE = pd.Timestamp("2006-01-03", tz="utc")
+    END_DATE = pd.Timestamp("2006-12-31", tz="utc")
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
     EQUITY_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
 
     STRING_TYPE_NAMES = [str.__name__]
-    STRING_TYPE_NAMES_STRING = ', '.join(STRING_TYPE_NAMES)
+    STRING_TYPE_NAMES_STRING = ", ".join(STRING_TYPE_NAMES)
     ASSET_TYPE_NAME = Asset.__name__
     CONTINUOUS_FUTURE_NAME = ContinuousFuture.__name__
-    ASSET_OR_STRING_TYPE_NAMES = ', '.join([ASSET_TYPE_NAME] +
-                                           STRING_TYPE_NAMES)
-    ASSET_OR_STRING_OR_CF_TYPE_NAMES = ', '.join([ASSET_TYPE_NAME,
-                                                  CONTINUOUS_FUTURE_NAME] +
-                                                 STRING_TYPE_NAMES)
+    ASSET_OR_STRING_TYPE_NAMES = ", ".join([ASSET_TYPE_NAME] + STRING_TYPE_NAMES)
+    ASSET_OR_STRING_OR_CF_TYPE_NAMES = ", ".join(
+        [ASSET_TYPE_NAME, CONTINUOUS_FUTURE_NAME] + STRING_TYPE_NAMES
+    )
     ARG_TYPE_TEST_CASES = (
-        ('history__assets', (bad_type_history_assets,
-                             ASSET_OR_STRING_OR_CF_TYPE_NAMES,
-                             True)),
-        ('history__fields', (bad_type_history_fields,
-                             STRING_TYPE_NAMES_STRING,
-                             True)),
-        ('history__bar_count', (bad_type_history_bar_count, 'int', False)),
-        ('history__frequency', (bad_type_history_frequency,
-                                STRING_TYPE_NAMES_STRING,
-                                False)),
-        ('current__assets', (bad_type_current_assets,
-                             ASSET_OR_STRING_OR_CF_TYPE_NAMES,
-                             True)),
-        ('current__fields', (bad_type_current_fields,
-                             STRING_TYPE_NAMES_STRING,
-                             True)),
-        ('is_stale__assets', (bad_type_is_stale_assets, 'Asset', True)),
-        ('can_trade__assets', (bad_type_can_trade_assets, 'Asset', True)),
-        ('history_kwarg__assets',
-         (bad_type_history_assets_kwarg,
-          ASSET_OR_STRING_OR_CF_TYPE_NAMES,
-          True)),
-        ('history_kwarg_bad_list__assets',
-         (bad_type_history_assets_kwarg_list,
-          ASSET_OR_STRING_OR_CF_TYPE_NAMES,
-          True)),
-        ('history_kwarg__fields',
-         (bad_type_history_fields_kwarg, STRING_TYPE_NAMES_STRING, True)),
-        ('history_kwarg__bar_count',
-         (bad_type_history_bar_count_kwarg, 'int', False)),
-        ('history_kwarg__frequency',
-         (bad_type_history_frequency_kwarg, STRING_TYPE_NAMES_STRING, False)),
-        ('current_kwarg__assets',
-         (bad_type_current_assets_kwarg,
-          ASSET_OR_STRING_OR_CF_TYPE_NAMES,
-          True)),
-        ('current_kwarg__fields',
-         (bad_type_current_fields_kwarg, STRING_TYPE_NAMES_STRING, True)),
+        (
+            "history__assets",
+            (bad_type_history_assets, ASSET_OR_STRING_OR_CF_TYPE_NAMES, True),
+        ),
+        ("history__fields", (bad_type_history_fields, STRING_TYPE_NAMES_STRING, True)),
+        ("history__bar_count", (bad_type_history_bar_count, "int", False)),
+        (
+            "history__frequency",
+            (bad_type_history_frequency, STRING_TYPE_NAMES_STRING, False),
+        ),
+        (
+            "current__assets",
+            (bad_type_current_assets, ASSET_OR_STRING_OR_CF_TYPE_NAMES, True),
+        ),
+        ("current__fields", (bad_type_current_fields, STRING_TYPE_NAMES_STRING, True)),
+        ("is_stale__assets", (bad_type_is_stale_assets, "Asset", True)),
+        ("can_trade__assets", (bad_type_can_trade_assets, "Asset", True)),
+        (
+            "history_kwarg__assets",
+            (bad_type_history_assets_kwarg, ASSET_OR_STRING_OR_CF_TYPE_NAMES, True),
+        ),
+        (
+            "history_kwarg_bad_list__assets",
+            (
+                bad_type_history_assets_kwarg_list,
+                ASSET_OR_STRING_OR_CF_TYPE_NAMES,
+                True,
+            ),
+        ),
+        (
+            "history_kwarg__fields",
+            (bad_type_history_fields_kwarg, STRING_TYPE_NAMES_STRING, True),
+        ),
+        ("history_kwarg__bar_count", (bad_type_history_bar_count_kwarg, "int", False)),
+        (
+            "history_kwarg__frequency",
+            (bad_type_history_frequency_kwarg, STRING_TYPE_NAMES_STRING, False),
+        ),
+        (
+            "current_kwarg__assets",
+            (bad_type_current_assets_kwarg, ASSET_OR_STRING_OR_CF_TYPE_NAMES, True),
+        ),
+        (
+            "current_kwarg__fields",
+            (bad_type_current_fields_kwarg, STRING_TYPE_NAMES_STRING, True),
+        ),
     )
 
     sids = 0, 1, 3, 133
@@ -1434,16 +1461,23 @@ class TestAlgoScript(zf.WithMakeAlgo, zf.ZiplineTestCase):
             cls.START_DATE,
             cls.END_DATE,
         )
-        data.loc[3, 'symbol'] = 'TEST'
+        data.loc[3, "symbol"] = "TEST"
         return data
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         cal = cls.trading_calendars[Equity]
         sessions = cal.sessions_in_range(cls.START_DATE, cls.END_DATE)
-        frame = pd.DataFrame({
-            'close': 10., 'high': 10.5, 'low': 9.5, 'open': 10., 'volume': 100,
-        }, index=sessions)
+        frame = pd.DataFrame(
+            {
+                "close": 10.0,
+                "high": 10.5,
+                "low": 9.5,
+                "open": 10.0,
+                "volume": 100,
+            },
+            index=sessions,
+        )
 
         for sid in sids:
             yield sid, frame
@@ -1470,7 +1504,7 @@ class TestAlgoScript(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.run_algorithm(script=api_algo)
 
     def test_api_get_environment(self):
-        platform = 'zipline'
+        platform = "zipline"
         algo = self.make_algo(
             script=api_get_environment_algo,
             platform=platform,
@@ -1511,8 +1545,9 @@ def handle_data(context, data):
         results = test_algo.run()
 
         # flatten the list of txns
-        all_txns = [val for sublist in results["transactions"].tolist()
-                    for val in sublist]
+        all_txns = [
+            val for sublist in results["transactions"].tolist() for val in sublist
+        ]
 
         self.assertEqual(len(all_txns), 1)
         txn = all_txns[0]
@@ -1520,7 +1555,7 @@ def handle_data(context, data):
         expected_spread = 0.05
         expected_price = test_algo.recorded_vars["price"] - expected_spread
 
-        self.assertEqual(expected_price, txn['price'])
+        self.assertEqual(expected_price, txn["price"])
 
         # make sure that the $100 commission was applied to our cash
         # the txn was for -1000 shares at 9.95, means -9.95k.  our capital_used
@@ -1531,9 +1566,18 @@ def handle_data(context, data):
 
     @parameterized.expand(
         [
-            ('no_minimum_commission', 0,),
-            ('default_minimum_commission', 0,),
-            ('alternate_minimum_commission', 2,),
+            (
+                "no_minimum_commission",
+                0,
+            ),
+            (
+                "default_minimum_commission",
+                0,
+            ),
+            (
+                "alternate_minimum_commission",
+                2,
+            ),
         ]
     )
     def test_volshare_slippage(self, name, minimum_commission):
@@ -1542,9 +1586,10 @@ def handle_data(context, data):
             if name == "default_minimum_commission":
                 commission_line = "set_commission(commission.PerShare(0.02))"
             else:
-                commission_line = \
-                    "set_commission(commission.PerShare(0.02, " \
+                commission_line = (
+                    "set_commission(commission.PerShare(0.02, "
                     "min_trade_cost={0}))".format(minimum_commission)
+                )
 
             # verify order -> transaction -> portfolio position.
             # --------------
@@ -1554,8 +1599,11 @@ def handle_data(context, data):
                 [0], self.sim_params, self.asset_finder, self.trading_calendar
             )
             data_portal = create_data_portal_from_trade_history(
-                self.asset_finder, self.trading_calendar, tempdir,
-                self.sim_params, {0: trades}
+                self.asset_finder,
+                self.trading_calendar,
+                tempdir,
+                self.sim_params,
+                {0: trades},
             )
             test_algo = self.make_algo(
                 data_portal=data_portal,
@@ -1582,26 +1630,27 @@ def handle_data(context, data):
     record(volume=data.current(sid(0), "volume"))
     record(incr=context.incr)
     context.incr += 1
-    """.format(commission_line),
+    """.format(
+                    commission_line
+                ),
             )
             results = test_algo.run()
 
             all_txns = [
-                val for sublist in results["transactions"].tolist()
-                for val in sublist]
+                val for sublist in results["transactions"].tolist() for val in sublist
+            ]
 
             self.assertEqual(len(all_txns), 67)
             # all_orders are all the incremental versions of the
             # orders as each new fill comes in.
-            all_orders = list(toolz.concat(results['orders']))
+            all_orders = list(toolz.concat(results["orders"]))
 
             if minimum_commission == 0:
                 # for each incremental version of each order, the commission
                 # should be its filled amount * 0.02
                 for order_ in all_orders:
                     self.assertAlmostEqual(
-                        order_["filled"] * 0.02,
-                        order_["commission"]
+                        order_["filled"] * 0.02, order_["commission"]
                     )
             else:
                 # the commission should be at least the min_trade_cost
@@ -1609,7 +1658,7 @@ def handle_data(context, data):
                     if order_["filled"] > 0:
                         self.assertAlmostEqual(
                             max(order_["filled"] * 0.02, minimum_commission),
-                            order_["commission"]
+                            order_["commission"],
                         )
                     else:
                         self.assertEqual(0, order_["commission"])
@@ -1640,20 +1689,21 @@ def handle_data(context, data):
         results = test_algo.run()
 
         for i in range(1, 252):
-            self.assertEqual(results.iloc[i-1]["incr"], i)
+            self.assertEqual(results.iloc[i - 1]["incr"], i)
 
     def test_algo_record_nan(self):
-        test_algo = self.make_algo(script=record_float_magic % 'nan')
+        test_algo = self.make_algo(script=record_float_magic % "nan")
         results = test_algo.run()
         for i in range(1, 252):
-            self.assertTrue(np.isnan(results.iloc[i-1]["data"]))
+            self.assertTrue(np.isnan(results.iloc[i - 1]["data"]))
 
     def test_batch_market_order_matches_multiple_manual_orders(self):
         share_counts = pd.Series([50, 100])
 
         multi_blotter = RecordBatchBlotter()
         multi_test_algo = self.make_algo(
-            script=dedent("""\
+            script=dedent(
+                """\
                 from collections import OrderedDict
                 from zipline.api import sid, order
 
@@ -1670,7 +1720,8 @@ def handle_data(context, data):
 
                         context.placed = True
 
-            """).format(share_counts=list(share_counts)),
+            """
+            ).format(share_counts=list(share_counts)),
             blotter=multi_blotter,
         )
         multi_stats = multi_test_algo.run()
@@ -1678,7 +1729,8 @@ def handle_data(context, data):
 
         batch_blotter = RecordBatchBlotter()
         batch_test_algo = self.make_algo(
-            script=dedent("""\
+            script=dedent(
+                """\
                 import pandas as pd
 
                 from zipline.api import sid, batch_market_order
@@ -1700,7 +1752,8 @@ def handle_data(context, data):
 
                         context.placed = True
 
-            """).format(share_counts=list(share_counts)),
+            """
+            ).format(share_counts=list(share_counts)),
             blotter=batch_blotter,
         )
         batch_stats = batch_test_algo.run()
@@ -1708,10 +1761,10 @@ def handle_data(context, data):
 
         for stats in (multi_stats, batch_stats):
             stats.orders = stats.orders.apply(
-                lambda orders: [toolz.dissoc(o, 'id') for o in orders]
+                lambda orders: [toolz.dissoc(o, "id") for o in orders]
             )
             stats.transactions = stats.transactions.apply(
-                lambda txns: [toolz.dissoc(txn, 'order_id') for txn in txns]
+                lambda txns: [toolz.dissoc(txn, "order_id") for txn in txns]
             )
         assert_equal(multi_stats.sort_index(1), batch_stats.sort_index(1))
 
@@ -1720,7 +1773,8 @@ def handle_data(context, data):
 
         batch_blotter = RecordBatchBlotter()
         batch_test_algo = self.make_algo(
-            script=dedent("""\
+            script=dedent(
+                """\
                 import pandas as pd
 
                 from zipline.api import sid, batch_market_order
@@ -1741,7 +1795,8 @@ def handle_data(context, data):
 
                         context.placed = True
 
-            """).format(share_counts=share_counts),
+            """
+            ).format(share_counts=share_counts),
             blotter=batch_blotter,
         )
         batch_test_algo.run()
@@ -1750,8 +1805,8 @@ def handle_data(context, data):
     def test_order_dead_asset(self):
         # after asset 0 is dead
         params = SimulationParameters(
-            start_session=pd.Timestamp("2007-01-03", tz='UTC'),
-            end_session=pd.Timestamp("2007-01-05", tz='UTC'),
+            start_session=pd.Timestamp("2007-01-03", tz="UTC"),
+            end_session=pd.Timestamp("2007-01-05", tz="UTC"),
             trading_calendar=self.trading_calendar,
         )
 
@@ -1779,7 +1834,9 @@ def initialize(context):
 
 def handle_data(context, data):
     {0}(sid(0), 10)
-        """.format(order_str),
+        """.format(
+                    order_str
+                ),
                 sim_params=params,
             )
 
@@ -1804,8 +1861,8 @@ def handle_data(context, data):
         arguments.
         """
         params = SimulationParameters(
-            start_session=pd.Timestamp("2006-01-10", tz='UTC'),
-            end_session=pd.Timestamp("2006-01-11", tz='UTC'),
+            start_session=pd.Timestamp("2006-01-10", tz="UTC"),
+            end_session=pd.Timestamp("2006-01-11", tz="UTC"),
             trading_calendar=self.trading_calendar,
         )
         self.run_algorithm(sim_params=params, script=call_without_kwargs)
@@ -1816,14 +1873,18 @@ def handle_data(context, data):
         arguments.
         """
         params = SimulationParameters(
-            start_session=pd.Timestamp("2006-01-10", tz='UTC'),
-            end_session=pd.Timestamp("2006-01-11", tz='UTC'),
+            start_session=pd.Timestamp("2006-01-10", tz="UTC"),
+            end_session=pd.Timestamp("2006-01-11", tz="UTC"),
             trading_calendar=self.trading_calendar,
         )
         self.run_algorithm(script=call_with_kwargs, sim_params=params)
 
-    @parameterized.expand([('history', call_with_bad_kwargs_history),
-                           ('current', call_with_bad_kwargs_current)])
+    @parameterized.expand(
+        [
+            ("history", call_with_bad_kwargs_history),
+            ("current", call_with_bad_kwargs_current),
+        ]
+    )
     def test_bad_kwargs(self, name, algo_text):
         """
         Test that api methods on the data object called with bad kwargs return
@@ -1834,13 +1895,15 @@ def handle_data(context, data):
         with self.assertRaises(TypeError) as cm:
             algo.run()
 
-        self.assertEqual("%s() got an unexpected keyword argument 'blahblah'"
-                         % name, cm.exception.args[0])
+        self.assertEqual(
+            "%s() got an unexpected keyword argument 'blahblah'" % name,
+            cm.exception.args[0],
+        )
 
     @parameterized.expand(ARG_TYPE_TEST_CASES)
     def test_arg_types(self, name, inputs):
 
-        keyword = name.split('__')[1]
+        keyword = name.split("__")[1]
 
         algo = self.make_algo(script=inputs[0])
         with self.assertRaises(TypeError) as cm:
@@ -1848,43 +1911,50 @@ def handle_data(context, data):
 
         expected = "Expected %s argument to be of type %s%s" % (
             keyword,
-            'or iterable of type ' if inputs[2] else '',
-            inputs[1]
+            "or iterable of type " if inputs[2] else "",
+            inputs[1],
         )
 
         self.assertEqual(expected, cm.exception.args[0])
 
     def test_empty_asset_list_to_history(self):
         params = SimulationParameters(
-            start_session=pd.Timestamp("2006-01-10", tz='UTC'),
-            end_session=pd.Timestamp("2006-01-11", tz='UTC'),
+            start_session=pd.Timestamp("2006-01-10", tz="UTC"),
+            end_session=pd.Timestamp("2006-01-11", tz="UTC"),
             trading_calendar=self.trading_calendar,
         )
 
         self.run_algorithm(
-            script=dedent("""
+            script=dedent(
+                """
                 def initialize(context):
                     pass
 
                 def handle_data(context, data):
                     data.history([], "price", 5, '1d')
-                """),
+                """
+            ),
             sim_params=params,
         )
 
     @parameterized.expand(
-        [('bad_kwargs', call_with_bad_kwargs_get_open_orders),
-         ('good_kwargs', call_with_good_kwargs_get_open_orders),
-         ('no_kwargs', call_with_no_kwargs_get_open_orders)]
+        [
+            ("bad_kwargs", call_with_bad_kwargs_get_open_orders),
+            ("good_kwargs", call_with_good_kwargs_get_open_orders),
+            ("no_kwargs", call_with_no_kwargs_get_open_orders),
+        ]
     )
     def test_get_open_orders_kwargs(self, name, script):
         algo = self.make_algo(script=script)
-        if name == 'bad_kwargs':
+        if name == "bad_kwargs":
             with self.assertRaises(TypeError) as cm:
                 algo.run()
-                self.assertEqual('Keyword argument `sid` is no longer '
-                                 'supported for get_open_orders. Use `asset` '
-                                 'instead.', cm.exception.args[0])
+                self.assertEqual(
+                    "Keyword argument `sid` is no longer "
+                    "supported for get_open_orders. Use `asset` "
+                    "instead.",
+                    cm.exception.args[0],
+                )
         else:
             algo.run()
 
@@ -1910,12 +1980,13 @@ def handle_data(context, data):
         """
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp('2006-01-12', tz='UTC'),
-            end=pd.Timestamp('2006-01-13', tz='UTC'),
-            data_frequency='minute'
+            start=pd.Timestamp("2006-01-12", tz="UTC"),
+            end=pd.Timestamp("2006-01-13", tz="UTC"),
+            data_frequency="minute",
         )
 
-        algocode = dedent("""
+        algocode = dedent(
+            """
         from zipline.api import time_rules, schedule_function
 
         def do_at_open(context, data):
@@ -1932,7 +2003,8 @@ def handle_data(context, data):
 
         def handle_data(algo, data):
             pass
-        """)
+        """
+        )
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("ignore", PerformanceWarning)
@@ -1946,31 +2018,35 @@ def handle_data(context, data):
                 self.assertIsInstance(warning.message, UserWarning)
                 self.assertEqual(
                     warning.message.args[0],
-                    'Got a time rule for the second positional argument '
-                    'date_rule. You should use keyword argument '
-                    'time_rule= when calling schedule_function without '
-                    'specifying a date_rule'
+                    "Got a time rule for the second positional argument "
+                    "date_rule. You should use keyword argument "
+                    "time_rule= when calling schedule_function without "
+                    "specifying a date_rule",
                 )
                 # The warnings come from line 13 and 14 in the algocode
                 self.assertEqual(warning.lineno, 13 + i)
 
         self.assertEqual(
             algo.done_at_open,
-            [pd.Timestamp('2006-01-12 14:31:00', tz='UTC'),
-             pd.Timestamp('2006-01-13 14:31:00', tz='UTC')]
+            [
+                pd.Timestamp("2006-01-12 14:31:00", tz="UTC"),
+                pd.Timestamp("2006-01-13 14:31:00", tz="UTC"),
+            ],
         )
 
         self.assertEqual(
             algo.done_at_close,
-            [pd.Timestamp('2006-01-12 20:59:00', tz='UTC'),
-             pd.Timestamp('2006-01-13 20:59:00', tz='UTC')]
+            [
+                pd.Timestamp("2006-01-12 20:59:00", tz="UTC"),
+                pd.Timestamp("2006-01-13 20:59:00", tz="UTC"),
+            ],
         )
 
 
 class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2006-01-03', tz='UTC')
-    END_DATE = pd.Timestamp('2006-01-09', tz='UTC')
+    START_DATE = pd.Timestamp("2006-01-03", tz="UTC")
+    END_DATE = pd.Timestamp("2006-01-09", tz="UTC")
 
     # XXX: This suite only has daily data for sid 0 and only has minutely data
     #      for sid 1.
@@ -1995,11 +2071,11 @@ class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
         frame = pd.DataFrame(
             index=minutes,
             data={
-                'open': opens,
-                'high': highs,
-                'low': lows,
-                'close': closes,
-                'volume': 10000,
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "volume": 10000,
             },
         )
 
@@ -2020,23 +2096,20 @@ class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
         frame = pd.DataFrame(
             index=days,
             data={
-                'open': opens,
-                'high': highs,
-                'low': lows,
-                'close': closes,
-                'volume': 10000,
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "volume": 10000,
             },
         )
 
         yield cls.DAILY_SID, frame
 
-    @parameterized.expand([
-        ('target', 151000.0), ('delta', 50000.0)
-    ])
+    @parameterized.expand([("target", 151000.0), ("delta", 50000.0)])
     def test_capital_changes_daily_mode(self, change_type, value):
         capital_changes = {
-            pd.Timestamp('2006-01-06', tz='UTC'):
-                {'type': change_type, 'value': value}
+            pd.Timestamp("2006-01-06", tz="UTC"): {"type": change_type, "value": value}
         }
 
         algocode = """
@@ -2058,7 +2131,7 @@ def order_stuff(context, data):
                 start_session=self.START_DATE,
                 end_session=self.END_DATE,
                 trading_calendar=self.nyse_calendar,
-            )
+            ),
         )
 
         # We call get_generator rather than `run()` here because we care about
@@ -2066,19 +2139,24 @@ def order_stuff(context, data):
         gen = algo.get_generator()
         results = list(gen)
 
-        cumulative_perf = \
-            [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
-        daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
-        capital_change_packets = \
-            [r['capital_change'] for r in results if 'capital_change' in r]
+        cumulative_perf = [
+            r["cumulative_perf"] for r in results if "cumulative_perf" in r
+        ]
+        daily_perf = [r["daily_perf"] for r in results if "daily_perf" in r]
+        capital_change_packets = [
+            r["capital_change"] for r in results if "capital_change" in r
+        ]
 
         self.assertEqual(len(capital_change_packets), 1)
         self.assertEqual(
             capital_change_packets[0],
-            {'date': pd.Timestamp('2006-01-06', tz='UTC'),
-             'type': 'cash',
-             'target': 151000.0 if change_type == 'target' else None,
-             'delta': 50000.0})
+            {
+                "date": pd.Timestamp("2006-01-06", tz="UTC"),
+                "type": "cash",
+                "target": 151000.0 if change_type == "target" else None,
+                "delta": 50000.0,
+            },
+        )
 
         # 1/03: price = 10, place orders
         # 1/04: orders execute at price = 11, place orders
@@ -2089,124 +2167,138 @@ def order_stuff(context, data):
 
         expected_daily = {}
 
-        expected_capital_changes = np.array([
-            0.0, 0.0, 0.0, 50000.0, 0.0
-        ])
+        expected_capital_changes = np.array([0.0, 0.0, 0.0, 50000.0, 0.0])
 
         # Day 1, no transaction. Day 2, we transact, but the price of our stock
         # does not change. Day 3, we start getting returns
-        expected_daily['returns'] = np.array([
-            0.0,
-            0.0,
-            # 1000 shares * gain of 1
-            (100000.0 + 1000.0) / 100000.0 - 1.0,
-            # 2000 shares * gain of 1, capital change of +50000
-            (151000.0 + 2000.0) / 151000.0 - 1.0,
-            # 3000 shares * gain of 1
-            (153000.0 + 3000.0) / 153000.0 - 1.0,
-        ])
+        expected_daily["returns"] = np.array(
+            [
+                0.0,
+                0.0,
+                # 1000 shares * gain of 1
+                (100000.0 + 1000.0) / 100000.0 - 1.0,
+                # 2000 shares * gain of 1, capital change of +50000
+                (151000.0 + 2000.0) / 151000.0 - 1.0,
+                # 3000 shares * gain of 1
+                (153000.0 + 3000.0) / 153000.0 - 1.0,
+            ]
+        )
 
-        expected_daily['pnl'] = np.array([
-            0.0,
-            0.0,
-            1000.00,  # 1000 shares * gain of 1
-            2000.00,  # 2000 shares * gain of 1
-            3000.00,  # 3000 shares * gain of 1
-        ])
+        expected_daily["pnl"] = np.array(
+            [
+                0.0,
+                0.0,
+                1000.00,  # 1000 shares * gain of 1
+                2000.00,  # 2000 shares * gain of 1
+                3000.00,  # 3000 shares * gain of 1
+            ]
+        )
 
-        expected_daily['capital_used'] = np.array([
-            0.0,
-            -11000.0,  # 1000 shares at price = 11
-            -12000.0,  # 1000 shares at price = 12
-            -13000.0,  # 1000 shares at price = 13
-            -14000.0,  # 1000 shares at price = 14
-        ])
+        expected_daily["capital_used"] = np.array(
+            [
+                0.0,
+                -11000.0,  # 1000 shares at price = 11
+                -12000.0,  # 1000 shares at price = 12
+                -13000.0,  # 1000 shares at price = 13
+                -14000.0,  # 1000 shares at price = 14
+            ]
+        )
 
-        expected_daily['ending_cash'] = \
-            np.array([100000.0] * 5) + \
-            np.cumsum(expected_capital_changes) + \
-            np.cumsum(expected_daily['capital_used'])
+        expected_daily["ending_cash"] = (
+            np.array([100000.0] * 5)
+            + np.cumsum(expected_capital_changes)
+            + np.cumsum(expected_daily["capital_used"])
+        )
 
-        expected_daily['starting_cash'] = \
-            expected_daily['ending_cash'] - \
-            expected_daily['capital_used']
+        expected_daily["starting_cash"] = (
+            expected_daily["ending_cash"] - expected_daily["capital_used"]
+        )
 
-        expected_daily['starting_value'] = np.array([
-            0.0,
-            0.0,
-            11000.0,  # 1000 shares at price = 11
-            24000.0,  # 2000 shares at price = 12
-            39000.0,  # 3000 shares at price = 13
-        ])
+        expected_daily["starting_value"] = np.array(
+            [
+                0.0,
+                0.0,
+                11000.0,  # 1000 shares at price = 11
+                24000.0,  # 2000 shares at price = 12
+                39000.0,  # 3000 shares at price = 13
+            ]
+        )
 
-        expected_daily['ending_value'] = \
-            expected_daily['starting_value'] + \
-            expected_daily['pnl'] - \
-            expected_daily['capital_used']
+        expected_daily["ending_value"] = (
+            expected_daily["starting_value"]
+            + expected_daily["pnl"]
+            - expected_daily["capital_used"]
+        )
 
-        expected_daily['portfolio_value'] = \
-            expected_daily['ending_value'] + \
-            expected_daily['ending_cash']
+        expected_daily["portfolio_value"] = (
+            expected_daily["ending_value"] + expected_daily["ending_cash"]
+        )
 
         stats = [
-            'returns', 'pnl', 'capital_used', 'starting_cash', 'ending_cash',
-            'starting_value', 'ending_value', 'portfolio_value'
+            "returns",
+            "pnl",
+            "capital_used",
+            "starting_cash",
+            "ending_cash",
+            "starting_value",
+            "ending_value",
+            "portfolio_value",
         ]
 
         expected_cumulative = {
-            'returns': np.cumprod(expected_daily['returns'] + 1) - 1,
-            'pnl': np.cumsum(expected_daily['pnl']),
-            'capital_used': np.cumsum(expected_daily['capital_used']),
-            'starting_cash':
-                np.repeat(expected_daily['starting_cash'][0:1], 5),
-            'ending_cash': expected_daily['ending_cash'],
-            'starting_value':
-                np.repeat(expected_daily['starting_value'][0:1], 5),
-            'ending_value': expected_daily['ending_value'],
-            'portfolio_value': expected_daily['portfolio_value'],
+            "returns": np.cumprod(expected_daily["returns"] + 1) - 1,
+            "pnl": np.cumsum(expected_daily["pnl"]),
+            "capital_used": np.cumsum(expected_daily["capital_used"]),
+            "starting_cash": np.repeat(expected_daily["starting_cash"][0:1], 5),
+            "ending_cash": expected_daily["ending_cash"],
+            "starting_value": np.repeat(expected_daily["starting_value"][0:1], 5),
+            "ending_value": expected_daily["ending_value"],
+            "portfolio_value": expected_daily["portfolio_value"],
         }
 
         for stat in stats:
             np.testing.assert_array_almost_equal(
                 np.array([perf[stat] for perf in daily_perf]),
                 expected_daily[stat],
-                err_msg='daily ' + stat,
+                err_msg="daily " + stat,
             )
             np.testing.assert_array_almost_equal(
                 np.array([perf[stat] for perf in cumulative_perf]),
                 expected_cumulative[stat],
-                err_msg='cumulative ' + stat,
+                err_msg="cumulative " + stat,
             )
 
         self.assertEqual(
-            algo.capital_change_deltas,
-            {pd.Timestamp('2006-01-06', tz='UTC'): 50000.0}
+            algo.capital_change_deltas, {pd.Timestamp("2006-01-06", tz="UTC"): 50000.0}
         )
 
-    @parameterized.expand([
-        ('interday_target', [('2006-01-04', 2388.0)]),
-        ('interday_delta', [('2006-01-04', 1000.0)]),
-        ('intraday_target', [('2006-01-04 17:00', 2184.0),
-                             ('2006-01-04 18:00', 2804.0)]),
-        ('intraday_delta', [('2006-01-04 17:00', 500.0),
-                            ('2006-01-04 18:00', 500.0)]),
-    ])
+    @parameterized.expand(
+        [
+            ("interday_target", [("2006-01-04", 2388.0)]),
+            ("interday_delta", [("2006-01-04", 1000.0)]),
+            (
+                "intraday_target",
+                [("2006-01-04 17:00", 2184.0), ("2006-01-04 18:00", 2804.0)],
+            ),
+            (
+                "intraday_delta",
+                [("2006-01-04 17:00", 500.0), ("2006-01-04 18:00", 500.0)],
+            ),
+        ]
+    )
     def test_capital_changes_minute_mode_daily_emission(self, change, values):
-        change_loc, change_type = change.split('_')
+        change_loc, change_type = change.split("_")
 
         sim_params = SimulationParameters(
-            start_session=pd.Timestamp('2006-01-03', tz='UTC'),
-            end_session=pd.Timestamp('2006-01-05', tz='UTC'),
-            data_frequency='minute',
+            start_session=pd.Timestamp("2006-01-03", tz="UTC"),
+            end_session=pd.Timestamp("2006-01-05", tz="UTC"),
+            data_frequency="minute",
             capital_base=1000.0,
             trading_calendar=self.nyse_calendar,
         )
 
         capital_changes = {
-            pd.Timestamp(datestr, tz='UTC'): {
-                'type': change_type,
-                'value': value
-            }
+            pd.Timestamp(datestr, tz="UTC"): {"type": change_type, "value": value}
             for datestr, value in values
         }
 
@@ -2224,27 +2316,30 @@ def order_stuff(context, data):
 """
 
         algo = self.make_algo(
-            script=algocode,
-            sim_params=sim_params,
-            capital_changes=capital_changes
+            script=algocode, sim_params=sim_params, capital_changes=capital_changes
         )
 
         gen = algo.get_generator()
         results = list(gen)
 
-        cumulative_perf = \
-            [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
-        daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
-        capital_change_packets = \
-            [r['capital_change'] for r in results if 'capital_change' in r]
+        cumulative_perf = [
+            r["cumulative_perf"] for r in results if "cumulative_perf" in r
+        ]
+        daily_perf = [r["daily_perf"] for r in results if "daily_perf" in r]
+        capital_change_packets = [
+            r["capital_change"] for r in results if "capital_change" in r
+        ]
 
         self.assertEqual(len(capital_change_packets), len(capital_changes))
         expected = [
-            {'date': pd.Timestamp(val[0], tz='UTC'),
-             'type': 'cash',
-             'target': val[1] if change_type == 'target' else None,
-             'delta': 1000.0 if len(values) == 1 else 500.0}
-            for val in values]
+            {
+                "date": pd.Timestamp(val[0], tz="UTC"),
+                "type": "cash",
+                "target": val[1] if change_type == "target" else None,
+                "delta": 1000.0 if len(values) == 1 else 500.0,
+            }
+            for val in values
+        ]
         self.assertEqual(capital_change_packets, expected)
 
         # 1/03: place orders at price = 100, execute at 101
@@ -2257,124 +2352,137 @@ def order_stuff(context, data):
 
         expected_capital_changes = np.array([0.0, 1000.0, 0.0])
 
-        if change_loc == 'intraday':
+        if change_loc == "intraday":
             # Fills at 491, +500 capital change comes at 638 (17:00) and
             # 698 (18:00), ends day at 879
-            day2_return = (
-                (1388.0 + 149.0 + 147.0) / 1388.0 *
-                (2184.0 + 60.0 + 60.0) / 2184.0 *
-                (2804.0 + 181.0 + 181.0) / 2804.0 - 1.0
-            )
+            day2_return = (1388.0 + 149.0 + 147.0) / 1388.0 * (
+                2184.0 + 60.0 + 60.0
+            ) / 2184.0 * (2804.0 + 181.0 + 181.0) / 2804.0 - 1.0
         else:
             # Fills at 491, ends day at 879, capital change +1000
             day2_return = (2388.0 + 390.0 + 388.0) / 2388.0 - 1
 
-        expected_daily['returns'] = np.array([
-            # Fills at 101, ends day at 489
-            (1000.0 + 489 - 101) / 1000.0 - 1.0,
-            day2_return,
-            # Fills at 881, ends day at 1269
-            (3166.0 + 390.0 + 390.0 + 388.0) / 3166.0 - 1.0,
-        ])
+        expected_daily["returns"] = np.array(
+            [
+                # Fills at 101, ends day at 489
+                (1000.0 + 489 - 101) / 1000.0 - 1.0,
+                day2_return,
+                # Fills at 881, ends day at 1269
+                (3166.0 + 390.0 + 390.0 + 388.0) / 3166.0 - 1.0,
+            ]
+        )
 
-        expected_daily['pnl'] = np.array([
-            388.0,
-            390.0 + 388.0,
-            390.0 + 390.0 + 388.0,
-        ])
+        expected_daily["pnl"] = np.array(
+            [
+                388.0,
+                390.0 + 388.0,
+                390.0 + 390.0 + 388.0,
+            ]
+        )
 
-        expected_daily['capital_used'] = np.array([
-            -101.0, -491.0, -881.0
-        ])
+        expected_daily["capital_used"] = np.array([-101.0, -491.0, -881.0])
 
-        expected_daily['ending_cash'] = \
-            np.array([1000.0] * 3) + \
-            np.cumsum(expected_capital_changes) + \
-            np.cumsum(expected_daily['capital_used'])
+        expected_daily["ending_cash"] = (
+            np.array([1000.0] * 3)
+            + np.cumsum(expected_capital_changes)
+            + np.cumsum(expected_daily["capital_used"])
+        )
 
-        expected_daily['starting_cash'] = \
-            expected_daily['ending_cash'] - \
-            expected_daily['capital_used']
+        expected_daily["starting_cash"] = (
+            expected_daily["ending_cash"] - expected_daily["capital_used"]
+        )
 
-        if change_loc == 'intraday':
+        if change_loc == "intraday":
             # Capital changes come after day start
-            expected_daily['starting_cash'] -= expected_capital_changes
+            expected_daily["starting_cash"] -= expected_capital_changes
 
-        expected_daily['starting_value'] = np.array([
-            0.0, 489.0, 879.0 * 2
-        ])
+        expected_daily["starting_value"] = np.array([0.0, 489.0, 879.0 * 2])
 
-        expected_daily['ending_value'] = \
-            expected_daily['starting_value'] + \
-            expected_daily['pnl'] - \
-            expected_daily['capital_used']
+        expected_daily["ending_value"] = (
+            expected_daily["starting_value"]
+            + expected_daily["pnl"]
+            - expected_daily["capital_used"]
+        )
 
-        expected_daily['portfolio_value'] = \
-            expected_daily['ending_value'] + \
-            expected_daily['ending_cash']
+        expected_daily["portfolio_value"] = (
+            expected_daily["ending_value"] + expected_daily["ending_cash"]
+        )
 
         stats = [
-            'returns', 'pnl', 'capital_used', 'starting_cash', 'ending_cash',
-            'starting_value', 'ending_value', 'portfolio_value'
+            "returns",
+            "pnl",
+            "capital_used",
+            "starting_cash",
+            "ending_cash",
+            "starting_value",
+            "ending_value",
+            "portfolio_value",
         ]
 
         expected_cumulative = {
-            'returns': np.cumprod(expected_daily['returns'] + 1) - 1,
-            'pnl': np.cumsum(expected_daily['pnl']),
-            'capital_used': np.cumsum(expected_daily['capital_used']),
-            'starting_cash':
-                np.repeat(expected_daily['starting_cash'][0:1], 3),
-            'ending_cash': expected_daily['ending_cash'],
-            'starting_value':
-                np.repeat(expected_daily['starting_value'][0:1], 3),
-            'ending_value': expected_daily['ending_value'],
-            'portfolio_value': expected_daily['portfolio_value'],
+            "returns": np.cumprod(expected_daily["returns"] + 1) - 1,
+            "pnl": np.cumsum(expected_daily["pnl"]),
+            "capital_used": np.cumsum(expected_daily["capital_used"]),
+            "starting_cash": np.repeat(expected_daily["starting_cash"][0:1], 3),
+            "ending_cash": expected_daily["ending_cash"],
+            "starting_value": np.repeat(expected_daily["starting_value"][0:1], 3),
+            "ending_value": expected_daily["ending_value"],
+            "portfolio_value": expected_daily["portfolio_value"],
         }
 
         for stat in stats:
             np.testing.assert_array_almost_equal(
-                np.array([perf[stat] for perf in daily_perf]),
-                expected_daily[stat]
+                np.array([perf[stat] for perf in daily_perf]), expected_daily[stat]
             )
             np.testing.assert_array_almost_equal(
                 np.array([perf[stat] for perf in cumulative_perf]),
-                expected_cumulative[stat]
+                expected_cumulative[stat],
             )
 
-        if change_loc == 'interday':
+        if change_loc == "interday":
             self.assertEqual(
                 algo.capital_change_deltas,
-                {pd.Timestamp('2006-01-04', tz='UTC'): 1000.0}
+                {pd.Timestamp("2006-01-04", tz="UTC"): 1000.0},
             )
         else:
             self.assertEqual(
                 algo.capital_change_deltas,
-                {pd.Timestamp('2006-01-04 17:00', tz='UTC'): 500.0,
-                 pd.Timestamp('2006-01-04 18:00', tz='UTC'): 500.0}
+                {
+                    pd.Timestamp("2006-01-04 17:00", tz="UTC"): 500.0,
+                    pd.Timestamp("2006-01-04 18:00", tz="UTC"): 500.0,
+                },
             )
 
-    @parameterized.expand([
-        ('interday_target', [('2006-01-04', 2388.0)]),
-        ('interday_delta', [('2006-01-04', 1000.0)]),
-        ('intraday_target', [('2006-01-04 17:00', 2184.0),
-                             ('2006-01-04 18:00', 2804.0)]),
-        ('intraday_delta', [('2006-01-04 17:00', 500.0),
-                            ('2006-01-04 18:00', 500.0)]),
-    ])
+    @parameterized.expand(
+        [
+            ("interday_target", [("2006-01-04", 2388.0)]),
+            ("interday_delta", [("2006-01-04", 1000.0)]),
+            (
+                "intraday_target",
+                [("2006-01-04 17:00", 2184.0), ("2006-01-04 18:00", 2804.0)],
+            ),
+            (
+                "intraday_delta",
+                [("2006-01-04 17:00", 500.0), ("2006-01-04 18:00", 500.0)],
+            ),
+        ]
+    )
     def test_capital_changes_minute_mode_minute_emission(self, change, values):
-        change_loc, change_type = change.split('_')
+        change_loc, change_type = change.split("_")
 
         sim_params = SimulationParameters(
-            start_session=pd.Timestamp('2006-01-03', tz='UTC'),
-            end_session=pd.Timestamp('2006-01-05', tz='UTC'),
-            data_frequency='minute',
-            emission_rate='minute',
+            start_session=pd.Timestamp("2006-01-03", tz="UTC"),
+            end_session=pd.Timestamp("2006-01-05", tz="UTC"),
+            data_frequency="minute",
+            emission_rate="minute",
             capital_base=1000.0,
             trading_calendar=self.nyse_calendar,
         )
 
-        capital_changes = {pd.Timestamp(val[0], tz='UTC'): {
-            'type': change_type, 'value': val[1]} for val in values}
+        capital_changes = {
+            pd.Timestamp(val[0], tz="UTC"): {"type": change_type, "value": val[1]}
+            for val in values
+        }
 
         algocode = """
 from zipline.api import set_slippage, set_commission, slippage, commission, \
@@ -2390,28 +2498,31 @@ def order_stuff(context, data):
 """
 
         algo = self.make_algo(
-            script=algocode,
-            sim_params=sim_params,
-            capital_changes=capital_changes
+            script=algocode, sim_params=sim_params, capital_changes=capital_changes
         )
 
         gen = algo.get_generator()
         results = list(gen)
 
-        cumulative_perf = \
-            [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
-        minute_perf = [r['minute_perf'] for r in results if 'minute_perf' in r]
-        daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
-        capital_change_packets = \
-            [r['capital_change'] for r in results if 'capital_change' in r]
+        cumulative_perf = [
+            r["cumulative_perf"] for r in results if "cumulative_perf" in r
+        ]
+        minute_perf = [r["minute_perf"] for r in results if "minute_perf" in r]
+        daily_perf = [r["daily_perf"] for r in results if "daily_perf" in r]
+        capital_change_packets = [
+            r["capital_change"] for r in results if "capital_change" in r
+        ]
 
         self.assertEqual(len(capital_change_packets), len(capital_changes))
         expected = [
-            {'date': pd.Timestamp(val[0], tz='UTC'),
-             'type': 'cash',
-             'target': val[1] if change_type == 'target' else None,
-             'delta': 1000.0 if len(values) == 1 else 500.0}
-            for val in values]
+            {
+                "date": pd.Timestamp(val[0], tz="UTC"),
+                "type": "cash",
+                "target": val[1] if change_type == "target" else None,
+                "delta": 1000.0 if len(values) == 1 else 500.0,
+            }
+            for val in values
+        ]
         self.assertEqual(capital_change_packets, expected)
 
         # 1/03: place orders at price = 100, execute at 101
@@ -2424,180 +2535,196 @@ def order_stuff(context, data):
         expected_minute = {}
 
         capital_changes_after_start = np.array([0.0] * 1170)
-        if change_loc == 'intraday':
+        if change_loc == "intraday":
             capital_changes_after_start[539:599] = 500.0
             capital_changes_after_start[599:780] = 1000.0
 
-        expected_minute['pnl'] = np.array([0.0] * 1170)
-        expected_minute['pnl'][:2] = 0.0
-        expected_minute['pnl'][2:392] = 1.0
-        expected_minute['pnl'][392:782] = 2.0
-        expected_minute['pnl'][782:] = 3.0
+        expected_minute["pnl"] = np.array([0.0] * 1170)
+        expected_minute["pnl"][:2] = 0.0
+        expected_minute["pnl"][2:392] = 1.0
+        expected_minute["pnl"][392:782] = 2.0
+        expected_minute["pnl"][782:] = 3.0
         for start, end in ((0, 390), (390, 780), (780, 1170)):
-            expected_minute['pnl'][start:end] = \
-                np.cumsum(expected_minute['pnl'][start:end])
+            expected_minute["pnl"][start:end] = np.cumsum(
+                expected_minute["pnl"][start:end]
+            )
 
-        expected_minute['capital_used'] = np.concatenate((
-            [0.0] * 1, [-101.0] * 389,
-            [0.0] * 1, [-491.0] * 389,
-            [0.0] * 1, [-881.0] * 389,
-        ))
+        expected_minute["capital_used"] = np.concatenate(
+            (
+                [0.0] * 1,
+                [-101.0] * 389,
+                [0.0] * 1,
+                [-491.0] * 389,
+                [0.0] * 1,
+                [-881.0] * 389,
+            )
+        )
 
         # +1000 capital changes comes before the day start if interday
-        day2adj = 0.0 if change_loc == 'intraday' else 1000.0
+        day2adj = 0.0 if change_loc == "intraday" else 1000.0
 
-        expected_minute['starting_cash'] = np.concatenate((
-            [1000.0] * 390,
-            # 101 spent on 1/03
-            [1000.0 - 101.0 + day2adj] * 390,
-            # 101 spent on 1/03, 491 on 1/04, +1000 capital change on 1/04
-            [1000.0 - 101.0 - 491.0 + 1000] * 390
-        ))
+        expected_minute["starting_cash"] = np.concatenate(
+            (
+                [1000.0] * 390,
+                # 101 spent on 1/03
+                [1000.0 - 101.0 + day2adj] * 390,
+                # 101 spent on 1/03, 491 on 1/04, +1000 capital change on 1/04
+                [1000.0 - 101.0 - 491.0 + 1000] * 390,
+            )
+        )
 
-        expected_minute['ending_cash'] = \
-            expected_minute['starting_cash'] + \
-            expected_minute['capital_used'] + \
-            capital_changes_after_start
+        expected_minute["ending_cash"] = (
+            expected_minute["starting_cash"]
+            + expected_minute["capital_used"]
+            + capital_changes_after_start
+        )
 
-        expected_minute['starting_value'] = np.concatenate((
-            [0.0] * 390,
-            [489.0] * 390,
-            [879.0 * 2] * 390
-        ))
+        expected_minute["starting_value"] = np.concatenate(
+            ([0.0] * 390, [489.0] * 390, [879.0 * 2] * 390)
+        )
 
-        expected_minute['ending_value'] = \
-            expected_minute['starting_value'] + \
-            expected_minute['pnl'] - \
-            expected_minute['capital_used']
+        expected_minute["ending_value"] = (
+            expected_minute["starting_value"]
+            + expected_minute["pnl"]
+            - expected_minute["capital_used"]
+        )
 
-        expected_minute['portfolio_value'] = \
-            expected_minute['ending_value'] + \
-            expected_minute['ending_cash']
+        expected_minute["portfolio_value"] = (
+            expected_minute["ending_value"] + expected_minute["ending_cash"]
+        )
 
-        expected_minute['returns'] = \
-            expected_minute['pnl'] / \
-            (expected_minute['starting_value'] +
-             expected_minute['starting_cash'])
+        expected_minute["returns"] = expected_minute["pnl"] / (
+            expected_minute["starting_value"] + expected_minute["starting_cash"]
+        )
 
         # If the change is interday, we can just calculate the returns from
         # the pnl, starting_value and starting_cash. If the change is intraday,
         # the returns after the change have to be calculated from two
         # subperiods
-        if change_loc == 'intraday':
+        if change_loc == "intraday":
             # The last packet (at 1/04 16:59) before the first capital change
-            prev_subperiod_return = expected_minute['returns'][538]
+            prev_subperiod_return = expected_minute["returns"][538]
 
             # From 1/04 17:00 to 17:59
-            cur_subperiod_pnl = \
-                expected_minute['pnl'][539:599] - expected_minute['pnl'][538]
-            cur_subperiod_starting_value = \
-                np.array([expected_minute['ending_value'][538]] * 60)
-            cur_subperiod_starting_cash = \
-                np.array([expected_minute['ending_cash'][538] + 500] * 60)
+            cur_subperiod_pnl = (
+                expected_minute["pnl"][539:599] - expected_minute["pnl"][538]
+            )
+            cur_subperiod_starting_value = np.array(
+                [expected_minute["ending_value"][538]] * 60
+            )
+            cur_subperiod_starting_cash = np.array(
+                [expected_minute["ending_cash"][538] + 500] * 60
+            )
 
-            cur_subperiod_returns = cur_subperiod_pnl / \
-                (cur_subperiod_starting_value + cur_subperiod_starting_cash)
-            expected_minute['returns'][539:599] = \
-                (cur_subperiod_returns + 1.0) * \
-                (prev_subperiod_return + 1.0) - \
-                1.0
+            cur_subperiod_returns = cur_subperiod_pnl / (
+                cur_subperiod_starting_value + cur_subperiod_starting_cash
+            )
+            expected_minute["returns"][539:599] = (cur_subperiod_returns + 1.0) * (
+                prev_subperiod_return + 1.0
+            ) - 1.0
 
             # The last packet (at 1/04 17:59) before the second capital change
-            prev_subperiod_return = expected_minute['returns'][598]
+            prev_subperiod_return = expected_minute["returns"][598]
 
             # From 1/04 18:00 to 21:00
-            cur_subperiod_pnl = \
-                expected_minute['pnl'][599:780] - expected_minute['pnl'][598]
-            cur_subperiod_starting_value = \
-                np.array([expected_minute['ending_value'][598]] * 181)
-            cur_subperiod_starting_cash = \
-                np.array([expected_minute['ending_cash'][598] + 500] * 181)
+            cur_subperiod_pnl = (
+                expected_minute["pnl"][599:780] - expected_minute["pnl"][598]
+            )
+            cur_subperiod_starting_value = np.array(
+                [expected_minute["ending_value"][598]] * 181
+            )
+            cur_subperiod_starting_cash = np.array(
+                [expected_minute["ending_cash"][598] + 500] * 181
+            )
 
-            cur_subperiod_returns = cur_subperiod_pnl / \
-                (cur_subperiod_starting_value + cur_subperiod_starting_cash)
-            expected_minute['returns'][599:780] = \
-                (cur_subperiod_returns + 1.0) * \
-                (prev_subperiod_return + 1.0) - \
-                1.0
+            cur_subperiod_returns = cur_subperiod_pnl / (
+                cur_subperiod_starting_value + cur_subperiod_starting_cash
+            )
+            expected_minute["returns"][599:780] = (cur_subperiod_returns + 1.0) * (
+                prev_subperiod_return + 1.0
+            ) - 1.0
 
         # The last minute packet of each day
         expected_daily = {
-            k: np.array([v[389], v[779], v[1169]])
-            for k, v in expected_minute.items()
+            k: np.array([v[389], v[779], v[1169]]) for k, v in expected_minute.items()
         }
 
         stats = [
-            'pnl', 'capital_used', 'starting_cash', 'ending_cash',
-            'starting_value', 'ending_value', 'portfolio_value', 'returns'
+            "pnl",
+            "capital_used",
+            "starting_cash",
+            "ending_cash",
+            "starting_value",
+            "ending_value",
+            "portfolio_value",
+            "returns",
         ]
 
         expected_cumulative = deepcopy(expected_minute)
 
         # "Add" daily return from 1/03 to minute returns on 1/04 and 1/05
         # "Add" daily return from 1/04 to minute returns on 1/05
-        expected_cumulative['returns'][390:] = \
-            (expected_cumulative['returns'][390:] + 1) * \
-            (expected_daily['returns'][0] + 1) - 1
-        expected_cumulative['returns'][780:] = \
-            (expected_cumulative['returns'][780:] + 1) * \
-            (expected_daily['returns'][1] + 1) - 1
+        expected_cumulative["returns"][390:] = (
+            expected_cumulative["returns"][390:] + 1
+        ) * (expected_daily["returns"][0] + 1) - 1
+        expected_cumulative["returns"][780:] = (
+            expected_cumulative["returns"][780:] + 1
+        ) * (expected_daily["returns"][1] + 1) - 1
 
         # Add daily pnl/capital_used from 1/03 to 1/04 and 1/05
         # Add daily pnl/capital_used from 1/04 to 1/05
-        expected_cumulative['pnl'][390:] += expected_daily['pnl'][0]
-        expected_cumulative['pnl'][780:] += expected_daily['pnl'][1]
-        expected_cumulative['capital_used'][390:] += \
-            expected_daily['capital_used'][0]
-        expected_cumulative['capital_used'][780:] += \
-            expected_daily['capital_used'][1]
+        expected_cumulative["pnl"][390:] += expected_daily["pnl"][0]
+        expected_cumulative["pnl"][780:] += expected_daily["pnl"][1]
+        expected_cumulative["capital_used"][390:] += expected_daily["capital_used"][0]
+        expected_cumulative["capital_used"][780:] += expected_daily["capital_used"][1]
 
         # starting_cash, starting_value are same as those of the first daily
         # packet
-        expected_cumulative['starting_cash'] = \
-            np.repeat(expected_daily['starting_cash'][0:1], 1170)
-        expected_cumulative['starting_value'] = \
-            np.repeat(expected_daily['starting_value'][0:1], 1170)
+        expected_cumulative["starting_cash"] = np.repeat(
+            expected_daily["starting_cash"][0:1], 1170
+        )
+        expected_cumulative["starting_value"] = np.repeat(
+            expected_daily["starting_value"][0:1], 1170
+        )
 
         # extra cumulative packet per day from the daily packet
         for stat in stats:
             for i in (390, 781, 1172):
                 expected_cumulative[stat] = np.insert(
-                    expected_cumulative[stat],
-                    i,
-                    expected_cumulative[stat][i-1]
+                    expected_cumulative[stat], i, expected_cumulative[stat][i - 1]
                 )
 
         for stat in stats:
             np.testing.assert_array_almost_equal(
-                np.array([perf[stat] for perf in minute_perf]),
-                expected_minute[stat]
+                np.array([perf[stat] for perf in minute_perf]), expected_minute[stat]
             )
             np.testing.assert_array_almost_equal(
-                np.array([perf[stat] for perf in daily_perf]),
-                expected_daily[stat]
+                np.array([perf[stat] for perf in daily_perf]), expected_daily[stat]
             )
             np.testing.assert_array_almost_equal(
                 np.array([perf[stat] for perf in cumulative_perf]),
-                expected_cumulative[stat]
+                expected_cumulative[stat],
             )
 
-        if change_loc == 'interday':
+        if change_loc == "interday":
             self.assertEqual(
                 algo.capital_change_deltas,
-                {pd.Timestamp('2006-01-04', tz='UTC'): 1000.0}
+                {pd.Timestamp("2006-01-04", tz="UTC"): 1000.0},
             )
         else:
             self.assertEqual(
                 algo.capital_change_deltas,
-                {pd.Timestamp('2006-01-04 17:00', tz='UTC'): 500.0,
-                 pd.Timestamp('2006-01-04 18:00', tz='UTC'): 500.0}
+                {
+                    pd.Timestamp("2006-01-04 17:00", tz="UTC"): 500.0,
+                    pd.Timestamp("2006-01-04 18:00", tz="UTC"): 500.0,
+                },
             )
 
 
 class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    START_DATE = to_utc('2014-01-02 9:31')
-    END_DATE = to_utc('2014-01-03 9:31')
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
+    START_DATE = to_utc("2014-01-02 9:31")
+    END_DATE = to_utc("2014-01-03 9:31")
 
     ASSET_FINDER_EQUITY_SIDS = 0, 1
 
@@ -2606,9 +2733,18 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     @parameterized.expand(
         [
-            ('default', None,),
-            ('utc', 'UTC',),
-            ('us_east', 'US/Eastern',),
+            (
+                "default",
+                None,
+            ),
+            (
+                "utc",
+                "UTC",
+            ),
+            (
+                "us_east",
+                "US/Eastern",
+            ),
         ]
     )
     def test_get_datetime(self, name, tz):
@@ -2633,7 +2769,9 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
                         raise ValueError("Mismatched Minute")
 
                     context.first_bar = False
-            """.format(tz=repr(tz))
+            """.format(
+                tz=repr(tz)
+            )
         )
 
         algo = self.make_algo(script=algo)
@@ -2641,15 +2779,14 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertFalse(algo.first_bar)
 
 
-class TestTradingControls(zf.WithMakeAlgo,
-                          zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
+    START_DATE = pd.Timestamp("2006-01-03", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-06", tz="utc")
 
     sid = 133
     sids = ASSET_FINDER_EQUITY_SIDS = 133, 134
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = True
 
     @classmethod
@@ -2658,10 +2795,7 @@ class TestTradingControls(zf.WithMakeAlgo,
         cls.asset = cls.asset_finder.retrieve_asset(cls.sid)
         cls.another_asset = cls.asset_finder.retrieve_asset(134)
 
-    def _check_algo(self,
-                    algo,
-                    expected_order_count,
-                    expected_exc):
+    def _check_algo(self, algo, expected_order_count, expected_exc):
 
         with self.assertRaises(expected_exc) if expected_exc else nop_context:
             algo.run()
@@ -2672,18 +2806,15 @@ class TestTradingControls(zf.WithMakeAlgo,
         self._check_algo(algo, order_count, None)
 
     def check_algo_fails(self, algo, order_count):
-        self._check_algo(algo,
-                         order_count,
-                         TradingControlViolation)
+        self._check_algo(algo, order_count, TradingControlViolation)
 
     def test_set_max_position_size(self):
-
         def initialize(self, asset, max_shares, max_notional):
             self.set_slippage(FixedSlippage())
             self.order_count = 0
-            self.set_max_position_size(asset=asset,
-                                       max_shares=max_shares,
-                                       max_notional=max_notional)
+            self.set_max_position_size(
+                asset=asset, max_shares=max_shares, max_notional=max_notional
+            )
 
         # Buy one share four times.  Should be fine.
         def handle_data(algo, data):
@@ -2761,7 +2892,6 @@ class TestTradingControls(zf.WithMakeAlgo,
         self.check_algo_fails(algo, 0)
 
     def test_set_asset_restrictions(self):
-
         def initialize(algo, sid, restrictions, on_error):
             algo.order_count = 0
             algo.set_asset_restrictions(restrictions, on_error)
@@ -2773,16 +2903,17 @@ class TestTradingControls(zf.WithMakeAlgo,
 
         # Set HistoricalRestrictions for one sid for the entire simulation,
         # and fail.
-        rlm = HistoricalRestrictions([
-            Restriction(
-                self.sid,
-                self.sim_params.start_session,
-                RESTRICTION_STATES.FROZEN)
-        ])
+        rlm = HistoricalRestrictions(
+            [
+                Restriction(
+                    self.sid, self.sim_params.start_session, RESTRICTION_STATES.FROZEN
+                )
+            ]
+        )
         algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            on_error='fail',
+            on_error="fail",
             initialize=initialize,
             handle_data=handle_data,
         )
@@ -2794,7 +2925,7 @@ class TestTradingControls(zf.WithMakeAlgo,
         algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            on_error='fail',
+            on_error="fail",
             initialize=initialize,
             handle_data=handle_data,
         )
@@ -2806,41 +2937,44 @@ class TestTradingControls(zf.WithMakeAlgo,
         algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            on_error='log',
+            on_error="log",
             initialize=initialize,
             handle_data=handle_data,
         )
         with make_test_handler(self) as log_catcher:
             self.check_algo_succeeds(algo)
         logs = [r.message for r in log_catcher.records]
-        self.assertIn("Order for 100 shares of Equity(133 [A]) at "
-                      "2006-01-03 21:00:00+00:00 violates trading constraint "
-                      "RestrictedListOrder({})", logs)
+        self.assertIn(
+            "Order for 100 shares of Equity(133 [A]) at "
+            "2006-01-03 21:00:00+00:00 violates trading constraint "
+            "RestrictedListOrder({})",
+            logs,
+        )
         self.assertFalse(algo.could_trade)
 
         # set the restricted list to exclude the sid, and succeed
-        rlm = HistoricalRestrictions([
-            Restriction(
-                sid,
-                self.sim_params.start_session,
-                RESTRICTION_STATES.FROZEN) for sid in [134, 135, 136]
-        ])
+        rlm = HistoricalRestrictions(
+            [
+                Restriction(
+                    sid, self.sim_params.start_session, RESTRICTION_STATES.FROZEN
+                )
+                for sid in [134, 135, 136]
+            ]
+        )
         algo = self.make_algo(
             sid=self.sid,
             restrictions=rlm,
-            on_error='fail',
+            on_error="fail",
             initialize=initialize,
             handle_data=handle_data,
         )
         self.check_algo_succeeds(algo)
         self.assertTrue(algo.could_trade)
 
-    @parameterized.expand([
-        ('order_first_restricted_sid', 0),
-        ('order_second_restricted_sid', 1)
-    ])
+    @parameterized.expand(
+        [("order_first_restricted_sid", 0), ("order_second_restricted_sid", 1)]
+    )
     def test_set_multiple_asset_restrictions(self, name, to_order_idx):
-
         def initialize(algo, restrictions1, restrictions2, on_error):
             algo.order_count = 0
             algo.set_asset_restrictions(restrictions1, on_error)
@@ -2859,17 +2993,16 @@ class TestTradingControls(zf.WithMakeAlgo,
             restrictions2=rl2,
             initialize=initialize,
             handle_data=handle_data,
-            on_error='fail',
+            on_error="fail",
         )
         self.check_algo_fails(algo, 0)
         self.assertFalse(algo.could_trade1)
         self.assertFalse(algo.could_trade2)
 
     def test_set_do_not_order_list(self):
-
         def initialize(self, restricted_list):
             self.order_count = 0
-            self.set_do_not_order_list(restricted_list, on_error='fail')
+            self.set_do_not_order_list(restricted_list, on_error="fail")
 
         def handle_data(algo, data):
             algo.could_trade = data.can_trade(algo.sid(self.sid))
@@ -2887,12 +3020,11 @@ class TestTradingControls(zf.WithMakeAlgo,
         self.assertFalse(algo.could_trade)
 
     def test_set_max_order_size(self):
-
         def initialize(algo, asset, max_shares, max_notional):
             algo.order_count = 0
-            algo.set_max_order_size(asset=asset,
-                                    max_shares=max_shares,
-                                    max_notional=max_notional)
+            algo.set_max_order_size(
+                asset=asset, max_shares=max_shares, max_notional=max_notional
+            )
 
         # Buy one share.
         def handle_data(algo, data):
@@ -2970,7 +3102,6 @@ class TestTradingControls(zf.WithMakeAlgo,
         self.check_algo_fails(algo, 0)
 
     def test_set_max_order_count(self):
-
         def initialize(algo, count):
             algo.order_count = 0
             algo.set_max_order_count(count)
@@ -2991,7 +3122,7 @@ class TestTradingControls(zf.WithMakeAlgo,
         self.assertEqual(algo.order_count, 3)
 
     def test_set_max_order_count_minutely(self):
-        sim_params = self.make_simparams(data_frequency='minute')
+        sim_params = self.make_simparams(data_frequency="minute")
 
         def initialize(algo, max_orders_per_day):
             algo.minute_count = 0
@@ -3051,6 +3182,7 @@ class TestTradingControls(zf.WithMakeAlgo,
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), -1)
             algo.order_count += 1
+
         algo = self.make_algo(initialize=initialize, handle_data=handle_data)
         self.check_algo_fails(algo, 0)
 
@@ -3062,6 +3194,7 @@ class TestTradingControls(zf.WithMakeAlgo,
             else:
                 algo.order(algo.sid(self.sid), -1)
             algo.order_count += 1
+
         algo = self.make_algo(initialize=initialize, handle_data=handle_data)
         self.check_algo_succeeds(algo)
 
@@ -3070,6 +3203,7 @@ class TestTradingControls(zf.WithMakeAlgo,
             amounts = [1, 1, 1, -3]
             algo.order(algo.sid(self.sid), amounts[algo.order_count])
             algo.order_count += 1
+
         algo = self.make_algo(initialize=initialize, handle_data=handle_data)
         self.check_algo_succeeds(algo)
 
@@ -3079,11 +3213,11 @@ class TestTradingControls(zf.WithMakeAlgo,
             amounts = [1, 1, 1, -4]
             algo.order(algo.sid(self.sid), amounts[algo.order_count])
             algo.order_count += 1
+
         algo = self.make_algo(initialize=initialize, handle_data=handle_data)
         self.check_algo_fails(algo, 3)
 
     def test_register_post_init(self):
-
         def initialize(algo):
             algo.initialized = True
 
@@ -3102,40 +3236,48 @@ class TestTradingControls(zf.WithMakeAlgo,
 
 class TestAssetDateBounds(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
-    START_DATE = pd.Timestamp('2014-01-02', tz='UTC')
-    END_DATE = pd.Timestamp('2014-01-03', tz='UTC')
+    START_DATE = pd.Timestamp("2014-01-02", tz="UTC")
+    END_DATE = pd.Timestamp("2014-01-03", tz="UTC")
     SIM_PARAMS_START_DATE = END_DATE  # Only run for one day.
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     BENCHMARK_SID = 3
 
     @classmethod
     def make_equity_info(cls):
-        T = partial(pd.Timestamp, tz='UTC')
-        return pd.DataFrame.from_records([
-            {'sid': 1,
-             'symbol': 'OLD',
-             'start_date': T('1990'),
-             'end_date': T('1991'),
-             'exchange': 'TEST'},
-            {'sid': 2,
-             'symbol': 'NEW',
-             'start_date': T('2017'),
-             'end_date': T('2018'),
-             'exchange': 'TEST'},
-            {'sid': 3,
-             'symbol': 'GOOD',
-             'start_date': cls.START_DATE,
-             'end_date': cls.END_DATE,
-             'exchange': 'TEST'},
-        ])
+        T = partial(pd.Timestamp, tz="UTC")
+        return pd.DataFrame.from_records(
+            [
+                {
+                    "sid": 1,
+                    "symbol": "OLD",
+                    "start_date": T("1990"),
+                    "end_date": T("1991"),
+                    "exchange": "TEST",
+                },
+                {
+                    "sid": 2,
+                    "symbol": "NEW",
+                    "start_date": T("2017"),
+                    "end_date": T("2018"),
+                    "exchange": "TEST",
+                },
+                {
+                    "sid": 3,
+                    "symbol": "GOOD",
+                    "start_date": cls.START_DATE,
+                    "end_date": cls.END_DATE,
+                    "exchange": "TEST",
+                },
+            ]
+        )
 
     def test_asset_date_bounds(self):
         def initialize(algo):
             algo.ran = False
-            algo.register_trading_control(AssetDateBounds(on_error='fail'))
+            algo.register_trading_control(AssetDateBounds(on_error="fail"))
 
         def handle_data(algo, data):
             # This should work because sid 3 is valid during the algo lifetime.
@@ -3156,25 +3298,27 @@ class TestAssetDateBounds(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertTrue(algo.ran)
 
 
-class TestAccountControls(zf.WithMakeAlgo,
-                          zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+class TestAccountControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
+    START_DATE = pd.Timestamp("2006-01-03", tz="utc")
+    END_DATE = pd.Timestamp("2006-01-06", tz="utc")
 
-    sidint, = ASSET_FINDER_EQUITY_SIDS = (133,)
+    (sidint,) = ASSET_FINDER_EQUITY_SIDS = (133,)
     BENCHMARK_SID = None
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
-        frame = pd.DataFrame(data={
-            'close': [10., 10., 11., 11.],
-            'open': [10., 10., 11., 11.],
-            'low': [9.5, 9.5, 10.45, 10.45],
-            'high': [10.5, 10.5, 11.55, 11.55],
-            'volume': [100, 100, 100, 300],
-        }, index=cls.equity_daily_bar_days)
+        frame = pd.DataFrame(
+            data={
+                "close": [10.0, 10.0, 11.0, 11.0],
+                "open": [10.0, 10.0, 11.0, 11.0],
+                "low": [9.5, 9.5, 10.45, 10.45],
+                "high": [10.5, 10.5, 11.55, 11.55],
+                "volume": [100, 100, 100, 300],
+            },
+            index=cls.equity_daily_bar_days,
+        )
         yield cls.sidint, frame
 
     def _check_algo(self, algo, expected_exc):
@@ -3189,7 +3333,6 @@ class TestAccountControls(zf.WithMakeAlgo,
         self._check_algo(algo, AccountControlViolation)
 
     def test_set_max_leverage(self):
-
         def initialize(algo, max_leverage):
             algo.set_max_leverage(max_leverage=max_leverage)
 
@@ -3205,8 +3348,8 @@ class TestAccountControls(zf.WithMakeAlgo,
         )
         self.check_algo_fails(algo)
         self.assertEqual(
-            algo.recorded_vars['latest_time'],
-            pd.Timestamp('2006-01-04 21:00:00', tz='UTC'),
+            algo.recorded_vars["latest_time"],
+            pd.Timestamp("2006-01-04 21:00:00", tz="UTC"),
         )
 
         # Set max leverage to 1 so buying one share passes
@@ -3222,12 +3365,10 @@ class TestAccountControls(zf.WithMakeAlgo,
 
     def test_set_min_leverage(self):
         def initialize(algo, min_leverage, grace_period):
-            algo.set_min_leverage(
-                min_leverage=min_leverage, grace_period=grace_period
-            )
+            algo.set_min_leverage(min_leverage=min_leverage, grace_period=grace_period)
 
         def handle_data(algo, data):
-            algo.order_target_percent(algo.sid(self.sidint), .5)
+            algo.order_target_percent(algo.sid(self.sidint), 0.5)
             algo.record(latest_time=algo.get_datetime())
 
         # Helper for not having to pass init/handle_data at each callsite.
@@ -3242,43 +3383,43 @@ class TestAccountControls(zf.WithMakeAlgo,
         # Set min leverage to 1.
         # The algorithm will succeed because it doesn't run for more
         # than 10 days.
-        offset = pd.Timedelta('10 days')
+        offset = pd.Timedelta("10 days")
         algo = make_algo(min_leverage=1, grace_period=offset)
         self.check_algo_succeeds(algo)
 
         # The algorithm will fail because it doesn't reach a min leverage of 1
         # after 1 day.
-        offset = pd.Timedelta('1 days')
+        offset = pd.Timedelta("1 days")
         algo = make_algo(min_leverage=1, grace_period=offset)
         self.check_algo_fails(algo)
         self.assertEqual(
-            algo.recorded_vars['latest_time'],
-            pd.Timestamp('2006-01-04 21:00:00', tz='UTC'),
+            algo.recorded_vars["latest_time"],
+            pd.Timestamp("2006-01-04 21:00:00", tz="UTC"),
         )
 
         # Increase the offset to 2 days, and the algorithm fails a day later
-        offset = pd.Timedelta('2 days')
+        offset = pd.Timedelta("2 days")
         algo = make_algo(min_leverage=1, grace_period=offset)
         self.check_algo_fails(algo)
         self.assertEqual(
-            algo.recorded_vars['latest_time'],
-            pd.Timestamp('2006-01-05 21:00:00', tz='UTC'),
+            algo.recorded_vars["latest_time"],
+            pd.Timestamp("2006-01-05 21:00:00", tz="UTC"),
         )
 
         # Set the min_leverage to .0001 and the algorithm succeeds.
-        algo = make_algo(min_leverage=.0001, grace_period=offset)
+        algo = make_algo(min_leverage=0.0001, grace_period=offset)
         self.check_algo_succeeds(algo)
 
 
 class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2016-01-06', tz='utc')
-    END_DATE = pd.Timestamp('2016-01-07', tz='utc')
-    FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
+    START_DATE = pd.Timestamp("2016-01-06", tz="utc")
+    END_DATE = pd.Timestamp("2016-01-07", tz="utc")
+    FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp("2016-01-05", tz="UTC")
 
-    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    SIM_PARAMS_DATA_FREQUENCY = "minute"
 
-    TRADING_CALENDAR_STRS = ('us_futures',)
-    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
+    TRADING_CALENDAR_STRS = ("us_futures",)
+    TRADING_CALENDAR_PRIMARY_CAL = "us_futures"
     BENCHMARK_SID = None
 
     @classmethod
@@ -3286,16 +3427,16 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         return pd.DataFrame.from_dict(
             {
                 1: {
-                    'symbol': 'CLG16',
-                    'root_symbol': 'CL',
-                    'start_date': pd.Timestamp('2015-12-01', tz='UTC'),
-                    'notice_date': pd.Timestamp('2016-01-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2016-02-19', tz='UTC'),
-                    'auto_close_date': pd.Timestamp('2016-01-18', tz='UTC'),
-                    'exchange': 'TEST',
+                    "symbol": "CLG16",
+                    "root_symbol": "CL",
+                    "start_date": pd.Timestamp("2015-12-01", tz="UTC"),
+                    "notice_date": pd.Timestamp("2016-01-20", tz="UTC"),
+                    "expiration_date": pd.Timestamp("2016-02-19", tz="UTC"),
+                    "auto_close_date": pd.Timestamp("2016-01-18", tz="UTC"),
+                    "exchange": "TEST",
                 },
             },
-            orient='index',
+            orient="index",
         )
 
     def test_futures_history(self):
@@ -3343,7 +3484,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         algo = self.make_algo(
             script=algo_code,
-            trading_calendar=get_calendar('us_futures'),
+            trading_calendar=get_calendar("us_futures"),
         )
         algo.run()
 
@@ -3352,29 +3493,31 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         np.testing.assert_array_equal(
             algo.history_values[0].index,
             pd.date_range(
-                '2016-01-06 6:27',
-                '2016-01-06 6:31',
-                freq='min',
-                tz='US/Eastern',
+                "2016-01-06 6:27",
+                "2016-01-06 6:31",
+                freq="min",
+                tz="US/Eastern",
             ),
         )
         np.testing.assert_array_equal(
             algo.history_values[1].index,
             pd.date_range(
-                '2016-01-07 6:27',
-                '2016-01-07 6:31',
-                freq='min',
-                tz='US/Eastern',
+                "2016-01-07 6:27",
+                "2016-01-07 6:31",
+                freq="min",
+                tz="US/Eastern",
             ),
         )
 
         # Expected prices here are given by the range values created by the
         # default `make_future_minute_bar_data` method.
         np.testing.assert_array_equal(
-            algo.history_values[0].values, list(map(float, range(2196, 2201))),
+            algo.history_values[0].values,
+            list(map(float, range(2196, 2201))),
         )
         np.testing.assert_array_equal(
-            algo.history_values[1].values, list(map(float, range(3636, 3641))),
+            algo.history_values[1].values,
+            list(map(float, range(3636, 3641))),
         )
 
     @staticmethod
@@ -3407,17 +3550,16 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         ).format(model=slippage_model)
 
     def test_fixed_future_slippage(self):
-        algo_code = self.algo_with_slippage('FixedSlippage(spread=0.10)')
+        algo_code = self.algo_with_slippage("FixedSlippage(spread=0.10)")
         algo = self.make_algo(
             script=algo_code,
-            trading_calendar=get_calendar('us_futures'),
+            trading_calendar=get_calendar("us_futures"),
         )
         results = algo.run()
 
         # Flatten the list of transactions.
         all_txns = [
-            val for sublist in results['transactions'].tolist()
-            for val in sublist
+            val for sublist in results["transactions"].tolist() for val in sublist
         ]
 
         self.assertEqual(len(all_txns), 1)
@@ -3428,26 +3570,25 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         expected_spread = 0.05
         expected_price = (algo.order_price + 1) + expected_spread
 
-        self.assertEqual(txn['price'], expected_price)
-        self.assertEqual(results['orders'][0][0]['commission'], 0.0)
+        self.assertEqual(txn["price"], expected_price)
+        self.assertEqual(results["orders"][0][0]["commission"], 0.0)
 
     def test_volume_contract_slippage(self):
         algo_code = self.algo_with_slippage(
-            'VolumeShareSlippage(volume_limit=0.05, price_impact=0.1)',
+            "VolumeShareSlippage(volume_limit=0.05, price_impact=0.1)",
         )
         algo = self.make_algo(
             script=algo_code,
-            trading_calendar=get_calendar('us_futures'),
+            trading_calendar=get_calendar("us_futures"),
         )
         results = algo.run()
 
         # There should be no commissions.
-        self.assertEqual(results['orders'][0][0]['commission'], 0.0)
+        self.assertEqual(results["orders"][0][0]["commission"], 0.0)
 
         # Flatten the list of transactions.
         all_txns = [
-            val for sublist in results['transactions'].tolist()
-            for val in sublist
+            val for sublist in results["transactions"].tolist() for val in sublist
         ]
 
         # With a volume limit of 0.05, and a total volume of 100 contracts
@@ -3461,13 +3602,13 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
             order_price = algo.order_price + i + 1
             expected_impact = order_price * 0.1 * (0.05 ** 2)
             expected_price = order_price + expected_impact
-            self.assertEqual(txn['price'], expected_price)
+            self.assertEqual(txn["price"], expected_price)
 
 
 class TestAnalyzeAPIMethod(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2016-01-05', tz='utc')
-    END_DATE = pd.Timestamp('2016-01-05', tz='utc')
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    START_DATE = pd.Timestamp("2016-01-05", tz="utc")
+    END_DATE = pd.Timestamp("2016-01-05", tz="utc")
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     def test_analyze_called(self):
@@ -3483,18 +3624,20 @@ class TestAnalyzeAPIMethod(zf.WithMakeAlgo, zf.ZiplineTestCase):
             self.perf_ref = perf
 
         algo = self.make_algo(
-            initialize=initialize, handle_data=handle_data, analyze=analyze,
+            initialize=initialize,
+            handle_data=handle_data,
+            analyze=analyze,
         )
         results = algo.run()
         self.assertIs(results, self.perf_ref)
 
 
 class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp('2016-01-05', tz='utc')
-    END_DATE = pd.Timestamp('2016-01-07', tz='utc')
+    START_DATE = pd.Timestamp("2016-01-05", tz="utc")
+    END_DATE = pd.Timestamp("2016-01-07", tz="utc")
 
     ASSET_FINDER_EQUITY_SIDS = (1,)
-    ASSET_FINDER_EQUITY_SYMBOLS = ('ASSET1',)
+    ASSET_FINDER_EQUITY_SYMBOLS = ("ASSET1",)
     BENCHMARK_SID = None
 
     code = dedent(
@@ -3526,11 +3669,10 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     @classmethod
     def make_equity_minute_bar_data(cls):
-        asset_minutes = \
-            cls.trading_calendar.minutes_for_sessions_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            )
+        asset_minutes = cls.trading_calendar.minutes_for_sessions_in_range(
+            cls.START_DATE,
+            cls.END_DATE,
+        )
 
         minutes_count = len(asset_minutes)
         minutes_arr = np.arange(1, 1 + minutes_count)
@@ -3538,11 +3680,11 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # normal test data, but volume is pinned at 1 share per minute
         yield 1, pd.DataFrame(
             {
-                'open': minutes_arr + 1,
-                'high': minutes_arr + 2,
-                'low': minutes_arr - 1,
-                'close': minutes_arr,
-                'volume': np.full(minutes_count, 1.0),
+                "open": minutes_arr + 1,
+                "high": minutes_arr + 2,
+                "low": minutes_arr - 1,
+                "close": minutes_arr,
+                "volume": np.full(minutes_count, 1.0),
             },
             index=asset_minutes,
         )
@@ -3551,27 +3693,29 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
     def make_equity_daily_bar_data(cls, country_code, sids):
         yield 1, pd.DataFrame(
             {
-                'open': np.full(3, 1, dtype=np.float64),
-                'high': np.full(3, 1, dtype=np.float64),
-                'low': np.full(3, 1, dtype=np.float64),
-                'close': np.full(3, 1, dtype=np.float64),
-                'volume': np.full(3, 1, dtype=np.float64),
+                "open": np.full(3, 1, dtype=np.float64),
+                "high": np.full(3, 1, dtype=np.float64),
+                "low": np.full(3, 1, dtype=np.float64),
+                "close": np.full(3, 1, dtype=np.float64),
+                "volume": np.full(3, 1, dtype=np.float64),
             },
             index=cls.equity_daily_bar_days,
         )
 
-    def prep_algo(self,
-                  cancelation_string,
-                  data_frequency="minute",
-                  amount=1000,
-                  minute_emission=False):
+    def prep_algo(
+        self,
+        cancelation_string,
+        data_frequency="minute",
+        amount=1000,
+        minute_emission=False,
+    ):
         code = self.code.format(cancelation_string, amount)
         return self.make_algo(
             script=code,
             sim_params=self.make_simparams(
                 data_frequency=data_frequency,
-                emission_rate='minute' if minute_emission else 'daily',
-            )
+                emission_rate="minute" if minute_emission else "daily",
+            ),
         )
 
     @parameter_space(
@@ -3588,7 +3732,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
         algo = self.prep_algo(
             "set_cancel_policy(cancel_policy.EODCancel())",
             amount=np.copysign(1000, direction),
-            minute_emission=minute_emission
+            minute_emission=minute_emission,
         )
 
         log_catcher = TestHandler()
@@ -3604,20 +3748,21 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 self.assertEqual(1, results.positions[0][0]["sid"])
 
             # should be an order on day1, but no more orders afterwards
-            np.testing.assert_array_equal([1, 0, 0],
-                                          list(map(len, results.orders)))
+            np.testing.assert_array_equal([1, 0, 0], list(map(len, results.orders)))
 
             # should be 389 txns on day 1, but no more afterwards
-            np.testing.assert_array_equal([389, 0, 0],
-                                          list(map(len, results.transactions)))
+            np.testing.assert_array_equal(
+                [389, 0, 0], list(map(len, results.transactions))
+            )
 
             the_order = results.orders[0][0]
 
             self.assertEqual(ORDER_STATUS.CANCELLED, the_order["status"])
             self.assertEqual(np.copysign(389, direction), the_order["filled"])
 
-            warnings = [record for record in log_catcher.records if
-                        record.level == WARNING]
+            warnings = [
+                record for record in log_catcher.records if record.level == WARNING
+            ]
 
             self.assertEqual(1, len(warnings))
 
@@ -3627,7 +3772,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     "filled. 389 shares were successfully purchased. "
                     "611 shares were not filled by the end of day and "
                     "were canceled.",
-                    str(warnings[0].message)
+                    str(warnings[0].message),
                 )
             elif direction == -1:
                 self.assertEqual(
@@ -3635,7 +3780,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     "filled. 389 shares were successfully sold. "
                     "611 shares were not filled by the end of day and "
                     "were canceled.",
-                    str(warnings[0].message)
+                    str(warnings[0].message),
                 )
 
     def test_default_cancelation_policy(self):
@@ -3646,35 +3791,32 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             results = algo.run()
 
             # order stays open throughout simulation
-            np.testing.assert_array_equal([1, 1, 1],
-                                          list(map(len, results.orders)))
+            np.testing.assert_array_equal([1, 1, 1], list(map(len, results.orders)))
 
             # one txn per minute.  389 the first day (since no order until the
             # end of the first minute).  390 on the second day.  221 on the
             # the last day, sum = 1000.
-            np.testing.assert_array_equal([389, 390, 221],
-                                          list(map(len, results.transactions)))
+            np.testing.assert_array_equal(
+                [389, 390, 221], list(map(len, results.transactions))
+            )
 
             self.assertFalse(log_catcher.has_warnings)
 
     def test_eod_order_cancel_daily(self):
         # in daily mode, EODCancel does nothing.
-        algo = self.prep_algo(
-            "set_cancel_policy(cancel_policy.EODCancel())",
-            "daily"
-        )
+        algo = self.prep_algo("set_cancel_policy(cancel_policy.EODCancel())", "daily")
 
         log_catcher = TestHandler()
         with log_catcher:
             results = algo.run()
 
             # order stays open throughout simulation
-            np.testing.assert_array_equal([1, 1, 1],
-                                          list(map(len, results.orders)))
+            np.testing.assert_array_equal([1, 1, 1], list(map(len, results.orders)))
 
             # one txn per day
-            np.testing.assert_array_equal([0, 1, 1],
-                                          list(map(len, results.transactions)))
+            np.testing.assert_array_equal(
+                [0, 1, 1], list(map(len, results.transactions))
+            )
 
             self.assertFalse(log_catcher.has_warnings)
 
@@ -3684,6 +3826,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
     Tests if delisted equities are properly removed from a portfolio holding
     positions in said equities.
     """
+
     #     January 2015
     # Su Mo Tu We Th Fr Sa
     #              1  2  3
@@ -3691,24 +3834,23 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
     # 11 12 13 14 15 16 17
     # 18 19 20 21 22 23 24
     # 25 26 27 28 29 30 31
-    START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
-    END_DATE = pd.Timestamp('2015-01-13', tz='UTC')
+    START_DATE = pd.Timestamp("2015-01-05", tz="UTC")
+    END_DATE = pd.Timestamp("2015-01-13", tz="UTC")
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
     BENCHMARK_SID = None
 
     @classmethod
     def init_class_fixtures(cls):
         super(TestDailyEquityAutoClose, cls).init_class_fixtures()
-        cls.assets = (
-            cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
-        )
+        cls.assets = cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
 
     @classmethod
     def make_equity_info(cls):
         cls.test_days = cls.trading_calendar.sessions_in_range(
-            cls.START_DATE, cls.END_DATE,
+            cls.START_DATE,
+            cls.END_DATE,
         )
         assert len(cls.test_days) == 7, "Number of days in test changed!"
         cls.first_asset_expiration = cls.test_days[2]
@@ -3744,9 +3886,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         return cls.daily_data.items()
 
     def daily_prices_on_tick(self, row):
-        return [
-            trades.iloc[row].close for trades in self.daily_data.values()
-        ]
+        return [trades.iloc[row].close for trades in self.daily_data.values()]
 
     def final_daily_price(self, asset):
         return self.daily_data[asset.sid].loc[asset.end_date].close
@@ -3755,6 +3895,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         """
         Initialize function shared between test algos.
         """
+
         def initialize(context):
             context.ordered = False
             context.set_commission(PerShare(0, 0))
@@ -3768,6 +3909,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         """
         Handle data function shared between test algos.
         """
+
         def handle_data(context, data):
             if not context.ordered:
                 for asset in assets:
@@ -3784,18 +3926,13 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         capital_base=[1, 100000],
         __fail_fast=True,
     )
-    def test_daily_delisted_equities(self,
-                                     order_size,
-                                     capital_base):
+    def test_daily_delisted_equities(self, order_size, capital_base):
         """
         Make sure that after an equity gets delisted, our portfolio holds the
         correct number of equities and correct amount of cash.
         """
         assets = self.assets
-        final_prices = {
-            asset.sid: self.final_daily_price(asset)
-            for asset in assets
-        }
+        final_prices = {asset.sid: self.final_daily_price(asset) for asset in assets}
 
         # Prices at which we expect our orders to be filled.
         initial_fill_prices = self.daily_prices_on_tick(1)
@@ -3810,7 +3947,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
             handle_data=self.default_handle_data(assets, order_size),
             sim_params=self.make_simparams(
                 capital_base=capital_base,
-                data_frequency='daily',
+                data_frequency="daily",
             ),
         )
         output = algo.run()
@@ -3841,7 +3978,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         expected_num_positions = [0, 3, 3, 3, 2, 2, 1]
 
         # Check expected cash.
-        self.assertEqual(expected_cash, list(output['ending_cash']))
+        self.assertEqual(expected_cash, list(output["ending_cash"]))
 
         # The cash recorded by the algo should be behind by a day from the
         # computed ending cash.
@@ -3854,20 +3991,20 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         if order_size > 0:
             self.assertEqual(
                 expected_num_positions,
-                list(output['longs_count']),
+                list(output["longs_count"]),
             )
             self.assertEqual(
                 [0] * len(self.test_days),
-                list(output['shorts_count']),
+                list(output["shorts_count"]),
             )
         else:
             self.assertEqual(
                 expected_num_positions,
-                list(output['shorts_count']),
+                list(output["shorts_count"]),
             )
             self.assertEqual(
                 [0] * len(self.test_days),
-                list(output['longs_count']),
+                list(output["longs_count"]),
             )
 
         # The number of positions recorded by the algo should be behind by a
@@ -3877,26 +4014,25 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         # Check expected transactions.
         # We should have a transaction of order_size shares per sid.
-        transactions = output['transactions']
+        transactions = output["transactions"]
         initial_fills = transactions.iloc[1]
         self.assertEqual(len(initial_fills), len(assets))
 
-        last_minute_of_session = \
-            self.trading_calendar.session_close(self.test_days[1])
+        last_minute_of_session = self.trading_calendar.session_close(self.test_days[1])
 
         for asset, txn in zip(assets, initial_fills):
             self.assertDictContainsSubset(
                 {
-                    'amount': order_size,
-                    'commission': None,
-                    'dt': last_minute_of_session,
-                    'price': initial_fill_prices[asset],
-                    'sid': asset,
+                    "amount": order_size,
+                    "commission": None,
+                    "dt": last_minute_of_session,
+                    "price": initial_fill_prices[asset],
+                    "sid": asset,
                 },
                 txn,
             )
             # This will be a UUID.
-            self.assertIsInstance(txn['order_id'], str)
+            self.assertIsInstance(txn["order_id"], str)
 
         def transactions_for_date(date):
             return transactions.iloc[self.test_days.get_loc(date)]
@@ -3909,14 +4045,14 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertEqual(
             first_auto_close_transaction,
             {
-                'amount': -order_size,
-                'commission': None,
-                'dt': self.trading_calendar.session_close(
+                "amount": -order_size,
+                "commission": None,
+                "dt": self.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
-                'price': fp0,
-                'sid': assets[0],
-                'order_id': None,  # Auto-close txns emit Nones for order_id.
+                "price": fp0,
+                "sid": assets[0],
+                "order_id": None,  # Auto-close txns emit Nones for order_id.
             },
         )
 
@@ -3926,14 +4062,14 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         self.assertEqual(
             second_auto_close_transaction,
             {
-                'amount': -order_size,
-                'commission': None,
-                'dt': self.trading_calendar.session_close(
+                "amount": -order_size,
+                "commission": None,
+                "dt": self.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),
-                'price': fp1,
-                'sid': assets[1],
-                'order_id': None,  # Auto-close txns emit Nones for order_id.
+                "price": fp1,
+                "sid": assets[1],
+                "order_id": None,  # Auto-close txns emit Nones for order_id.
             },
         )
 
@@ -3952,9 +4088,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         def handle_data(context, data):
             # The only order we place in this test should never be filled.
-            assert (
-                context.portfolio.cash == context.portfolio.starting_cash
-            )
+            assert context.portfolio.cash == context.portfolio.starting_cash
 
             today_session = self.trading_calendar.minute_to_session_label(
                 context.get_datetime()
@@ -3980,12 +4114,12 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
             initialize=initialize,
             handle_data=handle_data,
             sim_params=self.make_simparams(
-                data_frequency='daily',
+                data_frequency="daily",
             ),
         )
         results = algo.run()
 
-        orders = results['orders']
+        orders = results["orders"]
 
         def orders_for_date(date):
             return orders.iloc[self.test_days.get_loc(date)]
@@ -3993,18 +4127,17 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         original_open_orders = orders_for_date(first_asset_end_date)
         assert len(original_open_orders) == 1
 
-        last_close_for_asset = \
-            algo.trading_calendar.session_close(first_asset_end_date)
+        last_close_for_asset = algo.trading_calendar.session_close(first_asset_end_date)
 
         self.assertDictContainsSubset(
             {
-                'amount': 10,
-                'commission': 0.0,
-                'created': last_close_for_asset,
-                'dt': last_close_for_asset,
-                'sid': assets[0],
-                'status': ORDER_STATUS.OPEN,
-                'filled': 0,
+                "amount": 10,
+                "commission": 0.0,
+                "created": last_close_for_asset,
+                "dt": last_close_for_asset,
+                "sid": assets[0],
+                "status": ORDER_STATUS.OPEN,
+                "filled": 0,
             },
             original_open_orders[0],
         )
@@ -4013,15 +4146,15 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         assert len(orders_after_auto_close) == 1
         self.assertDictContainsSubset(
             {
-                'amount': 10,
-                'commission': 0.0,
-                'created': last_close_for_asset,
-                'dt': algo.trading_calendar.session_close(
+                "amount": 10,
+                "commission": 0.0,
+                "created": last_close_for_asset,
+                "dt": algo.trading_calendar.session_close(
                     first_asset_auto_close_date,
                 ),
-                'sid': assets[0],
-                'status': ORDER_STATUS.CANCELLED,
-                'filled': 0,
+                "sid": assets[0],
+                "status": ORDER_STATUS.CANCELLED,
+                "filled": 0,
             },
             orders_after_auto_close[0],
         )
@@ -4030,8 +4163,7 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 # NOTE: This suite is almost the same as TestDailyEquityAutoClose, except it
 # uses minutely data instead of daily data, and the auto_close_date for
 # equities is one day after their end_date instead of two.
-class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
-                                  zf.ZiplineTestCase):
+class TestMinutelyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
     #     January 2015
     # Su Mo Tu We Th Fr Sa
     #              1  2  3
@@ -4039,25 +4171,25 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
     # 11 12 13 14 15 16 17
     # 18 19 20 21 22 23 24
     # 25 26 27 28 29 30 31
-    START_DATE = pd.Timestamp('2015-01-05', tz='UTC')
-    END_DATE = pd.Timestamp('2015-01-13', tz='UTC')
+    START_DATE = pd.Timestamp("2015-01-05", tz="UTC")
+    END_DATE = pd.Timestamp("2015-01-13", tz="UTC")
 
     BENCHMARK_SID = None
 
     @classmethod
     def init_class_fixtures(cls):
         super(TestMinutelyEquityAutoClose, cls).init_class_fixtures()
-        cls.assets = (
-            cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
-        )
+        cls.assets = cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
 
     @classmethod
     def make_equity_info(cls):
         cls.test_days = cls.trading_calendar.sessions_in_range(
-            cls.START_DATE, cls.END_DATE,
+            cls.START_DATE,
+            cls.END_DATE,
         )
         cls.test_minutes = cls.trading_calendar.minutes_for_sessions_in_range(
-            cls.START_DATE, cls.END_DATE,
+            cls.START_DATE,
+            cls.END_DATE,
         )
         cls.first_asset_expiration = cls.test_days[2]
 
@@ -4093,19 +4225,20 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         return cls.minute_data.items()
 
     def minute_prices_on_tick(self, row):
-        return [
-            trades.iloc[row].close for trades in self.minute_data.values()
-        ]
+        return [trades.iloc[row].close for trades in self.minute_data.values()]
 
     def final_minute_price(self, asset):
-        return self.minute_data[asset.sid].loc[
-            self.trading_calendar.session_close(asset.end_date)
-        ].close
+        return (
+            self.minute_data[asset.sid]
+            .loc[self.trading_calendar.session_close(asset.end_date)]
+            .close
+        )
 
     def default_initialize(self):
         """
         Initialize function shared between test algos.
         """
+
         def initialize(context):
             context.ordered = False
             context.set_commission(PerShare(0, 0))
@@ -4119,6 +4252,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         """
         Handle data function shared between test algos.
         """
+
         def handle_data(context, data):
             if not context.ordered:
                 for asset in assets:
@@ -4132,10 +4266,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
 
     def test_minutely_delisted_equities(self):
         assets = self.assets
-        final_prices = {
-            asset.sid: self.final_minute_price(asset)
-            for asset in assets
-        }
+        final_prices = {asset.sid: self.final_minute_price(asset) for asset in assets}
         backtest_minutes = self.minute_data[0].index.tolist()
 
         order_size = 10
@@ -4146,8 +4277,8 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
             handle_data=self.default_handle_data(assets, order_size),
             sim_params=self.make_simparams(
                 capital_base=capital_base,
-                data_frequency='minute',
-            )
+                data_frequency="minute",
+            ),
         )
 
         output = algo.run()
@@ -4184,7 +4315,7 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         # TODO find more efficient way to compare these lists
         self.assertEqual(algo.cash, expected_cash)
         self.assertEqual(
-            list(output['ending_cash']),
+            list(output["ending_cash"]),
             [
                 after_fills,
                 after_fills,
@@ -4198,13 +4329,13 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
 
         self.assertEqual(algo.num_positions, expected_position_counts)
         self.assertEqual(
-            list(output['longs_count']),
+            list(output["longs_count"]),
             [3, 3, 3, 2, 2, 1, 1],
         )
 
         # Check expected transactions.
         # We should have a transaction of order_size shares per sid.
-        transactions = output['transactions']
+        transactions = output["transactions"]
 
         # Note that the transactions appear on the first day rather than the
         # second in minute mode, because the fills happen on the second tick of
@@ -4214,16 +4345,16 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         for asset, txn in zip(assets, initial_fills):
             self.assertDictContainsSubset(
                 {
-                    'amount': order_size,
-                    'commission': None,
-                    'dt': backtest_minutes[1],
-                    'price': initial_fill_prices[asset],
-                    'sid': asset,
+                    "amount": order_size,
+                    "commission": None,
+                    "dt": backtest_minutes[1],
+                    "price": initial_fill_prices[asset],
+                    "sid": asset,
                 },
                 txn,
             )
             # This will be a UUID.
-            self.assertIsInstance(txn['order_id'], str)
+            self.assertIsInstance(txn["order_id"], str)
 
         def transactions_for_date(date):
             return transactions.iloc[self.test_days.get_loc(date)]
@@ -4236,14 +4367,14 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         self.assertEqual(
             first_auto_close_transaction,
             {
-                'amount': -order_size,
-                'commission': None,
-                'dt': algo.trading_calendar.session_close(
+                "amount": -order_size,
+                "commission": None,
+                "dt": algo.trading_calendar.session_close(
                     assets[0].auto_close_date,
                 ),
-                'price': fp0,
-                'sid': assets[0],
-                'order_id': None,  # Auto-close txns emit Nones for order_id.
+                "price": fp0,
+                "sid": assets[0],
+                "order_id": None,  # Auto-close txns emit Nones for order_id.
             },
         )
 
@@ -4253,23 +4384,23 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo,
         self.assertEqual(
             second_auto_close_transaction,
             {
-                'amount': -order_size,
-                'commission': None,
-                'dt': algo.trading_calendar.session_close(
+                "amount": -order_size,
+                "commission": None,
+                "dt": algo.trading_calendar.session_close(
                     assets[1].auto_close_date,
                 ),
-                'price': fp1,
-                'sid': assets[1],
-                'order_id': None,  # Auto-close txns emit Nones for order_id.
+                "price": fp1,
+                "sid": assets[1],
+                "order_id": None,  # Auto-close txns emit Nones for order_id.
             },
         )
 
 
 class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
-    start = pd.Timestamp('2016-01-05', tz='utc')
-    day_1 = pd.Timestamp('2016-01-06', tz='utc')
-    day_4 = pd.Timestamp('2016-01-11', tz='utc')
-    end = pd.Timestamp('2016-01-15', tz='utc')
+    start = pd.Timestamp("2016-01-05", tz="utc")
+    day_1 = pd.Timestamp("2016-01-06", tz="utc")
+    day_4 = pd.Timestamp("2016-01-11", tz="utc")
+    end = pd.Timestamp("2016-01-15", tz="utc")
 
     # FIXME: Pass a benchmark source here.
     BENCHMARK_SID = None
@@ -4280,22 +4411,22 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
             {
                 # Asset whose auto close date is after its end date.
                 1: {
-                    'start_date': cls.start,
-                    'end_date': cls.day_1,
-                    'auto_close_date': cls.day_4,
-                    'symbol': "ASSET1",
-                    'exchange': "TEST",
+                    "start_date": cls.start,
+                    "end_date": cls.day_1,
+                    "auto_close_date": cls.day_4,
+                    "symbol": "ASSET1",
+                    "exchange": "TEST",
                 },
                 # Asset whose auto close date is before its end date.
                 2: {
-                    'start_date': cls.start,
-                    'end_date': cls.day_4,
-                    'auto_close_date': cls.day_1,
-                    'symbol': 'ASSET2',
-                    'exchange': 'TEST',
+                    "start_date": cls.start,
+                    "end_date": cls.day_4,
+                    "auto_close_date": cls.day_1,
+                    "symbol": "ASSET2",
+                    "exchange": "TEST",
                 },
             },
-            orient='index',
+            orient="index",
         )
 
     # XXX: This suite doesn't use the data in its DataPortal; it uses a
@@ -4304,14 +4435,17 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
         super(TestOrderAfterDelist, self).init_instance_fixtures()
         self.data_portal = FakeDataPortal(self.asset_finder)
 
-    @parameterized.expand([
-        ('auto_close_after_end_date', 1),
-        ('auto_close_before_end_date', 2),
-    ])
+    @parameterized.expand(
+        [
+            ("auto_close_after_end_date", 1),
+            ("auto_close_before_end_date", 2),
+        ]
+    )
     def test_order_in_quiet_period(self, name, sid):
         asset = self.asset_finder.retrieve_asset(sid)
 
-        algo_code = dedent("""
+        algo_code = dedent(
+            """
         from zipline.api import (
             sid,
             order,
@@ -4332,39 +4466,37 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
             order_target(sid({sid}), 50)
             order_target_percent(sid({sid}), 0.5)
             order_target_value(sid({sid}), 50)
-        """).format(sid=sid)
+        """
+        ).format(sid=sid)
 
         # run algo from 1/6 to 1/7
         algo = self.make_algo(
             script=algo_code,
             sim_params=SimulationParameters(
-                start_session=pd.Timestamp("2016-01-06", tz='UTC'),
-                end_session=pd.Timestamp("2016-01-07", tz='UTC'),
+                start_session=pd.Timestamp("2016-01-06", tz="UTC"),
+                end_session=pd.Timestamp("2016-01-07", tz="UTC"),
                 trading_calendar=self.trading_calendar,
-                data_frequency="minute"
-            )
+                data_frequency="minute",
+            ),
         )
         with make_test_handler(self) as log_catcher:
             algo.run()
 
-            warnings = [r for r in log_catcher.records
-                        if r.level == logbook.WARNING]
+            warnings = [r for r in log_catcher.records if r.level == logbook.WARNING]
 
             # one warning per order on the second day
             self.assertEqual(6 * 390, len(warnings))
 
             for w in warnings:
                 expected_message = (
-                    'Cannot place order for ASSET{sid}, as it has de-listed. '
-                    'Any existing positions for this asset will be liquidated '
-                    'on {date}.'.format(sid=sid, date=asset.auto_close_date)
+                    "Cannot place order for ASSET{sid}, as it has de-listed. "
+                    "Any existing positions for this asset will be liquidated "
+                    "on {date}.".format(sid=sid, date=asset.auto_close_date)
                 )
                 self.assertEqual(expected_message, w.message)
 
 
-class AlgoInputValidationTestCase(zf.WithMakeAlgo,
-                                  zf.ZiplineTestCase):
-
+class AlgoInputValidationTestCase(zf.WithMakeAlgo, zf.ZiplineTestCase):
     def test_reject_passing_both_api_methods_and_script(self):
         script = dedent(
             """
@@ -4381,13 +4513,7 @@ class AlgoInputValidationTestCase(zf.WithMakeAlgo,
                 pass
             """
         )
-        for method in ('initialize',
-                       'handle_data',
-                       'before_trading_start',
-                       'analyze'):
+        for method in ("initialize", "handle_data", "before_trading_start", "analyze"):
 
             with self.assertRaises(ValueError):
-                self.make_algo(
-                    script=script,
-                    **{method: lambda *args, **kwargs: None}
-                )
+                self.make_algo(script=script, **{method: lambda *args, **kwargs: None})

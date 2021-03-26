@@ -28,6 +28,7 @@ class ExchangeInfo(object):
     calendar : TradingCalendar
         The trading calendar the exchange uses.
     """
+
     def __init__(self, name, canonical_name, country_code):
         self.name = name
 
@@ -38,7 +39,7 @@ class ExchangeInfo(object):
         self.country_code = country_code.upper()
 
     def __repr__(self):
-        return '%s(%r, %r, %r)' % (
+        return "%s(%r, %r, %r)" % (
             type(self).__name__,
             self.name,
             self.canonical_name,
@@ -47,8 +48,7 @@ class ExchangeInfo(object):
 
     @property
     def calendar(self):
-        """The trading calendar that this exchange uses.
-        """
+        """The trading calendar that this exchange uses."""
         return get_calendar(self.canonical_name)
 
     def __eq__(self, other):
@@ -57,7 +57,7 @@ class ExchangeInfo(object):
 
         return all(
             getattr(self, attr) == getattr(other, attr)
-            for attr in ('name', 'canonical_name', 'country_code')
+            for attr in ("name", "canonical_name", "country_code")
         )
 
     def __ne__(self, other):

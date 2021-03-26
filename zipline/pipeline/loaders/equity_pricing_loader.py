@@ -40,10 +40,7 @@ class EquityPricingLoader(implements(PipelineLoader)):
        Reader providing currency conversions.
     """
 
-    def __init__(self,
-                 raw_price_reader,
-                 adjustments_reader,
-                 fx_reader):
+    def __init__(self, raw_price_reader, adjustments_reader, fx_reader):
         self.raw_price_reader = raw_price_reader
         self.adjustments_reader = adjustments_reader
         self.fx_reader = fx_reader

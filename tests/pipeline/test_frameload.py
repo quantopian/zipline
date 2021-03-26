@@ -27,7 +27,6 @@ from zipline.pipeline.loaders.frame import DataFrameLoader
 
 
 class DataFrameLoaderTestCase(TestCase):
-
     def setUp(self):
         self.trading_day = get_calendar("NYSE").day
 
@@ -36,7 +35,7 @@ class DataFrameLoaderTestCase(TestCase):
 
         self.sids = Int64Index(range(self.nsids))
         self.dates = date_range(
-            start='2014-01-02',
+            start="2014-01-02",
             freq=self.trading_day,
             periods=self.ndates,
         )
@@ -90,7 +89,7 @@ class DataFrameLoaderTestCase(TestCase):
         ).values()
 
         for idx, window in enumerate(adj_array.traverse(window_length=3)):
-            expected = baseline.values[dates_slice, sids_slice][idx:idx + 3]
+            expected = baseline.values[dates_slice, sids_slice][idx : idx + 3]
             assert_array_equal(window, expected)
 
     def test_adjustments(self):
@@ -104,80 +103,80 @@ class DataFrameLoaderTestCase(TestCase):
         # Adjustments that should actually affect the output.
         relevant_adjustments = [
             {
-                'sid': 1,
-                'start_date': None,
-                'end_date': self.dates[15],
-                'apply_date': self.dates[16],
-                'value': 0.5,
-                'kind': MULTIPLY,
+                "sid": 1,
+                "start_date": None,
+                "end_date": self.dates[15],
+                "apply_date": self.dates[16],
+                "value": 0.5,
+                "kind": MULTIPLY,
             },
             {
-                'sid': 2,
-                'start_date': self.dates[5],
-                'end_date': self.dates[15],
-                'apply_date': self.dates[16],
-                'value': 1.0,
-                'kind': ADD,
+                "sid": 2,
+                "start_date": self.dates[5],
+                "end_date": self.dates[15],
+                "apply_date": self.dates[16],
+                "value": 1.0,
+                "kind": ADD,
             },
             {
-                'sid': 2,
-                'start_date': self.dates[15],
-                'end_date': self.dates[16],
-                'apply_date': self.dates[17],
-                'value': 1.0,
-                'kind': ADD,
+                "sid": 2,
+                "start_date": self.dates[15],
+                "end_date": self.dates[16],
+                "apply_date": self.dates[17],
+                "value": 1.0,
+                "kind": ADD,
             },
             {
-                'sid': 3,
-                'start_date': self.dates[16],
-                'end_date': self.dates[17],
-                'apply_date': self.dates[18],
-                'value': 99.0,
-                'kind': OVERWRITE,
+                "sid": 3,
+                "start_date": self.dates[16],
+                "end_date": self.dates[17],
+                "apply_date": self.dates[18],
+                "value": 99.0,
+                "kind": OVERWRITE,
             },
         ]
 
         # These adjustments shouldn't affect the output.
         irrelevant_adjustments = [
             {  # Sid Not Requested
-                'sid': 0,
-                'start_date': self.dates[16],
-                'end_date': self.dates[17],
-                'apply_date': self.dates[18],
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 0,
+                "start_date": self.dates[16],
+                "end_date": self.dates[17],
+                "apply_date": self.dates[18],
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Sid Unknown
-                'sid': 9999,
-                'start_date': self.dates[16],
-                'end_date': self.dates[17],
-                'apply_date': self.dates[18],
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 9999,
+                "start_date": self.dates[16],
+                "end_date": self.dates[17],
+                "apply_date": self.dates[18],
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Date Not Requested
-                'sid': 2,
-                'start_date': self.dates[1],
-                'end_date': self.dates[2],
-                'apply_date': self.dates[3],
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 2,
+                "start_date": self.dates[1],
+                "end_date": self.dates[2],
+                "apply_date": self.dates[3],
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Date Before Known Data
-                'sid': 2,
-                'start_date': self.dates[0] - (2 * self.trading_day),
-                'end_date': self.dates[0] - self.trading_day,
-                'apply_date': self.dates[0] - self.trading_day,
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 2,
+                "start_date": self.dates[0] - (2 * self.trading_day),
+                "end_date": self.dates[0] - self.trading_day,
+                "apply_date": self.dates[0] - self.trading_day,
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Date After Known Data
-                'sid': 2,
-                'start_date': self.dates[-1] + self.trading_day,
-                'end_date': self.dates[-1] + (2 * self.trading_day),
-                'apply_date': self.dates[-1] + (3 * self.trading_day),
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 2,
+                "start_date": self.dates[-1] + self.trading_day,
+                "end_date": self.dates[-1] + (2 * self.trading_day),
+                "apply_date": self.dates[-1] + (3 * self.trading_day),
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
         ]
 
@@ -233,7 +232,7 @@ class DataFrameLoaderTestCase(TestCase):
         self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
 
         mask = self.mask[dates_slice, sids_slice]
-        with patch('zipline.pipeline.loaders.frame.AdjustedArray') as m:
+        with patch("zipline.pipeline.loaders.frame.AdjustedArray") as m:
             loader.load_adjusted_array(
                 US_EQUITIES,
                 columns=[USEquityPricing.close],
@@ -245,5 +244,5 @@ class DataFrameLoaderTestCase(TestCase):
         self.assertEqual(m.call_count, 1)
 
         args, kwargs = m.call_args
-        assert_array_equal(kwargs['data'], expected_baseline.values)
-        self.assertEqual(kwargs['adjustments'], expected_formatted_adjustments)
+        assert_array_equal(kwargs["data"], expected_baseline.values)
+        self.assertEqual(kwargs["adjustments"], expected_formatted_adjustments)

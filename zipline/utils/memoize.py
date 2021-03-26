@@ -13,7 +13,7 @@ from zipline.utils.compat import wraps
 
 
 class classlazyval(lazyval):
-    """ Decorator that marks that an attribute of a class should not be
+    """Decorator that marks that an attribute of a class should not be
     computed until needed, and that the value should be memoized.
 
     Example
@@ -34,6 +34,7 @@ class classlazyval(lazyval):
     >>> C.val, C.count
     ('val', 1)
     """
+
     # We don't reassign the name on the class to implement the caching because
     # then we would need to use a metaclass to track the name of the
     # descriptor.
@@ -48,13 +49,14 @@ def _weak_lru_cache(maxsize=100):
     The internals of the lru_cache are encapsulated for thread safety and
     to allow the implementation to change.
     """
+
     def decorating_function(
-            user_function, tuple=tuple, sorted=sorted, len=len,
-            KeyError=KeyError):
+        user_function, tuple=tuple, sorted=sorted, len=len, KeyError=KeyError
+    ):
 
         hits, misses = [0], [0]
-        kwd_mark = (object(),)    # separates positional and keyword args
-        lock = Lock()             # needed because OrderedDict isn't threadsafe
+        kwd_mark = (object(),)  # separates positional and keyword args
+        lock = Lock()  # needed because OrderedDict isn't threadsafe
 
         if maxsize is None:
             cache = _WeakArgsDict()  # cache without ordering or size limit
@@ -74,6 +76,7 @@ def _weak_lru_cache(maxsize=100):
                 cache[key] = result
                 misses[0] += 1
                 return result
+
         else:
             # ordered least recent to most recent
             cache = _WeakArgsOrderedDict()
@@ -88,14 +91,14 @@ def _weak_lru_cache(maxsize=100):
                 with lock:
                     try:
                         result = cache[key]
-                        cache_renew(key)    # record recent use of this key
+                        cache_renew(key)  # record recent use of this key
                         hits[0] += 1
                         return result
                     except KeyError:
                         pass
                 result = user_function(*args, **kwds)
                 with lock:
-                    cache[key] = result     # record recent use of this key
+                    cache[key] = result  # record recent use of this key
                     misses[0] += 1
                     if len(cache) > maxsize:
                         # purge least recently used cache entry
@@ -125,14 +128,16 @@ class _WeakArgs(Sequence):
     Works with _WeakArgsDict to provide a weak cache for function args.
     When any of those args are gc'd, the pair is removed from the cache.
     """
+
     def __init__(self, items, dict_remove=None):
         def remove(k, selfref=ref(self), dict_remove=dict_remove):
             self = selfref()
             if self is not None and dict_remove is not None:
                 dict_remove(self)
 
-        self._items, self._selectors = unzip(self._try_ref(item, remove)
-                                             for item in items)
+        self._items, self._selectors = unzip(
+            self._try_ref(item, remove) for item in items
+        )
         self._items = tuple(self._items)
         self._selectors = tuple(self._selectors)
 
@@ -151,8 +156,9 @@ class _WeakArgs(Sequence):
 
     @property
     def alive(self):
-        return all(item() is not None
-                   for item in compress(self._items, self._selectors))
+        return all(
+            item() is not None for item in compress(self._items, self._selectors)
+        )
 
     def __eq__(self, other):
         return self._items == other._items
@@ -173,7 +179,7 @@ class _WeakArgsDict(WeakKeyDictionary, object):
         return self.data[_WeakArgs(key)]
 
     def __repr__(self):
-        return '%s(%r)' % (type(self).__name__, self.data)
+        return "%s(%r)" % (type(self).__name__, self.data)
 
     def __setitem__(self, key, value):
         self.data[_WeakArgs(key, self._remove)] = value
@@ -224,6 +230,7 @@ def weak_lru_cache(maxsize=100):
     See:  https://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
 
     """
+
     class desc(lazyval):
         def __get__(self, instance, owner):
             if instance is None:

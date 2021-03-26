@@ -133,9 +133,7 @@ def dzip_exact(*dicts):
     True
     """
     if not same(*map(dict.keys, dicts)):
-        raise ValueError(
-            "dict keys not all equal:\n\n%s" % _format_unequal_keys(dicts)
-        )
+        raise ValueError("dict keys not all equal:\n\n%s" % _format_unequal_keys(dicts))
     return {k: tuple(d[k] for d in dicts) for k in dicts[0]}
 
 
@@ -163,7 +161,8 @@ def _gen_unzip(it, elem_len):
 
     if elem_len is not None and elem_len != first_elem_len:
         raise ValueError(
-            'element at index 0 was length %d, expected %d' % (
+            "element at index 0 was length %d, expected %d"
+            % (
                 first_elem_len,
                 elem_len,
             )
@@ -175,7 +174,8 @@ def _gen_unzip(it, elem_len):
     for n, elem in enumerate(it, 1):
         if len(elem) != elem_len:
             raise ValueError(
-                'element at index %d was length %d, expected %d' % (
+                "element at index %d was length %d, expected %d"
+                % (
                     n,
                     len(elem),
                     elem_len,
@@ -247,7 +247,7 @@ def unzip(seq, elem_len=None):
     return ((),) * elem_len
 
 
-_no_default = sentinel('_no_default')
+_no_default = sentinel("_no_default")
 
 
 def getattrs(value, attrs, default=_no_default):
@@ -329,8 +329,8 @@ def set_attribute(name, value):
 # Decorators for setting the __name__ and __doc__ properties of a decorated
 # function.
 # Example:
-with_name = set_attribute('__name__')
-with_doc = set_attribute('__doc__')
+with_name = set_attribute("__name__")
+with_doc = set_attribute("__doc__")
 
 
 def foldr(f, seq, default=_no_default):
@@ -386,9 +386,7 @@ def foldr(f, seq, default=_no_default):
     :func:`sum`
     """
     return reduce(
-        flip(f),
-        reversed(seq),
-        *(default,) if default is not _no_default else ()
+        flip(f), reversed(seq), *(default,) if default is not _no_default else ()
     )
 
 

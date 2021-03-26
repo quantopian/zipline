@@ -5,20 +5,16 @@ from numpy import (
 )
 from bcolz import ctable
 
-from zipline.data.bcolz_daily_bars import (
-    BcolzDailyBarWriter,
-    OHLC,
-    UINT32_MAX
-)
+from zipline.data.bcolz_daily_bars import BcolzDailyBarWriter, OHLC, UINT32_MAX
 
 
 class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
     _csv_dtypes = {
-        'open': float64,
-        'high': float64,
-        'low': float64,
-        'close': float64,
-        'volume': float64,
+        "open": float64,
+        "high": float64,
+        "low": float64,
+        "close": float64,
+        "volume": float64,
     }
 
     def __init__(self, asset_map):
@@ -33,13 +29,12 @@ class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
         if colname in OHLC:
             self.check_uint_safe(arrmax * 1000, colname)
             return (array * 1000).astype(uint32)
-        elif colname == 'volume':
+        elif colname == "volume":
             self.check_uint_safe(arrmax, colname)
             return array.astype(uint32)
-        elif colname == 'day':
-            nanos_per_second = (1000 * 1000 * 1000)
-            self.check_uint_safe(arrmax.view(int64) / nanos_per_second,
-                                 colname)
+        elif colname == "day":
+            nanos_per_second = 1000 * 1000 * 1000
+            self.check_uint_safe(arrmax.view(int64) / nanos_per_second, colname)
             return (array.view(int64) / nanos_per_second).astype(uint32)
 
     @staticmethod

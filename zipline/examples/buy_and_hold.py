@@ -16,7 +16,7 @@
 from zipline.api import order, symbol
 from zipline.finance import commission, slippage
 
-stocks = ['AAPL', 'MSFT']
+stocks = ["AAPL", "MSFT"]
 
 
 def initialize(context):
@@ -27,7 +27,7 @@ def initialize(context):
     # rebuild example data.
     # github.com/quantopian/zipline/blob/master/tests/resources/
     # rebuild_example_data#L105
-    context.set_commission(commission.PerShare(cost=.0075, min_trade_cost=1.0))
+    context.set_commission(commission.PerShare(cost=0.0075, min_trade_cost=1.0))
     context.set_slippage(slippage.VolumeShareSlippage())
 
 
@@ -39,11 +39,10 @@ def handle_data(context, data):
 
 
 def _test_args():
-    """Extra arguments to use when zipline's automated tests run this example.
-    """
+    """Extra arguments to use when zipline's automated tests run this example."""
     import pandas as pd
 
     return {
-        'start': pd.Timestamp('2008', tz='utc'),
-        'end': pd.Timestamp('2013', tz='utc'),
+        "start": pd.Timestamp("2008", tz="utc"),
+        "end": pd.Timestamp("2013", tz="utc"),
     }

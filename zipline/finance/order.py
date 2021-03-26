@@ -21,11 +21,11 @@ from zipline.utils.enum import enum
 from zipline.utils.input_validation import expect_types
 
 ORDER_STATUS = enum(
-    'OPEN',
-    'FILLED',
-    'CANCELLED',
-    'REJECTED',
-    'HELD',
+    "OPEN",
+    "FILLED",
+    "CANCELLED",
+    "REJECTED",
+    "HELD",
 )
 
 SELL = 1 << 0
@@ -33,20 +33,36 @@ BUY = 1 << 1
 STOP = 1 << 2
 LIMIT = 1 << 3
 
-ORDER_FIELDS_TO_IGNORE = {'type', 'direction', '_status', 'asset'}
+ORDER_FIELDS_TO_IGNORE = {"type", "direction", "_status", "asset"}
 
 
 class Order(object):
     # using __slots__ to save on memory usage.  Simulations can create many
     # Order objects and we keep them all in memory, so it's worthwhile trying
     # to cut down on the memory footprint of this object.
-    __slots__ = ["id", "dt", "reason", "created", "asset", "amount", "filled",
-                 "commission", "_status", "stop", "limit", "stop_reached",
-                 "limit_reached", "direction", "type", "broker_order_id"]
+    __slots__ = [
+        "id",
+        "dt",
+        "reason",
+        "created",
+        "asset",
+        "amount",
+        "filled",
+        "commission",
+        "_status",
+        "stop",
+        "limit",
+        "stop_reached",
+        "limit_reached",
+        "direction",
+        "type",
+        "broker_order_id",
+    ]
 
     @expect_types(asset=Asset)
-    def __init__(self, dt, asset, amount, stop=None, limit=None, filled=0,
-                 commission=0, id=None):
+    def __init__(
+        self, dt, asset, amount, stop=None, limit=None, filled=0, commission=0, id=None
+    ):
         """
         @dt - datetime.datetime that the order was placed
         @asset - asset for the order.
@@ -79,16 +95,18 @@ class Order(object):
         return uuid.uuid4().hex
 
     def to_dict(self):
-        dct = {name: getattr(self, name)
-               for name in self.__slots__
-               if name not in ORDER_FIELDS_TO_IGNORE}
+        dct = {
+            name: getattr(self, name)
+            for name in self.__slots__
+            if name not in ORDER_FIELDS_TO_IGNORE
+        }
 
         if self.broker_order_id is None:
-            del dct['broker_order_id']
+            del dct["broker_order_id"]
 
         # Adding 'sid' for backwards compatibility with downstream consumers.
-        dct['sid'] = self.asset
-        dct['status'] = self.status
+        dct["sid"] = self.asset
+        dct["status"] = self.status
 
         return dct
 
@@ -108,10 +126,8 @@ class Order(object):
         Update internal state based on price triggers and the
         trade event's price.
         """
-        stop_reached, limit_reached, sl_stop_reached = \
-            self.check_order_triggers(price)
-        if (stop_reached, limit_reached) \
-                != (self.stop_reached, self.limit_reached):
+        stop_reached, limit_reached, sl_stop_reached = self.check_order_triggers(price)
+        if (stop_reached, limit_reached) != (self.stop_reached, self.limit_reached):
             self.dt = dt
         self.stop_reached = stop_reached
         self.limit_reached = limit_reached
@@ -212,11 +228,11 @@ class Order(object):
     def cancel(self):
         self.status = ORDER_STATUS.CANCELLED
 
-    def reject(self, reason=''):
+    def reject(self, reason=""):
         self.status = ORDER_STATUS.REJECTED
         self.reason = reason
 
-    def hold(self, reason=''):
+    def hold(self, reason=""):
         self.status = ORDER_STATUS.HELD
         self.reason = reason
 

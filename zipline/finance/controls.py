@@ -27,7 +27,7 @@ from zipline.utils.input_validation import (
     expect_types,
 )
 
-log = logbook.Logger('TradingControl')
+log = logbook.Logger("TradingControl")
 
 
 class TradingControl(metaclass=abc.ABCMeta):
@@ -45,12 +45,7 @@ class TradingControl(metaclass=abc.ABCMeta):
         self.__fail_args = kwargs
 
     @abc.abstractmethod
-    def validate(self,
-                 asset,
-                 amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+    def validate(self, asset, amount, portfolio, algo_datetime, algo_current_data):
         """
         Before any order is executed by TradingAlgorithm, this method should be
         called *exactly once* on each registered TradingControl object.
@@ -68,8 +63,7 @@ class TradingControl(metaclass=abc.ABCMeta):
         constraint = repr(self)
         if metadata:
             constraint = "{constraint} (Metadata: {metadata})".format(
-                constraint=constraint,
-                metadata=metadata
+                constraint=constraint, metadata=metadata
             )
         return constraint
 
@@ -83,21 +77,24 @@ class TradingControl(metaclass=abc.ABCMeta):
         """
         constraint = self._constraint_msg(metadata)
 
-        if self.on_error == 'fail':
+        if self.on_error == "fail":
             raise TradingControlViolation(
-                asset=asset,
+                asset=asset, amount=amount, datetime=datetime, constraint=constraint
+            )
+        elif self.on_error == "log":
+            log.error(
+                "Order for {amount} shares of {asset} at {dt} "
+                "violates trading constraint {constraint}",
                 amount=amount,
-                datetime=datetime,
-                constraint=constraint)
-        elif self.on_error == 'log':
-            log.error("Order for {amount} shares of {asset} at {dt} "
-                      "violates trading constraint {constraint}",
-                      amount=amount, asset=asset, dt=datetime,
-                      constraint=constraint)
+                asset=asset,
+                dt=datetime,
+                constraint=constraint,
+            )
 
     def __repr__(self):
-        return "{name}({attrs})".format(name=self.__class__.__name__,
-                                        attrs=self.__fail_args)
+        return "{name}({attrs})".format(
+            name=self.__class__.__name__, attrs=self.__fail_args
+        )
 
 
 class MaxOrderCount(TradingControl):
@@ -113,12 +110,7 @@ class MaxOrderCount(TradingControl):
         self.max_count = max_count
         self.current_date = None
 
-    def validate(self,
-                 asset,
-                 amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+    def validate(self, asset, amount, portfolio, algo_datetime, algo_current_data):
         """
         Fail if we've already placed self.max_count orders today.
         """
@@ -148,12 +140,7 @@ class RestrictedListOrder(TradingControl):
         super(RestrictedListOrder, self).__init__(on_error)
         self.restrictions = restrictions
 
-    def validate(self,
-                 asset,
-                 amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+    def validate(self, asset, amount, portfolio, algo_datetime, algo_current_data):
         """
         Fail if the asset is in the restricted_list.
         """
@@ -168,37 +155,24 @@ class MaxOrderSize(TradingControl):
     value.
     """
 
-    def __init__(self, on_error, asset=None, max_shares=None,
-                 max_notional=None):
-        super(MaxOrderSize, self).__init__(on_error,
-                                           asset=asset,
-                                           max_shares=max_shares,
-                                           max_notional=max_notional)
+    def __init__(self, on_error, asset=None, max_shares=None, max_notional=None):
+        super(MaxOrderSize, self).__init__(
+            on_error, asset=asset, max_shares=max_shares, max_notional=max_notional
+        )
         self.asset = asset
         self.max_shares = max_shares
         self.max_notional = max_notional
 
         if max_shares is None and max_notional is None:
-            raise ValueError(
-                "Must supply at least one of max_shares and max_notional"
-            )
+            raise ValueError("Must supply at least one of max_shares and max_notional")
 
         if max_shares and max_shares < 0:
-            raise ValueError(
-                "max_shares cannot be negative."
-            )
+            raise ValueError("max_shares cannot be negative.")
 
         if max_notional and max_notional < 0:
-            raise ValueError(
-                "max_notional must be positive."
-            )
+            raise ValueError("max_notional must be positive.")
 
-    def validate(self,
-                 asset,
-                 amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+    def validate(self, asset, amount, portfolio, algo_datetime, algo_current_data):
         """
         Fail if the magnitude of the given order exceeds either self.max_shares
         or self.max_notional.
@@ -213,8 +187,9 @@ class MaxOrderSize(TradingControl):
         current_asset_price = algo_current_data.current(asset, "price")
         order_value = amount * current_asset_price
 
-        too_much_value = (self.max_notional is not None and
-                          abs(order_value) > self.max_notional)
+        too_much_value = (
+            self.max_notional is not None and abs(order_value) > self.max_notional
+        )
 
         if too_much_value:
             self.handle_violation(asset, amount, algo_datetime)
@@ -226,37 +201,24 @@ class MaxPositionSize(TradingControl):
     be held by an algo for a given asset.
     """
 
-    def __init__(self, on_error, asset=None, max_shares=None,
-                 max_notional=None):
-        super(MaxPositionSize, self).__init__(on_error,
-                                              asset=asset,
-                                              max_shares=max_shares,
-                                              max_notional=max_notional)
+    def __init__(self, on_error, asset=None, max_shares=None, max_notional=None):
+        super(MaxPositionSize, self).__init__(
+            on_error, asset=asset, max_shares=max_shares, max_notional=max_notional
+        )
         self.asset = asset
         self.max_shares = max_shares
         self.max_notional = max_notional
 
         if max_shares is None and max_notional is None:
-            raise ValueError(
-                "Must supply at least one of max_shares and max_notional"
-            )
+            raise ValueError("Must supply at least one of max_shares and max_notional")
 
         if max_shares and max_shares < 0:
-            raise ValueError(
-                "max_shares cannot be negative."
-            )
+            raise ValueError("max_shares cannot be negative.")
 
         if max_notional and max_notional < 0:
-            raise ValueError(
-                "max_notional must be positive."
-            )
+            raise ValueError("max_notional must be positive.")
 
-    def validate(self,
-                 asset,
-                 amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+    def validate(self, asset, amount, portfolio, algo_datetime, algo_current_data):
         """
         Fail if the given order would cause the magnitude of our position to be
         greater in shares than self.max_shares or greater in dollar value than
@@ -269,16 +231,18 @@ class MaxPositionSize(TradingControl):
         current_share_count = portfolio.positions[asset].amount
         shares_post_order = current_share_count + amount
 
-        too_many_shares = (self.max_shares is not None and
-                           abs(shares_post_order) > self.max_shares)
+        too_many_shares = (
+            self.max_shares is not None and abs(shares_post_order) > self.max_shares
+        )
         if too_many_shares:
             self.handle_violation(asset, amount, algo_datetime)
 
         current_price = algo_current_data.current(asset, "price")
         value_post_order = shares_post_order * current_price
 
-        too_much_value = (self.max_notional is not None and
-                          abs(value_post_order) > self.max_notional)
+        too_much_value = (
+            self.max_notional is not None and abs(value_post_order) > self.max_notional
+        )
 
         if too_much_value:
             self.handle_violation(asset, amount, algo_datetime)
@@ -292,12 +256,7 @@ class LongOnly(TradingControl):
     def __init__(self, on_error):
         super(LongOnly, self).__init__(on_error)
 
-    def validate(self,
-                 asset,
-                 amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+    def validate(self, asset, amount, portfolio, algo_datetime, algo_current_data):
         """
         Fail if we would hold negative shares of asset after completing this
         order.
@@ -315,12 +274,7 @@ class AssetDateBounds(TradingControl):
     def __init__(self, on_error):
         super(AssetDateBounds, self).__init__(on_error)
 
-    def validate(self,
-                 asset,
-                 amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+    def validate(self, asset, amount, portfolio, algo_datetime, algo_current_data):
         """
         Fail if the algo has passed this Asset's end_date, or before the
         Asset's start date.
@@ -335,20 +289,14 @@ class AssetDateBounds(TradingControl):
         if asset.start_date:
             normalized_start = pd.Timestamp(asset.start_date).normalize()
             if normalized_algo_dt < normalized_start:
-                metadata = {
-                    'asset_start_date': normalized_start
-                }
-                self.handle_violation(
-                    asset, amount, algo_datetime, metadata=metadata)
+                metadata = {"asset_start_date": normalized_start}
+                self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
         # Fail if the algo has passed this Asset's end_date
         if asset.end_date:
             normalized_end = pd.Timestamp(asset.end_date).normalize()
             if normalized_algo_dt > normalized_end:
-                metadata = {
-                    'asset_end_date': normalized_end
-                }
-                self.handle_violation(
-                    asset, amount, algo_datetime, metadata=metadata)
+                metadata = {"asset_end_date": normalized_end}
+                self.handle_violation(asset, amount, algo_datetime, metadata=metadata)
 
 
 class AccountControl(metaclass=abc.ABCMeta):
@@ -365,11 +313,7 @@ class AccountControl(metaclass=abc.ABCMeta):
         self.__fail_args = kwargs
 
     @abc.abstractmethod
-    def validate(self,
-                 _portfolio,
-                 _account,
-                 _algo_datetime,
-                 _algo_current_data):
+    def validate(self, _portfolio, _account, _algo_datetime, _algo_current_data):
         """
         On each call to handle data by TradingAlgorithm, this method should be
         called *exactly once* on each registered AccountControl object.
@@ -390,8 +334,9 @@ class AccountControl(metaclass=abc.ABCMeta):
         raise AccountControlViolation(constraint=repr(self))
 
     def __repr__(self):
-        return "{name}({attrs})".format(name=self.__class__.__name__,
-                                        attrs=self.__fail_args)
+        return "{name}({attrs})".format(
+            name=self.__class__.__name__, attrs=self.__fail_args
+        )
 
 
 class MaxLeverage(AccountControl):
@@ -409,20 +354,12 @@ class MaxLeverage(AccountControl):
         self.max_leverage = max_leverage
 
         if max_leverage is None:
-            raise ValueError(
-                "Must supply max_leverage"
-            )
+            raise ValueError("Must supply max_leverage")
 
         if max_leverage < 0:
-            raise ValueError(
-                "max_leverage must be positive"
-            )
+            raise ValueError("max_leverage must be positive")
 
-    def validate(self,
-                 _portfolio,
-                 _account,
-                 _algo_datetime,
-                 _algo_current_data):
+    def validate(self, _portfolio, _account, _algo_datetime, _algo_current_data):
         """
         Fail if the leverage is greater than the allowed leverage.
         """
@@ -446,26 +383,18 @@ class MinLeverage(AccountControl):
     """
 
     @expect_types(
-        __funcname='MinLeverage',
-        min_leverage=(int, float),
-        deadline=datetime
+        __funcname="MinLeverage", min_leverage=(int, float), deadline=datetime
     )
-    @expect_bounded(__funcname='MinLeverage', min_leverage=(0, None))
+    @expect_bounded(__funcname="MinLeverage", min_leverage=(0, None))
     def __init__(self, min_leverage, deadline):
-        super(MinLeverage, self).__init__(min_leverage=min_leverage,
-                                          deadline=deadline)
+        super(MinLeverage, self).__init__(min_leverage=min_leverage, deadline=deadline)
         self.min_leverage = min_leverage
         self.deadline = deadline
 
-    def validate(self,
-                 _portfolio,
-                 account,
-                 algo_datetime,
-                 _algo_current_data):
+    def validate(self, _portfolio, account, algo_datetime, _algo_current_data):
         """
         Make validation checks if we are after the deadline.
         Fail if the leverage is less than the min leverage.
         """
-        if (algo_datetime > self.deadline and
-                account.leverage < self.min_leverage):
+        if algo_datetime > self.deadline and account.leverage < self.min_leverage:
             self.fail()
