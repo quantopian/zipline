@@ -1,7 +1,0 @@
--e git://github.com/quantopian/blaze.git@f26375a6708eab85b7acc7869d6c518df2f974eb#egg=blaze
-dask[dataframe]>=0.13.0,<2.11.0
--e git://github.com/quantopian/datashape.git@cae16a85406ca4302ff1f985b74a3809be0a83a1#egg=datashape
--e git://github.com/quantopian/odo.git@ba84238eb8dbcac4784ae7ebf62988d7e163c283#egg=odo
-
-# Keep cytoolz version in sync with toolz version in requirements.in
-cytoolz>=0.8.2
