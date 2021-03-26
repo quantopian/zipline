@@ -21,7 +21,7 @@ the book `Machine Larning for Algorithmic Trading <https://ml4trading.io>`_ by
 to his readers and the wider Python algotrading community.
 
 - `Join our Community! <https://exchange.ml4trading.io>`_
-- `Documentation <https://stefan-jansen.github.io/zipline>`_
+- `Documentation <https://zipline.ml4trading.io`_
 
 Features
 ========
