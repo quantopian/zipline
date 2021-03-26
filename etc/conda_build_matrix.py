@@ -4,8 +4,8 @@ import subprocess
 
 import click
 
-py_versions = ('2.7', '3.4', '3.5', '3.6')
-npy_versions = ('1.9', '1.10')
+py_versions = ('3.7', '3.8', '3.9')
+npy_versions = [f'1.{i}' for i in range(9, 20)]
 zipline_path = os.path.join(
     os.path.dirname(__file__),
     '..',
@@ -16,14 +16,13 @@ zipline_path = os.path.join(
 
 def mkargs(py_version, npy_version, output=False):
     return {
-        'args': [
-            'conda',
-            'build',
-            zipline_path,
-            '-c', 'quantopian',
-            '--python=%s' % py_version,
-            '--numpy=%s' % npy_version,
-        ] + (['--output'] if output else []),
+        'args'  : ['conda',
+                   'build',
+                   zipline_path,
+                   # '-c', 'quantopian',
+                   '--python=%s' % py_version,
+                   '--numpy=%s' % npy_version,
+                   ] + (['--output'] if output else []),
         'stdout': subprocess.PIPE,
         'stderr': subprocess.PIPE,
     }
@@ -47,7 +46,7 @@ def mkargs(py_version, npy_version, output=False):
     is_flag=True,
     default=False,
     help='Upload any packages that were built even if some of the builds'
-    ' failed.',
+         ' failed.',
 )
 @click.option(
     '--user',
