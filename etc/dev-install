@@ -15,8 +15,8 @@ echo
 export DISABLE_BCOLZ_AVX2=true
 python -m pip install -U pip setuptools
 
-# These have to be installed first so that the other requirements can be
-# compiled against the specific versions we use.
+# requirements.in have to be installed first so the following requirements
+# can be compiled against their specific versions
 python -m pip install -r etc/requirements_build.in
 pip install git+https://github.com/stefan-jansen/bcolz.git --no-binary :all
 python -m pip install -e .[all]
