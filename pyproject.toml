@@ -1,5 +1,4 @@
 [build-system]
-# Minimum requirements for the build system to execute.
 requires = [
     "setuptools>=38.6.0",
     "setuptools-scm",
@@ -9,8 +8,6 @@ requires = [
     "Cython>=0.29.21,<3",
     "oldest-supported-numpy; python_version>='3.7'",
 ]
-# uncomment to enable pep517 after versioneer problem is fixed.
-# https://github.com/python-versioneer/python-versioneer/issues/193
 build-backend = "setuptools.build_meta"
 
 [tool.black]

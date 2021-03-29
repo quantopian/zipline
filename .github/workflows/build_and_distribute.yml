@@ -68,37 +68,37 @@ jobs:
 
       - uses: hmarr/debug-action@v2
 
-      - name: build extensions
-        run: python setup.py build_ext
-
-      - name: Build and test wheels
-        uses: joerick/cibuildwheel@v1.10.0
-        env:
-#          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
-          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-          CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
-          CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
-          CIBW_TEST_EXTRAS: test
-          CIBW_TEST_COMMAND: pip list; nosetests -w {package}/tests --with-coverage --cover-package {package}/zipline
-          CIBW_BEFORE_TEST_LINUX: >
-            yum install wget;
-            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz;
-            tar xvfz ta-lib-0.4.0-src.tar.gz;
-            cd ta-lib;
-            ./configure;
-            make;
-            make install;
-            ldconfig;
-            pip install -U pip
-          CIBW_BEFORE_TEST_MACOS: >
-            brew install hdf5;
-            brew install ta-lib;
-            pip install -U pip
-
-      - name: Store artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          path: wheelhouse/*.whl
+#      - name: build extensions
+#        run: python setup.py build_ext
+#
+#      - name: Build and test wheels
+#        uses: joerick/cibuildwheel@v1.10.0
+#        env:
+##          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
+#          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+#          CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+#          CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
+#          CIBW_TEST_EXTRAS: test
+#          CIBW_TEST_COMMAND: pip list; nosetests -w {package}/tests --with-coverage --cover-package {package}/zipline
+#          CIBW_BEFORE_TEST_LINUX: >
+#            yum install wget;
+#            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz;
+#            tar xvfz ta-lib-0.4.0-src.tar.gz;
+#            cd ta-lib;
+#            ./configure;
+#            make;
+#            make install;
+#            ldconfig;
+#            pip install -U pip
+#          CIBW_BEFORE_TEST_MACOS: >
+#            brew install hdf5;
+#            brew install ta-lib;
+#            pip install -U pip
+#
+#      - name: Store artifacts
+#        uses: actions/upload-artifact@v2
+#        with:
+#          path: wheelhouse/*.whl
 
   build_sdist:
     name: Build source distribution
