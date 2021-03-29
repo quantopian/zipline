@@ -13,7 +13,8 @@ jobs:
         os: [ ubuntu-latest, macos-latest ]
         python: [ 37, 38, 39 ]
         bitness: [ 32, 64 ]
-        manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
+#        manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
+        manylinux_image: [ manylinux2010 ]
         include:
           # Run 32 and 64 bit version in parallel for Linux and Windows
           #          - os: windows-latest
@@ -38,10 +39,10 @@ jobs:
           #            manylinux_image: manylinux2010
           #          - os: windows-latest
           #            manylinux_image: manylinux2014
-          - os: macos-latest
-            manylinux_image: manylinux2001
-          - os: macos-latest
-            manylinux_image: manylinux2010
+#          - os: macos-latest
+#            manylinux_image: manylinux2001
+#          - os: macos-latest
+#            manylinux_image: manylinux2010
 
     steps:
       - name: Checkout zipline
@@ -77,8 +78,8 @@ jobs:
           CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_TEST_REQUIRES: nose>=1.3.7 parameterized>=0.6.1 nose-ignore-docstring>=0.2 nose-timer>=0.5.0 mock>=2.0.0p testfixtures>=4.1.2 flake8>=3.3.0 matplotlib>=1.5.3 responses>=0.9.0 pandas-datareader>=0.2.1
           CIBW_TEST_COMMAND: nosetests tests
-          CIBW_BEFORE_TEST_LINUX: wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz; tar xvfz ta-lib-0.4.0-src.tar.gz; cd ta-lib; ./configure; make; make install; ldconfig
-          CIBW_BEFORE_TEST_MACOS: brew install ta-lib
+          CIBW_BEFORE_TEST_LINUX: wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz; tar xvfz ta-lib-0.4.0-src.tar.gz; cd ta-lib; ./configure; make; make install; ldconfig; pip install -U pip
+          CIBW_BEFORE_TEST_MACOS: brew install ta-lib; pip install -U pip
 
       - name: Store artifacts
         uses: actions/upload-artifact@v2
