@@ -10,7 +10,7 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        os: [ windows-latest, ubuntu-latest, macos-latest]
+        os: [ ubuntu-latest, macos-latest]
         python: [ 37, 38, 39 ]
         bitness: [ 32, 64 ]
         manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
@@ -44,9 +44,27 @@ jobs:
     steps:
       - name: Checkout zipline
         uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
 
       - name: Setup Python
         uses: actions/setup-python@v2
+
+      - name: Install TA lib (ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+          tar xvfz ta-lib-0.4.0-src.tar.gz
+          cd ta-lib
+          ./configure
+          make
+          sudo make install
+          sudo ldconfig
+
+      - name: Install TA lib (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install ta-lib
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
@@ -75,7 +93,7 @@ jobs:
           python-version: '3.8'
 
       - name: Build sdist
-        run: python setup.py sdist
+        run: python -m build --sdist
 
       - uses: actions/upload-artifact@v2
         with:
