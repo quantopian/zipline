@@ -69,7 +69,7 @@ jobs:
       - uses: hmarr/debug-action@v2
 
       - name: build extensions
-        run python setup.py build_ext
+        run: python setup.py build_ext
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
