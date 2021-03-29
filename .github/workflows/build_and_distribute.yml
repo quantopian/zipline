@@ -10,13 +10,13 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-#        os: [ ubuntu-latest, macos-latest ]
-        os: [ ubuntu-latest ]
+        os: [ macos-latest ]
+#        os: [ ubuntu-latest ]
 #        python: [ 37, 38, 39 ]
-        python: [ 38 ]
+        python: [ 38, 39 ]
         bitness: [ 64 ]
         #        manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
-        manylinux_image: [ manylinux2010 ]
+#        manylinux_image: [ manylinux2010 ]
         include:
           # Run 32 and 64 bit version in parallel for Linux and Windows
           #          - os: windows-latest
@@ -25,15 +25,15 @@ jobs:
           #          - os: windows-latest
           #            bitness: 32
           #            platform_id: win32
-          - os: ubuntu-latest
-            bitness: 64
-            platform_id: manylinux_x86_64
+#          - os: ubuntu-latest
+#            bitness: 64
+#            platform_id: manylinux_x86_64
 #          - os: ubuntu-latest
 #            bitness: 32
 #            platform_id: manylinux_i686
-#          - os: macos-latest
-#            bitness: 64
-#            platform_id: macosx_x86_64
+          - os: macos-latest
+            bitness: 64
+#            platform_id: arm64
 #        exclude:
 #          - os: macos-latest
 #            bitness: 32
@@ -80,6 +80,7 @@ jobs:
           CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_TEST_EXTRAS: test
           CIBW_TEST_COMMAND: python -c "import zipline"
+          CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_BEFORE_TEST_LINUX: >
             curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
             tar xvfz ta-lib-0.4.0-src.tar.gz &&
@@ -99,25 +100,25 @@ jobs:
         with:
           path: wheelhouse/*.whl
 
-  build_sdist:
-    name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: '3.8'
-
-      - name: Build sdist
-        run: |
-          pip install -U pip setuptools build
-          python -m build --sdist
-
-      - uses: actions/upload-artifact@v2
-        with:
-          path: dist/*.tar.gz
+#  build_sdist:
+#    name: Build source distribution
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#
+#      - uses: actions/setup-python@v2
+#        name: Install Python
+#        with:
+#          python-version: '3.8'
+#
+#      - name: Build sdist
+#        run: |
+#          pip install -U pip setuptools build
+#          python -m build --sdist
+#
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          path: dist/*.tar.gz
 
   upload_pypi:
 #    needs: [ build_wheels, build_sdist ]
