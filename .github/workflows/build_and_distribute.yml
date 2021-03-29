@@ -15,9 +15,10 @@ jobs:
 #        python: [ 37, 38, 39 ]
         python: [ 38, 39 ]
         bitness: [ 64 ]
+        platform_id: [ arm64, x86_64, universal2]
         #        manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
 #        manylinux_image: [ manylinux2010 ]
-        include:
+#        include:
           # Run 32 and 64 bit version in parallel for Linux and Windows
           #          - os: windows-latest
           #            bitness: 64
@@ -31,18 +32,15 @@ jobs:
 #          - os: ubuntu-latest
 #            bitness: 32
 #            platform_id: manylinux_i686
-          - os: macos-latest
-            bitness: 64
-            platform_id: arm64
-          - os: macos-latest
-            bitness: 64
-            platform_id: arm64
-          - os: macos-latest
-            bitness: 64
-            platform_id: x86_64
-          - os: macos-latest
-            bitness: 64
-            platform_id: universal2
+#          - os: macos-latest
+#            bitness: 64
+#            platform_id: arm64
+#          - os: macos-latest
+#            bitness: 64
+#            platform_id: x86_64
+#          - os: macos-latest
+#            bitness: 64
+#            platform_id: universal2
 #        exclude:
 #          - os: macos-latest
 #            bitness: 32
