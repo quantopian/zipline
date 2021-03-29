@@ -35,6 +35,8 @@ jobs:
         exclude:
           - os: macos-latest
             bitness: 32
+          - os: macos-latest
+            python: 39
           #          - os: windows-latest
           #            manylinux_image: manylinux2010
           #          - os: windows-latest
@@ -53,33 +55,17 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
 
-      #      - name: Install TA lib (ubuntu)
-      #        if: startsWith(matrix.os, 'ubuntu')
-      #        run: |
-      #          wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-      #          tar xvfz ta-lib-0.4.0-src.tar.gz
-      #          cd ta-lib
-      #          ./configure
-      #          make
-      #          sudo make install
-      #          sudo ldconfig
-      #
-      #      - name: Install TA lib (macOS)
-      #        if: startsWith(matrix.os, 'macos')
-      #        run: |
-      #          brew install ta-lib
-
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
         env:
-          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
+#          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_TEST_REQUIRES: nose>=1.3.7 parameterized>=0.6.1 nose-ignore-docstring>=0.2 nose-timer>=0.5.0 mock>=2.0.0p testfixtures>=4.1.2 flake8>=3.3.0 matplotlib>=1.5.3 responses>=0.9.0 pandas-datareader>=0.2.1
-          CIBW_TEST_COMMAND: nosetests -w {project}/tests
-          CIBW_BEFORE_TEST_LINUX: yum install wget; wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz; tar xvfz ta-lib-0.4.0-src.tar.gz; cd ta-lib; ./configure; make; make install; ldconfig; pip install -U pip
-          CIBW_BEFORE_TEST_MACOS: brew install hdf5; brew install ta-lib; pip install -U pip
+          CIBW_TEST_COMMAND: python -c "import os, sys; print(sys.path); print(os.environ["PATH"])"; nosetests -w {workspace}/tests
+          CIBW_BEFORE_TEST_LINUX: python -c "import os, sys; print(sys.path); print(os.environ["PATH"])"; yum install wget; wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz; tar xvfz ta-lib-0.4.0-src.tar.gz; cd ta-lib; ./configure; make; make install; ldconfig; pip install -U pip
+          CIBW_BEFORE_TEST_MACOS: python -c "import os, sys; print(sys.path); print(os.environ["PATH"])"; brew install hdf5; brew install ta-lib; pip install -U pip
 
       - name: Store artifacts
         uses: actions/upload-artifact@v2
