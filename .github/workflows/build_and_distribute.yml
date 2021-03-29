@@ -33,7 +33,16 @@ jobs:
 #            platform_id: manylinux_i686
           - os: macos-latest
             bitness: 64
-#            platform_id: arm64
+            platform_id: arm64
+          - os: macos-latest
+            bitness: 64
+            platform_id: arm64
+          - os: macos-latest
+            bitness: 64
+            platform_id: x86_64
+          - os: macos-latest
+            bitness: 64
+            platform_id: universal2
 #        exclude:
 #          - os: macos-latest
 #            bitness: 32
@@ -80,7 +89,7 @@ jobs:
           CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_TEST_EXTRAS: test
           CIBW_TEST_COMMAND: python -c "import zipline"
-          CIBW_ARCHS_MACOS: x86_64 universal2
+          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
           CIBW_BEFORE_TEST_LINUX: >
             curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
             tar xvfz ta-lib-0.4.0-src.tar.gz &&
