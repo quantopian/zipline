@@ -81,8 +81,7 @@ jobs:
           CIBW_TEST_EXTRAS: test
           CIBW_TEST_COMMAND: pip list; nosetests -w {package}/tests --with-coverage --cover-package {package}/zipline
           CIBW_BEFORE_TEST_LINUX: >
-            yum install wget &&
-            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
+            curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
             tar xvfz ta-lib-0.4.0-src.tar.gz &&
             cd ta-lib &&
             ./configure &&
