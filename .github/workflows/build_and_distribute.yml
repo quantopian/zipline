@@ -79,7 +79,7 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_TEST_EXTRAS: test
-          CIBW_TEST_COMMAND: pip list; nosetests -w {package}/tests --with-coverage --cover-package {package}/zipline
+          CIBW_TEST_COMMAND: python -c "import zipline"
           CIBW_BEFORE_TEST_LINUX: >
             curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
             tar xvfz ta-lib-0.4.0-src.tar.gz &&
