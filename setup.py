@@ -292,5 +292,5 @@ setup(
     },
     # install_requires=install_requires(conda_format=conda_build),
     # extras_require=extras_requires(conda_format=conda_build),
-    # **conditional_arguments,
+    **conditional_arguments,
 )

@@ -64,7 +64,7 @@ jobs:
 #        run: ls -lrt
 
       - name: list zipline
-        run: ls zipline -lrt
+        run: ls -lrt zipline
 
       - uses: hmarr/debug-action@v2
 
