@@ -11,7 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        python: [ 37, 38, 39 ]
+#        python: [ 37, 38, 39 ]
+        python: [ 38 ]
         bitness: [ 32, 64 ]
         #        manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
         manylinux_image: [ manylinux2010 ]
@@ -35,8 +36,8 @@ jobs:
         exclude:
           - os: macos-latest
             bitness: 32
-          - os: macos-latest
-            python: 39
+#          - os: macos-latest
+#            python: 39
           #          - os: windows-latest
           #            manylinux_image: manylinux2010
           #          - os: windows-latest
@@ -61,28 +62,20 @@ jobs:
       - name: list some files
         run: ls -lrt
 
+      - name: list some files
+        run: ls -lrt
+
       - uses: hmarr/debug-action@v2
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
         env:
-          #          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
+#          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
-          CIBW_TEST_REQUIRES: >
-            coverage>=4.0.3
-            nose>=1.3.7
-            parameterized>=0.6.1
-            nose-ignore-docstring>=0.2
-            nose-timer>=0.5.0
-            mock>=2.0.0p
-            testfixtures>=4.1.2
-            flake8>=3.3.0
-            matplotlib>=1.5.3
-            responses>=0.9.0
-            pandas-datareader>=0.2.1
-          CIBW_TEST_COMMAND: nosetests -w ${{ github.workspace }}/tests --with-coverage --cover-package ${{ github.workspace }}/zipline
+          CIBW_TEST_EXTRAS: test
+          CIBW_TEST_COMMAND: pip list; nosetests -w {package}/tests --with-coverage --cover-package {package}/zipline
           CIBW_BEFORE_TEST_LINUX: >
             yum install wget;
             wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz;
