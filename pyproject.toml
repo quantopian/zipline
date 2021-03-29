@@ -2,11 +2,12 @@
 # Minimum requirements for the build system to execute.
 requires = [
     "setuptools>=38.6.0",
-    "wheel",
+    "setuptools-scm",
+    "wheel>=0.31.0",
+    "versioneer-518",
+    "bcolz-zipline>=1.2.2",
     "Cython>=0.29.21,<3",
-    "numpy==1.16.5; python_version=='3.7'",
-    "numpy==1.17.3; python_version=='3.8'",
-    "numpy; python_version>='3.9'",
+    "oldest-supported-numpy; python_version>='3.7'",
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
 # https://github.com/python-versioneer/python-versioneer/issues/193
