@@ -31,9 +31,9 @@ jobs:
 #          - os: ubuntu-latest
 #            bitness: 32
 #            platform_id: manylinux_i686
-          - os: macos-latest
-            bitness: 64
-            platform_id: macosx_x86_64
+#          - os: macos-latest
+#            bitness: 64
+#            platform_id: macosx_x86_64
 #        exclude:
 #          - os: macos-latest
 #            bitness: 32
@@ -63,77 +63,77 @@ jobs:
 #      - name: list some files
 #        run: ls -lrt
 
-      - name: list zipline
-        run: ls -lrt zipline
+#      - name: list zipline
+#        run: ls -lrt zipline
 
-      - uses: hmarr/debug-action@v2
+#      - uses: hmarr/debug-action@v2
 
 #      - name: build extensions
 #        run: python setup.py build_ext
 #
-#      - name: Build and test wheels
-#        uses: joerick/cibuildwheel@v1.10.0
-#        env:
-##          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
-#          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-#          CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
-#          CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
-#          CIBW_TEST_EXTRAS: test
-#          CIBW_TEST_COMMAND: pip list; nosetests -w {package}/tests --with-coverage --cover-package {package}/zipline
-#          CIBW_BEFORE_TEST_LINUX: >
-#            yum install wget;
-#            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz;
-#            tar xvfz ta-lib-0.4.0-src.tar.gz;
-#            cd ta-lib;
-#            ./configure;
-#            make;
-#            make install;
-#            ldconfig;
-#            pip install -U pip
-#          CIBW_BEFORE_TEST_MACOS: >
-#            brew install hdf5;
-#            brew install ta-lib;
-#            pip install -U pip
+      - name: Build and test wheels
+        uses: joerick/cibuildwheel@v1.10.0
+        env:
+#          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
+          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+          CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
+          CIBW_TEST_EXTRAS: test
+          CIBW_TEST_COMMAND: pip list; nosetests -w {package}/tests --with-coverage --cover-package {package}/zipline
+          CIBW_BEFORE_TEST_LINUX: >
+            yum install wget;
+            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz;
+            tar xvfz ta-lib-0.4.0-src.tar.gz;
+            cd ta-lib;
+            ./configure;
+            make;
+            make install;
+            ldconfig;
+            pip install -U pip
+          CIBW_BEFORE_TEST_MACOS: >
+            brew install hdf5;
+            brew install ta-lib;
+            pip install -U pip
+
+      - name: Store artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          path: wheelhouse/*.whl
+
+#  build_sdist:
+#    name: Build source distribution
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
 #
-#      - name: Store artifacts
-#        uses: actions/upload-artifact@v2
+#      - uses: actions/setup-python@v2
+#        name: Install Python
 #        with:
-#          path: wheelhouse/*.whl
+#          python-version: '3.8'
+#
+#      - name: Build sdist
+#        run: |
+#          pip install -U pip setuptools build
+#          python -m build --sdist
+#
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          path: dist/*.tar.gz
 
-  build_sdist:
-    name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: '3.8'
-
-      - name: Build sdist
-        run: |
-          pip install -U pip setuptools build
-          python -m build --sdist
-
-      - uses: actions/upload-artifact@v2
-        with:
-          path: dist/*.tar.gz
-
-  upload_pypi:
-    needs: [ build_wheels, build_sdist ]
-    runs-on: ubuntu-latest
-    # upload to PyPI on every push (for now)
-    if: github.event_name == 'push'
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: dist
-
-      - uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
+#  upload_pypi:
+#    needs: [ build_wheels, build_sdist ]
+#    runs-on: ubuntu-latest
+#    # upload to PyPI on every push (for now)
+#    if: github.event_name == 'push'
+#    steps:
+#      - uses: actions/download-artifact@v2
+#        with:
+#          name: artifact
+#          path: dist
+#
+#      - uses: pypa/gh-action-pypi-publish@master
+#        with:
+#          user: __token__
+#          password: ${{ secrets.PYPI_TOKEN }}
 #          password: ${{ secrets.TESTPYPI_TOKEN }}
-          password: ${{ secrets.PYPI_TOKEN }}
 #          repository_url: https://test.pypi.org/legacy/
