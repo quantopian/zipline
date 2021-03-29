@@ -11,9 +11,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest ]
+#        os: [ ubuntu-latest ]
 #        python: [ 37, 38, 39 ]
         python: [ 38 ]
-        bitness: [ 32, 64 ]
+        bitness: [ 64 ]
         #        manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
         manylinux_image: [ manylinux2010 ]
         include:
@@ -27,15 +28,15 @@ jobs:
           - os: ubuntu-latest
             bitness: 64
             platform_id: manylinux_x86_64
-          - os: ubuntu-latest
-            bitness: 32
-            platform_id: manylinux_i686
+#          - os: ubuntu-latest
+#            bitness: 32
+#            platform_id: manylinux_i686
           - os: macos-latest
             bitness: 64
             platform_id: macosx_x86_64
-        exclude:
-          - os: macos-latest
-            bitness: 32
+#        exclude:
+#          - os: macos-latest
+#            bitness: 32
 #          - os: macos-latest
 #            python: 39
           #          - os: windows-latest
@@ -56,16 +57,19 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
 
-      - name: where are we
-        run: pwd
+#      - name: where are we
+#        run: pwd
 
-      - name: list some files
-        run: ls -lrt
+#      - name: list some files
+#        run: ls -lrt
 
-      - name: list some files
-        run: ls -lrt
+      - name: list zipline
+        run: ls zipline -lrt
 
       - uses: hmarr/debug-action@v2
+
+      - name: build extensions
+        run python setup.py build_ext
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
