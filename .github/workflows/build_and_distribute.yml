@@ -93,7 +93,9 @@ jobs:
           python-version: '3.8'
 
       - name: Build sdist
-        run: python -m build --sdist
+        run: |
+          pip install -U pip setuptools build
+          python -m build --sdist
 
       - uses: actions/upload-artifact@v2
         with:
