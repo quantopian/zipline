@@ -17,38 +17,42 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest, ubuntu-latest ]
-        python: [ 37, 38, 39 ]
+#        python: [ 37, 38, 39 ]
+        python: [ 38 ]
         bitness: [ 64 ]
         manylinux_image: [ manylinux2010, manylinux2014 ]
         include:
           - os: macos-latest
             bitness: 64
             platform_id: macosx_x86_64
-#          - os: windows-latest
-#            bitness: 64
-#            platform_id: win_amd64
           - os: ubuntu-latest
             bitness: 64
             platform_id: manylinux_x86_64
         exclude:
-#          - os: windows-latest
-#            manylinux_image: manylinux2010
           - os: macos-latest
             manylinux_image: manylinux2010
-
 
     steps:
       - name: Checkout zipline
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v2
-#
+
+      - name: where are we
+        run: pwd
+
+      - name: list dir
+        run: ls -al
+
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          #          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          #          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
           CIBW_BEFORE_TEST_LINUX: >
             curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
             tar xvfz ta-lib-0.4.0-src.tar.gz &&
@@ -73,6 +77,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v2
         name: Install Python

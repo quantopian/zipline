@@ -7,7 +7,7 @@ requires = [
     "setuptools-scm",
     "wheel>=0.31.0",
     "versioneer-518",
-    "bcolz-zipline>=1.2.2",
+    "bcolz-zipline>=1.2.3",
     "Cython>=0.29.21,<3",
     "oldest-supported-numpy; python_version>='3.7'",
 ]
