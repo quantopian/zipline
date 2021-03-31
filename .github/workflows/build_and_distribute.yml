@@ -68,25 +68,25 @@ jobs:
         with:
           path: wheelhouse/*.whl
 
-#  build_sdist:
-#    name: Build source distribution
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#
-#      - uses: actions/setup-python@v2
-#        name: Install Python
-#        with:
-#          python-version: '3.8'
-#
-#      - name: Build sdist
-#        run: |
-#          pip install -U pip setuptools build
-#          python -m build --sdist
-#
-#      - uses: actions/upload-artifact@v2
-#        with:
-#          path: dist/*.tar.gz
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Build sdist
+        run: |
+          pip install -U pip setuptools build
+          python -m build --sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
 
 #  upload_pypi:
 ##    needs: [ build_wheels, build_sdist ]
