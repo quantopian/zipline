@@ -4,91 +4,50 @@ on: [ push ]
 
 jobs:
   build_wheels:
-    #    name: Build wheel for cp${{ matrix.python }}-${{ matrix.platform_id }}-${{ matrix.manylinux_image }}
-    name: Build wheel for Mac OSX
-    runs-on: macos-10.15
-#    runs-on: ${{ matrix.os }}
-#    strategy:
+    name: py${{ matrix.python }} on ${{ matrix.os }} using ${{ matrix.platform_id }}-${{ matrix.manylinux_image }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CIBW_TEST_EXTRAS: test
+      CIBW_TEST_REQUIRES: numpy
+      CIBW_TEST_COMMAND: python -c "import zipline"; nosetests tests
+      CIBW_BUILD_VERBOSITY: 1
+
+    strategy:
       # Ensure that a wheel builder finishes even if another fails
-#      fail-fast: false
-#      matrix:
-#        os: [ macos-latest ]
-#        os: [ ubuntu-latest ]
-#        python: [ 37, 38, 39 ]
-#        python: [ 39 ]
-#        bitness: [ 64 ]
-#        platform_id: [ arm64, x86_64, universal2]
-        #        manylinux_image: [ manylinux1, manylinux2010, manylinux2014 ]
-#        manylinux_image: [ manylinux2010 ]
-#        include:
-          # Run 32 and 64 bit version in parallel for Linux and Windows
-          #          - os: windows-latest
-          #            bitness: 64
-          #            platform_id: win_amd64
-          #          - os: windows-latest
-          #            bitness: 32
-          #            platform_id: win32
-#          - os: ubuntu-latest
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, ubuntu-latest ]
+        python: [ 37, 38, 39 ]
+        bitness: [ 64 ]
+        manylinux_image: [ manylinux2010, manylinux2014 ]
+        include:
+          - os: macos-latest
+            bitness: 64
+            platform_id: macosx_x86_64
+#          - os: windows-latest
 #            bitness: 64
-#            platform_id: manylinux_x86_64
-#          - os: ubuntu-latest
-#            bitness: 32
-#            platform_id: manylinux_i686
-#          - os: macos-latest
-#            bitness: 64
-#            platform_id: arm64
-#          - os: macos-latest
-#            bitness: 64
-#            platform_id: x86_64
-#          - os: macos-latest
-#            bitness: 64
-#            platform_id: universal2
-#        exclude:
-#          - os: macos-latest
-#            bitness: 32
-#          - os: macos-latest
-#            python: 39
-          #          - os: windows-latest
-          #            manylinux_image: manylinux2010
-          #          - os: windows-latest
-          #            manylinux_image: manylinux2014
-          #          - os: macos-latest
-          #            manylinux_image: manylinux2001
-          #          - os: macos-latest
-          #            manylinux_image: manylinux2010
+#            platform_id: win_amd64
+          - os: ubuntu-latest
+            bitness: 64
+            platform_id: manylinux_x86_64
+        exclude:
+#          - os: windows-latest
+#            manylinux_image: manylinux2010
+          - os: macos-latest
+            manylinux_image: manylinux2010
+
 
     steps:
       - name: Checkout zipline
         uses: actions/checkout@v2
-      #        with:
-      #          submodules: 'recursive'
 
       - name: Setup Python
         uses: actions/setup-python@v2
-
-#      - name: where are we
-#        run: pwd
-
-#      - name: list some files
-#        run: ls -lrt
-
-#      - name: list zipline
-#        run: ls -lrt zipline
-
-#      - uses: hmarr/debug-action@v2
-
-#      - name: build extensions
-#        run: python setup.py build_ext
 #
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
         env:
-#          CIBW_ENVIRONMENT: "DISABLE_BLOSC_AVX2=true DISABLE_BCOLZ_AVX2=true"
-#          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.os }}-${{ matrix.platform_id }}
-#          CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
-#          CIBW_MANYLINUX_I686_IMAGE: ${{ matrix.manylinux_image }}
-          CIBW_TEST_EXTRAS: test
-          CIBW_TEST_COMMAND: python -c "import zipline"
+          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_ARCHS_MACOS: x86_64 universal2 arm64
           CIBW_BEFORE_TEST_LINUX: >
             curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
@@ -129,21 +88,21 @@ jobs:
 #        with:
 #          path: dist/*.tar.gz
 
-  upload_pypi:
-#    needs: [ build_wheels, build_sdist ]
-    needs: [ build_wheels ]
-    runs-on: ubuntu-latest
-    # upload to PyPI on every push (for now)
-    if: github.event_name == 'push'
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: dist
-
-      - uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-#          password: ${{ secrets.PYPI_TOKEN }}
-          password: ${{ secrets.TESTPYPI_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
+#  upload_pypi:
+##    needs: [ build_wheels, build_sdist ]
+#    needs: [ build_wheels ]
+#    runs-on: ubuntu-latest
+#    # upload to PyPI on every push (for now)
+#    if: github.event_name == 'push'
+#    steps:
+#      - uses: actions/download-artifact@v2
+#        with:
+#          name: artifact
+#          path: dist
+#
+#      - uses: pypa/gh-action-pypi-publish@master
+#        with:
+#          user: __token__
+##          password: ${{ secrets.PYPI_TOKEN }}
+#          password: ${{ secrets.TESTPYPI_TOKEN }}
+#          repository_url: https://test.pypi.org/legacy/

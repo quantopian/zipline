@@ -284,7 +284,6 @@ setup(
     },
     packages=find_packages(include=["zipline", "zipline.*"]),
     ext_modules=ext_modules,
-    include_package_data=True,
     package_data={
         root.replace(os.sep, "."): ["*.pyi", "*.pyx", "*.pxi", "*.pxd"]
         for root, dirnames, filenames in os.walk("zipline")
@@ -292,5 +291,5 @@ setup(
     },
     # install_requires=install_requires(conda_format=conda_build),
     # extras_require=extras_requires(conda_format=conda_build),
-    **conditional_arguments,
+    # **conditional_arguments,
 )

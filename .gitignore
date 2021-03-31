@@ -80,3 +80,4 @@ TAGS
 *.dSYM/
 revision
 src
+.python-version
