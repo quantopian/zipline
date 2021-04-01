@@ -6,11 +6,12 @@
 
 ------------------------------------------------------------------------
 
- Community| [![Docs](https://img.shields.io/badge/documentation-yes-brightgreen.svg)](https://zipline.ml4trading.io) [![Discourse](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fexchange.ml4trading.io%2F)](https://exchange.ml4trading.io) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0.html) [![ML4T](https://img.shields.io/badge/Powered%20by-ML4Trading-blue)](https://ml4trading.io) [![Twitter](https://img.shields.io/twitter/follow/ml4trading.svg?style=social)](https://twitter.com/ml4trading)
+Community| [![Docs](https://img.shields.io/badge/documentation-yes-brightgreen.svg)](https://zipline.ml4trading.io) [![Discourse](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fexchange.ml4trading.io%2F)](https://exchange.ml4trading.io) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0.html) [![ML4T](https://img.shields.io/badge/Powered%20by-ML4Trading-blue)](https://ml4trading.io) [![Twitter](https://img.shields.io/twitter/follow/ml4trading.svg?style=social)](https://twitter.com/ml4trading)
  :---|:---
-**Version** **Info** | [![Release](https://img.shields.io/pypi/v/zipline-reloaded.svg?cacheSeconds=2592000)](https://pypi.org/project/zipline-reloaded/) [![Python](https://img.shields.io/pypi/pyversions/zipline-reloaded.svg?cacheSeconds=2592000")](https://pypi.python.org/pypi/zipline-reloaded)
-__Test__ __Status__| ![GitHub Workflow Status](https://github.com/stefan-jansen/zipline-reloaded/actions/workflows/build_and_distribute.yml/badge.svg)  [![Coverage Status](https://coveralls.io/repos/stefan-jansen/zipline-reloaded/badge.svg)](https://coveralls.io/r/stefan-jansen/zipline-reloaded)
-
+**Version** **
+Info** | [![Release](https://img.shields.io/pypi/v/zipline-reloaded.svg?cacheSeconds=2592000)](https://pypi.org/project/zipline-reloaded/) [![Python](https://img.shields.io/pypi/pyversions/zipline-reloaded.svg?cacheSeconds=2592000")](https://pypi.python.org/pypi/zipline-reloaded)
+__Test__ __
+Status__| ![GitHub Workflow Status](https://github.com/stefan-jansen/zipline-reloaded/actions/workflows/build_and_distribute.yml/badge.svg)  [![Coverage Status](https://coveralls.io/repos/stefan-jansen/zipline-reloaded/badge.svg)](https://coveralls.io/r/stefan-jansen/zipline-reloaded)
 
 Zipline is a Pythonic event-driven system for backtesting, used as the backtesting and live-trading engine by Quantopian
 before the company
@@ -86,13 +87,14 @@ def handle_data(context, data):
 You can then run this algorithm using the Zipline CLI. First, you must download some sample pricing and asset data:
 
 ``` {.sourceCode .bash}
-$ zipline ingest
+$ zipline ingest -b quandl
 $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle --no-benchmark
 ```
 
-This will download asset pricing data data sourced from Quandl, and stream it through the algorithm over the specified
-time range. Then, the resulting performance DataFrame is saved in `dma.pickle`, which you can load and analyze from
-within Python.
+This will download asset pricing data sourced
+from [Quandl](https://www.quandl.com/databases/WIKIP/documentation?anchor=companies), and stream it through the
+algorithm over the specified time range. Then, the resulting performance DataFrame is saved as `dma.pickle`, which you
+can load and analyze from Python.
 
 You can find other examples in the `zipline/examples` directory.
 
