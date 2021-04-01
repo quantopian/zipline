@@ -6,18 +6,18 @@
 
 ------------------------------------------------------------------------
 
-Community| [![Docs](https://img.shields.io/badge/documentation-yes-brightgreen.svg)](https://zipline.ml4trading.io) [![Discourse](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fexchange.ml4trading.io%2F)](https://exchange.ml4trading.io) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0.html) [![ML4T](https://img.shields.io/badge/Powered%20by-ML4Trading-blue)](https://ml4trading.io) [![Twitter](https://img.shields.io/twitter/follow/ml4trading.svg?style=social)](https://twitter.com/ml4trading)
+Community| [![Discourse](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fexchange.ml4trading.io%2F)](https://exchange.ml4trading.io) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0.html) [![ML4T](https://img.shields.io/badge/Powered%20by-ML4Trading-blue)](https://ml4trading.io) [![Twitter](https://img.shields.io/twitter/follow/ml4trading.svg?style=social)](https://twitter.com/ml4trading)
  :---|:---
-**Version** **
-Info** | [![Release](https://img.shields.io/pypi/v/zipline-reloaded.svg?cacheSeconds=2592000)](https://pypi.org/project/zipline-reloaded/) [![Python](https://img.shields.io/pypi/pyversions/zipline-reloaded.svg?cacheSeconds=2592000")](https://pypi.python.org/pypi/zipline-reloaded)
+__Version__ __
+Info__ | [![Release](https://img.shields.io/pypi/v/zipline-reloaded.svg?cacheSeconds=2592000)](https://pypi.org/project/zipline-reloaded/) [![Python](https://img.shields.io/pypi/pyversions/zipline-reloaded.svg?cacheSeconds=2592000")](https://pypi.python.org/pypi/zipline-reloaded)
 __Test__ __
 Status__| ![GitHub Workflow Status](https://github.com/stefan-jansen/zipline-reloaded/actions/workflows/build_and_distribute.yml/badge.svg)  [![Coverage Status](https://coveralls.io/repos/stefan-jansen/zipline-reloaded/badge.svg)](https://coveralls.io/r/stefan-jansen/zipline-reloaded)
 
-Zipline is a Pythonic event-driven system for backtesting, used as the backtesting and live-trading engine by Quantopian
-before the company
-[closed down](https://www.bizjournals.com/boston/news/2020/11/10/quantopian-shuts-down-cofounders-head-elsewhere.html)
-in late 2020. Since then, the domain that originally hosted these docs have expired. The library is used extensively in
-the book [Machine Larning for Algorithmic Trading](https://ml4trading.io)
+Zipline is a Pythonic event-driven system for backtesting, used as the backtesting and live-trading engine by
+the [former crowd-sourced investment fund Quantopian]
+(https://www.bizjournals.com/boston/news/2020/11/10/quantopian-shuts-down-cofounders-head-elsewhere.html). Since it
+closed late 2020, the domain that originally hosted these docs has expired. The library is used extensively in the
+book [Machine Larning for Algorithmic Trading](https://ml4trading.io)
 by [Stefan Jansen](https://www.linkedin.com/in/applied-ai/) who is trying to keep the library up to date and available
 to his readers and the wider Python algotrading community.
 

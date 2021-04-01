@@ -57,7 +57,6 @@ jobs:
         uses: joerick/cibuildwheel@v1.10.0
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-#          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
 
       - name: Store artifacts
         uses: actions/upload-artifact@v2
@@ -87,20 +86,26 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-    #    needs: [ build_wheels, build_sdist ]
-    needs: [ build_wheels ]
+    needs: [ build_wheels, build_sdist ]
     runs-on: ubuntu-latest
-    # upload to PyPI on every push (for now)
-    if: github.event_name == 'push'
+    # upload to (Test)-PyPI on every push of tag starting with v; diff by commit
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - uses: actions/download-artifact@v2
         with:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@master
+      - name: publish to testpypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: startsWith(github.event.head_commit.message, 'TEST')
         with:
           user: __token__
-#          password: ${{ secrets.PYPI_TOKEN }}
           password: ${{ secrets.TESTPYPI_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
+      - name: publish to pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: startsWith(github.event.head_commit.message, 'PYPI')
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
