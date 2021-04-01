@@ -57,7 +57,7 @@ jobs:
         uses: joerick/cibuildwheel@v1.10.0
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+#          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
 
       - name: Store artifacts
         uses: actions/upload-artifact@v2
