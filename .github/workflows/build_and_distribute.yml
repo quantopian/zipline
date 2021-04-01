@@ -28,7 +28,6 @@ jobs:
       matrix:
         os: [ macos-latest, ubuntu-latest ]
         python: [ 37, 38, 39 ]
-        #        python: [ 38 ]
         bitness: [ 64 ]
         manylinux_image: [ manylinux2010, manylinux2014 ]
         include:
