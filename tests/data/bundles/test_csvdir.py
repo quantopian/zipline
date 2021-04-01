@@ -9,7 +9,6 @@ from os.path import (
 from trading_calendars import get_calendar
 
 from zipline.data.bundles import ingest, load, bundles
-from zipline.testing import test_resource_path
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.functional import apply
@@ -270,7 +269,9 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
         return pricing, adjustments
 
     def test_bundle(self):
-        environ = {"CSVDIR": test_resource_path("csvdir_samples", "csvdir")}
+        environ = {"CSVDIR": join(TEST_RESOURCE_PATH,
+                                  'csvdir_samples',
+                                  'csvdir')}
 
         ingest("csvdir", environ=environ)
         bundle = load("csvdir", environ=environ)

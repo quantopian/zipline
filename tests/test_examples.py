@@ -15,13 +15,17 @@
 from functools import partial
 from operator import itemgetter
 import tarfile
-
+from os.path import (
+    dirname,
+    join,
+    realpath
+)
 import matplotlib
 import pandas as pd
 
 from zipline import examples
 from zipline.data.bundles import register, unregister
-from zipline.testing import test_resource_path, parameter_space
+from zipline.testing import parameter_space
 from zipline.testing.fixtures import (
     WithTmpDir,
     ZiplineTestCase,
@@ -30,6 +34,9 @@ from zipline.testing.fixtures import (
 from zipline.testing.predicates import assert_equal
 from zipline.utils.cache import dataframe_cache
 
+TEST_RESOURCE_PATH = join(
+    dirname(realpath(__file__)),  # zipline_repo/tests
+    "resources")
 
 # Otherwise the next line sometimes complains about being run too late.
 _multiprocess_can_split_ = False
@@ -49,18 +56,20 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
         register("test", lambda *args: None)
         cls.add_class_callback(partial(unregister, "test"))
 
-        with tarfile.open(test_resource_path("example_data.tar.gz")) as tar:
+        with tarfile.open(join(TEST_RESOURCE_PATH,
+                               'example_data.tar.gz')) as tar:
             tar.extractall(cls.tmpdir.path)
 
         cls.expected_perf = dataframe_cache(
-            cls.tmpdir.getpath(
-                "example_data/expected_perf/%s" % pd.__version__.replace(".", "-"),
-            ),
+            cls.tmpdir.getpath("example_data/expected_perf/%s"
+                               % pd.__version__.replace(".", "-"),
+                               ),
             serialization="pickle",
         )
 
         cls.no_benchmark_expected_perf = {
-            example_name: cls._no_benchmark_expectations_applied(expected_perf.copy())
+            example_name: cls._no_benchmark_expectations_applied(
+                expected_perf.copy())
             for example_name, expected_perf in cls.expected_perf.items()
         }
 
@@ -98,7 +107,8 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
         # Exclude positions column as the positions do not always have the
         # same order
         columns = [
-            column for column in examples._cols_to_check if column != "positions"
+            column for column in examples._cols_to_check
+            if column != "positions"
         ]
         assert_equal(
             actual_perf[columns],
