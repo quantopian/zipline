@@ -9,7 +9,7 @@ jobs:
     env:
       CIBW_TEST_EXTRAS: test
       CIBW_TEST_REQUIRES: numpy
-      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"; ls -al; echo $PATH; nosetests -w tests
+      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"; git clone https://github.com/stefan-jansen/zipline-reloaded.git; ls -al; nosetests -w zipline-reloaded/tests
       CIBW_BUILD_VERBOSITY: 1.
 
     strategy:
@@ -43,7 +43,6 @@ jobs:
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
-              actions/checkout@v2
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           #          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
