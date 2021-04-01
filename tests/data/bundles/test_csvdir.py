@@ -1,5 +1,11 @@
 import numpy as np
 import pandas as pd
+from os.path import (
+    dirname,
+    join,
+    realpath
+)
+
 from trading_calendars import get_calendar
 
 from zipline.data.bundles import ingest, load, bundles
@@ -7,6 +13,10 @@ from zipline.testing import test_resource_path
 from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.functional import apply
+
+TEST_RESOURCE_PATH = join(
+    dirname(dirname(dirname(realpath(__file__)))),  # zipline_repo/tests
+    "resources")
 
 
 class CSVDIRBundleTestCase(ZiplineTestCase):
@@ -31,9 +41,12 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
 
         def per_symbol(symbol):
             df = pd.read_csv(
-                test_resource_path(
-                    "csvdir_samples", "csvdir", "daily", symbol + ".csv.gz"
-                ),
+                join(TEST_RESOURCE_PATH,
+                     "csvdir_samples",
+                     "csvdir",
+                     "daily",
+                     symbol + ".csv.gz"
+                     ),
                 parse_dates=["date"],
                 index_col="date",
                 usecols=[
@@ -51,14 +64,10 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
             df["sid"] = sids[symbol]
             return df
 
-        all_ = (
-            pd.concat(map(per_symbol, self.symbols))
-            .set_index(
-                "sid",
-                append=True,
-            )
-            .unstack()
-        )
+        all_ = (pd.concat(map(per_symbol, self.symbols))
+                .set_index("sid", append=True)
+                .unstack()
+                )
 
         # fancy list comprehension with statements
         @list

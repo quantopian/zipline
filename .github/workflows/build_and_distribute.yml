@@ -8,7 +8,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_TEST_EXTRAS: test
-      CIBW_TEST_REQUIRES: numpy
       CIBW_TEST_COMMAND: svn export https://github.com/stefan-jansen/zipline-reloaded/trunk/tests; nosetests -w tests
       CIBW_BEFORE_TEST_LINUX: >
         curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
@@ -42,6 +41,8 @@ jobs:
         exclude:
           - os: macos-latest
             manylinux_image: manylinux2010
+          - os: macos-latest
+            python: 39
 
     steps:
       - name: Checkout zipline
@@ -100,6 +101,6 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
-#                    password: ${{ secrets.PYPI_TOKEN }}
+          #                    password: ${{ secrets.PYPI_TOKEN }}
           password: ${{ secrets.TESTPYPI_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
