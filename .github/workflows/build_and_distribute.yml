@@ -9,8 +9,8 @@ jobs:
     env:
       CIBW_TEST_EXTRAS: test
       CIBW_TEST_REQUIRES: numpy
-      CIBW_TEST_COMMAND: python -c "import zipline"; nosetests tests
-      CIBW_BUILD_VERBOSITY: 1
+      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"; ls -al; echo $PATH; nosetests -w tests
+      CIBW_BUILD_VERBOSITY: 1.
 
     strategy:
       # Ensure that a wheel builder finishes even if another fails
@@ -40,12 +40,6 @@ jobs:
 
       - name: Setup Python
         uses: actions/setup-python@v2
-
-      - name: where are we
-        run: pwd
-
-      - name: list dir
-        run: ls -al
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
