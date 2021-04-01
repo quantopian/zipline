@@ -42,9 +42,6 @@ Zipline supports Python 3.7, 3.8, and 3.9, and may be installed via either pip o
 **Note:** Installing Zipline is slightly more involved than the average Python package. See the
 full [Zipline Install Documentation](https://zipline.ml4trading.io) for detailed instructions.
 
-For a development installation (used to develop Zipline itself), create and activate a virtualenv, then run
-the `etc/dev-install` script.
-
 Quickstart
 ==========
 

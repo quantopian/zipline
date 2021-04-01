@@ -7,22 +7,22 @@ jobs:
     name: py${{ matrix.python }} on ${{ matrix.os }} using ${{ matrix.platform_id }}-${{ matrix.manylinux_image }}
     runs-on: ${{ matrix.os }}
     env:
-#      CIBW_TEST_EXTRAS: test
-#      CIBW_TEST_REQUIRES: numpy
-#      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"; git clone https://github.com/stefan-jansen/zipline-reloaded.git; ls -al; nosetests -w zipline-reloaded/tests
-#      CIBW_BEFORE_TEST_LINUX: >
-#        curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
-#        tar xvfz ta-lib-0.4.0-src.tar.gz &&
-#        cd ta-lib &&
-#        ./configure &&
-#        make &&
-#        make install &&
-#        ldconfig &&
-#        pip install -U pip
-#      CIBW_BEFORE_TEST_MACOS: >
-#        brew install hdf5;
-#        brew install ta-lib;
-#        pip install -U pip
+      #      CIBW_TEST_EXTRAS: test
+      #      CIBW_TEST_REQUIRES: numpy
+      #      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"; git clone https://github.com/stefan-jansen/zipline-reloaded.git; ls -al; nosetests -w zipline-reloaded/tests
+      #      CIBW_BEFORE_TEST_LINUX: >
+      #        curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
+      #        tar xvfz ta-lib-0.4.0-src.tar.gz &&
+      #        cd ta-lib &&
+      #        ./configure &&
+      #        make &&
+      #        make install &&
+      #        ldconfig &&
+      #        pip install -U pip
+      #      CIBW_BEFORE_TEST_MACOS: >
+      #        brew install hdf5;
+      #        brew install ta-lib;
+      #        pip install -U pip
       CIBW_BUILD_VERBOSITY: 1
 
     strategy:
@@ -31,7 +31,7 @@ jobs:
       matrix:
         os: [ macos-latest, ubuntu-latest ]
         python: [ 37, 38, 39 ]
-#        python: [ 38 ]
+        #        python: [ 38 ]
         bitness: [ 64 ]
         manylinux_image: [ manylinux2010, manylinux2014 ]
         include:
@@ -58,8 +58,7 @@ jobs:
         uses: joerick/cibuildwheel@v1.10.0
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-          #          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
-          #          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
 
 
       - name: Store artifacts
@@ -90,7 +89,7 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-#    needs: [ build_wheels, build_sdist ]
+    #    needs: [ build_wheels, build_sdist ]
     needs: [ build_wheels ]
     runs-on: ubuntu-latest
     # upload to PyPI on every push (for now)
@@ -104,6 +103,6 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
-#          password: ${{ secrets.PYPI_TOKEN }}
+          #          password: ${{ secrets.PYPI_TOKEN }}
           password: ${{ secrets.TESTPYPI_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
