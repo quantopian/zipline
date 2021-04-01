@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import sys
+import os
 from pathlib import Path
 
 # ensure the current directory is on sys.path
@@ -22,8 +23,10 @@ from pathlib import Path
 # PEP 517/518 build rules.
 # https://github.com/python-versioneer/python-versioneer/issues/193
 sys.path.append(Path(__file__).resolve(strict=True).parent.as_posix())
+# sys.path.append(os.path.dirname(__file__))
+# print(Path(__file__).resolve(strict=True).parent.as_posix())
+# print(sys.path)
 import versioneer  # noqa: E402
-import os  # noqa: E402
 from setuptools import (
     Extension,
     find_packages,
@@ -133,12 +136,12 @@ ext_modules = [
 for ext_module in ext_modules:
     ext_module.cython_directives = dict(language_level="3")
 
+version = versioneer.get_version()
+
 setup(
-    version=versioneer.get_version(),
+    version=version,
     test_suite='tests',
-    cmdclass=versioneer.get_cmdclass(
-        LazyBuildExtCommandClass(versioneer.get_cmdclass())
-    ),
+    cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     entry_points={
         "console_scripts": [
             "zipline = zipline.__main__:main",
