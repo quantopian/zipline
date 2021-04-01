@@ -13,14 +13,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+
+import sys
+from pathlib import Path
+
+# ensure the current directory is on sys.path
+# so versioneer can be imported when pip uses
+# PEP 517/518 build rules.
+# https://github.com/python-versioneer/python-versioneer/issues/193
+sys.path.append(Path(__file__).resolve(strict=True).parent.as_posix())
+import versioneer  # noqa: E402
+import os  # noqa: E402
 from setuptools import (
     Extension,
     find_packages,
     setup,
-)
-
-import versioneer
+)  # noqa: E402
 
 
 class LazyBuildExtCommandClass(dict):
@@ -128,7 +136,9 @@ for ext_module in ext_modules:
 setup(
     version=versioneer.get_version(),
     test_suite='tests',
-    cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
+    cmdclass=versioneer.get_cmdclass(
+        LazyBuildExtCommandClass(versioneer.get_cmdclass())
+    ),
     entry_points={
         "console_scripts": [
             "zipline = zipline.__main__:main",

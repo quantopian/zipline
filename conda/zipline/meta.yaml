@@ -34,7 +34,7 @@ test:
     - zipline
 
 about:
-  home: https://www.zipline.io
+  home: https://www.zipline.ml4trading.io
   license: Apache Software License
 
 # See
