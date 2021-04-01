@@ -18,11 +18,9 @@ jobs:
         make &&
         make install &&
         ldconfig &&
-        sudo apt install subversion &&
-        pip install -U pip
+        apt-get install subversion
       CIBW_BEFORE_TEST_MACOS: >
-        brew install hdf5 ta-lib subversion;
-        pip install -U pip
+        brew install hdf5 ta-lib subversion
       CIBW_BUILD_VERBOSITY: 1
 
     strategy:
@@ -65,43 +63,43 @@ jobs:
         with:
           path: wheelhouse/*.whl
 
-#  build_sdist:
-#    name: Build source distribution
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#        with:
-#          fetch-depth: 0
-#
-#      - uses: actions/setup-python@v2
-#        name: Install Python
-#        with:
-#          python-version: '3.8'
-#
-#      - name: Build sdist
-#        run: |
-#          pip install -U pip setuptools build
-#          python -m build --sdist
-#
-#      - uses: actions/upload-artifact@v2
-#        with:
-#          path: dist/*.tar.gz
-#
-#  upload_pypi:
-#    #    needs: [ build_wheels, build_sdist ]
-#    needs: [ build_wheels ]
-#    runs-on: ubuntu-latest
-#    # upload to PyPI on every push (for now)
-#    if: github.event_name == 'push'
-#    steps:
-#      - uses: actions/download-artifact@v2
-#        with:
-#          name: artifact
-#          path: dist
-#
-#      - uses: pypa/gh-action-pypi-publish@master
-#        with:
-#          user: __token__
-#          #          password: ${{ secrets.PYPI_TOKEN }}
-#          password: ${{ secrets.TESTPYPI_TOKEN }}
-#          repository_url: https://test.pypi.org/legacy/
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Build sdist
+        run: |
+          pip install -U pip setuptools build
+          python -m build --sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    #    needs: [ build_wheels, build_sdist ]
+    needs: [ build_wheels ]
+    runs-on: ubuntu-latest
+    # upload to PyPI on every push (for now)
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+#                    password: ${{ secrets.PYPI_TOKEN }}
+          password: ${{ secrets.TESTPYPI_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
