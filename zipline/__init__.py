@@ -33,7 +33,6 @@ from .algorithm import TradingAlgorithm
 from . import api
 from zipline import extensions as ext
 from zipline.finance.blotter import Blotter
-from . import _version
 
 # PERF: Fire a warning if calendars were instantiated during zipline import.
 # Having calendars doesn't break anything per-se, but it makes zipline imports
@@ -50,7 +49,10 @@ if global_calendar_dispatcher._calendars:
     del warnings
 del global_calendar_dispatcher
 
-__version__ = _version.get_versions()['version']
+from ._version import get_versions  # noqa 402
+
+__version__ = get_versions()['version']
+del get_versions
 
 extension_args = ext.Namespace()
 
