@@ -43,6 +43,7 @@ jobs:
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
+              actions/checkout@v2
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           #          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
