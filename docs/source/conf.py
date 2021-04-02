@@ -28,17 +28,15 @@ extlinks = {
     'commit': ('https://github.com/stefan-jansen/zipline/commit/%s', ''),
 }
 
-# -- Docstrings ---------------------------------------------------------------
-
 numpydoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
 
 # The suffix of source filenames.
-source_parsers = {
-    '.md': 'recommonmark.parser.CommonMarkParser',
-}
+# source_parsers = {
+#     '.md': 'recommonmark.parser.CommonMarkParser',
+# }
 
 source_suffix = {'.rst': 'restructuredtext',
                  '.md': 'markdown'}
