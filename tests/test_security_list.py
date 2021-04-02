@@ -1,6 +1,4 @@
 from datetime import timedelta
-import os
-from unittest import skipIf
 import pandas as pd
 from parameterized import parameterized
 
@@ -20,13 +18,9 @@ from zipline.utils.security_list import (
     load_from_directory,
 )
 
-ON_GITHUB = os.getenv('CI') is not None
-
-if not ON_GITHUB:
-    LEVERAGED_ETFS = load_from_directory("leveraged_etf_list")
+LEVERAGED_ETFS = load_from_directory("leveraged_etf_list")
 
 
-@skipIf(ON_GITHUB, 'running remote')
 class RestrictedAlgoWithCheck(TradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
@@ -43,7 +37,6 @@ class RestrictedAlgoWithCheck(TradingAlgorithm):
                 self.order_count += 1
 
 
-@skipIf(ON_GITHUB, 'running remote')
 class RestrictedAlgoWithoutCheck(TradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
@@ -56,7 +49,6 @@ class RestrictedAlgoWithoutCheck(TradingAlgorithm):
         self.order_count += 1
 
 
-@skipIf(ON_GITHUB, 'running remote')
 class RestrictedAlgoWithoutCheckSetDoNotOrderList(TradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
@@ -69,7 +61,6 @@ class RestrictedAlgoWithoutCheckSetDoNotOrderList(TradingAlgorithm):
         self.order_count += 1
 
 
-@skipIf(ON_GITHUB, 'running remote')
 class IterateRLAlgo(TradingAlgorithm):
     def initialize(self, symbol):
         self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
@@ -86,7 +77,6 @@ class IterateRLAlgo(TradingAlgorithm):
                 self.found = True
 
 
-@skipIf(ON_GITHUB, 'running remote')
 class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
     # XXX: This suite uses way more than it probably needs.
     START_DATE = pd.Timestamp("2002-01-03", tz="UTC")

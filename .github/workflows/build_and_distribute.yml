@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_TEST_EXTRAS: test
-      CIBW_TEST_COMMAND: svn export https://github.com/stefan-jansen/zipline-reloaded/trunk/tests; nosetests -w tests
+      CIBW_TEST_COMMAND: svn export https://github.com/stefan-jansen/zipline-reloaded/trunk/tests; nosetests -w tests --ignore-files="test_security_list\.py"
       CIBW_BEFORE_TEST_LINUX: >
         curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
         tar xvfz ta-lib-0.4.0-src.tar.gz &&
