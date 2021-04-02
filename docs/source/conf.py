@@ -1,7 +1,7 @@
 import sys
 import os
 from pathlib import Path
-
+from recommonmark.parser import CommonMarkParser
 from zipline import __version__ as version
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -34,10 +34,7 @@ numpydoc_show_class_members = False
 templates_path = ['.templates']
 
 # The suffix of source filenames.
-# source_parsers = {
-#     '.md': 'recommonmark.parser.CommonMarkParser',
-# }
-
+source_parsers = {'.md': CommonMarkParser}
 source_suffix = {'.rst': 'restructuredtext',
                  '.md': 'markdown'}
 
