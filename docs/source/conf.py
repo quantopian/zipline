@@ -9,6 +9,11 @@ from zipline import __version__ as version
 sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath(".."))
 
+
+source_parsers = {
+    '.md': 'recommonmark.parser.CommonMarkParser',
+}
+
 source_suffix = {'.rst': 'restructuredtext',
                  '.md': 'markdown'}
 
