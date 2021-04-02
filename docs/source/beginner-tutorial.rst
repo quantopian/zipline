@@ -57,8 +57,6 @@ directory, ``buyapple.py``:
 .. code-block:: python
 
    from zipline.examples import buyapple
-   buyapple??
-
 
 .. code-block:: python
 
