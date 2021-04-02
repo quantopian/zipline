@@ -3,12 +3,13 @@ from __future__ import print_function
 from contextlib import contextmanager
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, exists, isfile
+from os.path import basename, exists, isfile
+from pathlib import Path
 from shutil import move, rmtree
 from subprocess import check_call
 
-HERE = dirname(abspath(__file__))
-ZIPLINE_ROOT = dirname(HERE)
+HERE = Path(__file__).resolve(strict=True).parent
+ZIPLINE_ROOT = HERE.parent
 TEMP_LOCATION = "/tmp/zipline-doc"
 TEMP_LOCATION_GLOB = TEMP_LOCATION + "/*"
 
@@ -31,7 +32,7 @@ def ensure_not_exists(path):
 
 
 def main():
-    old_dir = os.getcwd()
+    old_dir = Path.cwd()
     print("Moving to %s." % HERE)
     os.chdir(HERE)
 
@@ -53,7 +54,9 @@ def main():
 
             print("Checking out gh-pages branch.")
             check_call(
-                ["git", "branch", "-f", "--track", "gh-pages", "origin/gh-pages"]
+                ["git", "branch",
+                 "-f", "--track",
+                 "gh-pages", "origin/gh-pages"]
             )
             check_call(["git", "checkout", "gh-pages"])
             check_call(["git", "reset", "--hard", "origin/gh-pages"])

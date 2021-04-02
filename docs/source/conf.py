@@ -9,6 +9,9 @@ from zipline import __version__ as version
 sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath(".."))
 
+source_suffix = {'.rst': 'restructuredtext',
+                 '.md': 'markdown'}
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
@@ -17,8 +20,9 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
     "sphinx.ext.todo",
+    'recommonmark',
+    'sphinx_markdown_tables'
 ]
-
 
 extlinks = {
     "issue": ("https://github.com/stefan-jansen/zipline/issues/%s", "#"),
