@@ -1,9 +1,10 @@
+# Zipline - Backtest your Trading Strategies
+
 <p align="center">
 <a href="https://zipline.ml4trading.io">
 <img src="https://i.imgur.com/DDetr8I.png" width="25%">
 </a>
 </p>
-------------------------------------------------------------------------
 
 | Community | [![Discourse](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fexchange.ml4trading.io%2F)](https://exchange.ml4trading.io) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0.html) [![ML4T](https://img.shields.io/badge/Powered%20by-ML4Trading-blue)](https://ml4trading.io) [![Twitter](https://img.shields.io/twitter/follow/ml4trading.svg?style=social)](https://twitter.com/ml4trading)|
 |:---|:---|
@@ -21,7 +22,7 @@ to his readers and the wider Python algotrading community.
 - [Join our Community!](https://exchange.ml4trading.io)
 - [Documentation](https://zipline.ml4ctrading.io)
 
-# Features
+## Features
 
 - **Ease of Use:** Zipline tries to get out of your way so that you can focus on algorithm development. See below for a
   code example.
@@ -32,16 +33,14 @@ to his readers and the wider Python algotrading community.
 - **Statistics and Machine Learning Libraries:** You can use libraries like matplotlib, scipy, statsmodels, and sklearn
   to support development, analysis, and visualization of state-of-the-art trading systems.
 
-Installation
-============
+## Installation
 
 Zipline supports Python 3.7, 3.8, and 3.9, and may be installed via either pip or conda.
 
 **Note:** Installing Zipline is slightly more involved than the average Python package. See the
 full [Zipline Install Documentation](https://zipline.ml4trading.io) for detailed instructions.
 
-Quickstart
-==========
+## Quickstart
 
 See our [getting started tutorial](https://zipline.ml4trading.io/beginner-tutorial).
 
@@ -95,8 +94,7 @@ can load and analyze from Python.
 
 You can find other examples in the `zipline/examples` directory.
 
-Questions?
-==========
+## Questions?
 
 If you find a bug, feel free to [open an issue](https://github.com/stefan-jansen/zipline/issues/new) and fill out the
 issue template.
