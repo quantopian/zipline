@@ -1,21 +1,14 @@
 import sys
 import os
+from pathlib import Path
 
 from zipline import __version__ as version
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath("."))
-sys.path.insert(0, os.path.abspath(".."))
-
-
-source_parsers = {
-    '.md': 'recommonmark.parser.CommonMarkParser',
-}
-
-source_suffix = {'.rst': 'restructuredtext',
-                 '.md': 'markdown'}
+sys.path.insert(0, Path('.').resolve(strict=True).as_posix())
+sys.path.insert(0, Path('..').resolve(strict=True).as_posix())
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -43,7 +36,13 @@ numpydoc_show_class_members = False
 templates_path = [".templates"]
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+source_parsers = {
+    '.md': 'recommonmark.parser.CommonMarkParser',
+}
+
+source_suffix = {'.rst': 'restructuredtext',
+                 '.md': 'markdown'}
+
 
 # The master toctree document.
 master_doc = "index"
