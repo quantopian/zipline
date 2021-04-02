@@ -36,7 +36,7 @@ See our [getting started tutorial](https://zipline.ml4trading.io/beginner-tutori
 
 The following code implements a simple dual moving average algorithm.
 
-``` {.sourceCode .python}
+```python
 from zipline.api import order_target, record, symbol
 
 def initialize(context):
@@ -72,7 +72,7 @@ def handle_data(context, data):
 
 You can then run this algorithm using the Zipline CLI. First, you must download some sample pricing and asset data:
 
-``` {.sourceCode .bash}
+```bash
 $ zipline ingest -b quandl
 $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.pickle --no-benchmark
 ```

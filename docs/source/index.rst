@@ -1,9 +1,10 @@
 .. title:: Zipline
 
+    readme
+
 .. toctree::
    :maxdepth: 1
 
-   readme
    install
    beginner-tutorial
    bundles
