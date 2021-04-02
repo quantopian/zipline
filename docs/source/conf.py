@@ -20,6 +20,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'recommonmark',
+    'm2r2',
     'sphinx_markdown_tables'
 ]
 
