@@ -11,6 +11,6 @@
    trading-calendars
    risk-and-perf-metrics
    development-guidelines
-   appendix
+   api-reference
    release-process
    releases

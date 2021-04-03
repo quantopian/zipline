@@ -1,21 +1,27 @@
-Install
-=======
+Installation
+============
+
+You can install Zipline either using `pip <https://pip.pypa.io/en/stable/>`_, the Python package installer, or
+`conda <https://docs.conda.io/projects/conda/en/latest/index.html>`_, the package and environment management system
+that runs on Windows, macOS, and Linux.
+
+Zipline runs on Python 3.7, 3.8 and 3.9. To install and use different Python versions in parallel as well as create
+a virtual environment, you could use, for example, `pyenv <https://github.com/pyenv/pyenv>`_.
 
 Installing with ``pip``
 -----------------------
 
-Installing Zipline via ``pip`` is slightly more involved than the average
-Python package.
+Installing Zipline via ``pip`` is slightly more involved than the average Python package.
 
 There are two reasons for the additional complexity:
 
 1. Zipline ships several C extensions that require access to the CPython C API.
-   In order to build the C extensions, ``pip`` needs access to the CPython
+   In order to build these C extensions, ``pip`` needs access to the CPython
    header files for your Python installation.
 
-2. Zipline depends on `numpy <https://www.numpy.org/>`_, the core library for
-   numerical array computing in Python.  Numpy depends on having the `LAPACK
-   <https://www.netlib.org/lapack>`_ linear algebra routines available.
+2. Zipline depends on `NumPy <https://www.numpy.org/>`_, the core library for
+   numerical array computing in Python.  NumPy, in turn, depends on the `LAPACK
+   <https://www.netlib.org/lapack>`_ linear algebra routines.
 
 Because LAPACK and the CPython headers are non-Python dependencies, the correct
 way to install them varies from platform to platform.  If you'd rather use a
@@ -24,11 +30,11 @@ using `Anaconda <https://www.anaconda.com/distribution/>`_ as your Python distri
 you can skip to the :ref:`Installing with Conda <conda>` section.
 
 Once you've installed the necessary additional dependencies (see below for
-your particular platform), you should be able to simply run
+your particular platform), you should be able to simply run (preferably inside an activated virtual environment):
 
 .. code-block:: bash
 
-   $ pip install zipline
+   $ pip install zipline-reloaded
 
 If you use Python for anything other than Zipline, we **strongly** recommend
 that you install in a `virtualenv
@@ -44,7 +50,7 @@ binary dependencies from ``apt`` by running:
 
 .. code-block:: bash
 
-   $ sudo apt-get install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev hdf5-tools
+   $ sudo apt install libatlas-base-dev python-dev gfortran pkg-config libfreetype6-dev hdf5-tools
 
 On recent `RHEL-derived`_ derived Linux distributions (e.g. Fedora), the
 following should be sufficient to acquire the necessary additional
@@ -62,12 +68,12 @@ On `Arch Linux`_, you can acquire the additional dependencies via ``pacman``:
 
 There are also AUR packages available for installing `ta-lib
 <https://aur.archlinux.org/packages/ta-lib/>`_, an optional Zipline dependency.
-Python 2 is also installable via:
+Python 3 is also installable via:
 
 
 .. code-block:: bash
 
-   $ pacman -S python2
+   $ pacman -S python3
 
 OSX
 ~~~
@@ -99,9 +105,11 @@ Installing with ``conda``
 
 Another way to install Zipline is via the ``conda`` package manager, which
 comes as part of Continuum Analytics' `Anaconda
-<https://www.anaconda.com/distribution/>`_ distribution.
+<https://www.anaconda.com/distribution/>`_ distribution. Alternatively, you can use
+the `Miniconda <https://docs.conda.io/en/latest/miniconda.html#>`_  or
+`Miniforge <https://github.com/conda-forge/miniforge>`_ minimal installers.
 
-The primary advantage of using Conda over ``pip`` is that conda natively
+The primary advantage of using Conda over ``pip`` is that ``conda`` natively
 understands the complex binary dependencies of packages like ``numpy`` and
 ``scipy``.  This means that ``conda`` can install Zipline and its dependencies
 without requiring the use of a second tool to acquire Zipline's non-Python
@@ -114,7 +122,7 @@ Once ``conda`` has been set up you can install Zipline from the ``conda-forge`` 
 
 .. code-block:: bash
 
-    conda install -c conda-forge zipline
+    conda install -c conda-forge zipline-reloaded
 
 .. _`Debian-derived`: https://www.debian.org/derivatives/
 .. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
@@ -136,7 +144,7 @@ Assuming ``conda`` has been set up, you can create a ``conda`` environment:
 
 .. code-block:: bash
 
-    $ conda create -n env_zipline python=3.6
+    $ conda create -n env_zipline python=3.8
 
 
 Now you have set up an isolated environment called ``env_zipline``, a sandbox-like
@@ -151,18 +159,7 @@ You can install Zipline by running
 
 .. code-block:: bash
 
-    (env_zipline) $ conda install -c conda-forge zipline
-
-.. note::
-
-    The ``conda-forge`` channel so far only has zipline 1.4.0+ packages for python 3.6.
-    Conda packages for previous versions of zipline for pythons 2.7/3.5/3.6 are
-    still available on Quantopian's anaconda channel, but are not being updated.
-    They can be installed with:
-
-    .. code-block:: bash
-
-        (env_zipline35) $ conda install -c Quantopian zipline
+    (env_zipline) $ conda install -c conda-forge zipline-reloaded
 
 To deactivate the ``conda`` environment:
 

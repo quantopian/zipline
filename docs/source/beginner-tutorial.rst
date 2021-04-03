@@ -1,41 +1,31 @@
 Zipline Beginner Tutorial
--------------------------
-
-Basics
-~~~~~~
+=========================
 
 Zipline is an open-source algorithmic trading simulator written in
-Python.
-
-The source can be found at: https://github.com/quantopian/zipline
+Python. The source can be found at: https://github.com/stefan-jansen/zipline-reloaded
 
 Some benefits include:
 
--  Realistic: slippage, transaction costs, order delays.
--  Stream-based: Process each event individually, avoids look-ahead
+-  **Realistic**: slippage, transaction costs, order delays.
+-  **Stream-based**: Process each event individually, avoids look-ahead
    bias.
--  Batteries included: Common transforms (moving average) as well as
+-  **Batteries included**: Common transforms (moving average) as well as
    common risk calculations (Sharpe).
--  Developed and continuously updated by
-   `Quantopian <https://www.quantopian.com>`__ which provides an
-   easy-to-use web-interface to Zipline, 10 years of minute-resolution
-   historical US stock data, and live-trading capabilities. This
-   tutorial is directed at users wishing to use Zipline without using
-   Quantopian. If you instead want to get started on Quantopian, see
-   `here <https://www.quantopian.com/faq#get-started>`__.
 
-This tutorial assumes that you have zipline correctly installed, see the
-`installation
-instructions <https://github.com/quantopian/zipline#installation>`__ if
-you haven't set up zipline yet.
+This tutorial assumes that you have Zipline correctly installed, see the
+`installation instructions` if you haven't set up zipline yet.
 
-Every ``zipline`` algorithm consists of two functions you have to
-define:
+__ install.html
+
+How to construct an algorithm
+-----------------------------
+
+Every Zipline algorithm consists of two functions you have to define:
 
 * ``initialize(context)``
 * ``handle_data(context, data)``
 
-Before the start of the algorithm, ``zipline`` calls the
+Before the start of the algorithm, Zipline calls the
 ``initialize()`` function and passes in a ``context`` variable.
 ``context`` is a persistent namespace for you to store variables you
 need to access from one algorithm iteration to the next.
@@ -44,15 +34,14 @@ After the algorithm has been initialized, ``zipline`` calls the
 ``handle_data()`` function once for each event. At every call, it passes
 the same ``context`` variable and an event-frame called ``data``
 containing the current trading bar with open, high, low, and close
-(OHLC) prices as well as volume for each stock in your universe. For
-more information on these functions, see the `relevant part of the
-Quantopian docs <https://www.quantopian.com/help#api-toplevel>`__.
+(OHLC) prices as well as volume for each stock in your universe.
 
-My First Algorithm
-~~~~~~~~~~~~~~~~~~
+A simple example
+~~~~~~~~~~~~~~~~
 
-Let's take a look at a very simple algorithm from the ``examples``
-directory, ``buyapple.py``:
+Let's take a look at a very simple algorithm from the
+`zipline/examples <https://github.com/stefan-jansen/zipline-reloaded/tree/main/zipline/examples>`_ directory,
+``buyapple.py``. It orders 10 shares of the Apple stock and records the price.
 
 .. code-block:: python
 
@@ -77,9 +66,7 @@ use. All functions commonly used in your algorithm can be found in
 ``zipline.api``. Here we are using :func:`~zipline.api.order()` which takes two
 arguments: a security object, and a number specifying how many stocks you would
 like to order (if negative, :func:`~zipline.api.order()` will sell/short
-stocks). In this case we want to order 10 shares of Apple at each iteration. For
-more documentation on ``order()``, see the `Quantopian docs
-<https://www.quantopian.com/help#api-order>`__.
+stocks). In this case we want to order 10 shares of Apple at each iteration.
 
 Finally, the :func:`~zipline.api.record` function allows you to save the value
 of a variable at each iteration. You provide it with a name for the variable
@@ -87,37 +74,35 @@ together with the variable itself: ``varname=var``. After the algorithm
 finished running you will have access to each variable value you tracked
 with :func:`~zipline.api.record` under the name you provided (we will see this
 further below). You also see how we can access the current price data of the
-AAPL stock in the ``data`` event frame (for more information see
-`here <https://www.quantopian.com/help#api-event-properties>`__).
+AAPL stock in the ``data`` event frame.
 
-Running the Algorithm
-~~~~~~~~~~~~~~~~~~~~~
+How to run the algorithm
+-------------------------
 
-To now test this algorithm on financial data, ``zipline`` provides three
-interfaces: A command-line interface, ``IPython Notebook`` magic, and
-:func:`~zipline.run_algorithm`.
+To now test this algorithm on financial data, Zipline provides three interfaces:
+1. the command line via the ``zipline`` command,
+2. the ``Jupyter Notebook`` via the ``zipline`` magic, and
+3. the :func:`~zipline.run_algorithm` to execute your algo like any Python script, for example in your IDE.
+
+Before we can run any algorithms, we need some data.
 
 Ingesting Data
-^^^^^^^^^^^^^^
-If you haven't ingested the data, then run:
+~~~~~~~~~~~~~~
+If you haven't ingested data yet, then run:
 
 .. code-block:: bash
 
-   $ zipline ingest [-b <bundle>]
+   $ zipline ingest -b <bundle>
 
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-``quantopian-quandl``.
-
-
-you can check out the :ref:`ingesting data <ingesting-data>` section for
-more detail.
+where ``<bundle>`` is the name of the bundle to ingest. You can use the default `quandl` for now to work with
+the `Quandl WIKI price data <https://www.quandl.com/databases/WIKIP/documentation?anchor=companies>`_. Check out
+the :ref:`ingesting data <ingesting-data>` section for more detail on how to obtain other new data.
 
 Command Line Interface
-^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~
 
-After you installed zipline you should be able to execute the following
-from your command line (e.g. ``cmd.exe`` on Windows, or the Terminal app
-on OSX):
+After you installed Zipline you should be able to execute the following
+from your command line (e.g. ``cmd.exe`` on Windows, the Terminal app on OSX, or e.g. the bash shell on Linux):
 
 .. code-block:: bash
 
@@ -209,9 +194,7 @@ this stock, the order is executed after adding the commission and
 applying the slippage model which models the influence of your order on
 the stock price, so your algorithm will be charged more than just the
 stock price \* 10. (Note, that you can also change the commission and
-slippage model that ``zipline`` uses, see the `Quantopian
-docs <https://www.quantopian.com/help#ide-slippage>`__ for more
-information).
+slippage model that ``zipline`` uses, see the.
 
 Let's take a quick look at the performance ``DataFrame``. For this, we
 use ``pandas`` from inside the IPython Notebook and print the first ten
@@ -518,16 +501,16 @@ As you can see, our algorithm performance as assessed by the
 ``portfolio_value`` closely matches that of the AAPL stock price. This
 is not surprising as our algorithm only bought AAPL every chance it got.
 
-IPython Notebook
-~~~~~~~~~~~~~~~~
+Jupyter Notebook
+~~~~~~~~~~~~~~~~~
 
-The `IPython Notebook <https://ipython.org/notebook.html>`__ is a very
+The `Jupyter Notebook <https://jupyter.org/>`__ is a very
 powerful browser-based interface to a Python interpreter (this tutorial
-was written in it). As it is already the de-facto interface for most
-quantitative researchers ``zipline`` provides an easy way to run your
+was written in it). As it is a very popular interface for many
+quantitative researchers, Zipline provides an easy way to run your
 algorithm inside the Notebook without requiring you to use the CLI.
 
-To use it you have to write your algorithm in a cell and let ``zipline``
+To use it you have to write your algorithm in a cell and let Zipline
 know that it is supposed to run this algorithm. This is done via the
 ``%%zipline`` IPython magic command that is available after you
 ``import zipline`` from within the IPython Notebook. This magic takes
@@ -819,11 +802,49 @@ space and contain the performance ``DataFrame`` we looked at above.
    </table>
    </div>
 
-Access to Previous Prices Using ``history``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+IDE via :func:`~zipline.run_algorithm`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Working example: Dual Moving Average Cross-Over
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To execute an algorithm like a Python script in your favorite IDE, use the :func:`~zipline.run_algorithm` (see :ref:`API Reference <api-reference>`_).
+
+To adapt the ``buyapple.py`` example from above (see ``buyapple_ide.py`` in the same directory), simply add the following:
+
+.. code-block:: python
+
+    from zipline import run_algorithm
+    import pandas as pd
+    import pandas_datareader.data as web
+
+    def initialize(context):
+        ...
+
+    def handle_data(context, data):
+        ...
+
+    start = pd.Timestamp('2014')
+    end = pd.Timestamp('2018')
+
+    sp500 = web.DataReader('SP500', 'fred', start, end).SP500
+    benchmark_returns = sp500.pct_change()
+
+    result = run_algorithm(start=start.tz_localize('UTC'),
+                           end=end.tz_localize('UTC'),
+                           initialize=initialize,
+                           handle_data=handle_data,
+                           capital_base=100000,
+                           benchmark_returns=benchmark_returns,
+                           bundle='quandl',
+                           data_frequency='daily')
+
+We pass the key algo parameters to :func:`~zipline.run_algorithm`, including some benchmark data for the S&P 500 that we
+download from the `Federal Reserve Economic Data Service <https://fred.stlouisfed.org/series/SP500>`_
+(available for the last 10 years).
+
+The ``result`` return value contains the same ``DataFrame`` as in the previous example. Instead of defining
+an ``analyze()`` function as part of the algorithm, you can apply your preferred logic to this ``DataFrame``.
+
+How to use historical prices: a dual Moving Average Cross-Over example
+----------------------------------------------------------------------
 
 The Dual Moving Average (DMA) is a classic momentum strategy. It's
 probably not used by any serious trader anymore but is still very
@@ -842,8 +863,7 @@ we need a new concept: History
 data for you. The first argument is the number of bars you want to
 collect, the second argument is the unit (either ``'1d'`` or ``'1m'``,
 but note that you need to have minute-level data for using ``1m``). For
-a more detailed description of ``history()``'s features, see the
-`Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
+a more detailed description of ``history()``'s features, see the :ref:`API Reference <api-reference>`.
 Let's look at the strategy which should make this clear:
 
 .. code-block:: python
@@ -910,8 +930,7 @@ Let's look at the strategy which should make this clear:
 .. image:: tutorial_files/tutorial_22_1.png
 
 Here we are explicitly defining an ``analyze()`` function that gets
-automatically called once the backtest is done (this is not possible on
-Quantopian currently).
+automatically called once the backtest is done.
 
 Although it might not be directly apparent, the power of ``history()``
 (pun intended) can not be under-estimated as most algorithms make use of
@@ -921,12 +940,11 @@ devise a strategy that trains a classifier with
 predict future market movements based on past prices (note, that most of
 the ``scikit-learn`` functions require ``numpy.ndarray``\ s rather than
 ``pandas.DataFrame``\ s, so you can simply pass the underlying
-``ndarray`` of a ``DataFrame`` via ``.values``).
+``ndarray`` of a ``DataFrame`` via ``.to_numpy()``).
 
 We also used the ``order_target()`` function above. This and other
 functions like it can make order management and portfolio rebalancing
-much easier. See the `Quantopian documentation on order
-functions <https://www.quantopian.com/help#api-order-methods>`__ for
+much easier. See the :ref:`API Reference <api-reference>` for
 more details.
 
 Conclusions
@@ -935,12 +953,10 @@ Conclusions
 We hope that this tutorial gave you a little insight into the
 architecture, API, and features of ``zipline``. For next steps, check
 out some of the
-`examples <https://github.com/quantopian/zipline/tree/master/zipline/examples>`__.
+`examples <https://github.com/stefan-jansen/zipline-reloaded/tree/main/zipline/examples>`__.
 
 Feel free to ask questions on `our mailing
 list <https://groups.google.com/forum/#!forum/zipline>`__, report
 problems on our `GitHub issue
-tracker <https://github.com/quantopian/zipline/issues?state=open>`__,
-`get
-involved <https://github.com/quantopian/zipline/wiki/Contribution-Requests>`__,
-and `checkout Quantopian <https://quantopian.com>`__.
+tracker <https://github.com/stefan-jansen/zipline-reloaded/issues?state=open>`__,
+or `get involved <https://exchange.ml4trading.io>`__.

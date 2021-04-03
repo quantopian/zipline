@@ -1,19 +1,23 @@
 API Reference
--------------
+=============
 
 Running a Backtest
-~~~~~~~~~~~~~~~~~~
+------------------
+
+The function :func:`~zipline.run_algorithm` creates an instance of
+:class:`~zipline.algorithm.TradingAlgorithm` that represents a
+trading strategy and parameters to execute the strategy.
 
 .. autofunction:: zipline.run_algorithm(...)
 
-Algorithm API
-~~~~~~~~~~~~~
+Trading Algorithm API
+----------------------
 
 The following methods are available for use in the ``initialize``,
 ``handle_data``, and ``before_trading_start`` API functions.
 
-In all listed functions, the ``self`` argument is implicitly the
-currently-executing :class:`~zipline.algorithm.TradingAlgorithm` instance.
+In all listed functions, the ``self`` argument refers to the
+currently executing :class:`~zipline.algorithm.TradingAlgorithm` instance.
 
 Data Object
 ```````````
@@ -95,9 +99,10 @@ Assets
 Trading Controls
 ````````````````
 
-Zipline provides trading controls to help ensure that the algorithm is
-performing as expected. The functions help protect the algorithm from certian
-bugs that could cause undesirable behavior when trading with real money.
+Zipline provides trading controls to ensure that the algorithm
+performs as expected. The functions help protect the algorithm from
+undesirable consequences of unintended behavior,
+especially when trading with real money.
 
 .. autofunction:: zipline.api.set_do_not_order_list
 
@@ -165,6 +170,10 @@ Miscellaneous
 Blotters
 ~~~~~~~~
 
+A `blotter <https://www.investopedia.com/terms/b/blotter.asp>`_ documents trades and their details over a period of time, typically one trading day. Trade details include
+such things as the time, price, order size, and whether it was a buy or sell order. It is is usually created by a
+trading software that records the trades made through a data feed.
+
 .. autoclass:: zipline.finance.blotter.blotter.Blotter
    :members:
 
@@ -175,6 +184,9 @@ Blotters
 
 Pipeline API
 ~~~~~~~~~~~~
+
+A :class:`~zipline.pipeline.Pipeline` enables faster and more memory-efficient execution by optimizing the computation
+of factors during a backtest.
 
 .. autoclass:: zipline.pipeline.Pipeline
    :members:
@@ -220,6 +232,8 @@ Pipeline API
 
 Built-in Factors
 ````````````````
+
+Factors aim to transform the input data in a way that extracts a signal on which the algorithm can trade.
 
 .. autoclass:: zipline.pipeline.factors.AverageDollarVolume
    :members:
@@ -318,6 +332,41 @@ Built-in Filters
 Pipeline Engine
 ```````````````
 
+Computation engines for executing a :class:`~zipline.pipeline.Pipeline` define the core computation algorithms.
+
+The primary entrypoint is SimplePipelineEngine.run_pipeline, which
+implements the following algorithm for executing pipelines:
+
+1. Determine the domain of the pipeline.
+
+2. Build a dependency graph of all terms in `pipeline`, with
+   information about how many extra rows each term needs from its
+   inputs.
+
+3. Combine the domain computed in (2) with our AssetFinder to produce
+   a "lifetimes matrix". The lifetimes matrix is a DataFrame of
+   booleans whose labels are dates x assets. Each entry corresponds
+   to a (date, asset) pair and indicates whether the asset in
+   question was tradable on the date in question.
+
+4. Produce a "workspace" dictionary with cached or otherwise pre-computed
+   terms.
+
+5. Topologically sort the graph constructed in (1) to produce an
+   execution order for any terms that were not pre-populated.
+
+6. Iterate over the terms in the order computed in (5). For each term:
+
+   a. Fetch the term's inputs from the workspace.
+
+   b. Compute each term and store the results in the workspace.
+
+   c. Remove the results from the workspace if their are no longer needed to reduce memory use during execution.
+
+7. Extract the pipeline's outputs from the workspace and convert them
+   into "narrow" format, with output labels dictated by the Pipeline's
+   screen.
+
 .. autoclass:: zipline.pipeline.engine.PipelineEngine
    :members: run_pipeline, run_chunked_pipeline
    :member-order: bysource
@@ -331,12 +380,35 @@ Pipeline Engine
 Data Loaders
 ````````````
 
-.. autoclass:: zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader
-   :members: __init__, from_files, load_adjusted_array
+There are several loaders to feed data to a :class:`~zipline.pipeline.Pipeline` that need to implement the interface
+defined by the :class:`~zipline.pipeline.loaders.base.PipelineLoader`.
+
+.. autoclass:: zipline.pipeline.loaders.based.PipelineLoader
+   :members: __init__, load_adjusted_array, currency_aware
    :member-order: bysource
 
-Asset Metadata
-~~~~~~~~~~~~~~
+.. autoclass:: zipline.pipeline.loaders.frame.DataFrameLoader
+   :members: __init__, format_adjustments, load_adjusted_array
+   :member-order: bysource
+
+.. autoclass:: zipline.pipeline.loaders.equity_pricing_loader.EquityPricingLoader
+   :members: __init__, load_adjusted_array
+   :member-order: bysource
+
+.. autoclass:: zipline.pipeline.loaders.equity_pricing_loader.USEquityPricingLoader
+
+.. autoclass:: zipline.pipeline.loaders.events.EventsLoader
+   :members: __init__
+
+.. autoclass:: zipline.pipeline.loaders.earnings_estimates.EarningsEstimatesLoader
+   :members: __init__
+
+
+Exchange and Asset Metadata
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: zipline.assets.ExchangeInfo
+   :members:
 
 .. autoclass:: zipline.assets.Asset
    :members:
@@ -353,6 +425,9 @@ Asset Metadata
 
 Trading Calendar API
 ~~~~~~~~~~~~~~~~~~~~
+
+The events that generate the timeline of the algorithm execution adhere to a
+given :class:`~zipline.utils.calendars.TradingCalendar`.
 
 .. autofunction:: zipline.utils.calendars.get_calendar
 
