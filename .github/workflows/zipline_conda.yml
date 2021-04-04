@@ -37,7 +37,7 @@ jobs:
         run: |
           conda activate recipe
           conda install -n recipe conda-build conda-verify anaconda-client
-          conda-build --output-folder . --python ${{ matrix.python }} conda/ta-lib/
+          conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
 
       - name: store macos result
         uses: actions/upload-artifact@v2
