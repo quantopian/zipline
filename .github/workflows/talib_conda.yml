@@ -16,12 +16,12 @@ jobs:
       # Ensure that conda-build finishes even if another fails
       fail-fast: false
       matrix:
-        os: [ macos-latest windows-latest ubuntu-latest ]
+        os: [ macos-latest, windows-latest, ubuntu-latest ]
 #        python: [ '3.7', '3.9' ]
         python: [ '3.8' ]
 
     steps:
-      - name: Checkout bcolz
+      - name: Checkout zipline
         uses: actions/checkout@v2
 
       - name: Setup miniconda3
