@@ -20,13 +20,12 @@ build:
 
 requirements:
   build:
-    - pyhon {{ python }}
     - {{ compiler('c') }}
   host:
+    - python
     - cython
     - numpy
     - pip
-    - python
   run:
     - alembic >=0.7.7
     - bcolz-zipline >=1.2.3
