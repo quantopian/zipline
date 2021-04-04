@@ -1,4 +1,4 @@
-name: TA-Lib conda distribution
+name: LogBook conda distribution
 
 on: [ push ]
 
@@ -16,8 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest, windows-latest, ubuntu-latest ]
-#        python: [ '3.7', '3.8', '3.9' ]
-        python: [ '3.9' ]
+        python: [ '3.7', '3.8', '3.9' ]
 
     steps:
       - name: Checkout zipline-reloaded
@@ -26,7 +25,7 @@ jobs:
       - name: Setup miniconda3
         uses: conda-incubator/setup-miniconda@v2
         with:
-          miniconda-version: "latest"
+          miniconda-version: latest
           auto-update-conda: true
           python-version: ${{ matrix.python }}
           activate-environment: recipe
@@ -36,7 +35,13 @@ jobs:
         run: |
           conda activate recipe
           conda install -n recipe conda-build conda-verify anaconda-client
-          conda-build --output-folder . --python ${{ matrix.python }} conda/ta-lib/
+          conda-build --output-folder . --python ${{ matrix.python }} conda/logbook/
+
+      - name: store macos result
+        uses: actions/upload-artifact@v2
+        if: ${{ matrix.os == 'macos-latest' }}
+        with:
+          path: osx-64/*.tar.bz2
 
       - name: upload macos
         if: ${{ matrix.os == 'macos-latest' }}
