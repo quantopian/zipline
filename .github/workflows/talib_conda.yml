@@ -15,7 +15,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest, windows-latest, ubuntu-latest ]
+#        os: [ macos-latest, windows-latest, ubuntu-latest ]
+        os: [ macos-latest ]
 #        python: [ '3.7', '3.8', '3.9' ]
         python: [ '3.9' ]
 
@@ -37,6 +38,12 @@ jobs:
           conda activate recipe
           conda install -n recipe conda-build conda-verify anaconda-client
           conda-build --output-folder . --python ${{ matrix.python }} conda/ta-lib/
+
+      - name: store macos result
+        uses: actions/upload-artifact@v2
+        if: ${{ matrix.os == 'macos-latest' }}
+        with:
+          path: osx-64/*.tar.bz2
 
       - name: upload macos
         if: ${{ matrix.os == 'macos-latest' }}
