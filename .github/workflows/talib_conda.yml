@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest, windows-latest, ubuntu-latest ]
-#        python: [ '3.7', '3.9' ]
+#        python: [ '3.7', '3.8', '3.9' ]
         python: [ '3.8' ]
 
     steps:
@@ -34,33 +34,23 @@ jobs:
           channels: defaults, conda-forge, anaconda
 
       - name: conda build for ${{ matrix.os }}
-        if: ${{ matrix.os }} != 'macos-latest'
         run: |
           conda activate recipe
-          conda install -n recipe conda-build anaconda-client
+          conda install -n recipe conda-build conda-verify anaconda-client
           conda-build --output-folder . --python ${{ matrix.python }} conda/ta-lib/
-          ls
-
-      - name: conda build for ${{ matrix.os }}
-        if: ${{ matrix.os }} == 'macos-latest'
-        run: |
-          conda activate recipe
-          conda install -n recipe conda-build anaconda-client
-          conda-build --output-folder . --python ${{ matrix.python }} conda/ta-lib/
-          ls
 
       - name: upload macos
-        if: ${{ matrix.os }} == 'macos-latest'
+        if: ${{ matrix.os == 'macos-latest' }}
         run: |
           anaconda upload -l main -u ml4t osx-64/*.tar.bz2
           echo "macos success"
 
       - name: upload linux
-        if: ${{ matrix.os }} == 'ubuntu-latest'
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
 
       - name: upload windows
-        if: ${{ matrix.os }} == 'windows-latest'
+        if: ${{ matrix.os == 'windows-latest' }}
         run: |
           anaconda upload -l main -u ml4t win-64/*.tar.bz2
           echo "windows success"
