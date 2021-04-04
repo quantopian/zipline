@@ -1,4 +1,4 @@
-{% set name = "logbook" %}
+{% set name = "Logbook" %}
 {% set version = "1.5.3" %}
 
 package:
