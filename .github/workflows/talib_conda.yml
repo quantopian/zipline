@@ -1,0 +1,57 @@
+name: Build conda distribution
+
+on: [ push ]
+
+jobs:
+  build_wheels:
+    name: py${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    strategy:
+      # Ensure that conda-build finishes even if another fails
+      fail-fast: false
+      matrix:
+        os: [ macos-latest windows-latest ubuntu-latest ]
+#        python: [ '3.7', '3.9' ]
+        python: [ '3.8' ]
+
+    steps:
+      - name: Checkout bcolz
+        uses: actions/checkout@v2
+
+      - name: Setup miniconda3
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          auto-update-conda: true
+          python-version: ${{ matrix.python }}
+          activate-environment: recipe
+          channels: defaults, conda-forge, anaconda
+
+      - name: conda build for ${{ matrix.os }}
+        run: |
+          conda activate recipe
+          conda install -n recipe conda-build anaconda-client
+          conda-build --output-folder .  --python ${{ matrix.python }} conda/ta-lib
+          ls
+
+      - name: upload macos
+        if: ${{ matrix.os }} == 'macos-latest'
+        run: |
+          anaconda upload -l main -u ml4t osx-64/*.tar.bz2
+          echo "macos success"
+
+      - name: upload linux
+        if: ${{ matrix.os }} == 'ubuntu-latest'
+        run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
+
+      - name: upload windows
+        if: ${{ matrix.os }} == 'windows-latest'
+        run: |
+          anaconda upload -l main -u ml4t win-64/*.tar.bz2
+          echo "windows success"

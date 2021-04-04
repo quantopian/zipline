@@ -82,12 +82,4 @@ revision
 src
 .python-version
 conda
-ci
-etc
-.appveyor.yml
-.travis.yml
-Dockerfile
-Dockerfile-dev
-vagrant_init.sh
-Vagrantfile
-.dockerignore
+archive
