@@ -34,6 +34,15 @@ jobs:
           channels: defaults, conda-forge, anaconda
 
       - name: conda build for ${{ matrix.os }}
+        if: ${{ matrix.os }} != 'macos-latest'
+        run: |
+          conda activate recipe
+          conda install -n recipe conda-build anaconda-client
+          conda-build --output-folder . --python ${{ matrix.python }} conda/ta-lib/
+          ls
+
+      - name: conda build for ${{ matrix.os }}
+        if: ${{ matrix.os }} == 'macos-latest'
         run: |
           conda activate recipe
           conda install -n recipe conda-build anaconda-client
