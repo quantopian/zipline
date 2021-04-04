@@ -26,6 +26,7 @@ requirements:
     - cython
     - numpy
     - pip
+    - versioneer
   run:
     - alembic >=0.7.7
     - bcolz-zipline >=1.2.3
