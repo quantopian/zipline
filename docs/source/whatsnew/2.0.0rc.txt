@@ -1,0 +1,62 @@
+Development
+-----------
+
+:Release: 2.0.0rc1
+:Date: April 5, 2021
+
+Highlights
+~~~~~~~~~~
+
+This release updates Zipline to be compatible with Python 3.7, 3.8 and 3.9 as well as current version of relevant PyData libraries like Pandas, scikit-learn, and others.
+
+Conda packages for zipline and key dependencies are now available for Python 3.7-3.9 on the 'ml4t' Anaconda channel. Binary wheels are available for Linux ( Python 3.7-3.9) and MacOSx (3.7 and 3.8).
+
+As part of the update, the ``BlazeLoader`` functionality was removed. It was built on the `Blaze Ecosystem <https://blaze.pydata.org/>`_. Unfortunately, the three relevant projects (`Blaze <https://blaze.readthedocs.io/en/latest/index.html>`_, `Odo <https://odo.readthedocs.io/en/latest/>`_ and `datashape <https://datashape.readthedocs.io/en/latest/>`_ have received very limited support over the last several years.
+
+- Networkx 2.0
+- patchd bcolz
+
+Enhancements
+~~~~~~~~~~~~
+
+- custom_loader()
+- docs
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+None
+
+Performance
+~~~~~~~~~~~
+
+None
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+None
+
+Build
+~~~~~
+
+None
+
+Documentation
+~~~~~~~~~~~~~
+
+Expanded; include Pipeline info
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+None
