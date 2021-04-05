@@ -1,4 +1,4 @@
-rmdir /s /q "C:\ta-lib\"
+Remove-Item "C:\ta-lib\" -Recurse -Force
 powershell -Command "(New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')"
 IF %ERRORLEVEL% EQU 1 (exit 1)
 powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')"
