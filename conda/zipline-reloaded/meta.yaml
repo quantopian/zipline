@@ -55,7 +55,7 @@ requirements:
     - requests >=2.9.1
     - scipy >=0.17.1
     - six >=1.10.0
-    - sqlalchemy >= 1.0
+    - sqlalchemy >=1.0
     - statsmodels >=0.6.1
 #    - ta-lib
     - pytables >=3.4.3
