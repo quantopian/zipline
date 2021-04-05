@@ -72,9 +72,7 @@ jobs:
 
       - name: upload macos
         if: ${{ matrix.os == 'macos-latest' }}
-        run: |
-          conda activate up
-          anaconda upload -l main -u ml4t osx-64/*.tar.bz2
+        run: anaconda upload -l main -u ml4t osx-64/*.tar.bz2
 
       - name: store linux result
         uses: actions/upload-artifact@v2
@@ -84,9 +82,7 @@ jobs:
 
       - name: upload linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          conda activate up
-          anaconda upload -l main -u ml4t linux-64/*.tar.bz2
+        run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
 
       - name: store windows result
         uses: actions/upload-artifact@v2
@@ -96,6 +92,4 @@ jobs:
 
       - name: upload windows
         if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          conda activate up
-          anaconda upload -l main -u ml4t win-64/*.tar.bz2
+        run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
