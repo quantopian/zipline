@@ -26,7 +26,7 @@ by [Stefan Jansen](https://www.linkedin.com/in/applied-ai/) who is trying to kee
 
 ## Installation
 
-Zipline now supports Python 3.7, 3.8, and 3.9. , and may be installed via either `pip` or `conda`.
+Zipline now supports Python 3.7, 3.8, and 3.9 and may be installed via `pip` if your system meets the pre-requisites described in the [installation instructions](https://zipline.ml4trading.io/install.html), or using `conda`.
 
 **Note:** Installing Zipline is slightly more involved than the average Python package. See the full [Zipline Install Documentation](https://zipline.ml4trading.io/install.html) for detailed instructions.
 

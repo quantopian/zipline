@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest, windows-latest, ubuntu-latest ]
-#        os: [ windows-latest ]
+        #        os: [ windows-latest ]
         python: [ '3.7', '3.8', '3.9' ]
 
     steps:
@@ -55,19 +55,11 @@ jobs:
         with:
           path: osx-64/*.tar.bz2
 
-      - name: upload macos
-        if: ${{ matrix.os == 'macos-latest' }} and ${{ matrix.python != '3.9'}}
-        run: anaconda upload -l main -u ml4t osx-64/*.tar.bz2
-
       - name: store linux result
         uses: actions/upload-artifact@v2
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           path: linux-64/*.tar.bz2
-
-      - name: upload linux
-        if: ${{ matrix.os == 'ubuntu-latest' }} and ${{ matrix.python != '3.9' }}
-        run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
 
       - name: store windows result
         uses: actions/upload-artifact@v2
@@ -75,6 +67,15 @@ jobs:
         with:
           path: win-64/*.tar.bz2
 
-      - name: upload windows
-        if: ${{ matrix.os == 'windows-latest' }} and ${{ matrix.python != '3.9' }}
-        run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
+      - name: upload to anaconda
+        if: ${{ matrix.python != '3.9'}}
+        run: |
+          if [[ "${{ matrix.ox }}" == "macos-latest" ]]; then
+            anaconda upload -l main -u ml4t osx-64/*.tar.bz2
+          fi
+          if [[ "${{ matrix.ox }}" == "ubuntu-latest" ]]; then
+            anaconda upload -l main -u ml4t linux-64/*.tar.bz2
+          fi
+          if [[ "${{ matrix.ox }}" == "windows-latest" ]]; then
+            anaconda upload -l main -u ml4t win-64/*.tar.bz2
+          fi
