@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-#        os: [ macos-latest, windows-latest, ubuntu-latest ]
-        os: [  windows-latest ]
+        #        os: [ macos-latest, windows-latest, ubuntu-latest ]
+        os: [ windows-latest ]
         python: [ '3.7', '3.8', '3.9' ]
 
     steps:
@@ -54,7 +54,7 @@ jobs:
           path: osx-64/*.tar.bz2
 
       - name: upload macos
-        if: ${{ matrix.os == 'macos-latest' and matrix.python != '3.9'}}
+        if: ${{ matrix.os == 'macos-latest' }} and ${{ matrix.python != '3.9'}}
         run: anaconda upload -l main -u ml4t osx-64/*.tar.bz2
 
       - name: store linux result
@@ -64,7 +64,7 @@ jobs:
           path: linux-64/*.tar.bz2
 
       - name: upload linux
-        if: ${{ matrix.os == 'ubuntu-latest' and matrix.python != '3.9' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }} and ${{ matrix.python != '3.9' }}
         run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
 
       - name: store windows result
@@ -74,5 +74,5 @@ jobs:
           path: win-64/*.tar.bz2
 
       - name: upload windows
-        if: ${{ matrix.os == 'windows-latest' and matrix.python != '3.9' }}
+        if: ${{ matrix.os == 'windows-latest' }} and ${{ matrix.python != '3.9' }}
         run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
