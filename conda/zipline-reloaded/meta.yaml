@@ -60,7 +60,7 @@ requirements:
     - pytables >=3.4.3
     - toolz >=0.8.2
     - trading-calendars >=1.6.1
-    - {{ pin_compatible('numpy', lower_bound='14.5', upper_bound=1.20.2) }}
+    - {{ pin_compatible('numpy', lower_bound='14.5', upper_bound='1.20.2') }}
 
 test:
   commands:
