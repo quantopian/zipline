@@ -45,7 +45,6 @@ jobs:
       - name: conda install
         run: |
           conda activate recipe
-          conda update conda -y
           conda install -n recipe conda-build conda-verify anaconda-client
 
       - name: conda build for ${{ matrix.os }}
