@@ -63,10 +63,6 @@ requirements:
     - {{ pin_compatible('numpy') }}
 
 test:
-  source_files:
-    - {{SRC_DIR}}/tests
-  imports:
-    - zipline
   commands:
     - pip check
     - zipline --help
@@ -74,7 +70,6 @@ test:
     - nose tests
   requires:
     - pip
-    - nose
 
 about:
   home: https://zipline.ml4trading.io
