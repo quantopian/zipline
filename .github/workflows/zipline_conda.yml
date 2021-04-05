@@ -69,26 +69,16 @@ jobs:
           path: win-64/*.tar.bz2
 
       - name: upload ${{ matrix.os }} result to anaconcda
+        if: ${{ matrix.python != '3.9'}}
         env:
           OS: ${{ matrix.os }}
-          PY: ${{ matrix.python }}
         run: |
-          if [ "$PY" == "3.9" ]; then
-            if [ "$OS" == "ubuntu-latest" ] ; then
-              anaconda upload -l main -u ml4t linux-64/*.tar.bz2
-            else
-              if [ "$OS" == "macos-latest" ] ; then
-                anaconda upload -l main -u ml4t osx-64/*.tar.bz2
-             else
-                anaconda upload -l main -u ml4t win-64/*.tar.bz2
-              fi
+          if [ "$OS" == "ubuntu-latest" ] ; then
+            anaconda upload -l main -u ml4t linux-64/*.tar.bz2
+          else
+            if [ "$OS" == "macos-latest" ] ; then
+              anaconda upload -l main -u ml4t osx-64/*.tar.bz2
+           else
+              anaconda upload -l main -u ml4t win-64/*.tar.bz2
             fi
           fi
-
-#      - name: upload linux
-#        if: ${{ matrix.python != '3.9'}} && ${{ matrix.os == 'ubuntu-latest' }}
-#        run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
-#
-#      - name: upload window
-#        if: ${{ matrix.python != '3.9'}} && ${{ matrix.os == 'windows-latest' }}
-#        run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
