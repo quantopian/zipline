@@ -1,5 +1,5 @@
 {% set name = "zipline-reloaded" %}
-{% set version = "2.0.0rc2" %}
+{% set version = "2.0.0rc3" %}
 
 
 package:
