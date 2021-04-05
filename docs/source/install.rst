@@ -118,11 +118,11 @@ dependencies.
 For instructions on how to install ``conda``, see the `Conda Installation
 Documentation <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_
 
-Once ``conda`` has been set up you can install Zipline from the ``conda-forge`` channel:
+Once ``conda`` has been set up you can install Zipline from the ``ml4t`` channel:
 
 .. code-block:: bash
 
-    conda install -c conda-forge zipline-reloaded
+    conda install -c ml4t zipline-reloaded
 
 .. _`Debian-derived`: https://www.debian.org/derivatives/
 .. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
