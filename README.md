@@ -28,9 +28,16 @@ by [Stefan Jansen](https://www.linkedin.com/in/applied-ai/) who is trying to kee
 
 Zipline now supports Python >= 3.7; Python 2 is no longer supported. It is compatible with current versions of the relevant [NumFOCUS](https://numfocus.org/sponsored-projects?_sft_project_category=python-interface) libraries, including [pandas](https://pandas.pydata.org/) and [scikit-learn](https://scikit-learn.org/stable/index.html).
 
-You can install Zipline using `pip install zipline-reloaded` if your system meets the pre-requisites described in the [installation instructions](https://zipline.ml4trading.io/install.html).
+You can install Zipline with pip using
+```python
+pip install zipline-reloaded
+```
+if your system meets the pre-requisites described in the [installation instructions](https://zipline.ml4trading.io/install.html).
 
-Alternatively, if you are using the [Anaconda](https://www.anaconda.com/products/individual) or [miniconda](https://docs.conda.io/en/latest/miniconda.html) distributions, you can use `conda install -c ml4t zipline-reloaded`.
+Alternatively, if you are using the [Anaconda](https://www.anaconda.com/products/individual) or [miniconda](https://docs.conda.io/en/latest/miniconda.html) distributions, you can use
+```python
+conda install -c ml4t zipline-reloaded
+```
 
 See the [Zipline Install Documentation](https://zipline.ml4trading.io/install.html) for more detailed instructions.
 

@@ -45,6 +45,9 @@ Python`_ provides an `excellent tutorial on virtualenv
 GNU/Linux
 ~~~~~~~~~
 
+Development Libraries
+'''''''''''''''''''''
+
 On `Debian-derived`_ Linux distributions, you can acquire all the necessary
 binary dependencies from ``apt`` by running:
 
@@ -75,6 +78,21 @@ Python 3 is also installable via:
 
    $ pacman -S python3
 
+Compiling TA-Lib
+'''''''''''''''''
+You will also need to compile the TA-Lb library so its headers become available. You can accomplish this as follows:
+
+.. code-block:: bash
+
+   $ wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+   $ tar -xzf ta-lib-0.4.0-src.tar.gz
+   $ cd ta-lib/
+   $ sudo ./configure
+   $ sudo make
+   $ sudo make install
+
+This will allow you to install the Python wrapper with ``pip`` as expected by the binary wheel.
+
 OSX
 ~~~
 
@@ -85,17 +103,17 @@ installation. The `Hitchhiker's Guide to Python`_ provides an excellent guide
 to `Installing Python on OSX <https://docs.python-guide.org/en/latest/>`_, which
 explains how to install Python with the `Homebrew`_ manager.
 
-Assuming you've installed Python with Homebrew, you'll also likely need the
+Assuming you've installed Python with `Homebrew <https://brew.sh/>`_, you'll also likely need the
 following brew packages:
 
 .. code-block:: bash
 
-   $ brew install freetype pkg-config gcc openssl hdf5
+   $ brew install freetype pkg-config gcc openssl hdf5 ta-lib
 
 Windows
 ~~~~~~~
 
-For windows, the easiest and best supported way to install zipline is to use
+For windows, the easiest and best supported way to install Zipline is to use
 :ref:`Conda <conda>`.
 
 .. _conda:
@@ -118,7 +136,9 @@ dependencies.
 For instructions on how to install ``conda``, see the `Conda Installation
 Documentation <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_
 
-Once ``conda`` has been set up you can install Zipline from the ``ml4t`` channel:
+Once ``conda`` has been set up you can install Zipline from the ``ml4t`` channel
+(assuming you are listing additional channels like `conda-forge <https://conda-forge.org/>`_
+in your `.condarc <https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html>`_ configuration file):
 
 .. code-block:: bash
 
