@@ -1,8 +1,8 @@
 Tutorial
 ========
 
-Zipline is an open-source algorithmic trading simulator written in
-Python. The source can be found at: https://github.com/stefan-jansen/zipline-reloaded
+Zipline is an `open-source <https://github.com/stefan-jansen/zipline-reloaded>`_ algorithmic trading simulator written in
+Python.
 
 Some benefits include:
 
@@ -10,7 +10,7 @@ Some benefits include:
 -  **Stream-based**: Process each event individually, avoids look-ahead
    bias.
 -  **Batteries included**: Common transforms (moving average) as well as
-   common risk calculations (Sharpe).
+   common risk calculations (Sharpe) can be computed efficiently while executing a backtest.
 
 This tutorial assumes that you have Zipline correctly installed, see the
 `installation instructions` if you haven't set up zipline yet.

@@ -179,7 +179,7 @@ You can install Zipline by running
 
 .. code-block:: bash
 
-    (env_zipline) $ conda install -c conda-forge zipline-reloaded
+    (env_zipline) $ conda install -c ml4t zipline-reloaded
 
 To deactivate the ``conda`` environment:
 
