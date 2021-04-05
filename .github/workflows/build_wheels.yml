@@ -26,22 +26,22 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        os: [ macos-latest, ubuntu-latest ]
-        python: [ 37, 38, 39 ]
-        bitness: [ 64 ]
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
+#        python: [ 37, 38, 39 ]
+        python: [ 38 ]
         manylinux_image: [ manylinux2010, manylinux2014 ]
         include:
           - os: macos-latest
-            bitness: 64
             platform_id: macosx_x86_64
           - os: ubuntu-latest
-            bitness: 64
             platform_id: manylinux_x86_64
+          - os: windows-latest
+            platform_id: win_amd64
         exclude:
           - os: macos-latest
             manylinux_image: manylinux2010
-          - os: macos-latest
-            python: 39
+          - os: windows-latest
+            manylinux_image: manylinux2010
 
     steps:
       - name: Checkout zipline
@@ -55,6 +55,7 @@ jobs:
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0
         env:
+          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.14
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
 
       - name: Store artifacts
