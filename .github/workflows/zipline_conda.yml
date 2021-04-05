@@ -27,14 +27,6 @@ jobs:
         with:
           xcode-version: '11.5'
 
-      - name: check macos.sdk
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: |
-          xcode-select --print-path
-          xcode-select --print-path | ls
-          xcrun --show-sdk-path
-          xcrun --show-sdk-path | ls
-
       - name: Checkout zipline-reloaded
         uses: actions/checkout@v2
 
@@ -47,11 +39,6 @@ jobs:
           activate-environment: recipe
           channels: ml4t, defaults, conda-forge, anaconda
 
-      - name: create uploader
-        # address broken client for Python 3.9
-        if: ${{ matrix.python == '3.9' }}
-        run: conda create -n up python=3.7 anaconda-client
-
       - name: conda install
         run: |
           conda activate recipe
@@ -60,10 +47,6 @@ jobs:
       - name: conda build for ${{ matrix.os }}
         run: conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
 
-      - name: activate uploader
-        # address broken client for Python 3.9
-        if: ${{ matrix.python == '3.9' }}
-        run: conda activate up
 
       - name: store macos result
         uses: actions/upload-artifact@v2
@@ -72,7 +55,7 @@ jobs:
           path: osx-64/*.tar.bz2
 
       - name: upload macos
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: ${{ matrix.os == 'macos-latest' and matrix.python != '3.9'}}
         run: anaconda upload -l main -u ml4t osx-64/*.tar.bz2
 
       - name: store linux result
@@ -82,7 +65,7 @@ jobs:
           path: linux-64/*.tar.bz2
 
       - name: upload linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' and matrix.python != '3.9' }}
         run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
 
       - name: store windows result
@@ -92,5 +75,5 @@ jobs:
           path: win-64/*.tar.bz2
 
       - name: upload windows
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: ${{ matrix.os == 'windows-latest' and matrix.python != '3.9' }}
         run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
