@@ -49,7 +49,7 @@ jobs:
           channels: ml4t, defaults, conda-forge, anaconda
 
       - name: create uploader
-        # address broken client under py3.9
+        # address broken client for Python 3.9
         if: ${{ matrix.python == '3.9' }}
         run: conda create -n up python=3.7 anaconda-client
 
@@ -62,7 +62,7 @@ jobs:
         run: conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
 
       - name: activate uploader
-        # address broken client under py3.9
+        # address broken client for Python 3.9
         if: ${{ matrix.python == '3.9' }}
         run: conda activate up
 
