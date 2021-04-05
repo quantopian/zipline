@@ -7,8 +7,6 @@ jobs:
     name: py${{ matrix.python }} on ${{ matrix.os }} using ${{ matrix.platform_id }}-${{ matrix.manylinux_image }}
     runs-on: ${{ matrix.os }}
     env:
-#      CIBW_TEST_EXTRAS: test
-#      CIBW_TEST_COMMAND: svn export https://github.com/stefan-jansen/zipline-reloaded/trunk/tests; nosetests -w tests --ignore-files="test_security_list\.py"
       CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"
       CIBW_BEFORE_TEST_LINUX: >
         curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
@@ -20,30 +18,31 @@ jobs:
         ldconfig
       CIBW_BEFORE_TEST_MACOS: >
         brew install freetype pkg-config gcc openssl hdf5 ta-lib
-#      CIBW_BEFORE_TEST_WINDOWS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise conda\ta-lib\bld.bat
       CIBW_BUILD_VERBOSITY: 1
 
     strategy:
       # Ensure that a wheel builders continue even if another fails
       fail-fast: false
       matrix:
-#        os: [ macos-latest, ubuntu-latest, windows-latest ]
-        os: [ windows-latest ]
-#        python: [ 37, 38, 39 ]
-        python: [ 38 ]
-#        manylinux_image: [ manylinux2010, manylinux2014 ]
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
+        python: [ 37, 38, 39 ]
+        manylinux_image: [ manylinux2010, manylinux2014 ]
         include:
-#          - os: macos-latest
-#            platform_id: macosx_x86_64
-#          - os: ubuntu-latest
-#            platform_id: manylinux_x86_64
+          - os: macos-latest
+            platform_id: macosx_x86_64
+          - os: ubuntu-latest
+            platform_id: manylinux_x86_64
           - os: windows-latest
             platform_id: win_amd64
-#        exclude:
-#          - os: macos-latest
-#            manylinux_image: manylinux2010
-#          - os: windows-latest
-#            manylinux_image: manylinux2010
+        exclude:
+          - os: macos-latest
+            python: 39
+          - os: macos-latest
+            manylinux_image: manylinux2010
+          - os: windows-latest
+            manylinux_image: manylinux2010
+          - os: windows-latest
+            python: 39
 
     steps:
       - name: Checkout zipline
@@ -92,49 +91,49 @@ jobs:
         with:
           path: wheelhouse/*.whl
 
-#  build_sdist:
-#    name: Build source distribution
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#        with:
-#          fetch-depth: 0
-#
-#      - uses: actions/setup-python@v2
-#        name: Install Python
-#        with:
-#          python-version: '3.8'
-#
-#      - name: Build sdist
-#        run: |
-#          pip install -U pip setuptools build
-#          python -m build --sdist
-#
-#      - uses: actions/upload-artifact@v2
-#        with:
-#          path: dist/*.tar.gz
-#
-#  upload_pypi:
-#    needs: [ build_wheels, build_sdist ]
-#    runs-on: ubuntu-latest
-#    # upload to (Test)-PyPI on push with tag starting with v; diff by commit
-#    if: startsWith(github.ref, 'refs/tags')
-#    steps:
-#      - uses: actions/download-artifact@v2
-#        with:
-#          name: artifact
-#          path: dist
-#
-#      - name: publish to testpypi
-#        uses: pypa/gh-action-pypi-publish@master
-#        if: startsWith(github.event.head_commit.message, 'TEST')
-#        with:
-#          user: __token__
-#          password: ${{ secrets.TESTPYPI_TOKEN }}
-#          repository_url: https://test.pypi.org/legacy/
-#      - name: publish to pypi
-#        uses: pypa/gh-action-pypi-publish@master
-#        if: startsWith(github.event.head_commit.message, 'PYPI')
-#        with:
-#          user: __token__
-#          password: ${{ secrets.PYPI_TOKEN }}
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Build sdist
+        run: |
+          pip install -U pip setuptools build
+          python -m build --sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [ build_wheels, build_sdist ]
+    runs-on: ubuntu-latest
+    # upload to (Test)-PyPI on push with tag starting with v; diff by commit
+    if: startsWith(github.ref, 'refs/tags')
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - name: publish to testpypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: startsWith(github.event.head_commit.message, 'TEST')
+        with:
+          user: __token__
+          password: ${{ secrets.TESTPYPI_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+      - name: publish to pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: startsWith(github.event.head_commit.message, 'PYPI')
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
