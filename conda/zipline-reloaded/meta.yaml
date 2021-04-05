@@ -20,6 +20,9 @@ build:
 
 requirements:
   build:
+    - python                                 # [build_platform != target_platform]
+    - cython                                 # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]      -
     - {{ compiler('c') }}
   host:
     - python
@@ -67,7 +70,7 @@ test:
   commands:
     - pip check
     - zipline --help
-    - nose tests
+    - nose {{SRC_DIR}}/tests
   requires:
     - pip
     - nose
