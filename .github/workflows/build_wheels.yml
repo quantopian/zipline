@@ -59,33 +59,33 @@ jobs:
         run: |
           rmdir /s /q "C:\ta-lib\"
           powershell -Command "(New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')"
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')"
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           pushd C:\ta-lib\c\
           pushd make\cdd\win32\msvc
           nmake
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           popd
           pushd make\cdr\win32\msvc
           nmake
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           popd
           pushd make\cmd\win32\msvc
           nmake
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           popd
           pushd make\cmr\win32\msvc
           nmake
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           popd
           pushd make\csd\win32\msvc
           nmake
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           popd
           pushd make\csr\win32\msvc
           nmake
-          IF %ERRORLEVEL% EQU 1 (exit 1)
+          if %ERRORLEVEL% NEQ 0 exit %ERRORLEVEL%
           popd
           popd
           del ta-lib-0.4.0-msvc.zip
