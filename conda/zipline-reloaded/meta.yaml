@@ -46,7 +46,7 @@ requirements:
     - networkx >=2.0
     - numexpr >=2.6.1
     - numpy >=1.14.5
-    - pandas
+    - pandas >=1.0
     - patsy >=0.4.0
     - python
     - python-dateutil >=2.4.2
@@ -57,7 +57,7 @@ requirements:
     - six >=1.10.0
     - sqlalchemy >=1.0
     - statsmodels >=0.6.1
-#    - ta-lib
+    - ta-lib >=0.4.19
     - pytables >=3.4.3
     - toolz >=0.8.2
     - trading-calendars >=1.6.1

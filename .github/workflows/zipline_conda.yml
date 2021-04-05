@@ -37,7 +37,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python }}
           activate-environment: recipe
-          channels: ml4t, defaults, conda-forge, anaconda
+          channels: ml4t, conda-forge
 
       - name: conda install
         run: |
@@ -45,7 +45,9 @@ jobs:
           conda install -n recipe conda-build conda-verify anaconda-client
 
       - name: conda build for ${{ matrix.os }}
-        run: conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
+        run: |
+          conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
+          conda clean --all
 
       - name: store macos result
         uses: actions/upload-artifact@v2
