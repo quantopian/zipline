@@ -1,7 +1,7 @@
 .. _data-bundles:
 
-Data Bundles
-------------
+Data
+----
 
 A data bundle is a collection of pricing data, adjustment data, and an asset
 database. Bundles allow us to preload all of the data we will need to run

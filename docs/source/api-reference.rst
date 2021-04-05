@@ -1,5 +1,5 @@
-API Reference
-=============
+API
+===
 
 Running a Backtest
 ------------------

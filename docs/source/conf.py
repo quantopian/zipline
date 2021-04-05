@@ -75,10 +75,11 @@ html_favicon = os.path.join('..', 'icons', 'zipline.ico')
 html_theme_options = {
     'github_url': 'https://github.com/stefan-jansen/zipline-reloaded',
     'twitter_url': 'https://twitter.com/ml4trading',
+    'linkedin_url' 'https://www.linkedin.com/in/applied-ai/'
     'external_links': [
         {"name": "ML for Trading",
          "url": "https://ml4trading.io"},
-        {"name": "Join our Community",
+        {"name": "Community",
          "url": "https://exchange.ml4trading.io"}],
     "google_analytics_id": "UA-74956955-3",
 }

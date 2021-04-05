@@ -1,5 +1,5 @@
-Zipline Beginner Tutorial
-=========================
+Tutorial
+========
 
 Zipline is an open-source algorithmic trading simulator written in
 Python. The source can be found at: https://github.com/stefan-jansen/zipline-reloaded

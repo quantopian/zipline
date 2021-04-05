@@ -1,7 +1,7 @@
 .. _metrics:
 
-Risk and Performance Metrics
-----------------------------
+Metrics
+-------
 
 The risk and performance metrics are summarizing values calculated by Zipline
 when running a simulation. These metrics can be about the performance of an

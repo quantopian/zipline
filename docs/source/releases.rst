@@ -1,6 +1,6 @@
-=============
-Release Notes
-=============
+========
+Releases
+========
 
 .. include:: whatsnew/1.4.1.txt
 
