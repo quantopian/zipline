@@ -81,6 +81,9 @@ jobs:
                 anaconda upload -l main -u ml4t osx-64/*.tar.bz2
              else
                 anaconda upload -l main -u ml4t win-64/*.tar.bz2
+              fi
+            fi
+          fi
 
 #      - name: upload linux
 #        if: ${{ matrix.python != '3.9'}} && ${{ matrix.os == 'ubuntu-latest' }}
