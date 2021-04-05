@@ -70,7 +70,25 @@ highlight_language = 'python'
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-# html_favicon = os.path.join('svg', 'zipline.ico')
+html_favicon = os.path.join('..', 'icons', 'zipline.ico')
+
+html_theme_options = {
+    'github_url': 'https://github.com/stefan-jansen/zipline-reloaded',
+    'twitter_url': 'https://twitter.com/ml4trading',
+    'external_links': [
+        {"name": "ML for Trading",
+         "url": "https://ml4trading.io"},
+        {"name": "Join our Community",
+         "url": "https://exchange.ml4trading.io"}],
+    "google_analytics_id": "UA-74956955-3",
+}
+
+html_context = {
+    "github_user": "stefan-jansen",
+    "github_repo": "zipline-reloaded",
+    "github_version": "main",
+    "doc_path": "docs/",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
