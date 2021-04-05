@@ -75,7 +75,6 @@ html_favicon = os.path.join('..', 'icons', 'zipline.ico')
 html_theme_options = {
     'github_url': 'https://github.com/stefan-jansen/zipline-reloaded',
     'twitter_url': 'https://twitter.com/ml4trading',
-    'linkedin_url' 'https://www.linkedin.com/in/applied-ai/'
     'external_links': [
         {"name": "ML for Trading",
          "url": "https://ml4trading.io"},
@@ -84,12 +83,6 @@ html_theme_options = {
     "google_analytics_id": "UA-74956955-3",
 }
 
-html_context = {
-    "github_user": "stefan-jansen",
-    "github_repo": "zipline-reloaded",
-    "github_version": "main",
-    "doc_path": "docs/",
-}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
