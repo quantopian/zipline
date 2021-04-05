@@ -20,7 +20,7 @@ jobs:
         ldconfig
       CIBW_BEFORE_TEST_MACOS: >
         brew install freetype pkg-config gcc openssl hdf5 ta-lib
-      CIBW_BEFORE_TEST_WINDOWS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise conda\ta-lib\bld.bat
+#      CIBW_BEFORE_TEST_WINDOWS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise conda\ta-lib\bld.bat
       CIBW_BUILD_VERBOSITY: 1
 
     strategy:
