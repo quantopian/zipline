@@ -64,13 +64,14 @@ requirements:
 
 test:
   source_files:
-    - tests
+    - {{SRC_DIR}}/tests
   imports:
     - zipline
   commands:
     - pip check
     - zipline --help
-    - nose {{SRC_DIR}}/tests
+    - python -c 'import zipline; print(zipline.__version__)'
+    - nose tests
   requires:
     - pip
     - nose
