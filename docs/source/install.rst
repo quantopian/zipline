@@ -1,3 +1,5 @@
+.. _install:
+
 Installation
 ============
 
@@ -27,7 +29,7 @@ Because LAPACK and the CPython headers are non-Python dependencies, the correct
 way to install them varies from platform to platform.  If you'd rather use a
 single tool to install Python and non-Python dependencies, or if you're already
 using `Anaconda <https://www.anaconda.com/distribution/>`_ as your Python distribution,
-you can skip to the :ref:`Installing with Conda <conda>` section.
+you can skip to the :ref: `conda` section.
 
 Once you've installed the necessary additional dependencies (see below for
 your particular platform), you should be able to simply run (preferably inside an activated virtual environment):
@@ -70,9 +72,8 @@ On `Arch Linux`_, you can acquire the additional dependencies via ``pacman``:
    $ pacman -S lapack gcc gcc-fortran pkg-config hdf5
 
 There are also AUR packages available for installing `ta-lib
-<https://aur.archlinux.org/packages/ta-lib/>`_, an optional Zipline dependency.
+<https://aur.archlinux.org/packages/ta-lib/>`_.
 Python 3 is also installable via:
-
 
 .. code-block:: bash
 
@@ -80,7 +81,9 @@ Python 3 is also installable via:
 
 Compiling TA-Lib
 '''''''''''''''''
-You will also need to compile the TA-Lb library so its headers become available. You can accomplish this as follows:
+You will also need to compile the `TA-Lib <https://www.ta-lib.org/>`_ library for technical analysis so its headers become available.
+
+You can accomplish this as follows:
 
 .. code-block:: bash
 
@@ -101,10 +104,10 @@ has a number of quirks because it's used directly by the operating system.  For
 these reasons, many developers choose to install and use a separate Python
 installation. The `Hitchhiker's Guide to Python`_ provides an excellent guide
 to `Installing Python on OSX <https://docs.python-guide.org/en/latest/>`_, which
-explains how to install Python with the `Homebrew`_ manager.
+explains how to install Python with the `Homebrew <https://brew.sh/>`_ manager.
 
-Assuming you've installed Python with `Homebrew <https://brew.sh/>`_, you'll also likely need the
-following brew packages:
+Assuming you've installed Python with ``brew``, you'll also likely need the
+following packages:
 
 .. code-block:: bash
 
@@ -113,8 +116,8 @@ following brew packages:
 Windows
 ~~~~~~~
 
-For windows, the easiest and best supported way to install Zipline is to use
-:ref:`Conda <conda>`.
+For Windows, the easiest and best supported way to install Zipline is to use
+``conda``.
 
 .. _conda:
 
@@ -122,10 +125,10 @@ Installing with ``conda``
 -------------------------
 
 Another way to install Zipline is via the ``conda`` package manager, which
-comes as part of Continuum Analytics' `Anaconda
+comes as part of the `Anaconda
 <https://www.anaconda.com/distribution/>`_ distribution. Alternatively, you can use
-the `Miniconda <https://docs.conda.io/en/latest/miniconda.html#>`_  or
-`Miniforge <https://github.com/conda-forge/miniforge>`_ minimal installers.
+the related but more lightweight `Miniconda <https://docs.conda.io/en/latest/miniconda.html#>`_  or
+`Miniforge <https://github.com/conda-forge/miniforge>`_ installers.
 
 The primary advantage of using Conda over ``pip`` is that ``conda`` natively
 understands the complex binary dependencies of packages like ``numpy`` and
@@ -143,12 +146,6 @@ in your `.condarc <https://docs.conda.io/projects/conda/en/latest/user-guide/con
 .. code-block:: bash
 
     conda install -c ml4t zipline-reloaded
-
-.. _`Debian-derived`: https://www.debian.org/derivatives/
-.. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
-.. _`Arch Linux` : https://www.archlinux.org/
-.. _`Hitchhiker's Guide to Python` : https://docs.python-guide.org/en/latest/
-.. _`Homebrew` : https://brew.sh
 
 .. _managing-conda-environments:
 
@@ -192,3 +189,10 @@ To deactivate the ``conda`` environment:
 
       * Windows: ``activate`` or ``deactivate``
       * Linux and macOS: ``source activate`` or ``source deactivate``
+
+
+.. _`Debian-derived`: https://www.debian.org/derivatives/
+.. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
+.. _`Arch Linux` : https://www.archlinux.org/
+.. _`Hitchhiker's Guide to Python` : https://docs.python-guide.org/en/latest/
+.. _`Homebrew` : https://brew.sh

@@ -1,3 +1,5 @@
+.. _tutorial:
+
 Tutorial
 ========
 
@@ -13,9 +15,7 @@ Some benefits include:
    common risk calculations (Sharpe) can be computed efficiently while executing a backtest.
 
 This tutorial assumes that you have Zipline correctly installed, see the
-`installation instructions` if you haven't set up zipline yet.
-
-__ install.html
+:ref: `installation` instructions if you haven't done so yet.
 
 How to construct an algorithm
 -----------------------------
@@ -30,7 +30,7 @@ Before the start of the algorithm, Zipline calls the
 ``context`` is a persistent namespace for you to store variables you
 need to access from one algorithm iteration to the next.
 
-After the algorithm has been initialized, ``zipline`` calls the
+After the algorithm has been initialized, Zipline calls the
 ``handle_data()`` function once for each event. At every call, it passes
 the same ``context`` variable and an event-frame called ``data``
 containing the current trading bar with open, high, low, and close
@@ -41,7 +41,7 @@ A simple example
 
 Let's take a look at a very simple algorithm from the
 `zipline/examples <https://github.com/stefan-jansen/zipline-reloaded/tree/main/zipline/examples>`_ directory,
-``buyapple.py``. It orders 10 shares of the Apple stock and records the price.
+``buyapple.py``. Each period, which is a trading day, it orders 10 shares of the Apple stock and records the price.
 
 .. code-block:: python
 
@@ -155,11 +155,14 @@ from your command line (e.g. ``cmd.exe`` on Windows, the Terminal app on OSX, or
 
 As you can see there are a couple of flags that specify where to find your
 algorithm (``-f``) as well as parameters specifying which data to use,
-defaulting to ``quandl``. There are also arguments for
-the date range to run the algorithm over (``--start`` and ``--end``).To use a
-benchmark, you need to choose one of the benchmark options listed before. You can
+defaulting to ``quandl``.
+
+There are also arguments for the date range to run the algorithm over
+(``--start`` and ``--end``).To use a benchmark, you need to choose one of the
+benchmark options listed before. You can
 always use the option (``--no-benchmark``) that uses zero returns as a benchmark (
 alpha, beta and benchmark metrics are not calculated in this case).
+
 Finally, you'll want to save the performance metrics of your algorithm so that you can
 analyze how it performed. This is done via the ``--output`` flag and will cause
 it to write the performance ``DataFrame`` in the pickle Python file format.

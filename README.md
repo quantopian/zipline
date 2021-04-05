@@ -39,7 +39,7 @@ Alternatively, if you are using the [Anaconda](https://www.anaconda.com/products
 conda install -c ml4t zipline-reloaded
 ```
 
-See the [Zipline Install Documentation](https://zipline.ml4trading.io/install.html) for more detailed instructions.
+See the [installation](https://zipline.ml4trading.io/install.html) section of the docs for more detailed instructions.
 
 ## Quickstart
 

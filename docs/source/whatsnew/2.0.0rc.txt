@@ -14,6 +14,7 @@ This release updates Zipline to be compatible with Python >= 3.7 as well as curr
 As part of the update, the ``BlazeLoader`` functionality was removed. It was built on the `Blaze Ecosystem <https://blaze.pydata.org/>`_. Unfortunately, the three relevant projects (`Blaze <https://blaze.readthedocs.io/en/latest/index.html>`_, `Odo <https://odo.readthedocs.io/en/latest/>`_ and `datashape <https://datashape.readthedocs.io/en/latest/>`_ have received very limited support over the last several years.
 
 Other updates include:
+
 - A `new release <https://github.com/stefan-jansen/bcolz-zipline>`_ for `Bcolz <https://github.com/Blosc/bcolz>`_ which has been marked unmaintained since September 2020 by the `author <https://github.com/Blosc>`_. The new release updates the underlying `c-blosc <https://github.com/Blosc/c-blosc>`_ library from version 1.14 to the latest 1.21.0. There are also conda packages for Bcolz (see links above).
 - `Networkx <https://networkx.org/>`_ now uses the better performing version 2.0.
 - Conda packages for TA-Lib 0.4.19.

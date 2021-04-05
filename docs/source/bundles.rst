@@ -34,7 +34,11 @@ bundle was ingested. We have run three different ingestions for
 ``my-custom-bundle``. We have never ingested any data for the ``quandl`` bundle
 so it just shows ``<no ingestions>`` instead.
 
-**Note**: Quantopian provides a re-packaged version of the ``quandl`` bundle as ``quantopian-quandl``. While it ingests much faster, it does not have the country code the library has since come to require and which Zipline inserts for the ``quandl`` bundle. If you want to use ``quantopian-quandl`` instead, use `this workaround <https://github.com/quantopian/zipline/issues/2517>`_ to manually update the database.
+**Note**: Quantopian used to provide a re-packaged version of the ``quandl`` bundle as ``quantopian-quandl``
+that is still available in April 2021. While it ingests much faster, it does not have the country code that
+the library has since come to require and which the current Zipline version inserts for the ``quandl`` bundle.
+If you want to use ``quantopian-quandl`` instead, use `this workaround <https://github.com/quantopian/zipline/issues/2517>`_
+to manually update the database.
 
 .. _ingesting-data:
 
@@ -116,8 +120,9 @@ Default Data Bundles
 Quandl WIKI Bundle
 ``````````````````
 
-By default Zipline comes with the ``quandl`` data bundle which uses quandl's `WIKI dataset <https://www.quandl.com/data/WIKI>`_.
-The quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
+By default Zipline comes with the ``quandl`` data bundle which uses
+Quandl's `WIKI dataset <https://www.quandl.com/data/WIKI>`_.
+The Quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
 To ingest the ``quandl`` data bundle, run either of the following commands:
 
 .. code-block:: bash
@@ -125,11 +130,15 @@ To ingest the ``quandl`` data bundle, run either of the following commands:
    $ zipline ingest -b quandl
    $ zipline ingest
 
-Either command should only take a few minutes to download the data.
+Either command should only take a few minutes to download and process the data.
 
 .. note::
 
-   Quandl has discontinued this dataset early 2018 and it no longer updates, but is a reasonable starting point to try out Zipline without setting up your own dataset.
+   Quandl has discontinued this dataset early 2018 and it no longer updates. Regardless, it is a useful starting point
+to try out Zipline without setting up your own dataset.
+
+
+:: _new_bundle
 
 Writing a New Bundle
 ~~~~~~~~~~~~~~~~~~~~
