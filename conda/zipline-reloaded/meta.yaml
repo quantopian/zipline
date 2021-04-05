@@ -66,8 +66,8 @@ requirements:
 test:
   commands:
     - pip check
-    - zipline --help
     - python -c "import zipline; print(zipline.__version__)"
+    - conda update --all -y
   requires:
     - pip
 

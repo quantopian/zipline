@@ -88,7 +88,7 @@ Now we'll take a look at the London Stock Exchange Calendar :class:`~zipline.uti
       ])
 
 
-You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)` through the below `pandas <https://pandas.pydata.org/pandas-docs/stable/>`__ module, ``pandas.tseries.holiday.Holiday``, and also take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code as an example, or take a look at the code snippet below.
+You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)`` using the `pandas <https://pandas.pydata.org/pandas-docs/stable/>`__ module ``pandas.tseries.holiday.Holiday``. Take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code above as an example, as well as at the code snippet below.
 
 .. code-block:: python
 

@@ -47,7 +47,6 @@ jobs:
       - name: conda build for ${{ matrix.os }}
         run: |
           conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
-          conda clean --all
 
       - name: store macos result
         uses: actions/upload-artifact@v2
@@ -70,12 +69,12 @@ jobs:
       - name: upload to anaconda
         if: ${{ matrix.python != '3.9'}}
         run: |
-          if [[ "${{ matrix.ox }}" == "macos-latest" ]]; then
+          if [[ ${{ matrix.ox }} == "macos-latest" ]]; then
             anaconda upload -l main -u ml4t osx-64/*.tar.bz2
           fi
-          if [[ "${{ matrix.ox }}" == "ubuntu-latest" ]]; then
+          if [[ ${{ matrix.ox }} == "ubuntu-latest" ]]; then
             anaconda upload -l main -u ml4t linux-64/*.tar.bz2
           fi
-          if [[ "${{ matrix.ox }}" == "windows-latest" ]]; then
+          if [[ ${{ matrix.ox }} == "windows-latest" ]]; then
             anaconda upload -l main -u ml4t win-64/*.tar.bz2
           fi
