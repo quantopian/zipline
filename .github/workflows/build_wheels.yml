@@ -23,7 +23,7 @@ jobs:
       CIBW_BUILD_VERBOSITY: 1
 
     strategy:
-      # Ensure that a wheel builder finishes even if another fails
+      # Ensure that a wheel builders continue even if another fails
       fail-fast: false
       matrix:
         os: [ macos-latest, ubuntu-latest, windows-latest ]
