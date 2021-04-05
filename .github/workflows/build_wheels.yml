@@ -53,8 +53,8 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
 
-      - name: Build something requiring CL.EXE
       - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build something requiring CL.EXE
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           powershell -Command "(New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')"
