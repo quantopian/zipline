@@ -168,7 +168,7 @@ Miscellaneous
 .. autofunction:: zipline.api.fetch_csv
 
 Blotters
-~~~~~~~~
+--------
 
 A `blotter <https://www.investopedia.com/terms/b/blotter.asp>`_ documents trades and their details over a period of time, typically one trading day. Trade details include
 such things as the time, price, order size, and whether it was a buy or sell order. It is is usually created by a
@@ -183,7 +183,7 @@ trading software that records the trades made through a data feed.
 .. _pipeline-api:
 
 Pipeline API
-~~~~~~~~~~~~
+------------
 
 A :class:`~zipline.pipeline.Pipeline` enables faster and more memory-efficient execution by optimizing the computation
 of factors during a backtest.
@@ -405,7 +405,7 @@ defined by the :class:`~zipline.pipeline.loaders.base.PipelineLoader`.
 
 
 Exchange and Asset Metadata
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. autoclass:: zipline.assets.ExchangeInfo
    :members:
@@ -424,7 +424,7 @@ Exchange and Asset Metadata
 
 
 Trading Calendar API
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 The events that generate the timeline of the algorithm execution adhere to a
 given :class:`~zipline.utils.calendars.TradingCalendar`.
@@ -444,7 +444,7 @@ given :class:`~zipline.utils.calendars.TradingCalendar`.
 
 
 Data API
-~~~~~~~~
+--------
 
 Writers
 ```````
@@ -499,7 +499,7 @@ Bundles
 
 
 Risk Metrics
-~~~~~~~~~~~~
+------------
 
 Algorithm State
 ```````````````
@@ -565,7 +565,7 @@ Metrics Sets
 
 
 Utilities
-~~~~~~~~~
+---------
 
 Caching
 ```````

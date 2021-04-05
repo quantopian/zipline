@@ -1,5 +1,5 @@
 {% set name = "zipline-reloaded" %}
-{% set version = "2.0.0rc3" %}
+{% set version = "2.0.0rc4" %}
 
 
 package:
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  md5: c586530bf97c3cd3c4208bdf00e9c9ae
+  md5: 079e66a820381c0ee3eff15b3f991e7e
 
 build:
   number: 0
@@ -35,6 +35,7 @@ requirements:
     - bottleneck >=1.0.0
     - click >=4.0.0
     - empyrical >=0.5.0
+    - greenlet
     - h5py >=2.7.1
     - intervaltree >=2.1.0
     - iso3166 >=0.9
@@ -43,20 +44,20 @@ requirements:
     - lru-dict >=1.1.4
     - multipledispatch >=0.6.0
     - networkx >=2.0
+    - numpy>=1.16.5
     - numexpr >=2.6.1
-    - numpy >=1.11.3
     - pandas >=1.0
     - patsy >=0.4.0
-    - python
+    - python >=3.7
     - python-dateutil >=2.4.2
     - python-interface >=1.5.3
     - pytz >=2018.5
     - requests >=2.9.1
     - scipy >=0.17.1
     - six >=1.10.0
-    - sqlalchemy >=1.0.8
+    - sqlalchemy >=1.0
     - statsmodels >=0.6.1
-    - ta-lib >=0.4.19
+    - ta-lib >=0.4.09
     - pytables >=3.4.3
     - toolz >=0.8.2
     - trading-calendars >=1.6.1
@@ -65,9 +66,8 @@ requirements:
 test:
   commands:
     - pip check
-    - zipline --help
-    - python -c 'import zipline; print(zipline.__version__)'
-    - nose tests
+    - python -c "import zipline; print(zipline.__version__)"
+    - conda update --all -y
   requires:
     - pip
 

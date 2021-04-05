@@ -10,7 +10,5 @@
    bundles
    trading-calendars
    risk-and-perf-metrics
-   development-guidelines
    api-reference
-   release-process
    releases

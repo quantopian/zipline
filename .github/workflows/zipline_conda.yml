@@ -17,9 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest, windows-latest, ubuntu-latest ]
-        #        os: [ ubuntu-latest ]
-        #        python: [ '3.7', '3.8', '3.9' ]
-        python: [ '3.8' ]
+        python: [ '3.7', '3.8', '3.9' ]
+        exclude:
+          - os: macos-latest
+            python: '3.9'
 
     steps:
       - name: set Xcode version
@@ -27,14 +28,6 @@ jobs:
         if: ${{ matrix.os == 'macos-latest' }}
         with:
           xcode-version: '11.5'
-
-      - name: check macos.sdk
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: |
-          xcode-select --print-path
-          xcode-select --print-path | ls
-          xcrun --show-sdk-path
-          xcrun --show-sdk-path | ls
 
       - name: Checkout zipline-reloaded
         uses: actions/checkout@v2
@@ -46,12 +39,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python }}
           activate-environment: recipe
-          channels: ml4t, defaults, conda-forge, anaconda
-
-      - name: create uploader
-        # address broken client for Python 3.9
-        if: ${{ matrix.python == '3.9' }}
-        run: conda create -n up python=3.7 anaconda-client
+          channels: ml4t, conda-forge, defaults, anaconda
 
       - name: conda install
         run: |
@@ -61,22 +49,11 @@ jobs:
       - name: conda build for ${{ matrix.os }}
         run: conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
 
-      - name: activate uploader
-        # address broken client for Python 3.9
-        if: ${{ matrix.python == '3.9' }}
-        run: conda activate up
-
       - name: store macos result
         uses: actions/upload-artifact@v2
         if: ${{ matrix.os == 'macos-latest' }}
         with:
           path: osx-64/*.tar.bz2
-
-      - name: upload macos
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: |
-          conda activate up
-          anaconda upload -l main -u ml4t osx-64/*.tar.bz2
 
       - name: store linux result
         uses: actions/upload-artifact@v2
@@ -84,20 +61,23 @@ jobs:
         with:
           path: linux-64/*.tar.bz2
 
-      - name: upload linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          conda activate up
-          anaconda upload -l main -u ml4t linux-64/*.tar.bz2
-
       - name: store windows result
         uses: actions/upload-artifact@v2
         if: ${{ matrix.os == 'windows-latest' }}
         with:
           path: win-64/*.tar.bz2
 
-      - name: upload windows
-        if: ${{ matrix.os == 'windows-latest' }}
+      - name: upload ${{ matrix.os }} result to anaconcda
+        if: ${{ matrix.python != '3.9'}}
+        env:
+          OS: ${{ matrix.os }}
         run: |
-          conda activate up
-          anaconda upload -l main -u ml4t win-64/*.tar.bz2
+          if [ "$OS" == "ubuntu-latest" ] ; then
+            anaconda upload -l main -u ml4t linux-64/*.tar.bz2
+          else
+            if [ "$OS" == "macos-latest" ] ; then
+              anaconda upload -l main -u ml4t osx-64/*.tar.bz2
+           else
+              anaconda upload -l main -u ml4t win-64/*.tar.bz2
+            fi
+          fi
