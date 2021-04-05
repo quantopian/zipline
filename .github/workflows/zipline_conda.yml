@@ -19,6 +19,9 @@ jobs:
         os: [ macos-latest, windows-latest, ubuntu-latest ]
         #        os: [ windows-latest ]
         python: [ '3.7', '3.8', '3.9' ]
+        exclude:
+          - os: macos-latest
+            python: 39
 
     steps:
       - name: set Xcode version
@@ -37,11 +40,12 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python }}
           activate-environment: recipe
-          channels: ml4t, conda-forge
+          channels: ml4t, conda-forge, defaults, anaconda
 
       - name: conda install
         run: |
           conda activate recipe
+          conda update conda -y
           conda install -n recipe conda-build conda-verify anaconda-client
 
       - name: conda build for ${{ matrix.os }}
@@ -66,15 +70,14 @@ jobs:
         with:
           path: win-64/*.tar.bz2
 
-      - name: upload to anaconda
-        if: ${{ matrix.python != '3.9'}}
-        run: |
-          if [[ ${{ matrix.ox }} == "macos-latest" ]]; then
-            anaconda upload -l main -u ml4t osx-64/*.tar.bz2
-          fi
-          if [[ ${{ matrix.ox }} == "ubuntu-latest" ]]; then
-            anaconda upload -l main -u ml4t linux-64/*.tar.bz2
-          fi
-          if [[ ${{ matrix.ox }} == "windows-latest" ]]; then
-            anaconda upload -l main -u ml4t win-64/*.tar.bz2
-          fi
+      - name: upload macos
+        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "macos-latest" }}
+        run: anaconda upload -l main -u ml4t osx-64/*.tar.bz2
+
+      - name: upload linux
+        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "ubuntu-latest" }}
+        run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
+
+      - name: upload window
+        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "windows-latest" }}
+        run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
