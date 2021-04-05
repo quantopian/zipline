@@ -15,7 +15,7 @@ Some benefits include:
    common risk calculations (Sharpe) can be computed efficiently while executing a backtest.
 
 This tutorial assumes that you have Zipline correctly installed, see the
-:ref: `installation` instructions if you haven't done so yet.
+:ref:`install` instructions if you haven't done so yet.
 
 How to construct an algorithm
 -----------------------------
@@ -808,7 +808,7 @@ space and contain the performance ``DataFrame`` we looked at above.
 IDE via :func:`~zipline.run_algorithm`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To execute an algorithm like a Python script in your favorite IDE, use the :func:`~zipline.run_algorithm` (see :ref:`API Reference <api-reference>`_).
+To execute an algorithm like a Python script in your favorite IDE, use the :func:`~zipline.run_algorithm` (see :ref:`API Reference <api-reference>`).
 
 To adapt the ``buyapple.py`` example from above (see ``buyapple_ide.py`` in the same directory), simply add the following:
 

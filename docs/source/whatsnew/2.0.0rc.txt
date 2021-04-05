@@ -7,7 +7,7 @@ Release 2.0.0rc
 Highlights
 ~~~~~~~~~~
 
-This release updates Zipline to be compatible with Python >= 3.7 as well as current version of relevant PyData libraries like Pandas, scikit-learn, and others.
+This release updates Zipline to be compatible with Python >= 3.7 as well as the current versions of relevant PyData libraries like Pandas, scikit-learn, and others.
 
 `Conda packages <https://anaconda.org/ml4t/repo>`_ for `Zipline <https://anaconda.org/ml4t/zipline-reloaded>`_ and key dependencies `bcolz <https://anaconda.org/ml4t/bcolz-zipline>`_ and `TA-Lib <https://anaconda.org/ml4t/ta-lib>`_ are now available for Python 3.7-3.9 on the 'ml4t' Anaconda channel. Binary wheels are available on `PyPi <https://pypi.org/project/zipline-reloaded/>`_ for Linux ( Python 3.7-3.9) and MacOSx (3.7 and 3.8).
 

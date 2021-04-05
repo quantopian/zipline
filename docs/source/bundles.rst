@@ -134,11 +134,10 @@ Either command should only take a few minutes to download and process the data.
 
 .. note::
 
-   Quandl has discontinued this dataset early 2018 and it no longer updates. Regardless, it is a useful starting point
-to try out Zipline without setting up your own dataset.
+   Quandl has discontinued this dataset early 2018 and it no longer updates. Regardless, it is a useful starting point to try out Zipline without setting up your own dataset.
 
 
-:: _new_bundle
+.. _new_bundle:
 
 Writing a New Bundle
 ~~~~~~~~~~~~~~~~~~~~
@@ -302,13 +301,6 @@ directly move resources here if for some reason your ingest function can produce
 it's own outputs without the writers. For example, the ``quantopian:quandl``
 bundle uses this to directly untar the bundle into the ``output_dir``.
 
-Practical Examples
-~~~~~~~~~~~~~~~~~~
-
-See examples for `Algoseek <https://www.algoseek.com/>`_ `minute data <https://github.com/stefan-jansen/machine-learning-for-trading/tree/master/08_ml4t_workflow/04_ml4t_workflow_with_zipline/01_custom_bundles>`_
-and `Japanese equities <https://github.com/stefan-jansen/machine-learning-for-trading/tree/master/11_decision_trees_random_forests/00_custom_bundle>`_
-at daily frequency from the book `Machine Learning for Trading <https://www.amazon.com/Machine-Learning-Algorithmic-Trading-alternative/dp/1839217715?pf_rd_r=GZH2XZ35GB3BET09PCCA&pf_rd_p=c5b6893a-24f2-4a59-9d4b-aff5065c90ec&pd_rd_r=91a679c7-f069-4a6e-bdbb-a2b3f548f0c8&pd_rd_w=2B0Q0&pd_rd_wg=GMY5S&ref_=pd_gw_ci_mcx_mr_hp_d>`_
-
 Ingesting Data from .csv Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -379,3 +371,10 @@ To finally ingest our data, we can run:
 If you would like to use equities that are not in the NYSE calendar, or the existing Zipline calendars,
 you can look at the ``Trading Calendar Tutorial`` to build a custom trading calendar that you can then pass
 the name of to ``register()``.
+
+Practical Examples
+~~~~~~~~~~~~~~~~~~
+
+See examples for `Algoseek <https://www.algoseek.com/>`_ `minute data <https://github.com/stefan-jansen/machine-learning-for-trading/tree/master/08_ml4t_workflow/04_ml4t_workflow_with_zipline/01_custom_bundles>`_
+and `Japanese equities <https://github.com/stefan-jansen/machine-learning-for-trading/tree/master/11_decision_trees_random_forests/00_custom_bundle>`_
+at daily frequency from the book `Machine Learning for Trading <https://www.amazon.com/Machine-Learning-Algorithmic-Trading-alternative/dp/1839217715?pf_rd_r=GZH2XZ35GB3BET09PCCA&pf_rd_p=c5b6893a-24f2-4a59-9d4b-aff5065c90ec&pd_rd_r=91a679c7-f069-4a6e-bdbb-a2b3f548f0c8&pd_rd_w=2B0Q0&pd_rd_wg=GMY5S&ref_=pd_gw_ci_mcx_mr_hp_d>`_.

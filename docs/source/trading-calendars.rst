@@ -206,6 +206,6 @@ Conclusions
 
 In order for you to run your algorithm with this calendar, you'll need have a data bundle in which
 your assets have dates that run through all days of the week. You can read about how to make your
-own data bundle in the section :ref: `new_bundle` of this documentation, or use
+own data bundle in the section :ref:`new_bundle` of this documentation, or use
 the code in `csvdir bundle <https://github.com/stefan-jansen/zipline-reloaded/blob/master/zipline/data/bundles/csvdir.py>`__
 for creating a bundle from CSV files.
