@@ -1,5 +1,5 @@
 {% set name = "zipline-reloaded" %}
-{% set version = "2.0.0rc3" %}
+{% set version = "2.0.0rc4" %}
 
 
 package:
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  md5: c586530bf97c3cd3c4208bdf00e9c9ae
+  md5: 079e66a820381c0ee3eff15b3f991e7e
 
 build:
   number: 0
