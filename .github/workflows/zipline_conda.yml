@@ -70,14 +70,14 @@ jobs:
         with:
           path: win-64/*.tar.bz2
 
-      - name: upload macos
-        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "macos-latest" }}
-        run: anaconda upload -l main -u ml4t osx-64/*.tar.bz2
-
-      - name: upload linux
-        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "ubuntu-latest" }}
-        run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
-
-      - name: upload window
-        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "windows-latest" }}
-        run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
+#      - name: upload macos
+#        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "macos-latest" }}
+#        run: anaconda upload -l main -u ml4t osx-64/*.tar.bz2
+#
+#      - name: upload linux
+#        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "ubuntu-latest" }}
+#        run: anaconda upload -l main -u ml4t linux-64/*.tar.bz2
+#
+#      - name: upload window
+#        if: ${{ matrix.python != '3.9'}} && ${{ matrix.ox == "windows-latest" }}
+#        run: anaconda upload -l main -u ml4t win-64/*.tar.bz2
