@@ -16,8 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest, windows-latest, ubuntu-latest ]
-#        os: [ ubuntu-latest ]
-#        python: [ '3.7', '3.8', '3.9' ]
+        #        os: [ ubuntu-latest ]
+        #        python: [ '3.7', '3.8', '3.9' ]
         python: [ '3.8' ]
 
     steps:
@@ -33,13 +33,23 @@ jobs:
           activate-environment: recipe
           channels: ml4t, defaults, conda-forge, anaconda
 
-      - name: conda build for ${{ matrix.os }}
+      - name: create uploader
+        # address broken client under py3.9
+        if: ${{ matrix.python == '3.9' }}
+        run: conda create -n up python=3.7 anaconda-client
+
+      - name: conda install
         run: |
-          # anaconda-client broken in Python 3.9
-          conda create -n up python=3.7 anaconda-client
           conda activate recipe
-          conda install -n recipe conda-build conda-verify
-          conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
+          conda install -n recipe conda-build conda-verify anaconda-client
+
+      - name: conda build for ${{ matrix.os }}
+        run: conda-build --output-folder . --python ${{ matrix.python }} conda/zipline-reloaded/
+
+      - name: activate uploader
+        # address broken client under py3.9
+        if: ${{ matrix.python == '3.9' }}
+        run: conda activate up
 
       - name: store macos result
         uses: actions/upload-artifact@v2
