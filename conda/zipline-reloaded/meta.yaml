@@ -68,7 +68,6 @@ test:
     - pip check
     - zipline --help
     - python -c 'import zipline; print(zipline.__version__)'
-    - nose tests
   requires:
     - pip
 
