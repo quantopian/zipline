@@ -67,7 +67,7 @@ test:
   commands:
     - pip check
     - zipline --help
-    - python -c 'import zipline; print(zipline.__version__)'
+    - python -c "import zipline; print(zipline.__version__)"
   requires:
     - pip
 

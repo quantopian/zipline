@@ -30,7 +30,7 @@ The ``TradingCalendar`` class has many properties we should be thinking about if
   - Regular & Ad hoc Holidays
   - Special Opens & Closes
 
-And several others. If you'd like to see all of the properties and methods available to you through the ``TradingCalendar`` API, please take a look at the `API Reference <https://www.zipline.io/appendix.html#trading-calendar-api>`__
+And several others. If you'd like to see all of the properties and methods available to you through the ``TradingCalendar`` API, please take a look at the `API Reference <https://ml4t.zipline.io/api_reference.html#trading-calendar-api>`__
 
 Now we'll take a look at the London Stock Exchange Calendar :class:`~zipline.utils.calendars.exchange_calendar_lse.LSEExchangeCalendar` as an example below:
 
@@ -88,7 +88,7 @@ Now we'll take a look at the London Stock Exchange Calendar :class:`~zipline.uti
       ])
 
 
-You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)` through the `pandas <https://pandas.pydata.org/pandas-docs/stable/>`__ module, ``pandas.tseries.holiday.Holiday``, and also take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code as an example, or take a look at the code snippet below.
+You can create the ``Holiday`` objects mentioned in ``def regular_holidays(self)` through the below `pandas <https://pandas.pydata.org/pandas-docs/stable/>`__ module, ``pandas.tseries.holiday.Holiday``, and also take a look at the `LSEExchangeCalendar <https://github.com/quantopian/zipline/blob/master/zipline/utils/calendars/exchange_calendar_lse.py>`__ code as an example, or take a look at the code snippet below.
 
 .. code-block:: python
 
