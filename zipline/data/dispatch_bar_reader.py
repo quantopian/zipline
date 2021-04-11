@@ -106,6 +106,10 @@ class AssetDispatchBarReader(metaclass=ABCMeta):
 
         for i, asset in enumerate(assets):
             t = type(asset)
+            if t not in sid_groups:
+                sid_groups[t] = []
+            if t not in out_pos:
+                out_pos[t] = []
             sid_groups[t].append(asset)
             out_pos[t].append(i)
 
