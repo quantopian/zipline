@@ -3,7 +3,7 @@ Base class for Filters, Factors and Classifiers
 """
 from abc import ABCMeta, abstractproperty, abstractmethod
 from bisect import insort
-from collections import Mapping
+from collections.abc import Mapping
 from weakref import WeakValueDictionary
 
 from numpy import (
