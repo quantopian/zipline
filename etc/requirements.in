@@ -17,10 +17,10 @@ multipledispatch>=0.6.0
 toolz>=0.8.2
 
 # Scientific Libraries
-numpy>=1.11.3
+numpy>=1.11.3,<=1.18.0
 pandas>=0.18.1,<=0.22
 pandas-datareader>=0.2.1,<0.9.0
-scipy>=0.17.1
+scipy>=1.0.0,<=1.1.0
 # Needed for parts of pandas.stats
 patsy>=0.4.0
 statsmodels>=0.6.1
