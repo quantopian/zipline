@@ -85,6 +85,9 @@ ADD . /zipline
 WORKDIR /zipline
 RUN pip install -e .
 
+# add pyfolio into the image
+RUN pip install pyfolio
+
 #
 # start the jupyter server
 #
