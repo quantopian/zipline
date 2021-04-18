@@ -1,4 +1,6 @@
 import click
+from datetime import datetime
+
 import os
 import sys
 import warnings
@@ -382,6 +384,26 @@ def run_algorithm(start,
     zipline.data.bundles.bundles : The available data bundles.
     """
     load_extensions(default_extension, extensions, strict_extensions, environ)
+
+    if type(start) is datetime:
+        log.warn("Changing start-date from datetime to pandas Timestamp",
+                "Consider changing this in your code in the future.")
+        start = pd.Timestamp(start)
+
+    if type(end) is datetime:
+        log.warn("Changing end-date from datetime to pandas Timestamp",
+                "Consider changing this in your code in the future.")
+        end = pd.Timestamp(end)
+
+    if benchmark_returns is None:
+        log.warn("Benchmark returns not inserted, using NYSE.")
+        cal = get_calendar('NYSE')
+        first_date = datetime(1930, 1, 1)
+        last_date = datetime(2030, 1, 1)
+        dates = cal.sessions_in_range(first_date, last_date)
+        data = pd.DataFrame(0.0, index=dates, columns=['close'])
+        data = data['close']
+        benchmark_returns = data.sort_index().iloc[1:]
 
     benchmark_spec = BenchmarkSpec.from_returns(benchmark_returns)
 
