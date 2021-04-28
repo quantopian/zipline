@@ -83,3 +83,6 @@ src
 .python-version
 conda
 archive
+
+conda/ta-lib
+conda/logbook

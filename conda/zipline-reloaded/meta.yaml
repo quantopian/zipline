@@ -34,7 +34,7 @@ requirements:
     - bcolz-zipline >=1.2.3
     - bottleneck >=1.0.0
     - click >=4.0.0
-    - empyrical >=0.5.0
+    - empyrical-reloaded >=0.5.7
     - greenlet
     - h5py >=2.7.1
     - intervaltree >=2.1.0
@@ -44,7 +44,6 @@ requirements:
     - lru-dict >=1.1.4
     - multipledispatch >=0.6.0
     - networkx >=2.0
-    - numpy>=1.16.5
     - numexpr >=2.6.1
     - pandas >=1.0
     - patsy >=0.4.0
