@@ -19,7 +19,7 @@ import pandas as pd
 import numpy as np
 
 from cpython cimport bool
-from collections import Iterable
+from collections.abc import Iterable
 
 from zipline.assets import (
     PricingDataAssociable,

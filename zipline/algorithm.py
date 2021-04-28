@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Iterable, namedtuple
+from collections.abc import Iterable
+from collections import namedtuple
 from copy import copy
 import warnings
 from datetime import tzinfo, time

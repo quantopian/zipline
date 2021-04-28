@@ -1,7 +1,7 @@
 """
 Caching utilities for zipline
 """
-from collections import MutableMapping
+from collections.abc import MutableMapping
 import errno
 from functools import partial
 import os

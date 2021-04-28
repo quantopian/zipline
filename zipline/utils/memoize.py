@@ -1,7 +1,8 @@
 """
 Tools for memoization of function results.
 """
-from collections import OrderedDict, Sequence
+from collections.abc import Sequence
+from collections import OrderedDict
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
 
