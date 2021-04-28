@@ -7,7 +7,7 @@ from zipline.utils.final import (
     FinalMeta,
     final,
 )
-from zipline.utils.metautils import compose_types
+# from zipline.utils.metautils_ import compose_types
 
 
 class FinalMetaTestCase(TestCase):
@@ -167,63 +167,63 @@ class FinalMetaTestCase(TestCase):
 
 
 class FinalABCMetaTestCase(FinalMetaTestCase):
-    @classmethod
-    def setUpClass(cls):
-        FinalABCMeta = compose_types(FinalMeta, ABCMeta)
-
-        class ABCWithFinal(with_metaclass(FinalABCMeta, object)):
-            a = final("ABCWithFinal: a")
-            b = "ABCWithFinal: b"
-
-            @final
-            def f(self):
-                return "ABCWithFinal: f"
-
-            def g(self):
-                return "ABCWithFinal: g"
-
-            @abstractmethod
-            def h(self):
-                raise NotImplementedError("h")
-
-        cls.class_ = ABCWithFinal
-
-    def test_cannot_instantiate_subclass(self):
-        """
-        Tests that you cannot create an instance of a subclass
-        that does not implement the abstractmethod h.
-        """
-
-        class AbstractSubClass(self.class_):
-            pass
-
-        with self.assertRaises(TypeError):
-            AbstractSubClass()
-
-    def test_override_on_instance(self):
-        class SubClass(self.class_):
-            def h(self):
-                """
-                Pass the abstract tests by creating this method.
-                """
-                pass
-
-        s = SubClass()
-        with self.assertRaises(TypeError):
-            s.f = lambda self: "SubClass: f"
-
-    def test_override___setattr___on_instance(self):
-        """
-        Tests overriding __setattr__ on an instance.
-        """
-
-        class SubClass(self.class_):
-            def h(self):
-                pass
-
-        s = SubClass()
-        with self.assertRaises(TypeError):
-            s.__setattr__ = lambda a, b: None
+    # @classmethod
+    # def setUpClass(cls):
+    #     FinalABCMeta = compose_types(FinalMeta, ABCMeta)
+    #
+    #     class ABCWithFinal(with_metaclass(FinalABCMeta, object)):
+    #         a = final("ABCWithFinal: a")
+    #         b = "ABCWithFinal: b"
+    #
+    #         @final
+    #         def f(self):
+    #             return "ABCWithFinal: f"
+    #
+    #         def g(self):
+    #             return "ABCWithFinal: g"
+    #
+    #         @abstractmethod
+    #         def h(self):
+    #             raise NotImplementedError("h")
+    #
+    #     cls.class_ = ABCWithFinal
+    #
+    # def test_cannot_instantiate_subclass(self):
+    #     """
+    #     Tests that you cannot create an instance of a subclass
+    #     that does not implement the abstractmethod h.
+    #     """
+    #
+    #     class AbstractSubClass(self.class_):
+    #         pass
+    #
+    #     with self.assertRaises(TypeError):
+    #         AbstractSubClass()
+    #
+    # def test_override_on_instance(self):
+    #     class SubClass(self.class_):
+    #         def h(self):
+    #             """
+    #             Pass the abstract tests by creating this method.
+    #             """
+    #             pass
+    #
+    #     s = SubClass()
+    #     with self.assertRaises(TypeError):
+    #         s.f = lambda self: "SubClass: f"
+    #
+    # def test_override___setattr___on_instance(self):
+    #     """
+    #     Tests overriding __setattr__ on an instance.
+    #     """
+    #
+    #     class SubClass(self.class_):
+    #         def h(self):
+    #             pass
+    #
+    #     s = SubClass()
+    #     with self.assertRaises(TypeError):
+    #         s.__setattr__ = lambda a, b: None
 
     def test_subclass_setattr(self):
         """
