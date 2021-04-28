@@ -156,7 +156,11 @@ def _gen_unzip(it, elem_len):
     ValueError
         Raised when the lengths do not match the ``elem_len``.
     """
-    elem = next(it)
+    try:
+        elem = next(it)
+    except StopIteration:
+        return (), ()
+
     first_elem_len = len(elem)
 
     if elem_len is not None and elem_len != first_elem_len:
