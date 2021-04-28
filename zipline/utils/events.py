@@ -58,15 +58,6 @@ MAX_MONTH_RANGE = 23
 MAX_WEEK_RANGE = 5
 
 
-def naive_to_utc(ts):
-    """
-    Converts a UTC tz-naive timestamp to a tz-aware timestamp.
-    """
-    # Drop the nanoseconds field. warn=False suppresses the warning
-    # that we are losing the nanoseconds; however, this is intended.
-    return pd.Timestamp(ts.to_pydatetime(warn=False), tz="UTC")
-
-
 def ensure_utc(time, tz="UTC"):
     """
     Normalize a time. If the time is tz-naive, assume it is UTC.
@@ -139,6 +130,7 @@ def _build_date(date, kwargs):
         return date
 
 
+# TODO: only used in tests
 def _build_time(time, kwargs):
     """
     Builds the time argument for event rules.
