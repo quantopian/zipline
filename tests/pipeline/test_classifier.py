@@ -18,7 +18,6 @@ from zipline.utils.numpy_utils import (
 
 from .base import BaseUSEquityPipelineTestCase
 
-
 bytes_dtype = np.dtype("S3")
 unicode_dtype = np.dtype("U3")
 
@@ -462,9 +461,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             "Expected `choices` to be an iterable of hashable values,"
             " but got [{'a': 1}] instead.\n"
             "This caused the following error: "
-            "TypeError (\"unhashable type: 'dict'\",?)."
+            "TypeError(\"unhashable type: 'dict'\")."
         )
-        self.assertRegex(errmsg, expected)
+        self.assertEqual(errmsg, expected)
 
     @parameter_space(
         __fail_fast=True,
