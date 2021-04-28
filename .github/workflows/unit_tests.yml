@@ -16,6 +16,12 @@ jobs:
       matrix:
         os: [ ubuntu-latest , windows-latest, macos-latest ]
         python-version: [ 3.7, 3.8, 3.9 ]
+        exclude:
+        - os: macos-latest
+          python-version: 3.9
+        - os: windows-latest
+          python-version: 3.9
+
     steps:
       - name: Checkout Zipline
         uses: actions/checkout@v2
