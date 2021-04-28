@@ -23,9 +23,6 @@ from pathlib import Path
 # PEP 517/518 build rules.
 # https://github.com/python-versioneer/python-versioneer/issues/193
 sys.path.append(Path(__file__).resolve(strict=True).parent.as_posix())
-# sys.path.append(os.path.dirname(__file__))
-# print(Path(__file__).resolve(strict=True).parent.as_posix())
-# print(sys.path)
 import versioneer  # noqa: E402
 from setuptools import (
     Extension,
