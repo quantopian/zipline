@@ -541,7 +541,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
                 start_session,
                 end_session,
             )
-            close_ilocs = minutes.searchsorted(session_closes.to_numpy())
+            close_ilocs = minutes.searchsorted(pd.DatetimeIndex(session_closes))
 
         results = []
         shape = (len(close_ilocs), len(assets))
