@@ -117,7 +117,7 @@ jobs:
   upload_pypi:
     needs: [ build_wheels, build_sdist ]
     runs-on: ubuntu-latest
-    # upload to (Test)-PyPI on push with tag starting with v; diff by commit
+    # upload to (Test)-PyPI on push with tag
     if: startsWith(github.ref, 'refs/tags')
     steps:
       - uses: actions/download-artifact@v2
