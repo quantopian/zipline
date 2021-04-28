@@ -91,6 +91,7 @@ from zipline.utils.api_support import (
     disallowed_in_before_trading_start,
 )
 from zipline.utils.compat import ExitStack
+from zipline.utils.date_utils import dt_index_to_utc
 from zipline.utils.input_validation import (
     coerce_string,
     ensure_upper_case,
@@ -663,7 +664,8 @@ class TradingAlgorithm(object):
             else:
                 self.risk_report = perf
 
-        daily_dts = pd.DatetimeIndex([p["period_close"] for p in daily_perfs], tz="UTC")
+        daily_dts = pd.DatetimeIndex([p["period_close"] for p in daily_perfs])
+        daily_dts = dt_index_to_utc(daily_dts)
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
         return daily_stats
 
