@@ -5,10 +5,12 @@ Installation
 
 You can install Zipline either using `pip <https://pip.pypa.io/en/stable/>`_, the Python package installer, or
 `conda <https://docs.conda.io/projects/conda/en/latest/index.html>`_, the package and environment management system
-that runs on Windows, macOS, and Linux.
+that runs on Windows, macOS, and Linux. In case you are installing `zipline-reloaded` alongside other packages and
+encounter [conflict errors](https://github.com/conda/conda/issues/9707), consider using
+[mamba](https://github.com/mamba-org/mamba) instead.
 
 Zipline runs on Python 3.7, 3.8 and 3.9. To install and use different Python versions in parallel as well as create
-a virtual environment, you could use, for example, `pyenv <https://github.com/pyenv/pyenv>`_.
+a virtual environment, you may want to use `pyenv <https://github.com/pyenv/pyenv>`_.
 
 Installing with ``pip``
 -----------------------
@@ -96,15 +98,18 @@ You can accomplish this as follows:
 
 This will allow you to install the Python wrapper with ``pip`` as expected by the binary wheel.
 
-OSX
-~~~
+macOS
+~~~~~
 
-The version of Python shipped with OSX by default is generally out of date, and
-has a number of quirks because it's used directly by the operating system.  For
+The version of Python shipped with macOS is generally out of date, and
+has a number of quirks because it's used directly by the operating system. For
 these reasons, many developers choose to install and use a separate Python
-installation. The `Hitchhiker's Guide to Python`_ provides an excellent guide
-to `Installing Python on OSX <https://docs.python-guide.org/en/latest/>`_, which
-explains how to install Python with the `Homebrew <https://brew.sh/>`_ manager.
+installation.
+
+The `Hitchhiker's Guide to Python`_ provides an excellent guide
+to `Installing Python on macOS <https://docs.python-guide.org/en/latest/>`_, which
+explains how to install Python with the `Homebrew <https://brew.sh/>`_ manager. Alternatively,
+you could use `pyenv <https://github.com/pyenv/pyenv>`_.
 
 Assuming you've installed Python with ``brew``, you'll also likely need the
 following packages:
@@ -137,7 +142,13 @@ without requiring the use of a second tool to acquire Zipline's non-Python
 dependencies.
 
 For instructions on how to install ``conda``, see the `Conda Installation
-Documentation <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_
+Documentation <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_.
+
+Unfortunately, as of April 2021, ``conda`` produces numerous false
+positive [conflict errors](https://github.com/conda/conda/issues/9707)
+while working to identify dependencies. Should this be your experience, consider
+[mamba](https://github.com/mamba-org/mamba) instead, which works much faster and
+reliably in most cases.
 
 Once ``conda`` has been set up you can install Zipline from the ``ml4t`` channel
 (assuming you are listing additional channels like `conda-forge <https://conda-forge.org/>`_

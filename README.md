@@ -20,24 +20,29 @@ by [Stefan Jansen](https://www.linkedin.com/in/applied-ai/) who is trying to kee
 ## Features
 
 - **Ease of Use:** Zipline tries to get out of your way so that you can focus on algorithm development. See below for a code example.
-- **"Batteries Included":** many common statistics like moving average and linear regression can be readily accessed from within a user-written algorithm.
+- **Batteries Included:** many common statistics like moving average and linear regression can be readily accessed from within a user-written algorithm.
 - **PyData Integration:** Input of historical data and output of performance statistics are based on Pandas DataFrames to integrate nicely into the existing PyData ecosystem.
-- **Statistics and Machine Learning Libraries:** You can use libraries like matplotlib, scipy, statsmodels, and sklearn to support development, analysis, and visualization of state-of-the-art trading systems.
+- **Statistics and Machine Learning Libraries:** You can use libraries like matplotlib, scipy, statsmodels, and scikit-klearn to support development, analysis, and visualization of state-of-the-art trading systems.
 
 ## Installation
 
-Zipline now supports Python >= 3.7; Python 2 is no longer supported. It is compatible with current versions of the relevant [NumFOCUS](https://numfocus.org/sponsored-projects?_sft_project_category=python-interface) libraries, including [pandas](https://pandas.pydata.org/) and [scikit-learn](https://scikit-learn.org/stable/index.html).
+Zipline supports Python >= 3.7 and is compatible with current versions of the relevant [NumFOCUS](https://numfocus.org/sponsored-projects?_sft_project_category=python-interface) libraries, including [pandas](https://pandas.pydata.org/) and [scikit-learn](https://scikit-learn.org/stable/index.html).
 
-You can install Zipline with pip using
-```python
+If your system meets the pre-requisites described in the [installation instructions](https://zipline.ml4trading.io/install.html), you can install Zipline using pip by running:
+
+```bash
 pip install zipline-reloaded
 ```
-if your system meets the pre-requisites described in the [installation instructions](https://zipline.ml4trading.io/install.html).
 
 Alternatively, if you are using the [Anaconda](https://www.anaconda.com/products/individual) or [miniconda](https://docs.conda.io/en/latest/miniconda.html) distributions, you can use
-```python
-conda install -c ml4t zipline-reloaded
+
+```bash
+conda install -c ml4t -c conda-forge zipline-reloaded
 ```
+
+You can also [enable](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) `conda-forge` by listing it in your `.condarc`.
+
+In case you are installing `zipline-reloaded` alongside other packages and encounter [conflict errors](https://github.com/conda/conda/issues/9707), consider using [mamba](https://github.com/mamba-org/mamba) instead.
 
 See the [installation](https://zipline.ml4trading.io/install.html) section of the docs for more detailed instructions.
 
@@ -49,6 +54,7 @@ The following code implements a simple dual moving average algorithm.
 
 ```python
 from zipline.api import order_target, record, symbol
+
 
 def initialize(context):
     context.i = 0

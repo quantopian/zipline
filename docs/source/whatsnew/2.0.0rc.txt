@@ -30,7 +30,7 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
-- numerous tests updates to accomodate recent Python and dependeny versions
+- Numerous tests updates to accommodate recent Python and dependency versions.
 
 Performance
 ~~~~~~~~~~~

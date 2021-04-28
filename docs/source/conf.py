@@ -1,7 +1,6 @@
 import sys
 import os
 from pathlib import Path
-# from recommonmark.parser import CommonMarkParser
 from zipline import __version__ as version
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -19,7 +18,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
-    # 'recommonmark',
     'm2r2',
     'sphinx_markdown_tables'
 ]
