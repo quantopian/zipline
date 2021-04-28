@@ -24,11 +24,7 @@ from pathlib import Path
 # https://github.com/python-versioneer/python-versioneer/issues/193
 sys.path.append(Path(__file__).resolve(strict=True).parent.as_posix())
 import versioneer  # noqa: E402
-from setuptools import (  # noqa: E402
-    Extension,
-    find_packages,
-    setup,
-)
+from setuptools import Extension, find_packages, setup  # noqa: E402
 
 
 class LazyBuildExtCommandClass(dict):
