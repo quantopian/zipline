@@ -1,6 +1,7 @@
-name: Conda packages
+name: Anaconda
 
-on: [ push ]
+on:
+  workflow_dispatch
 
 jobs:
   build_wheels:

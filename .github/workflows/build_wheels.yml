@@ -1,6 +1,9 @@
-name: Wheels
+name: PyPI
 
-on: [ push ]
+on:
+  push:
+    tags:
+      - '**'           # Push events to every tag including hierarchical tags like v1.0/beta
 
 jobs:
   build_wheels:
