@@ -40,7 +40,7 @@ jobs:
           ./configure &&
           sudo make &&
           sudo make install &&
-          ldconfig
+          sudo ldconfig
 
       - name: Install TA-Lib macOS
         if: ${{ matrix.os == 'macos-latest' }}
