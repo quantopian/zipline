@@ -38,8 +38,8 @@ jobs:
           tar xvfz ta-lib-0.4.0-src.tar.gz &&
           cd ta-lib &&
           ./configure &&
-          make &&
-          make install &&
+          sudo make &&
+          sudo make install &&
           ldconfig
 
       - name: Install TA-Lib macOS
