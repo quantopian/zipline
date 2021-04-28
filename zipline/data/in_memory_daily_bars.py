@@ -130,7 +130,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
 
     def currency_codes(self, sids):
         codes = self._currency_codes
-        return np.array([codes.loc[sid] for sid in sids])
+        return codes.loc[sids].to_numpy()
 
 
 def verify_frames_aligned(frames, calendar):
