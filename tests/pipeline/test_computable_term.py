@@ -275,7 +275,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             "Fill value 10.0 is not a valid choice for term Strs with dtype"
             " object.\n\n"
             "Coercion attempt failed with: "
-            "String-dtype classifiers can only produce strings or None.",
+            "String-dtype classifiers can only produce bytes or str or NoneType.",
         )
 
     def make_labelarray(self, strs):

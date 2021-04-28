@@ -970,7 +970,7 @@ def _assert_valid_categorical_missing_value(value):
     label_types = LabelArray.SUPPORTED_SCALAR_TYPES
     if not isinstance(value, label_types):
         raise TypeError(
-            "String-dtype classifiers can only produce strings or None, not {types}.".format(
+            "String-dtype classifiers can only produce {types}.".format(
                 types=" or ".join([t.__name__ for t in label_types])
             )
         )
