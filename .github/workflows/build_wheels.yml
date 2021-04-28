@@ -1,4 +1,4 @@
-name: Zipline Wheels
+name: Wheels
 
 on: [ push ]
 
