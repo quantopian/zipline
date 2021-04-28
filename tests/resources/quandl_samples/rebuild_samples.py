@@ -15,8 +15,8 @@ from zipline.testing import write_compressed
 from zipline.data.bundles.quandl import QUANDL_DATA_URL
 
 TEST_RESOURCE_PATH = join(
-    dirname(dirname(dirname(realpath(__file__)))),  # zipline_repo/tests
-    "resources")
+    dirname(dirname(dirname(realpath(__file__)))), "resources"  # zipline_repo/tests
+)
 
 
 def format_table_query(api_key, start_date, end_date, symbols):
@@ -30,7 +30,7 @@ def format_table_query(api_key, start_date, end_date, symbols):
 
 
 def zipfile_path(file_name):
-    return join(TEST_RESOURCE_PATH, 'quandl_samples', file_name)
+    return join(TEST_RESOURCE_PATH, "quandl_samples", file_name)
 
 
 def main():
@@ -40,10 +40,7 @@ def main():
     symbols = "AAPL", "BRK_A", "MSFT", "ZEN"
 
     url = format_table_query(
-        api_key=api_key,
-        start_date=start_date,
-        end_date=end_date,
-        symbols=symbols
+        api_key=api_key, start_date=start_date, end_date=end_date, symbols=symbols
     )
     print("Fetching equity data from %s" % url)
     response = requests.get(url)

@@ -377,7 +377,7 @@ class LabelArray(ndarray):
                         self.missing_value,
                         False,
                     ),
-                    missing_value=self.missing_value
+                    missing_value=self.missing_value,
                 ).reshape(value.shape)
                 super(LabelArray, self).__setitem__(indexer, rhs)
             else:

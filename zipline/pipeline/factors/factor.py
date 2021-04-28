@@ -1414,7 +1414,7 @@ class GroupedRowTransform(Factor):
         dtype,
         missing_value,
         mask,
-        **kwargs
+        **kwargs,
     ):
 
         if mask is NotSpecified:
@@ -1433,7 +1433,7 @@ class GroupedRowTransform(Factor):
             missing_value=missing_value,
             mask=mask,
             dtype=dtype,
-            **kwargs
+            **kwargs,
         )
 
     def _init(self, transform, transform_args, *args, **kwargs):

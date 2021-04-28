@@ -366,7 +366,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         sid_to_idx,
         columns,
         col_to_all_adjustments,
-        **kwargs
+        **kwargs,
     ):
         """
 
@@ -442,7 +442,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         dates,
         assets,
         columns,
-        **kwargs
+        **kwargs,
     ):
         """
         Creates an AdjustedArray from the given estimates data for the given
@@ -493,7 +493,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             sid_to_idx,
             columns,
             col_to_all_adjustments,
-            **kwargs
+            **kwargs,
         )
         return col_to_all_adjustments
 
@@ -631,9 +631,9 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             # sids for each field. This allows us to do the lookup once on
             # level 1 instead of doing the lookup each time per value in
             # level 0.
-            asset_indexer = sids.get_indexer_for(
-                requested_qtr_data.columns.levels[1],
-            )
+            # asset_indexer = sids.get_indexer_for(
+            #     requested_qtr_data.columns.levels[1],
+            # )
             for col in columns:
                 column_name = self.name_map[col.name]
                 # allocate the empty output with the correct missing value
@@ -649,7 +649,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
                         .to_numpy()
                         .astype(col.dtype)
                     )
-                except:
+                except Exception:
                     output_array = (
                         requested_qtr_data[column_name]
                         .reindex(sids, axis=1)
@@ -995,7 +995,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         dates,
         assets,
         columns,
-        **kwargs
+        **kwargs,
     ):
         """
         Calculates both split adjustments and overwrites for all sids.

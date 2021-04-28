@@ -531,6 +531,8 @@ class TestConstantPrice(
             check_names=False,
         )
 
+    # TODO: simplify
+    # flake8: noqa: C901
     @parameter_space(
         direction=["long", "short"],
         # checking the portfolio forces a sync; we want to ensure that the

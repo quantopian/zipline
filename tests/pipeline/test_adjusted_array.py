@@ -506,13 +506,13 @@ class AdjustedArrayTestCase(TestCase):
             _gen_unadjusted_cases(
                 "unicode_ndarray",
                 make_input=as_dtype(unicode_dtype),
-                make_expected_output=as_labelarray(unicode_dtype, u""),
-                missing_value=u"",
+                make_expected_output=as_labelarray(unicode_dtype, ""),
+                missing_value="",
             ),
             _gen_unadjusted_cases(
                 "object_ndarray",
                 make_input=lambda a: a.astype(unicode).astype(object),
-                make_expected_output=as_labelarray(unicode_dtype, u""),
+                make_expected_output=as_labelarray(unicode_dtype, ""),
                 missing_value="",
             ),
             # Test passing a LabelArray directly to AdjustedArray.
@@ -526,13 +526,11 @@ class AdjustedArrayTestCase(TestCase):
                 "unicode_labelarray",
                 make_input=as_labelarray(unicode_dtype, None),
                 make_expected_output=as_labelarray(unicode_dtype, None),
-                missing_value=u"",
+                missing_value="",
             ),
             _gen_unadjusted_cases(
                 "object_labelarray",
-                make_input=(
-                    lambda a: LabelArray(a.astype(unicode).astype(object), u"")
-                ),
+                make_input=(lambda a: LabelArray(a.astype(unicode).astype(object), "")),
                 make_expected_output=as_labelarray(unicode_dtype, ""),
                 missing_value="",
             ),
@@ -600,14 +598,14 @@ class AdjustedArrayTestCase(TestCase):
             _gen_unadjusted_cases(
                 "unicode_ndarray",
                 make_input=as_dtype(unicode_dtype),
-                make_expected_output=as_labelarray(unicode_dtype, u""),
-                missing_value=u"",
+                make_expected_output=as_labelarray(unicode_dtype, ""),
+                missing_value="",
             ),
             _gen_unadjusted_cases(
                 "object_ndarray",
                 make_input=lambda a: a.astype(unicode).astype(object),
-                make_expected_output=as_labelarray(unicode_dtype, u""),
-                missing_value=u"",
+                make_expected_output=as_labelarray(unicode_dtype, ""),
+                missing_value="",
             ),
             _gen_unadjusted_cases(
                 "bytes_labelarray",
@@ -617,9 +615,9 @@ class AdjustedArrayTestCase(TestCase):
             ),
             _gen_unadjusted_cases(
                 "unicode_labelarray",
-                make_input=as_labelarray(unicode_dtype, u""),
-                make_expected_output=as_labelarray(unicode_dtype, u""),
-                missing_value=u"",
+                make_input=as_labelarray(unicode_dtype, ""),
+                make_expected_output=as_labelarray(unicode_dtype, ""),
+                missing_value="",
             ),
             _gen_unadjusted_cases(
                 "object_labelarray",
@@ -629,7 +627,7 @@ class AdjustedArrayTestCase(TestCase):
                         None,
                     )
                 ),
-                make_expected_output=as_labelarray(unicode_dtype, u""),
+                make_expected_output=as_labelarray(unicode_dtype, ""),
                 missing_value=None,
             ),
         )

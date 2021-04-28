@@ -209,7 +209,7 @@ class BoundColumn(LoadableTerm):
         currency_conversion,
         currency_aware,
         *args,
-        **kwargs
+        **kwargs,
     ):
         self._dataset = dataset
         self._name = name
@@ -229,7 +229,7 @@ class BoundColumn(LoadableTerm):
         currency_conversion,
         currency_aware,
         *args,
-        **kwargs
+        **kwargs,
     ):
         return (
             super(BoundColumn, cls)._static_identity(*args, **kwargs),

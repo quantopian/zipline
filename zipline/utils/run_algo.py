@@ -59,6 +59,8 @@ class _RunAlgoError(click.ClickException, ValueError):
         return self.pyfunc_msg
 
 
+# TODO: simplify
+# flake8: noqa: C901
 def _run(
     handle_data,
     initialize,
@@ -221,7 +223,7 @@ def _run(
             else {
                 "algo_filename": getattr(algofile, "name", "<algorithm>"),
                 "script": algotext,
-            }
+            },
         ).run()
     except NoBenchmark:
         raise _RunAlgoError(

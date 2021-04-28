@@ -242,7 +242,8 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
             ),
         )
 
-    def verify_regular_dt(self, idx, dt, mode, fields=None, assets=None):
+    # TODO: simplify (flake8)
+    def verify_regular_dt(self, idx, dt, mode, fields=None, assets=None):  # noqa: C901
         if mode == "daily":
             freq = "1d"
         else:
@@ -1422,7 +1423,9 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
 
                 np.testing.assert_equal(window[-1], last_val)
 
+    # TODO: simplify (flake8)
     @parameterized.expand(ALL_FIELDS)
+    # flake8: noqa: C901
     def test_daily_history_blended_gaps(self, field):
         # daily history windows that end mid-day use minute values for the
         # last day

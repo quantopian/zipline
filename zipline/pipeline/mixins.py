@@ -124,7 +124,7 @@ class CustomTermMixin(Term):
         dtype=NotSpecified,
         missing_value=NotSpecified,
         ndim=NotSpecified,
-        **kwargs
+        **kwargs,
     ):
 
         unexpected_keys = set(kwargs) - set(cls.params)
@@ -146,7 +146,7 @@ class CustomTermMixin(Term):
             dtype=dtype,
             missing_value=missing_value,
             ndim=ndim,
-            **kwargs
+            **kwargs,
         )
 
     def compute(self, today, assets, out, *arrays):

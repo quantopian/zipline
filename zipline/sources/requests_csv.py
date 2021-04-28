@@ -149,7 +149,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
         symbol_column,
         data_frequency,
         country_code,
-        **kwargs
+        **kwargs,
     ):
 
         self.start_date = start_date
@@ -479,7 +479,7 @@ class PandasRequestsCSV(PandasCSV):
         data_frequency,
         country_code,
         special_params_checker=None,
-        **kwargs
+        **kwargs,
     ):
 
         # Peel off extra requests kwargs, forwarding the remaining kwargs to
@@ -511,7 +511,7 @@ class PandasRequestsCSV(PandasCSV):
             symbol_column,
             data_frequency,
             country_code=country_code,
-            **remaining_kwargs
+            **remaining_kwargs,
         )
 
         self.fetch_size = None

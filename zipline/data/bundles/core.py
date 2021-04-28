@@ -201,6 +201,8 @@ class BadClean(click.ClickException, ValueError):
         return self.message
 
 
+# TODO: simplify
+# flake8: noqa: C901
 def _make_bundle_core():
     """Create a family of data bundle functions that read from the same
     bundle mapping.

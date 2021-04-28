@@ -153,56 +153,56 @@ DIVIDENDS = DataFrame(
         # Before query range, should be excluded.
         {
             "declared_date": Timestamp("2015-05-01", tz="UTC").to_datetime64(),
-            "ex_date"      : Timestamp("2015-06-01", tz="UTC").to_datetime64(),
-            "record_date"  : Timestamp("2015-06-03", tz="UTC").to_datetime64(),
-            "pay_date"     : Timestamp("2015-06-05", tz="UTC").to_datetime64(),
-            "amount"       : 90.0,
-            "sid"          : 1,
+            "ex_date": Timestamp("2015-06-01", tz="UTC").to_datetime64(),
+            "record_date": Timestamp("2015-06-03", tz="UTC").to_datetime64(),
+            "pay_date": Timestamp("2015-06-05", tz="UTC").to_datetime64(),
+            "amount": 90.0,
+            "sid": 1,
         },
         # First day of query range, should be excluded.
         {
             "declared_date": Timestamp("2015-06-01", tz="UTC").to_datetime64(),
-            "ex_date"      : Timestamp("2015-06-10", tz="UTC").to_datetime64(),
-            "record_date"  : Timestamp("2015-06-15", tz="UTC").to_datetime64(),
-            "pay_date"     : Timestamp("2015-06-17", tz="UTC").to_datetime64(),
-            "amount"       : 80.0,
-            "sid"          : 3,
+            "ex_date": Timestamp("2015-06-10", tz="UTC").to_datetime64(),
+            "record_date": Timestamp("2015-06-15", tz="UTC").to_datetime64(),
+            "pay_date": Timestamp("2015-06-17", tz="UTC").to_datetime64(),
+            "amount": 80.0,
+            "sid": 3,
         },
         # Third day of query range, should have last_row of 2
         {
             "declared_date": Timestamp("2015-06-01", tz="UTC").to_datetime64(),
-            "ex_date"      : Timestamp("2015-06-12", tz="UTC").to_datetime64(),
-            "record_date"  : Timestamp("2015-06-15", tz="UTC").to_datetime64(),
-            "pay_date"     : Timestamp("2015-06-17", tz="UTC").to_datetime64(),
-            "amount"       : 70.0,
-            "sid"          : 3,
+            "ex_date": Timestamp("2015-06-12", tz="UTC").to_datetime64(),
+            "record_date": Timestamp("2015-06-15", tz="UTC").to_datetime64(),
+            "pay_date": Timestamp("2015-06-17", tz="UTC").to_datetime64(),
+            "amount": 70.0,
+            "sid": 3,
         },
         # After query range, should be excluded.
         {
             "declared_date": Timestamp("2015-06-01", tz="UTC").to_datetime64(),
-            "ex_date"      : Timestamp("2015-06-25", tz="UTC").to_datetime64(),
-            "record_date"  : Timestamp("2015-06-28", tz="UTC").to_datetime64(),
-            "pay_date"     : Timestamp("2015-06-30", tz="UTC").to_datetime64(),
-            "amount"       : 60.0,
-            "sid"          : 6,
+            "ex_date": Timestamp("2015-06-25", tz="UTC").to_datetime64(),
+            "record_date": Timestamp("2015-06-28", tz="UTC").to_datetime64(),
+            "pay_date": Timestamp("2015-06-30", tz="UTC").to_datetime64(),
+            "amount": 60.0,
+            "sid": 6,
         },
         # Another action in query range, should have last_row of 3
         {
             "declared_date": Timestamp("2015-06-01", tz="UTC").to_datetime64(),
-            "ex_date"      : Timestamp("2015-06-15", tz="UTC").to_datetime64(),
-            "record_date"  : Timestamp("2015-06-18", tz="UTC").to_datetime64(),
-            "pay_date"     : Timestamp("2015-06-20", tz="UTC").to_datetime64(),
-            "amount"       : 50.0,
-            "sid"          : 3,
+            "ex_date": Timestamp("2015-06-15", tz="UTC").to_datetime64(),
+            "record_date": Timestamp("2015-06-18", tz="UTC").to_datetime64(),
+            "pay_date": Timestamp("2015-06-20", tz="UTC").to_datetime64(),
+            "amount": 50.0,
+            "sid": 3,
         },
         # Last day of range.  Should have last_row of 7
         {
             "declared_date": Timestamp("2015-06-01", tz="UTC").to_datetime64(),
-            "ex_date"      : Timestamp("2015-06-19", tz="UTC").to_datetime64(),
-            "record_date"  : Timestamp("2015-06-22", tz="UTC").to_datetime64(),
-            "pay_date"     : Timestamp("2015-06-30", tz="UTC").to_datetime64(),
-            "amount"       : 40.0,
-            "sid"          : 3,
+            "ex_date": Timestamp("2015-06-19", tz="UTC").to_datetime64(),
+            "record_date": Timestamp("2015-06-22", tz="UTC").to_datetime64(),
+            "pay_date": Timestamp("2015-06-30", tz="UTC").to_datetime64(),
+            "amount": 40.0,
+            "sid": 3,
         },
     ],
     columns=["declared_date", "ex_date", "record_date", "pay_date", "amount", "sid"],
@@ -294,10 +294,10 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
         volume_adjustments = {}
 
         should_include_price_adjustments = (
-                adjustment_type == "all" or adjustment_type == "price"
+            adjustment_type == "all" or adjustment_type == "price"
         )
         should_include_volume_adjustments = (
-                adjustment_type == "all" or adjustment_type == "volume"
+            adjustment_type == "all" or adjustment_type == "volume"
         )
 
         query_days = self.calendar_days_between(start_date, end_date)
@@ -417,7 +417,11 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
 
             if convert_dts:
                 for colname in reader._datetime_int_cols[name]:
-                    expected_df[colname] = expected_df[colname].astype('datetime64[s]').dt.tz_localize('UTC')
+                    expected_df[colname] = (
+                        expected_df[colname]
+                        .astype("datetime64[s]")
+                        .dt.tz_localize("UTC")
+                    )
 
             return expected_df
 
@@ -427,36 +431,35 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
             for colname in reader._datetime_int_cols[name]:
                 if not convert_dts:
                     # todo: fix nanosecond hack
-                    expected_df[colname] = (expected_df[colname]
-                                            .astype('datetime64[s]')
-                                            .astype(int)
-                                            .div(1000000000)
-                                            .astype(int))
+                    expected_df[colname] = (
+                        expected_df[colname]
+                        .astype("datetime64[s]")
+                        .astype(int)
+                        .div(1000000000)
+                        .astype(int)
+                    )
                 else:
-                    expected_df[colname] = (expected_df[colname]
-                                            .astype('datetime64[s]')
-                                            .dt.tz_localize('UTC'))
+                    expected_df[colname] = (
+                        expected_df[colname]
+                        .astype("datetime64[s]")
+                        .dt.tz_localize("UTC")
+                    )
 
             return expected_df
 
         for action_name, raw_tbl in name_and_raw:
             # todo: fix missing dividend value
-            if action_name == 'dividends':
+            if action_name == "dividends":
                 continue
 
             exp = create_expected_table(raw_tbl, action_name)
-            assert_frame_equal(
-                adjustment_dfs[action_name],
-                exp
-            )
+            assert_frame_equal(adjustment_dfs[action_name], exp)
 
         # DIVIDENDS is in the opposite form from the rest of the dataframes, so
         # needs to be converted separately.
         div_name = "dividend_payouts"
         exp = create_expected_div_table(DIVIDENDS, div_name)
-        assert_frame_equal(
-            adjustment_dfs[div_name].loc[:, exp.columns], exp
-        )
+        assert_frame_equal(adjustment_dfs[div_name].loc[:, exp.columns], exp)
 
     def test_read_no_adjustments(self):
         adjustment_reader = NullAdjustmentReader()
@@ -508,13 +511,13 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
         for windowlen in range(1, len(query_days) + 1):
             for offset, window in enumerate(closes.traverse(windowlen)):
                 assert_array_equal(
-                    expected_baseline_closes[offset: offset + windowlen],
+                    expected_baseline_closes[offset : offset + windowlen],
                     window,
                 )
 
             for offset, window in enumerate(volumes.traverse(windowlen)):
                 assert_array_equal(
-                    expected_baseline_volumes[offset: offset + windowlen],
+                    expected_baseline_volumes[offset : offset + windowlen],
                     window,
                 )
 
@@ -585,8 +588,8 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
         # with all adjustments up to that date applied.
         for windowlen in range(1, len(query_days) + 1):
             for offset, window in enumerate(highs.traverse(windowlen)):
-                baseline = expected_baseline_highs[offset: offset + windowlen]
-                baseline_dates = query_days[offset: offset + windowlen]
+                baseline = expected_baseline_highs[offset : offset + windowlen]
+                baseline_dates = query_days[offset : offset + windowlen]
                 expected_adjusted_highs = self.apply_adjustments(
                     baseline_dates,
                     self.sids,
@@ -597,8 +600,8 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                 assert_allclose(expected_adjusted_highs, window)
 
             for offset, window in enumerate(volumes.traverse(windowlen)):
-                baseline = expected_baseline_volumes[offset: offset + windowlen]
-                baseline_dates = query_days[offset: offset + windowlen]
+                baseline = expected_baseline_volumes[offset : offset + windowlen]
+                baseline_dates = query_days[offset : offset + windowlen]
                 # Apply only splits and invert the ratio.
                 adjustments = SPLITS.copy()
                 adjustments.ratio = 1 / adjustments.ratio

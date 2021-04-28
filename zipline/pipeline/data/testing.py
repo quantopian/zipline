@@ -34,5 +34,5 @@ class TestingDataSet(DataSet):
     )
     categorical_default_NULL_string = Column(
         dtype=categorical_dtype,
-        missing_value=u"<<NULL>>",
+        missing_value="<<NULL>>",
     )

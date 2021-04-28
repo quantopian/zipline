@@ -28,7 +28,7 @@ def getargspec(f):
     )
 
 
-unicode = type(u"")
+unicode = type("")
 
 __all__ = [
     "ExitStack",

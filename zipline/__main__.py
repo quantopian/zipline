@@ -30,9 +30,9 @@ except NameError:
     "--strict-extensions/--non-strict-extensions",
     is_flag=True,
     help="If --strict-extensions is passed then zipline will not "
-         "run if it cannot load all of the specified extensions. "
-         "If this is not passed or --non-strict-extensions is passed "
-         "then the failure will be logged but execution will continue.",
+    "run if it cannot load all of the specified extensions. "
+    "If this is not passed or --non-strict-extensions is passed "
+    "then the failure will be logged but execution will continue.",
 )
 @click.option(
     "--default-extension/--no-default-extension",
@@ -131,9 +131,9 @@ DEFAULT_BUNDLE = "quandl"
     "--define",
     multiple=True,
     help="Define a name to be bound in the namespace before executing"
-         " the algotext. For example '-Dname=value'. The value may be any "
-         "python expression. These are evaluated in order so they may refer "
-         "to previously defined names.",
+    " the algotext. For example '-Dname=value'. The value may be any "
+    "python expression. These are evaluated in order so they may refer "
+    "to previously defined names.",
 )
 @click.option(
     "--data-frequency",
@@ -176,14 +176,14 @@ DEFAULT_BUNDLE = "quandl"
     default=None,
     type=click.STRING,
     help="The symbol of the instrument to be used as a benchmark "
-         "(should exist in the ingested bundle)",
+    "(should exist in the ingested bundle)",
 )
 @click.option(
     "--benchmark-sid",
     default=None,
     type=int,
     help="The sid of the instrument to be used as a benchmark "
-         "(should exist in the ingested bundle)",
+    "(should exist in the ingested bundle)",
 )
 @click.option(
     "--no-benchmark",
@@ -210,7 +210,7 @@ DEFAULT_BUNDLE = "quandl"
     metavar="FILENAME",
     show_default=True,
     help="The location to write the perf data. If this is '-' the perf will"
-         " be written to stdout.",
+    " be written to stdout.",
 )
 @click.option(
     "--trading-calendar",
@@ -228,7 +228,7 @@ DEFAULT_BUNDLE = "quandl"
     "--metrics-set",
     default="default",
     help="The metrics set to use. New metrics sets may be registered in your"
-         " extension.py.",
+    " extension.py.",
 )
 @click.option(
     "--blotter",
@@ -241,32 +241,31 @@ DEFAULT_BUNDLE = "quandl"
         "--local-namespace/--no-local-namespace",
         is_flag=True,
         default=None,
-        help="Should the algorithm methods be "
-             "resolved in the local namespace.",
+        help="Should the algorithm methods be " "resolved in the local namespace.",
     )
 )
 @click.pass_context
 def run(
-        ctx,
-        algofile,
-        algotext,
-        define,
-        data_frequency,
-        capital_base,
-        bundle,
-        bundle_timestamp,
-        benchmark_file,
-        benchmark_symbol,
-        benchmark_sid,
-        no_benchmark,
-        start,
-        end,
-        output,
-        trading_calendar,
-        print_algo,
-        metrics_set,
-        local_namespace,
-        blotter,
+    ctx,
+    algofile,
+    algotext,
+    define,
+    data_frequency,
+    capital_base,
+    bundle,
+    bundle_timestamp,
+    benchmark_file,
+    benchmark_symbol,
+    benchmark_sid,
+    no_benchmark,
+    start,
+    end,
+    output,
+    trading_calendar,
+    print_algo,
+    metrics_set,
+    local_namespace,
+    blotter,
 ):
     """Run a backtest for the given algorithm."""
     # check that the start and end dates are passed correctly
@@ -285,7 +284,8 @@ def run(
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
             "must specify exactly one of '-f' / "
-            "'--algofile' or" " '-t' / '--algotext'",
+            "'--algofile' or"
+            " '-t' / '--algotext'",
         )
 
     trading_calendar = get_calendar(trading_calendar)
@@ -409,14 +409,14 @@ def ingest(bundle, assets_version, show_progress):
     "--before",
     type=Timestamp(),
     help="Clear all data before TIMESTAMP."
-         " This may not be passed with -k / --keep-last",
+    " This may not be passed with -k / --keep-last",
 )
 @click.option(
     "-a",
     "--after",
     type=Timestamp(),
     help="Clear all data after TIMESTAMP"
-         " This may not be passed with -k / --keep-last",
+    " This may not be passed with -k / --keep-last",
 )
 @click.option(
     "-k",
@@ -424,7 +424,7 @@ def ingest(bundle, assets_version, show_progress):
     type=int,
     metavar="N",
     help="Clear all but the last N downloads."
-         " This may not be passed with -e / --before or -a / --after",
+    " This may not be passed with -e / --before or -a / --after",
 )
 def clean(bundle, before, after, keep_last):
     """Clean up data downloaded with the ingest command."""
@@ -444,10 +444,7 @@ def bundles():
             # hide the test data
             continue
         try:
-            ingestions = list(map(str,
-                                  bundles_module.ingestions_for_bundle(
-                                      bundle
-                                  )))
+            ingestions = list(map(str, bundles_module.ingestions_for_bundle(bundle)))
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise

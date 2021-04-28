@@ -583,9 +583,9 @@ class VolatilityVolumeShare(MarketImpactBase):
     ):
         try:
             eta = self._eta[order.asset.root_symbol]
-        except:
+        except Exception:
             eta = DEFAULT_ETA
-        
+
         psi = txn_volume / mean_volume
 
         market_impact = eta * volatility * math.sqrt(psi)

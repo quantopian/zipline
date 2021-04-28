@@ -235,7 +235,7 @@ class TradingAlgorithm(object):
         capital_changes=None,
         get_pipeline_loader=None,
         create_event_context=None,
-        **initialize_kwargs
+        **initialize_kwargs,
     ):
         # List of trading controls to be used to validate orders.
         self.trading_controls = []
@@ -793,7 +793,7 @@ class TradingAlgorithm(object):
         symbol_column=None,
         special_params_checker=None,
         country_code=None,
-        **kwargs
+        **kwargs,
     ):
         """Fetch a csv from a remote url and register the data so that it is
         queryable from the ``data`` object.
@@ -862,7 +862,7 @@ class TradingAlgorithm(object):
             data_frequency=self.data_frequency,
             country_code=country_code,
             special_params_checker=special_params_checker,
-            **kwargs
+            **kwargs,
         )
 
         # ingest this into dataportal

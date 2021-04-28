@@ -18,7 +18,7 @@ from zipline.testing.predicates import assert_frame_equal
 from zipline.utils.cache import dataframe_cache
 
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 banner = """
 Please verify that the new performance is more correct than the old
@@ -70,16 +70,15 @@ def eof(*args, **kwargs):
 
 @click.command()
 @click.option(
-    '--rebuild-input',
+    "--rebuild-input",
     is_flag=True,
     default=False,
     help="Should we rebuild the input data from Yahoo?",
 )
 @click.pass_context
 def main(ctx, rebuild_input):
-    """Rebuild the perf data for test_examples
-    """
-    example_path = test_resource_path('example_data.tar.gz')
+    """Rebuild the perf data for test_examples"""
+    example_path = test_resource_path("example_data.tar.gz")
 
     with tmp_dir() as d:
         with tarfile.open(example_path) as tar:
@@ -87,7 +86,7 @@ def main(ctx, rebuild_input):
 
         # The environ here should be the same (modulo the tempdir location)
         # as we use in test_examples.py.
-        environ = {'ZIPLINE_ROOT': d.getpath('example_data/root')}
+        environ = {"ZIPLINE_ROOT": d.getpath("example_data/root")}
 
         if rebuild_input:
             raise NotImplementedError(
@@ -99,16 +98,16 @@ def main(ctx, rebuild_input):
 
         # we need to register the bundle; it is already ingested and saved in
         # the example_data.tar.gz file
-        @register('test')
+        @register("test")
         def nop_ingest(*args, **kwargs):
-            raise NotImplementedError('we cannot rebuild the test buindle')
+            raise NotImplementedError("we cannot rebuild the test buindle")
 
         new_perf_path = d.getpath(
-            'example_data/new_perf/%s' % pd.__version__.replace('.', '-'),
+            "example_data/new_perf/%s" % pd.__version__.replace(".", "-"),
         )
         c = dataframe_cache(
             new_perf_path,
-            serialization='pickle:2',
+            serialization="pickle:2",
         )
         with c:
             for name in EXAMPLE_MODULES:
@@ -131,32 +130,33 @@ def main(ctx, rebuild_input):
                 _exit()
 
             expected_perf_path = d.getpath(
-                'example_data/expected_perf/%s' %
-                pd.__version__.replace('.', '-'),
+                "example_data/expected_perf/%s" % pd.__version__.replace(".", "-"),
             )
 
             # allow users to run some analysis to make sure that the new
             # results check out
-            console = InteractiveConsole({
-                'correct': correct,
-                'exit': _exit,
-                'incorrect': _exit,
-                'new': c,
-                'np': np,
-                'old': dataframe_cache(
-                    expected_perf_path,
-                    serialization='pickle',
-                ),
-                'pd': pd,
-                'cols_to_check': examples._cols_to_check,
-                'changed_results': changed_results,
-            })
+            console = InteractiveConsole(
+                {
+                    "correct": correct,
+                    "exit": _exit,
+                    "incorrect": _exit,
+                    "new": c,
+                    "np": np,
+                    "old": dataframe_cache(
+                        expected_perf_path,
+                        serialization="pickle",
+                    ),
+                    "pd": pd,
+                    "cols_to_check": examples._cols_to_check,
+                    "changed_results": changed_results,
+                }
+            )
             console.interact(banner)
 
             if not correct_called[0]:
                 ctx.fail(
-                    '`correct()` was not called! This means that the new'
-                    ' results will not be written',
+                    "`correct()` was not called! This means that the new"
+                    " results will not be written",
                 )
 
             # move the new results to the expected path
@@ -165,11 +165,11 @@ def main(ctx, rebuild_input):
 
         # Clear out all the temporary new perf so it doesn't get added to the
         # tarball.
-        shutil.rmtree(d.getpath('example_data/new_perf/'))
+        shutil.rmtree(d.getpath("example_data/new_perf/"))
 
-        with tarfile.open(example_path, 'w|gz') as tar:
-            tar.add(d.getpath('example_data'), 'example_data')
+        with tarfile.open(example_path, "w|gz") as tar:
+            tar.add(d.getpath("example_data"), "example_data")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

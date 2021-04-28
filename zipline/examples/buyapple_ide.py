@@ -29,8 +29,7 @@ def initialize(context):
     # rebuild example data.
     # github.com/quantopian/zipline/blob/master/tests/resources/
     # rebuild_example_data#L105
-    context.set_commission(commission.PerShare(cost=0.0075,
-                                               min_trade_cost=1.0))
+    context.set_commission(commission.PerShare(cost=0.0075, min_trade_cost=1.0))
     context.set_slippage(slippage.VolumeShareSlippage())
 
 
@@ -57,21 +56,23 @@ def analyze(context=None, results=None):
     plt.show()
 
 
-start = pd.Timestamp('2014')
-end = pd.Timestamp('2018')
+start = pd.Timestamp("2014")
+end = pd.Timestamp("2018")
 
-sp500 = web.DataReader('SP500', 'fred', start, end).SP500
+sp500 = web.DataReader("SP500", "fred", start, end).SP500
 benchmark_returns = sp500.pct_change()
 print(benchmark_returns.head())
 
-result = run_algorithm(start=start.tz_localize('UTC'),
-                       end=end.tz_localize('UTC'),
-                       initialize=initialize,
-                       handle_data=handle_data,
-                       capital_base=100000,
-                       benchmark_returns=benchmark_returns,
-                       bundle='quandl',
-                       data_frequency='daily')
+result = run_algorithm(
+    start=start.tz_localize("UTC"),
+    end=end.tz_localize("UTC"),
+    initialize=initialize,
+    handle_data=handle_data,
+    capital_base=100000,
+    benchmark_returns=benchmark_returns,
+    bundle="quandl",
+    data_frequency="daily",
+)
 
 print(result.info())
 

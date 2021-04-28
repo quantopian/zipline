@@ -54,9 +54,7 @@ def main():
 
             print("Checking out gh-pages branch.")
             check_call(
-                ["git", "branch",
-                 "-f", "--track",
-                 "gh-pages", "origin/gh-pages"]
+                ["git", "branch", "-f", "--track", "gh-pages", "origin/gh-pages"]
             )
             check_call(["git", "checkout", "gh-pages"])
             check_call(["git", "reset", "--hard", "origin/gh-pages"])

@@ -535,10 +535,9 @@ class WithEstimatesTimeZero(WithEstimates):
             if (
                 q1e1 < q1e2
                 and q2e1 < q2e2
-                and
                 # All estimates are < Q2's event, so just constrain Q1
                 # estimates.
-                q1e1 < cls.q1_release_dates[0]
+                and q1e1 < cls.q1_release_dates[0]
                 and q1e2 < cls.q1_release_dates[0]
             ):
                 sid_estimates.append(
@@ -1239,11 +1238,10 @@ class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
                 )
                 for end_date in pd.date_range("2015-01-09", "2015-02-09")
             ]
-            +
             # We never get estimates for S1 for 2Q ago because once Q3
             # becomes our previous quarter, 2Q ago would be Q2, and we have
             # no data on it.
-            [
+            + [
                 cls.create_expected_df_for_factor_compute(
                     [
                         (0, 101, pd.Timestamp("2015-02-10")),
@@ -1799,11 +1797,10 @@ class PreviousWithSplitAdjustedWindows(WithSplitAdjustedWindows, ZiplineTestCase
                 )
                 for end_date in pd.date_range("2015-01-20", "2015-02-09")
             ]
-            +
             # We never get estimates for S1 for 2Q ago because once Q3
             # becomes our previous quarter, 2Q ago would be Q2, and we have
             # no data on it.
-            [
+            + [
                 cls.create_expected_df_for_factor_compute(
                     [
                         (0, 101 * 7, pd.Timestamp("2015-02-10")),

@@ -366,7 +366,7 @@ class MovingAverageConvergenceDivergenceSignal(CustomFactor):
             signal_period=signal_period,
             window_length=slow_period + signal_period - 1,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def _ewma(self, data, length):

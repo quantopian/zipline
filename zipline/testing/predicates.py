@@ -403,7 +403,7 @@ def assert_float_equal(
     float_rtol=10e-7,
     float_atol=10e-7,
     float_equal_nan=True,
-    **kwargs
+    **kwargs,
 ):
     assert tolerant_equals(
         result,
@@ -592,7 +592,7 @@ def assert_labelarray_equal(result, expected, path=(), **kwargs):
         result.as_int_array(),
         expected.as_int_array(),
         path=path + (".as_int_array()",),
-        **kwargs
+        **kwargs,
     )
 
 
@@ -645,7 +645,7 @@ def assert_categorical_equal(result, expected, path=(), msg="", **kwargs):
         expected.categories,
         path=path + (".categories",),
         msg=msg,
-        **kwargs
+        **kwargs,
     )
     assert_equal(
         result.codes, expected.codes, path=path + (".codes",), msg=msg, **kwargs
@@ -659,7 +659,7 @@ def assert_adjustment_equal(result, expected, path=(), **kwargs):
             getattr(result, attr),
             getattr(expected, attr),
             path=path + ("." + attr,),
-            **kwargs
+            **kwargs,
         )
 
 
@@ -674,7 +674,7 @@ def assert_timestamp_and_datetime_equal(
     msg="",
     allow_datetime_coercions=False,
     compare_nat_equal=True,
-    **kwargs
+    **kwargs,
 ):
     """
     Branch for comparing python datetime (which includes pandas Timestamp) and
@@ -746,7 +746,7 @@ def assert_asset_equal(result, expected, path=(), msg="", **kwargs):
         expected.to_dict(),
         path=path + (".to_dict()",),
         msg=msg,
-        **kwargs
+        **kwargs,
     )
 
 

@@ -317,7 +317,7 @@ class SQLiteAdjustmentReader(object):
             'select * from "{}"'.format(table_name),
             self.conn,
             index_col="index",
-            **kwargs
+            **kwargs,
         )
         dtypes = self._df_dtypes(table_name, convert_dates)
 

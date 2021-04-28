@@ -98,6 +98,8 @@ class AlgorithmSimulator(object):
             universe_func=universe_func,
         )
 
+    # TODO: simplify
+    # flake8: noqa: C901
     def transform(self):
         """
         Main generator work loop.

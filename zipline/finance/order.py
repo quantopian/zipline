@@ -135,6 +135,8 @@ class Order(object):
             # Change the STOP LIMIT order into a LIMIT order
             self.stop = None
 
+    # TODO: simplify
+    # flake8: noqa: C901
     def check_order_triggers(self, current_price):
         """
         Given an order and a trade event, return a tuple of

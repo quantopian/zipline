@@ -51,7 +51,7 @@ del global_calendar_dispatcher
 
 from ._version import get_versions  # noqa 402
 
-__version__ = get_versions()['version']
+__version__ = get_versions()["version"]
 del get_versions
 
 extension_args = ext.Namespace()
@@ -96,11 +96,11 @@ __all__ = [
 
 
 def setup(
-        self,
-        np=np,
-        numpy_version=numpy_version,
-        StrictVersion=StrictVersion,
-        new_pandas=new_pandas,
+    self,
+    np=np,
+    numpy_version=numpy_version,
+    StrictVersion=StrictVersion,
+    new_pandas=new_pandas,
 ):
     """Lives in zipline.__init__ for doctests."""
 

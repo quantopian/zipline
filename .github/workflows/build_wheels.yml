@@ -13,8 +13,8 @@ jobs:
         tar xvfz ta-lib-0.4.0-src.tar.gz &&
         cd ta-lib &&
         ./configure &&
-        make &&
-        make install &&
+        sudo make &&
+        sudo make install &&
         ldconfig
       CIBW_BEFORE_TEST_MACOS: >
         brew install freetype pkg-config gcc openssl hdf5 ta-lib

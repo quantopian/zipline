@@ -352,7 +352,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=(1.0 - (1.0 / (1.0 + center_of_mass))),
-            **kwargs
+            **kwargs,
         )
 
 

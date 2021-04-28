@@ -146,7 +146,7 @@ class RollingPanel(object):
         self.date_buf[where] = missing_dts
 
     def add_frame(self, tick, frame, minor_axis=None, items=None):
-        """"""
+        """ """
         if self._pos == self.cap:
             self._roll_data()
 
@@ -332,7 +332,7 @@ class MutableIndexRollingPanel(object):
         self._pos = self._window
 
     def add_frame(self, tick, frame, minor_axis=None, items=None):
-        """"""
+        """ """
         if self._pos == self.cap:
             self._roll_data()
 

@@ -14,7 +14,7 @@
 from functools import partial
 import warnings
 
-with warnings.catch_warnings():
+with warnings.catch_warnings():  # noqa
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from bcolz import carray, ctable
     import numpy as np

@@ -25,8 +25,8 @@ from zipline.testing.predicates import (
 from zipline.utils.functional import apply
 
 TEST_RESOURCE_PATH = join(
-    dirname(dirname(dirname(realpath(__file__)))),  # zipline_repo/tests
-    "resources")
+    dirname(dirname(dirname(realpath(__file__)))), "resources"  # zipline_repo/tests
+)
 
 
 class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
@@ -49,15 +49,13 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
 
         # Load raw data from quandl test resources.
         data = load_data_table(
-            file=join(TEST_RESOURCE_PATH,
-                      'quandl_samples',
-                      'QUANDL_ARCHIVE.zip'),
-            index_col='date',
+            file=join(TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"),
+            index_col="date",
         )
-        data['sid'] = pd.factorize(data.symbol)[0]
+        data["sid"] = pd.factorize(data.symbol)[0]
 
         all_ = data.set_index(
-            'sid',
+            "sid",
             append=True,
         ).unstack()
 
@@ -72,8 +70,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
                 yield vs
 
         # the first index our written data will appear in the files on disk
-        start_idx = (self.calendar.all_sessions
-                     .get_loc(self.start_date, "ffill") + 1)
+        start_idx = self.calendar.all_sessions.get_loc(self.start_date, "ffill") + 1
 
         # convert an index into the raw dataframe into an index into the
         # final data
@@ -81,111 +78,115 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
 
         def expected_dividend_adjustment(idx, symbol):
             sid = sids[symbol]
-            return (1 - all_.iloc[idx]["ex_dividend", sid] /
-                    all_.iloc[idx - 1]["close", sid])
+            return (
+                1
+                - all_.iloc[idx]["ex_dividend", sid] / all_.iloc[idx - 1]["close", sid]
+            )
 
-        adjustments = [{i(24): [
-            Float64Multiply(
-                first_row=0,
-                last_row=i(24),
-                first_col=sids["AAPL"],
-                last_col=sids["AAPL"],
-                value=expected_dividend_adjustment(24, "AAPL"))
-        ],
-            i(87): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(87),
-                    first_col=sids["AAPL"],
-                    last_col=sids["AAPL"],
-                    value=expected_dividend_adjustment(87, "AAPL"))
-            ],
-            i(150): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(150),
-                    first_col=sids["AAPL"],
-                    last_col=sids["AAPL"],
-                    value=expected_dividend_adjustment(150, "AAPL"),
-                )
-            ],
-            i(214): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(214),
-                    first_col=sids["AAPL"],
-                    last_col=sids["AAPL"],
-                    value=expected_dividend_adjustment(214, "AAPL"),
-                )
-            ],
-            i(31): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(31),
-                    first_col=sids["MSFT"],
-                    last_col=sids["MSFT"],
-                    value=expected_dividend_adjustment(31, "MSFT"),
-                )
-            ],
-            i(90): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(90),
-                    first_col=sids["MSFT"],
-                    last_col=sids["MSFT"],
-                    value=expected_dividend_adjustment(90, "MSFT"),
-                )
-            ],
-            i(158): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(158),
-                    first_col=sids["MSFT"],
-                    last_col=sids["MSFT"],
-                    value=expected_dividend_adjustment(158, "MSFT"),
-                )
-            ],
-            i(222): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(222),
-                    first_col=sids["MSFT"],
-                    last_col=sids["MSFT"],
-                    value=expected_dividend_adjustment(222, "MSFT"),
-                )
-            ],
-            # splits
-            i(108): [
-                Float64Multiply(
-                    first_row=0,
-                    last_row=i(108),
-                    first_col=sids["AAPL"],
-                    last_col=sids["AAPL"],
-                    value=1.0 / 7.0,
-                )
-            ],
-        },
-                      ] * (len(self.columns) - 1) + [
-                          # volume
-                          {
-                              i(108): [
-                                  Float64Multiply(
-                                      first_row=0,
-                                      last_row=i(108),
-                                      first_col=sids["AAPL"],
-                                      last_col=sids["AAPL"],
-                                      value=7.0,
-                                  )
-                              ],
-                          }
-                      ]
+        adjustments = [
+            {
+                i(24): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(24),
+                        first_col=sids["AAPL"],
+                        last_col=sids["AAPL"],
+                        value=expected_dividend_adjustment(24, "AAPL"),
+                    )
+                ],
+                i(87): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(87),
+                        first_col=sids["AAPL"],
+                        last_col=sids["AAPL"],
+                        value=expected_dividend_adjustment(87, "AAPL"),
+                    )
+                ],
+                i(150): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(150),
+                        first_col=sids["AAPL"],
+                        last_col=sids["AAPL"],
+                        value=expected_dividend_adjustment(150, "AAPL"),
+                    )
+                ],
+                i(214): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(214),
+                        first_col=sids["AAPL"],
+                        last_col=sids["AAPL"],
+                        value=expected_dividend_adjustment(214, "AAPL"),
+                    )
+                ],
+                i(31): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(31),
+                        first_col=sids["MSFT"],
+                        last_col=sids["MSFT"],
+                        value=expected_dividend_adjustment(31, "MSFT"),
+                    )
+                ],
+                i(90): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(90),
+                        first_col=sids["MSFT"],
+                        last_col=sids["MSFT"],
+                        value=expected_dividend_adjustment(90, "MSFT"),
+                    )
+                ],
+                i(158): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(158),
+                        first_col=sids["MSFT"],
+                        last_col=sids["MSFT"],
+                        value=expected_dividend_adjustment(158, "MSFT"),
+                    )
+                ],
+                i(222): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(222),
+                        first_col=sids["MSFT"],
+                        last_col=sids["MSFT"],
+                        value=expected_dividend_adjustment(222, "MSFT"),
+                    )
+                ],
+                # splits
+                i(108): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(108),
+                        first_col=sids["AAPL"],
+                        last_col=sids["AAPL"],
+                        value=1.0 / 7.0,
+                    )
+                ],
+            },
+        ] * (len(self.columns) - 1) + [
+            # volume
+            {
+                i(108): [
+                    Float64Multiply(
+                        first_row=0,
+                        last_row=i(108),
+                        first_col=sids["AAPL"],
+                        last_col=sids["AAPL"],
+                        value=7.0,
+                    )
+                ],
+            }
+        ]
         return pricing, adjustments
 
     def test_bundle(self):
         with open(
-                join(TEST_RESOURCE_PATH,
-                     'quandl_samples',
-                     'QUANDL_ARCHIVE.zip'), "rb"
+            join(TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"), "rb"
         ) as quandl_response:
             self.responses.add(
                 self.responses.GET,
@@ -196,10 +197,11 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
             )
 
         url_map = {
-            format_metadata_url(self.api_key): join(TEST_RESOURCE_PATH,
-                                                    "quandl_samples",
-                                                    "metadata.csv.gz",
-                                                    )
+            format_metadata_url(self.api_key): join(
+                TEST_RESOURCE_PATH,
+                "quandl_samples",
+                "metadata.csv.gz",
+            )
         }
 
         zipline_root = self.enter_instance_context(tmp_dir()).path
@@ -234,7 +236,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
         )
 
         for column, adjustments, expected in zip(
-                self.columns, adjs_for_cols, expected_adjustments
+            self.columns, adjs_for_cols, expected_adjustments
         ):
             assert_equal(
                 adjustments,

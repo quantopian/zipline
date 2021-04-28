@@ -824,7 +824,7 @@ class tmp_asset_finder(tmp_assets_db):
         url="sqlite:///:memory:",
         finder_cls=AssetFinder,
         future_chain_predicates=None,
-        **frames
+        **frames,
     ):
         self._finder_cls = finder_cls
         self._future_chain_predicates = future_chain_predicates

@@ -109,7 +109,7 @@ class Term(with_metaclass(ABCMeta, object)):
         ndim=NotSpecified,
         # params is explicitly not allowed to be passed to an instance.
         *args,
-        **kwargs
+        **kwargs,
     ):
         """
         Memoized constructor for Terms.
@@ -149,7 +149,7 @@ class Term(with_metaclass(ABCMeta, object)):
             ndim=ndim,
             params=params,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         try:
@@ -166,7 +166,7 @@ class Term(with_metaclass(ABCMeta, object)):
                     ndim=ndim,
                     params=params,
                     *args,
-                    **kwargs
+                    **kwargs,
                 )
             )
             return new_instance
@@ -498,7 +498,7 @@ class ComputableTerm(Term):
         mask=mask,
         domain=domain,
         *args,
-        **kwargs
+        **kwargs,
     ):
 
         if inputs is NotSpecified:
@@ -541,7 +541,7 @@ class ComputableTerm(Term):
             window_length=window_length,
             domain=domain,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def _init(self, inputs, outputs, window_length, mask, *args, **kwargs):

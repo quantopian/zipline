@@ -55,11 +55,11 @@ class EventDataSet(DataSet):
 
     previous_string_custom_missing = Column(
         dtype=categorical_dtype,
-        missing_value=u"<<NULL>>",
+        missing_value="<<NULL>>",
     )
     next_string_custom_missing = Column(
         dtype=categorical_dtype,
-        missing_value=u"<<NULL>>",
+        missing_value="<<NULL>>",
     )
 
 

@@ -38,8 +38,7 @@ class LazyBuildExtCommandClass(dict):
     """
 
     def __contains__(self, key):
-        return key == "build_ext" or super(LazyBuildExtCommandClass, self) \
-            .__contains__(
+        return key == "build_ext" or super(LazyBuildExtCommandClass, self).__contains__(
             key
         )
 
@@ -92,43 +91,34 @@ ext_options = dict(
     compiler_directives=dict(profile=True, language_level="3"), annotate=True
 )
 ext_modules = [
-    Extension(name="zipline.assets._assets",
-              sources=["zipline/assets/_assets.pyx"]),
+    Extension(name="zipline.assets._assets", sources=["zipline/assets/_assets.pyx"]),
     Extension(
         name="zipline.assets.continuous_futures",
         sources=["zipline/assets/continuous_futures.pyx"],
     ),
-    Extension(name="zipline.lib.adjustment",
-              sources=["zipline/lib/adjustment.pyx"]),
-    Extension(name="zipline.lib._factorize",
-              sources=["zipline/lib/_factorize.pyx"]),
+    Extension(name="zipline.lib.adjustment", sources=["zipline/lib/adjustment.pyx"]),
+    Extension(name="zipline.lib._factorize", sources=["zipline/lib/_factorize.pyx"]),
     window_specialization("float64"),
     window_specialization("int64"),
     window_specialization("int64"),
     window_specialization("uint8"),
     window_specialization("label"),
-    Extension(name="zipline.lib.rank",
-              sources=["zipline/lib/rank.pyx"]),
-    Extension(name="zipline.data._equities",
-              sources=["zipline/data/_equities.pyx"]),
+    Extension(name="zipline.lib.rank", sources=["zipline/lib/rank.pyx"]),
+    Extension(name="zipline.data._equities", sources=["zipline/data/_equities.pyx"]),
     Extension(
-        name="zipline.data._adjustments",
-        sources=["zipline/data/_adjustments.pyx"]
+        name="zipline.data._adjustments", sources=["zipline/data/_adjustments.pyx"]
     ),
-    Extension(name="zipline._protocol",
-              sources=["zipline/_protocol.pyx"]),
+    Extension(name="zipline._protocol", sources=["zipline/_protocol.pyx"]),
     Extension(
         name="zipline.finance._finance_ext",
         sources=["zipline/finance/_finance_ext.pyx"],
     ),
-    Extension(name="zipline.gens.sim_engine",
-              sources=["zipline/gens/sim_engine.pyx"]),
+    Extension(name="zipline.gens.sim_engine", sources=["zipline/gens/sim_engine.pyx"]),
     Extension(
         name="zipline.data._minute_bar_internal",
         sources=["zipline/data/_minute_bar_internal.pyx"],
     ),
-    Extension(name="zipline.data._resample",
-              sources=["zipline/data/_resample.pyx"]),
+    Extension(name="zipline.data._resample", sources=["zipline/data/_resample.pyx"]),
 ]
 for ext_module in ext_modules:
     ext_module.cython_directives = dict(language_level="3")
@@ -137,7 +127,7 @@ version = versioneer.get_version()
 
 setup(
     version=version,
-    test_suite='tests',
+    test_suite="tests",
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     entry_points={
         "console_scripts": [

@@ -140,7 +140,7 @@ class TestDataSetFamily(ZiplineTestCase):
                         list(zip(expected_dims.keys(), valid_combination))[
                             len(valid_combination) // 2 :
                         ],
-                    )
+                    ),
                 ),
             ]
             for alt in alternate_constructions:

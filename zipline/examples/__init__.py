@@ -11,9 +11,7 @@ from zipline import run_algorithm
 def load_example_modules():
     example_modules = {}
     for f in os.listdir(os.path.dirname(__file__)):
-        if not f.endswith(".py") or \
-                f == "__init__.py" or \
-                f == 'buyapple_ide.py':
+        if not f.endswith(".py") or f == "__init__.py" or f == "buyapple_ide.py":
             continue
         modname = f[: -len(".py")]
         mod = import_module("." + modname, package=__name__)
@@ -65,8 +63,7 @@ _cols_to_check = [
 ]
 
 
-def run_example(example_modules, example_name,
-                environ, benchmark_returns=None):
+def run_example(example_modules, example_name, environ, benchmark_returns=None):
     """
     Run an example module from zipline.examples.
     """
@@ -83,5 +80,5 @@ def run_example(example_modules, example_name,
         environ=environ,
         benchmark_returns=benchmark_returns,
         # Provide a default capital base, but allow the test to override.
-        **merge({"capital_base": 1e7}, mod._test_args())
+        **merge({"capital_base": 1e7}, mod._test_args()),
     )
