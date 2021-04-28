@@ -25,6 +25,50 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install TA-Lib Linux
+        if: ${{ matrix.os == 'linux-latest' }}
+        run: |
+          curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
+          tar xvfz ta-lib-0.4.0-src.tar.gz &&
+          cd ta-lib &&
+          ./configure &&
+          make &&
+          make install &&
+          ldconfig
+
+      - name: Install TA-Lib macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew install freetype pkg-config gcc openssl hdf5 ta-lib
+
+      - name: Install TA-Lib Windows
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          powershell -Command "(New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')"
+          powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')"
+          pushd C:\ta-lib\c\
+          pushd make\cdd\win32\msvc
+          nmake
+          popd
+          pushd make\cdr\win32\msvc
+          nmake
+          popd
+          pushd make\cmd\win32\msvc
+          nmake
+          popd
+          pushd make\cmr\win32\msvc
+          nmake
+          popd
+          pushd make\csd\win32\msvc
+          nmake
+          popd
+          pushd make\csr\win32\msvc
+          nmake
+          popd
+          popd
+          del ta-lib-0.4.0-msvc.zip
+
       - name: Install Zipline
         run: |
           python -m pip install --upgrade pip
