@@ -114,7 +114,9 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
             # Choose N random distinct days...
             for ndays in 1, 2, 7, 20:
                 dts_raw = rand.choice(dates, ndays, replace=False)
-                dts = pd.DatetimeIndex(dts_raw, tz="utc").sort_values()
+                dts = pd.DatetimeIndex(
+                    dts_raw,
+                ).sort_values()
 
                 # Choose M random possibly-non-distinct currencies...
                 for nbases in 1, 2, 10, 200:
