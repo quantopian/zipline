@@ -3,6 +3,7 @@ from interface import default, Interface
 import numpy as np
 import pandas as pd
 
+from zipline.utils.date_utils import dt_index_to_utc
 from zipline.utils.sentinel import sentinel
 from zipline.lib._factorize import factorize_strings
 
@@ -108,7 +109,7 @@ class FXRateReader(Interface):
             rate,
             quote,
             bases=np.array([base], dtype=object),
-            dts=pd.DatetimeIndex([dt], tz="UTC"),
+            dts=dt_index_to_utc(pd.DatetimeIndex([dt])),
         )
         return rates_2d[0, 0]
 
