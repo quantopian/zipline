@@ -29,7 +29,6 @@ from zipline.utils.numpy_utils import float64_dtype, NoDefaultMissingValue
 from zipline.utils.preprocess import preprocess
 from zipline.utils.string_formatting import bulleted_list
 
-
 IsSpecialization = sentinel("IsSpecialization")
 
 
@@ -471,7 +470,7 @@ class DataSetMeta(type):
                 # of a root-specialized dataset, which we don't want to create
                 # new specializations of.
                 raise ValueError(
-                    "Can't specialize {dataset} to new domain {new}.".format(
+                    "Can't specialize {dataset} from {current} to new domain {new}.".format(
                         dataset=self.__name__,
                         current=self.domain,
                         new=domain,

@@ -1098,7 +1098,10 @@ class AssetFinder(object):
                 field_name,
                 value,
             ]
-            assert owners, "empty owners list for %r" % (field_name, value)
+            assert owners, "empty owners list for field %r (sid: %r)" % (
+                field_name,
+                value,
+            )
         except KeyError:
             # no equity has ever held this value
             raise ValueNotFoundForField(field=field_name, value=value)
@@ -1158,7 +1161,10 @@ class AssetFinder(object):
                 field_name,
                 sid,
             ]
-            assert periods, "empty periods list for %r" % (field_name, sid)
+            assert periods, "empty periods list for field %r and sid %r" % (
+                field_name,
+                sid,
+            )
         except KeyError:
             raise NoValueForSid(field=field_name, sid=sid)
 
