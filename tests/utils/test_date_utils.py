@@ -1,15 +1,23 @@
 import pandas as pd
 from trading_calendars import get_calendar
+from pandas.testing import assert_index_equal
 
-from zipline.utils.date_utils import compute_date_range_chunks
+from zipline.utils.date_utils import compute_date_range_chunks, make_utc_aware
 import pytest
 
 
-def T(s):
+def T(s, tz="UTC"):
     """
-    Helpful function to improve readibility.
+    Helpful function to improve readability.
     """
-    return pd.Timestamp(s, tz="UTC")
+    return pd.Timestamp(s, tz=tz)
+
+
+def DTI(start=None, end=None, periods=None, freq=None, tz=None, normalize=False):
+    """
+    Creates DateTimeIndex using pd.date_range.
+    """
+    return pd.date_range(start, end, periods, freq, tz, normalize)
 
 
 @pytest.fixture(scope="class")
@@ -77,3 +85,49 @@ class TestDateUtils:
             compute_date_range_chunks(
                 self.calendar.all_sessions, T("2017-06-01"), T("2017-05-01"), None
             )
+
+
+class TestMakeTZAware:
+    @pytest.mark.parametrize(
+        "dti, expected",
+        [
+            (
+                DTI(start="2020-01-01", end="2020-02-01"),
+                DTI(start="2020-01-01", end="2020-02-01", tz=None).tz_localize("UTC"),
+            ),
+            (
+                DTI(start="2020-01-01", end="2020-02-01", tz="UTC"),
+                DTI(start="2020-01-01", end="2020-02-01", tz="UTC"),
+            ),
+            (
+                DTI(start="2020-01-01", end="2020-02-01", tz="US/Eastern"),
+                DTI(start="2020-01-01", end="2020-02-01", tz="US/Eastern").tz_convert(
+                    "UTC"
+                ),
+            ),
+        ],
+    )
+    def test_index_converts(self, dti, expected):
+        # GIVEN a pd.DateTimeIndex (DTI)
+        # WHEN it has NO/UTC/other TZ info
+        # THEN returned DTI has UTC tz_info
+        result = make_utc_aware(dti=dti)
+        assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ts, expected",
+        [
+            (T("2020-01-01"), T("2020-01-01", tz=None).tz_localize("UTC")),
+            (T("2020-01-01", tz="UTC"), T("2020-01-01", tz="UTC")),
+            (
+                T("2020-01-01", tz="US/Eastern"),
+                T("2020-01-01", tz="US/Eastern").tz_convert("UTC"),
+            ),
+        ],
+    )
+    def test_time_stamp_converts(self, ts, expected):
+        # GIVEN a pd.TimeStamp (DTI)
+        # WHEN it has NO/UTC/other TZ info
+        # THEN returned DTI has UTC tz_info
+        result = make_utc_aware(dti=ts)
+        assert result == expected

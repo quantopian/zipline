@@ -22,7 +22,7 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
-from zipline.utils.date_utils import dt_index_to_utc
+from zipline.utils.date_utils import make_utc_aware
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 from zipline.pipeline.loaders.utils import (
     ffill_across_cols,
@@ -30,8 +30,7 @@ from zipline.pipeline.loaders.utils import (
 )
 
 INVALID_NUM_QTRS_MESSAGE = (
-    "Passed invalid number of quarters %s; "
-    "must pass a number of quarters >= 0"
+    "Passed invalid number of quarters %s; " "must pass a number of quarters >= 0"
 )
 NEXT_FISCAL_QUARTER = "next_fiscal_quarter"
 NEXT_FISCAL_YEAR = "next_fiscal_year"
@@ -273,7 +272,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         """
         split_adjusted_asof_idx = dates.searchsorted(
             pd.to_datetime(self._split_adjusted_asof, utc=True)
-            # dt_index_to_utc(pd.DatetimeIndex(self._split_adjusted_asof))
+            # make_utc_aware(pd.DatetimeIndex(self._split_adjusted_asof))
         )
         # The split-asof date is after the date index.
         if split_adjusted_asof_idx == len(dates):
@@ -333,7 +332,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
 
         next_qtr_start_indices = dates.searchsorted(
             # pd.to_datetime(group[EVENT_DATE_FIELD_NAME], utc=True),
-            dt_index_to_utc(pd.DatetimeIndex(group[EVENT_DATE_FIELD_NAME])),
+            make_utc_aware(pd.DatetimeIndex(group[EVENT_DATE_FIELD_NAME])),
             side=self.searchsorted_side,
         )
 
@@ -1063,7 +1062,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         if pd.notnull(newest_kd_for_qtr):
             newest_kd_idx = dates.searchsorted(
                 pd.to_datetime(newest_kd_for_qtr, utc=True)
-                # dt_index_to_utc(pd.DatetimeIndex(newest_kd_for_qtr))
+                # make_utc_aware(pd.DatetimeIndex(newest_kd_for_qtr))
             )
             # We have fresh information that comes in
             # before the end of the overwrite and

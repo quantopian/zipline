@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from zipline.errors import NoFurtherDataError
 from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
-from zipline.utils.date_utils import dt_index_to_utc
+from zipline.utils.date_utils import make_utc_aware
 from zipline.utils.numpy_utils import categorical_dtype
 
 
@@ -62,12 +62,12 @@ def next_event_indexer(
     # if it's in all_dates.
     dt_ixs = all_dates.searchsorted(
         # pd.to_datetime(event_dates, utc=True), side="right")
-        dt_index_to_utc(pd.DatetimeIndex(event_dates)),
+        make_utc_aware(pd.DatetimeIndex(event_dates)),
         side="right",
     )
     ts_ixs = data_query_cutoff.searchsorted(
         # pd.to_datetime(event_timestamps, utc=True), side="right"
-        dt_index_to_utc(pd.DatetimeIndex(event_timestamps)),
+        make_utc_aware(pd.DatetimeIndex(event_timestamps)),
         side="right",
     )
 
@@ -127,7 +127,7 @@ def previous_event_indexer(
     sid_ixs = all_sids.searchsorted(event_sids)
     dt_ixs = data_query_cutoff_times.searchsorted(
         # pd.to_datetime(eff_dts, utc=True), side="right"
-        dt_index_to_utc(pd.DatetimeIndex(eff_dts)),
+        make_utc_aware(pd.DatetimeIndex(eff_dts)),
         side="right",
     )
 
@@ -186,7 +186,7 @@ def last_in_date_group(
     """
     # get positions in `data_query_cutoff_times` just before `TS_FIELD_NAME` in `df`
     idx_before_ts = data_query_cutoff_times.searchsorted(
-        dt_index_to_utc(pd.DatetimeIndex(df[TS_FIELD_NAME]))
+        make_utc_aware(pd.DatetimeIndex(df[TS_FIELD_NAME]))
     )
     idx = [data_query_cutoff_times[idx_before_ts]]
 

@@ -71,9 +71,7 @@ class IterateRLAlgo(TradingAlgorithm):
         self.found = False
 
     def handle_data(self, data):
-        for stock in self.rl.leveraged_etf_list.current_securities(
-            self.get_datetime()
-        ):
+        for stock in self.rl.leveraged_etf_list.current_securities(self.get_datetime()):
             if stock == self.sid:
                 self.found = True
 
@@ -123,9 +121,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
             ]
         ]
         for sid in should_exist:
-            assert sid in rl.leveraged_etf_list.current_securities(
-                get_datetime()
-            )
+            assert sid in rl.leveraged_etf_list.current_securities(get_datetime())
 
         # assert that a sample of allowed stocks are not in restricted
         shouldnt_exist = [
@@ -138,9 +134,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
             ]
         ]
         for sid in shouldnt_exist:
-            assert sid not in rl.leveraged_etf_list.current_securities(
-                get_datetime()
-            )
+            assert sid not in rl.leveraged_etf_list.current_securities(get_datetime())
 
     def test_security_add(self):
         def get_datetime():
@@ -159,9 +153,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
                 ]
             ]
             for sid in should_exist:
-                assert sid in rl.leveraged_etf_list.current_securities(
-                    get_datetime()
-                )
+                assert sid in rl.leveraged_etf_list.current_securities(get_datetime())
 
     def test_security_add_delete(self):
         with security_list_copy():
@@ -170,9 +162,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
                 return pd.Timestamp("2015-01-27", tz="UTC")
 
             rl = SecurityListSet(get_datetime, self.asset_finder)
-            assert "BZQ" not in rl.leveraged_etf_list.current_securities(
-                get_datetime()
-            )
+            assert "BZQ" not in rl.leveraged_etf_list.current_securities(get_datetime())
             assert "URTY" not in rl.leveraged_etf_list.current_securities(
                 get_datetime()
             )

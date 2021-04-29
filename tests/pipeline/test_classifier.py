@@ -242,9 +242,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             missing_value=missing,
         )
 
-        expected = (
-            data.as_int_array() != data.reverse_categories.get(compval, -1)
-        ) & (data.as_int_array() != data.reverse_categories[C.missing_value])
+        expected = (data.as_int_array() != data.reverse_categories.get(compval, -1)) & (
+            data.as_int_array() != data.reverse_categories[C.missing_value]
+        )
 
         self.check_terms(
             terms={
@@ -263,9 +263,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         missing=["a", "ab", "", "not in the array"],
         labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
     )
-    def test_string_elementwise_predicates(
-        self, compval, missing, labelarray_dtype
-    ):
+    def test_string_elementwise_predicates(self, compval, missing, labelarray_dtype):
         if labelarray_dtype == bytes_dtype:
             compval = compval.encode("utf-8")
             missing = missing.encode("utf-8")

@@ -238,7 +238,8 @@ class Portfolio(object):
                     position.last_sale_price * position.amount * asset.price_multiplier
                 )
                 for asset, position in self.positions.items()
-            }, dtype=float
+            },
+            dtype=float,
         )
         return position_values / self.portfolio_value
 

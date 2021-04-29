@@ -42,7 +42,7 @@ def compute_date_range_chunks(sessions, start_date, end_date, chunksize):
     return ((r[0], r[-1]) for r in partition_all(chunksize, sessions[start_ix:end_ix]))
 
 
-def dt_index_to_utc(dti):
+def make_utc_aware(dti):
     """
     Normalizes a pd.DateTimeIndex. Assumes UTC if tz-naive.
     """

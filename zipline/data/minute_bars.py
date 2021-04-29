@@ -21,13 +21,11 @@ from textwrap import dedent
 from lru import LRU
 import bcolz
 from bcolz import ctable
-import h5py
 from intervaltree import IntervalTree
 import logbook
 import numpy as np
 import pandas as pd
 from pandas import HDFStore
-import tables
 from six import with_metaclass
 from toolz import keymap, valmap
 from trading_calendars import get_calendar

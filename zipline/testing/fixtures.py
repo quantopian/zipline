@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import sqlite3
 from unittest import TestCase
 import warnings
@@ -79,15 +80,9 @@ from ..finance.trading import SimulationParameters
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from ..utils.memoize import remember_last
+from ..utils.date_utils import make_utc_aware
 
-zipline_dir = os.path.dirname(zipline.__file__)
-
-
-def make_tz_aware(ts):
-    try:
-        return ts.tz_localize("UTC")
-    except TypeError:
-        return ts.tz_convert("UTC")
+zipline_dir = Path(zipline.__file__).parent
 
 
 class DebugMROMeta(FinalMeta):
@@ -709,7 +704,7 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
         for cal_str in cls.TRADING_CALENDAR_STRS:
             trading_calendar = cls.trading_calendars[cal_str]
             sessions = trading_calendar.sessions_in_range(
-                make_tz_aware(cls.DATA_MIN_DAY), make_tz_aware(cls.DATA_MAX_DAY)
+                make_utc_aware(cls.DATA_MIN_DAY), make_utc_aware(cls.DATA_MAX_DAY)
             )
             # Set name for aliasing.
             setattr(cls, "{0}_sessions".format(cal_str.lower()), sessions)
