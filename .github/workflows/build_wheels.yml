@@ -13,17 +13,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
 #      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"
-      CIBW_TEST_COMMAND: pytest
-      CIBW_BEFORE_TEST_LINUX: >
-        curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
-        tar xvfz ta-lib-0.4.0-src.tar.gz &&
-        cd ta-lib &&
-        ./configure &&
-        make &&
-        make install &&
-        ldconfig
-      CIBW_BEFORE_TEST_MACOS: >
-        brew install freetype pkg-config gcc openssl hdf5 ta-lib
+      CIBW_TEST_COMMAND: "pytest {project}/tests"
+#      CIBW_BEFORE_TEST_LINUX: >
+#        curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
+#        tar xvfz ta-lib-0.4.0-src.tar.gz &&
+#        cd ta-lib &&
+#        ./configure &&
+#        make &&
+#        make install &&
+#        ldconfig
+#      CIBW_BEFORE_TEST_MACOS: >
+#        brew install freetype pkg-config gcc openssl hdf5 ta-lib
       CIBW_TEST_EXTRAS: test
       CIBW_BUILD_VERBOSITY: 1
 
