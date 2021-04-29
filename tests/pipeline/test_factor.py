@@ -4,25 +4,11 @@ Tests for Factor terms.
 from functools import partial
 from itertools import product
 from parameterized import parameterized
-from unittest import TestCase, skipIf
+from unittest import skipIf
 
 from toolz import compose
 import numpy as np
-from numpy import (
-    apply_along_axis,
-    arange,
-    array,
-    datetime64,
-    empty,
-    eye,
-    inf,
-    log1p,
-    nan,
-    ones,
-    ones_like,
-    rot90,
-    where,
-)
+from numpy import nan
 from numpy.random import randn, seed
 import pandas as pd
 from scipy.stats.mstats import winsorize as scipy_winsorize
@@ -67,6 +53,8 @@ from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
 from .base import BaseUSEquityPipelineTestCase
+import pytest
+import re
 
 
 class F(Factor):
@@ -136,7 +124,7 @@ def scipy_winsorize_with_nan_handling(array, limits):
     sorted_winsorized = np.hstack(
         [
             scipy_winsorize(sorted_non_nans, limits).data,
-            np.full(nancount, np.nan),
+            np.full(nancount, nan),
         ]
     )
 
@@ -149,7 +137,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         self.f = F()
 
     def test_bad_input(self):
-        with self.assertRaises(UnknownRankMethod):
+        with pytest.raises(UnknownRankMethod):
             self.f.rank("not a real rank method")
 
     @parameter_space(method_name=["isnan", "notnan", "isfinite"])
@@ -161,7 +149,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         nf = NotFloat()
         meth = getattr(nf, method_name)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             meth()
 
     @parameter_space(custom_missing_value=[-1, 0])
@@ -174,8 +162,8 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         factor = CustomMissingValue()
 
-        data = arange(25).reshape(5, 5)
-        data[eye(5, dtype=bool)] = custom_missing_value
+        data = np.arange(25).reshape(5, 5)
+        data[np.eye(5, dtype=bool)] = custom_missing_value
 
         self.check_terms(
             {
@@ -183,11 +171,11 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                 "notnull": factor.notnull(),
             },
             {
-                "isnull": eye(5, dtype=bool),
-                "notnull": ~eye(5, dtype=bool),
+                "isnull": np.eye(5, dtype=bool),
+                "notnull": ~np.eye(5, dtype=bool),
             },
             initial_workspace={factor: data},
-            mask=self.build_mask(ones((5, 5))),
+            mask=self.build_mask(np.ones((5, 5))),
         )
 
     def test_isnull_datetime_dtype(self):
@@ -198,8 +186,8 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         factor = DatetimeFactor()
 
-        data = arange(25).reshape(5, 5).astype("datetime64[ns]")
-        data[eye(5, dtype=bool)] = NaTns
+        data = np.arange(25).reshape(5, 5).astype("datetime64[ns]")
+        data[np.eye(5, dtype=bool)] = NaTns
 
         self.check_terms(
             {
@@ -207,11 +195,11 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                 "notnull": factor.notnull(),
             },
             {
-                "isnull": eye(5, dtype=bool),
-                "notnull": ~eye(5, dtype=bool),
+                "isnull": np.eye(5, dtype=bool),
+                "notnull": ~np.eye(5, dtype=bool),
             },
             initial_workspace={factor: data},
-            mask=self.build_mask(ones((5, 5))),
+            mask=self.build_mask(np.ones((5, 5))),
         )
 
     @for_each_factor_dtype
@@ -221,7 +209,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         # Generated with:
         # data = arange(25).reshape(5, 5).transpose() % 4
-        data = array(
+        data = np.array(
             [
                 [0, 1, 2, 3, 0],
                 [1, 2, 3, 0, 1],
@@ -233,7 +221,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
         expected_ranks = {
-            "ordinal": array(
+            "ordinal": np.array(
                 [
                     [1.0, 3.0, 4.0, 5.0, 2.0],
                     [2.0, 4.0, 5.0, 1.0, 3.0],
@@ -242,7 +230,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.0, 3.0, 4.0, 5.0, 2.0],
                 ]
             ),
-            "average": array(
+            "average": np.array(
                 [
                     [1.5, 3.0, 4.0, 5.0, 1.5],
                     [2.5, 4.0, 5.0, 1.0, 2.5],
@@ -251,7 +239,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.5, 3.0, 4.0, 5.0, 1.5],
                 ]
             ),
-            "min": array(
+            "min": np.array(
                 [
                     [1.0, 3.0, 4.0, 5.0, 1.0],
                     [2.0, 4.0, 5.0, 1.0, 2.0],
@@ -260,7 +248,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.0, 3.0, 4.0, 5.0, 1.0],
                 ]
             ),
-            "max": array(
+            "max": np.array(
                 [
                     [2.0, 3.0, 4.0, 5.0, 2.0],
                     [3.0, 4.0, 5.0, 1.0, 3.0],
@@ -269,7 +257,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [2.0, 3.0, 4.0, 5.0, 2.0],
                 ]
             ),
-            "dense": array(
+            "dense": np.array(
                 [
                     [1.0, 2.0, 3.0, 4.0, 1.0],
                     [2.0, 3.0, 4.0, 1.0, 2.0],
@@ -285,7 +273,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                 terms,
                 expected={name: expected_ranks[name] for name in terms},
                 initial_workspace={f: data},
-                mask=self.build_mask(ones((5, 5))),
+                mask=self.build_mask(np.ones((5, 5))),
             )
 
         check({meth: f.rank(method=meth) for meth in expected_ranks})
@@ -301,7 +289,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         # Generated with:
         # data = arange(25).reshape(5, 5).transpose() % 4
-        data = array(
+        data = np.array(
             [
                 [0, 1, 2, 3, 0],
                 [1, 2, 3, 0, 1],
@@ -312,7 +300,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             dtype=factor_dtype,
         )
         expected_ranks = {
-            "ordinal": array(
+            "ordinal": np.array(
                 [
                     [4.0, 3.0, 2.0, 1.0, 5.0],
                     [3.0, 2.0, 1.0, 5.0, 4.0],
@@ -321,7 +309,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [4.0, 3.0, 2.0, 1.0, 5.0],
                 ]
             ),
-            "average": array(
+            "average": np.array(
                 [
                     [4.5, 3.0, 2.0, 1.0, 4.5],
                     [3.5, 2.0, 1.0, 5.0, 3.5],
@@ -330,7 +318,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [4.5, 3.0, 2.0, 1.0, 4.5],
                 ]
             ),
-            "min": array(
+            "min": np.array(
                 [
                     [4.0, 3.0, 2.0, 1.0, 4.0],
                     [3.0, 2.0, 1.0, 5.0, 3.0],
@@ -339,7 +327,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [4.0, 3.0, 2.0, 1.0, 4.0],
                 ]
             ),
-            "max": array(
+            "max": np.array(
                 [
                     [5.0, 3.0, 2.0, 1.0, 5.0],
                     [4.0, 2.0, 1.0, 5.0, 4.0],
@@ -348,7 +336,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [5.0, 3.0, 2.0, 1.0, 5.0],
                 ]
             ),
-            "dense": array(
+            "dense": np.array(
                 [
                     [4.0, 3.0, 2.0, 1.0, 4.0],
                     [3.0, 2.0, 1.0, 4.0, 3.0],
@@ -364,7 +352,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                 terms,
                 expected={name: expected_ranks[name] for name in terms},
                 initial_workspace={f: data},
-                mask=self.build_mask(ones((5, 5))),
+                mask=self.build_mask(np.ones((5, 5))),
             )
 
         check({meth: f.rank(method=meth, ascending=False) for meth in expected_ranks})
@@ -376,7 +364,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         f = F(dtype=factor_dtype)
         # data = arange(25).reshape(5, 5).transpose() % 4
-        data = array(
+        data = np.array(
             [
                 [0, 1, 2, 3, 0],
                 [1, 2, 3, 0, 1],
@@ -386,7 +374,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             ],
             dtype=factor_dtype,
         )
-        mask_data = ~eye(5, dtype=bool)
+        mask_data = ~np.eye(5, dtype=bool)
         initial_workspace = {f: data, Mask(): mask_data}
 
         terms = {
@@ -397,7 +385,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         }
 
         expected = {
-            "ascending_nomask": array(
+            "ascending_nomask": np.array(
                 [
                     [1.0, 3.0, 4.0, 5.0, 2.0],
                     [2.0, 4.0, 5.0, 1.0, 3.0],
@@ -406,7 +394,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.0, 3.0, 4.0, 5.0, 2.0],
                 ]
             ),
-            "descending_nomask": array(
+            "descending_nomask": np.array(
                 [
                     [4.0, 3.0, 2.0, 1.0, 5.0],
                     [3.0, 2.0, 1.0, 5.0, 4.0],
@@ -417,7 +405,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             ),
             # Diagonal should be all nans, and anything whose rank was less
             # than the diagonal in the unmasked calc should go down by 1.
-            "ascending_mask": array(
+            "ascending_mask": np.array(
                 [
                     [nan, 2.0, 3.0, 4.0, 1.0],
                     [2.0, nan, 4.0, 1.0, 3.0],
@@ -426,7 +414,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.0, 2.0, 3.0, 4.0, nan],
                 ]
             ),
-            "descending_mask": array(
+            "descending_mask": np.array(
                 [
                     [nan, 3.0, 2.0, 1.0, 4.0],
                     [2.0, nan, 1.0, 4.0, 3.0],
@@ -441,7 +429,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             terms,
             expected,
             initial_workspace,
-            mask=self.build_mask(ones((5, 5))),
+            mask=self.build_mask(np.ones((5, 5))),
         )
 
     @for_each_factor_dtype
@@ -453,7 +441,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         # Generated with:
         # data = arange(25).reshape(5, 5).transpose() % 4
-        data = array(
+        data = np.array(
             [
                 [0, 1, 2, 3, 0],
                 [1, 2, 3, 0, 1],
@@ -466,7 +454,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         # Generated with:
         # classifier_data = arange(25).reshape(5, 5).transpose() % 2
-        classifier_data = array(
+        classifier_data = np.array(
             [
                 [0, 1, 0, 1, 0],
                 [1, 0, 1, 0, 1],
@@ -482,7 +470,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
         expected_ranks = {
-            "ordinal": array(
+            "ordinal": np.array(
                 [
                     [1.0, 1.0, 3.0, 2.0, 2.0],
                     [1.0, 2.0, 3.0, 1.0, 2.0],
@@ -491,7 +479,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.0, 1.0, 3.0, 2.0, 2.0],
                 ]
             ),
-            "average": array(
+            "average": np.array(
                 [
                     [1.5, 1.0, 3.0, 2.0, 1.5],
                     [1.5, 2.0, 3.0, 1.0, 1.5],
@@ -500,7 +488,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.5, 1.0, 3.0, 2.0, 1.5],
                 ]
             ),
-            "min": array(
+            "min": np.array(
                 [
                     [1.0, 1.0, 3.0, 2.0, 1.0],
                     [1.0, 2.0, 3.0, 1.0, 1.0],
@@ -509,7 +497,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [1.0, 1.0, 3.0, 2.0, 1.0],
                 ]
             ),
-            "max": array(
+            "max": np.array(
                 [
                     [2.0, 1.0, 3.0, 2.0, 2.0],
                     [2.0, 2.0, 3.0, 1.0, 2.0],
@@ -518,7 +506,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [2.0, 1.0, 3.0, 2.0, 2.0],
                 ]
             ),
-            "dense": array(
+            "dense": np.array(
                 [
                     [1.0, 1.0, 2.0, 2.0, 1.0],
                     [1.0, 2.0, 2.0, 1.0, 1.0],
@@ -538,7 +526,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     c: classifier_data,
                     str_c: string_classifier_data,
                 },
-                mask=self.build_mask(ones((5, 5))),
+                mask=self.build_mask(np.ones((5, 5))),
             )
 
         # Not specifying the value of ascending param should default to True
@@ -572,7 +560,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         # Generated with:
         # data = arange(25).reshape(5, 5).transpose() % 4
-        data = array(
+        data = np.array(
             [
                 [0, 1, 2, 3, 0],
                 [1, 2, 3, 0, 1],
@@ -585,7 +573,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         # Generated with:
         # classifier_data = arange(25).reshape(5, 5).transpose() % 2
-        classifier_data = array(
+        classifier_data = np.array(
             [
                 [0, 1, 0, 1, 0],
                 [1, 0, 1, 0, 1],
@@ -602,7 +590,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
         expected_ranks = {
-            "ordinal": array(
+            "ordinal": np.array(
                 [
                     [2.0, 2.0, 1.0, 1.0, 3.0],
                     [2.0, 1.0, 1.0, 2.0, 3.0],
@@ -611,7 +599,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [2.0, 2.0, 1.0, 1.0, 3.0],
                 ]
             ),
-            "average": array(
+            "average": np.array(
                 [
                     [2.5, 2.0, 1.0, 1.0, 2.5],
                     [2.5, 1.0, 1.0, 2.0, 2.5],
@@ -620,7 +608,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [2.5, 2.0, 1.0, 1.0, 2.5],
                 ]
             ),
-            "min": array(
+            "min": np.array(
                 [
                     [2.0, 2.0, 1.0, 1.0, 2.0],
                     [2.0, 1.0, 1.0, 2.0, 2.0],
@@ -629,7 +617,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [2.0, 2.0, 1.0, 1.0, 2.0],
                 ]
             ),
-            "max": array(
+            "max": np.array(
                 [
                     [3.0, 2.0, 1.0, 1.0, 3.0],
                     [3.0, 1.0, 1.0, 2.0, 3.0],
@@ -638,7 +626,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [3.0, 2.0, 1.0, 1.0, 3.0],
                 ]
             ),
-            "dense": array(
+            "dense": np.array(
                 [
                     [2.0, 2.0, 1.0, 1.0, 2.0],
                     [2.0, 1.0, 1.0, 2.0, 2.0],
@@ -658,7 +646,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     c: classifier_data,
                     str_c: string_classifier_data,
                 },
-                mask=self.build_mask(ones((5, 5))),
+                mask=self.build_mask(np.ones((5, 5))),
             )
 
         check(
@@ -689,8 +677,8 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         returns = Returns(window_length=window_length)
 
-        today = datetime64(1, "ns")
-        assets = arange(3)
+        today = np.datetime64(1, "ns")
+        assets = np.arange(3)
 
         seed(seed_value)  # Seed so we get deterministic results.
         test_data = abs(randn(window_length, 3))
@@ -698,7 +686,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         # Calculate the expected returns
         expected = (test_data[-1] - test_data[0]) / test_data[0]
 
-        out = empty((3,), dtype=float)
+        out = np.empty((3,), dtype=float)
         returns.compute(today, assets, out, test_data)
 
         check_allclose(expected, out)
@@ -717,27 +705,27 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             window_length=window_length,
         )
 
-        today = datetime64(1, "ns")
-        assets = arange(8)
+        today = np.datetime64(1, "ns")
+        assets = np.arange(8)
 
         seed(seed_value)  # Seed so we get deterministic results.
         middle_rows = randn(window_length - 2, 8)
-        first_row = array([1, 2, 2, 1, -1, -1, 0, nan])
-        end_row = array([2, 1, 2, -2, 2, -2, 1, 1])
+        first_row = np.array([1, 2, 2, 1, -1, -1, 0, nan])
+        end_row = np.array([2, 1, 2, -2, 2, -2, 1, 1])
         test_data = np.vstack([first_row, middle_rows, end_row])
 
         # Calculate the expected percent change
-        expected = array([1, -0.5, 0, -3, 3, -1, inf, nan])
+        expected = np.array([1, -0.5, 0, -3, 3, -1, np.inf, nan])
 
-        out = empty((8,), dtype=float)
+        out = np.empty((8,), dtype=float)
         pct_change.compute(today, assets, out, test_data)
 
         check_allclose(expected, out)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             PercentChange(inputs=(), window_length=2)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             PercentChange(inputs=[EquityPricing.close], window_length=1)
 
     def gen_ranking_cases():
@@ -758,8 +746,8 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
     def test_masked_rankdata_2d(
         self, seed_value, method, use_mask, set_missing, ascending
     ):
-        eyemask = ~eye(5, dtype=bool)
-        nomask = ones((5, 5), dtype=bool)
+        eyemask = ~np.eye(5, dtype=bool)
+        nomask = np.ones((5, 5), dtype=bool)
 
         seed(seed_value)
         asfloat = randn(5, 5) * seed_value
@@ -796,7 +784,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         c = C()
         str_c = C(dtype=categorical_dtype, missing_value=None)
 
-        factor_data = array(
+        factor_data = np.array(
             [
                 [1.0, 2.0, 3.0, 4.0],
                 [1.5, 2.5, 3.5, 1.0],
@@ -804,7 +792,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                 [2.5, 3.5, 1.0, 2.0],
             ],
         )
-        filter_data = array(
+        filter_data = np.array(
             [
                 [False, True, True, True],
                 [True, False, True, True],
@@ -813,7 +801,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             ],
             dtype=bool,
         )
-        classifier_data = array(
+        classifier_data = np.array(
             [[1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2]],
             dtype=int64_dtype,
         )
@@ -831,7 +819,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             "grouped_masked_str": f.demean(mask=m, groupby=str_c),
         }
         expected = {
-            "vanilla": array(
+            "vanilla": np.array(
                 [
                     [-1.500, -0.500, 0.500, 1.500],
                     [-0.625, 0.375, 1.375, -1.125],
@@ -839,7 +827,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [0.250, 1.250, -1.250, -0.250],
                 ],
             ),
-            "masked": array(
+            "masked": np.array(
                 [
                     [nan, -1.000, 0.000, 1.000],
                     [-0.500, nan, 1.500, -1.000],
@@ -847,7 +835,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [0.166, 1.166, -1.333, nan],
                 ],
             ),
-            "grouped": array(
+            "grouped": np.array(
                 [
                     [-0.500, 0.500, -0.500, 0.500],
                     [-0.500, 0.500, 1.250, -1.250],
@@ -855,7 +843,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                     [-0.500, 0.500, -0.500, 0.500],
                 ],
             ),
-            "grouped_masked": array(
+            "grouped_masked": np.array(
                 [
                     [nan, 0.000, -0.500, 0.500],
                     [0.000, nan, 1.250, -1.250],
@@ -894,16 +882,26 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         c = C()
         str_c = C(dtype=categorical_dtype, missing_value=None)
 
-        factor_data = array(
+        factor_data = np.array(
             [
                 [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
                 [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, nan, nan, nan],
                 [1.0, 8.0, 27.0, 64.0, 125.0, 216.0, nan, nan, nan],
                 [6.0, 5.0, 4.0, 3.0, 2.0, 1.0, nan, nan, nan],
-                [nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                [
+                    nan,
+                    nan,
+                    nan,
+                    nan,
+                    nan,
+                    nan,
+                    nan,
+                    nan,
+                    nan,
+                ],
             ]
         )
-        filter_data = array(
+        filter_data = np.array(
             [
                 [1, 1, 1, 1, 1, 1, 1, 1, 1],
                 [0, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -913,7 +911,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             ],
             dtype=bool,
         )
-        classifier_data = array(
+        classifier_data = np.array(
             [
                 [1, 1, 1, 2, 2, 2, 1, 1, 1],
                 [1, 1, 1, 2, 2, 2, 1, 1, 1],
@@ -945,59 +943,119 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             ),
         }
         expected = {
-            "winsor_1": array(
+            "winsor_1": np.array(
                 [
                     [3.0, 3.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0],
                     [2.0, 2.0, 3.0, 4.0, 5.0, 5.0, nan, nan, nan],
                     [8.0, 8.0, 27.0, 64.0, 125.0, 125.0, nan, nan, nan],
                     [5.0, 5.0, 4.0, 3.0, 2.0, 2.0, nan, nan, nan],
-                    [nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                    [
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                    ],
                 ]
             ),
-            "winsor_2": array(
+            "winsor_2": np.array(
                 [
                     [5.0, 5.0, 5.0, 5.0, 5.0, 6.0, 7.0, 8.0, 9.0],
                     [3.0, 3.0, 3.0, 4.0, 5.0, 6.0, nan, nan, nan],
                     [27.0, 27.0, 27.0, 64.0, 125.0, 216.0, nan, nan, nan],
                     [6.0, 5.0, 4.0, 3.0, 3.0, 3.0, nan, nan, nan],
-                    [nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                    [
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                    ],
                 ]
             ),
-            "winsor_3": array(
+            "winsor_3": np.array(
                 [
                     [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0],
                     [1.0, 2.0, 3.0, 4.0, 5.0, 5.0, nan, nan, nan],
                     [1.0, 8.0, 27.0, 64.0, 125.0, 125.0, nan, nan, nan],
                     [5.0, 5.0, 4.0, 3.0, 2.0, 1.0, nan, nan, nan],
-                    [nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                    [
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                    ],
                 ]
             ),
-            "masked": array(
+            "masked": np.array(
                 [
                     # no mask on first row
                     [3.0, 3.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0],
                     [nan, 3.0, 3.0, 4.0, 5.0, 5.0, nan, nan, nan],
                     [27.0, nan, 27.0, 64.0, 125.0, 125.0, nan, nan, nan],
                     [5.0, 5.0, nan, 3.0, 2.0, 2.0, nan, nan, nan],
-                    [nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                    [
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                    ],
                 ]
             ),
-            "grouped": array(
+            "grouped": np.array(
                 [
                     [3.0, 3.0, 3.0, 5.0, 5.0, 5.0, 7.0, 7.0, 7.0],
                     [2.0, 2.0, 2.0, 5.0, 5.0, 5.0, nan, nan, nan],
                     [8.0, 8.0, 8.0, 125.0, 125.0, 125.0, nan, nan, nan],
                     [5.0, 5.0, 5.0, 2.0, 2.0, 2.0, nan, nan, nan],
-                    [nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                    [
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                    ],
                 ]
             ),
-            "grouped_masked": array(
+            "grouped_masked": np.array(
                 [
                     [3.0, 3.0, 3.0, 5.0, 5.0, 5.0, 7.0, 7.0, 7.0],
                     [nan, 2.0, 3.0, 5.0, 5.0, 5.0, nan, nan, nan],
                     [1.0, nan, 27.0, 125.0, 125.0, 125.0, nan, nan, nan],
                     [6.0, 5.0, nan, 2.0, 2.0, 2.0, nan, nan, nan],
-                    [nan, nan, nan, nan, nan, nan, nan, nan, nan],
+                    [
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                        nan,
+                    ],
                 ]
             ),
         }
@@ -1019,44 +1077,56 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
     def test_winsorize_no_nans(self):
-        data = array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])
-        permutation = array([2, 1, 6, 8, 7, 5, 3, 9, 4, 0])
+        data = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])
+        permutation = np.array([2, 1, 6, 8, 7, 5, 3, 9, 4, 0])
 
         for perm in slice(None), permutation:
             # Winsorize both tails at 90%.
             result = zp_winsorize(data[perm], 0.1, 0.9)
-            expected = array([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0])[perm]
+            expected = np.array([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 8.0])[
+                perm
+            ]
             assert_equal(result, expected)
 
             # Winsorize both tails at 80%.
             result = zp_winsorize(data[perm], 0.2, 0.8)
-            expected = array([2.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0])[perm]
+            expected = np.array([2.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0])[
+                perm
+            ]
             assert_equal(result, expected)
 
             # Winsorize just the upper tail.
             result = zp_winsorize(data[perm], 0.0, 0.8)
-            expected = array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0])[perm]
+            expected = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.0, 7.0])[
+                perm
+            ]
             assert_equal(result, expected)
 
             # Winsorize just the lower tail.
             result = zp_winsorize(data[perm], 0.2, 1.0)
-            expected = array([2.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])[perm]
+            expected = np.array([2.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])[
+                perm
+            ]
             assert_equal(result, expected)
 
             # Don't winsorize.
             result = zp_winsorize(data[perm], 0.0, 1.0)
-            expected = array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])[perm]
+            expected = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])[
+                perm
+            ]
             assert_equal(result, expected)
 
     def test_winsorize_nans(self):
         # 5 low non-nan values, then some nans, then 5 high non-nans.
-        data = array([4.0, 3.0, 0.0, 1.0, 2.0, nan, nan, nan, 9.0, 5.0, 6.0, 8.0, 7.0])
+        data = np.array(
+            [4.0, 3.0, 0.0, 1.0, 2.0, nan, nan, nan, 9.0, 5.0, 6.0, 8.0, 7.0]
+        )
 
         # Winsorize both tails at 10%.
         # 0.0 -> 1.0
         # 9.0 -> 8.0
         result = zp_winsorize(data, 0.10, 0.90)
-        expected = array(
+        expected = np.array(
             [4.0, 3.0, 1.0, 1.0, 2.0, nan, nan, nan, 8.0, 5.0, 6.0, 8.0, 7.0]
         )
         assert_equal(result, expected)
@@ -1065,21 +1135,21 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         # 0.0 and 1.0 -> 2.0
         # 9.0 and 8.0 -> 7.0
         result = zp_winsorize(data, 0.20, 0.80)
-        expected = array(
+        expected = np.array(
             [4.0, 3.0, 2.0, 2.0, 2.0, nan, nan, nan, 7.0, 5.0, 6.0, 7.0, 7.0]
         )
         assert_equal(result, expected)
 
         # Winsorize just the upper tail.
         result = zp_winsorize(data, 0, 0.8)
-        expected = array(
+        expected = np.array(
             [4.0, 3.0, 0.0, 1.0, 2.0, nan, nan, nan, 7.0, 5.0, 6.0, 7.0, 7.0]
         )
         assert_equal(result, expected)
 
         # Winsorize just the lower tail.
         result = zp_winsorize(data, 0.2, 1.0)
-        expected = array(
+        expected = np.array(
             [4.0, 3.0, 2.0, 2.0, 2.0, nan, nan, nan, 9.0, 5.0, 6.0, 8.0, 7.0]
         )
         assert_equal(result, expected)
@@ -1092,7 +1162,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
         bad_percentiles = [(-0.1, 1), (0, 95), (5, 95), (5, 5), (0.6, 0.4)]
         for min_, max_ in bad_percentiles:
-            with self.assertRaises(BadPercentileBounds):
+            with pytest.raises(BadPercentileBounds):
                 f.winsorize(min_percentile=min_, max_percentile=max_)
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
@@ -1128,25 +1198,25 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         # Falses on main diagonal.
         eyemask = self.eye_mask(shape=shape)
         # Falses on other diagonal.
-        eyemask90 = rot90(eyemask)
+        eyemask90 = np.rot90(eyemask)
         # Falses on both diagonals.
         xmask = eyemask & eyemask90
 
         # Block of random data.
         factor_data = self.randn_data(seed=seed_value, shape=shape)
         if add_nulls_to_factor:
-            factor_data = where(eyemask, factor_data, nan)
+            factor_data = np.where(eyemask, factor_data, nan)
 
         # Cycles of 0, 1, 2, 0, 1, 2, ...
         classifier_data = (
             self.arange_data(shape=shape, dtype=int64_dtype) + seed_value
         ) % 3
         # With -1s on main diagonal.
-        classifier_data_eyenulls = where(eyemask, classifier_data, -1)
+        classifier_data_eyenulls = np.where(eyemask, classifier_data, -1)
         # With -1s on opposite diagonal.
-        classifier_data_eyenulls90 = where(eyemask90, classifier_data, -1)
+        classifier_data_eyenulls90 = np.where(eyemask90, classifier_data, -1)
         # With -1s on both diagonals.
-        classifier_data_xnulls = where(xmask, classifier_data, -1)
+        classifier_data_xnulls = np.where(xmask, classifier_data, -1)
 
         f = self.f
         c = C()
@@ -1163,12 +1233,12 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         }
 
         expected = {
-            "vanilla": apply_along_axis(
+            "vanilla": np.apply_along_axis(
                 func,
                 1,
                 factor_data,
             ),
-            "masked": where(
+            "masked": np.where(
                 eyemask,
                 grouped_apply(factor_data, eyemask, func),
                 nan,
@@ -1180,14 +1250,14 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             ),
             # If the classifier has nulls, we should get NaNs in the
             # corresponding locations in the output.
-            "grouped_with_nulls": where(
+            "grouped_with_nulls": np.where(
                 eyemask90,
                 grouped_apply(factor_data, classifier_data_eyenulls90, func),
                 nan,
             ),
             # Passing a mask with a classifier should behave as though the
             # classifier had nulls where the mask was False.
-            "both": where(
+            "both": np.where(
                 eyemask,
                 grouped_apply(
                     factor_data,
@@ -1196,7 +1266,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
                 ),
                 nan,
             ),
-            "both_with_nulls": where(
+            "both_with_nulls": np.where(
                 xmask,
                 grouped_apply(
                     factor_data,
@@ -1227,16 +1297,12 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             window_length = 0
 
         d = DateFactor()
-        with self.assertRaises(TypeError) as e:
-            getattr(d, method_name)()
-
-        errmsg = str(e.exception)
         expected = (
             "{normalizer}() is only defined on Factors of dtype float64,"
             " but it was called on a Factor of dtype datetime64[ns]."
         ).format(normalizer=method_name)
-
-        self.assertEqual(errmsg, expected)
+        with pytest.raises(TypeError, match=re.escape(expected)):
+            getattr(d, method_name)()
 
     @parameter_space(seed=[1, 2, 3])
     def test_quantiles_unmasked(self, seed):
@@ -1247,7 +1313,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         # Shuffle the input rows to verify that we don't depend on the order.
         # Take the log to ensure that we don't depend on linear scaling or
         # integrality of inputs
-        factor_data = permute(log1p(arange(36, dtype=float).reshape(shape)))
+        factor_data = permute(np.log1p(np.arange(36, dtype=float).reshape(shape)))
 
         f = self.f
 
@@ -1255,7 +1321,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         # expectations. Doing it this way makes it obvious that our
         # expectation corresponds to our input, while still testing against
         # a range of input orderings.
-        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+        permuted_array = compose(permute, partial(np.array, dtype=int64_dtype))
         self.check_terms(
             terms={
                 "2": f.quantiles(bins=2),
@@ -1316,9 +1382,9 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         # Shuffle the input rows to verify that we don't depend on the order.
         # Take the log to ensure that we don't depend on linear scaling or
         # integrality of inputs
-        factor_data = permute(log1p(arange(49, dtype=float).reshape(shape)))
-        factor_data_w_nans = where(
-            permute(rot90(self.eye_mask(shape=shape))),
+        factor_data = permute(np.log1p(np.arange(49, dtype=float).reshape(shape)))
+        factor_data_w_nans = np.where(
+            permute(np.rot90(self.eye_mask(shape=shape))),
             factor_data,
             nan,
         )
@@ -1332,7 +1398,7 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         # expectations. Doing it this way makes it obvious that our
         # expectation corresponds to our input, while still testing against
         # a range of input orderings.
-        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+        permuted_array = compose(permute, partial(np.array, dtype=int64_dtype))
 
         self.check_terms(
             terms={
@@ -1427,13 +1493,13 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         permute = partial(permute_rows, 5)
         shape = (5, 5)
 
-        factor_data = permute(log1p(arange(25, dtype=float).reshape(shape)))
+        factor_data = permute(np.log1p(np.arange(25, dtype=float).reshape(shape)))
         mask_data = permute(self.eye_mask(shape=shape))
 
         f = F()
         m = Mask()
 
-        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+        permuted_array = compose(permute, partial(np.array, dtype=int64_dtype))
         self.check_terms(
             terms={
                 "3_masked": f.quantiles(bins=3, mask=m),
@@ -1470,17 +1536,17 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         f = self.f
         m = Mask()
 
-        self.assertIs(f.quartiles(), f.quantiles(bins=4))
-        self.assertIs(f.quartiles(mask=m), f.quantiles(bins=4, mask=m))
-        self.assertIsNot(f.quartiles(), f.quartiles(mask=m))
+        assert f.quartiles() is f.quantiles(bins=4)
+        assert f.quartiles(mask=m) is f.quantiles(bins=4, mask=m)
+        assert f.quartiles() is not f.quartiles(mask=m)
 
-        self.assertIs(f.quintiles(), f.quantiles(bins=5))
-        self.assertIs(f.quintiles(mask=m), f.quantiles(bins=5, mask=m))
-        self.assertIsNot(f.quintiles(), f.quintiles(mask=m))
+        assert f.quintiles() is f.quantiles(bins=5)
+        assert f.quintiles(mask=m) is f.quantiles(bins=5, mask=m)
+        assert f.quintiles() is not f.quintiles(mask=m)
 
-        self.assertIs(f.deciles(), f.quantiles(bins=10))
-        self.assertIs(f.deciles(mask=m), f.quantiles(bins=10, mask=m))
-        self.assertIsNot(f.deciles(), f.deciles(mask=m))
+        assert f.deciles() is f.quantiles(bins=10)
+        assert f.deciles(mask=m) is f.quantiles(bins=10, mask=m)
+        assert f.deciles() is not f.deciles(mask=m)
 
     @parameter_space(seed=[1, 2, 3])
     def test_clip(self, seed):
@@ -1494,8 +1560,8 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
             size=shape,
         )
         min_, max_ = np.percentile(input_array, [25, 75])
-        self.assertGreater(min_, original_min)
-        self.assertLess(max_, original_max)
+        assert min_ > original_min
+        assert max_ < original_max
 
         f = F()
 
@@ -1511,22 +1577,22 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         )
 
 
-class ReprTestCase(TestCase):
+class TestTermReprs:
     """
     Tests for term reprs.
     """
 
     def test_demean(self):
         r = F().demean().graph_repr()
-        self.assertEqual(r, "GroupedRowTransform('demean')")
+        assert r == "GroupedRowTransform('demean')"
 
     def test_zscore(self):
         r = F().zscore().graph_repr()
-        self.assertEqual(r, "GroupedRowTransform('zscore')")
+        assert r == "GroupedRowTransform('zscore')"
 
     def test_winsorize(self):
         r = F().winsorize(min_percentile=0.05, max_percentile=0.95).graph_repr()
-        self.assertEqual(r, "GroupedRowTransform('winsorize')")
+        assert r == "GroupedRowTransform('winsorize')"
 
     def test_recarray_field_repr(self):
         class MultipleOutputs(CustomFactor):
@@ -1539,17 +1605,16 @@ class ReprTestCase(TestCase):
 
         a = MultipleOutputs().a
         b = MultipleOutputs().b
-
-        self.assertEqual(a.graph_repr(), "CustomRepr().a")
-        self.assertEqual(b.graph_repr(), "CustomRepr().b")
+        assert a.graph_repr() == "CustomRepr().a"
+        assert b.graph_repr() == "CustomRepr().b"
 
     def test_latest_repr(self):
         class SomeDataSet(DataSet):
             a = Column(dtype=float64_dtype)
             b = Column(dtype=float64_dtype)
 
-        self.assertEqual(SomeDataSet.a.latest.graph_repr(), "Latest")
-        self.assertEqual(SomeDataSet.b.latest.graph_repr(), "Latest")
+        assert SomeDataSet.a.latest.graph_repr() == "Latest"
+        assert SomeDataSet.b.latest.graph_repr() == "Latest"
 
     def test_recursive_repr(self):
         class DS(DataSet):
@@ -1566,32 +1631,30 @@ class ReprTestCase(TestCase):
 
         result = repr(HasInputs())
         expected = "HasInputs([Input(...), DS.a, DS.b], 3)"
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_rank_repr(self):
         rank = DailyReturns().rank()
         result = repr(rank)
         expected = "Rank(DailyReturns(...), method='ordinal')"
-        self.assertEqual(result, expected)
-
+        assert result == expected
         recursive_repr = rank.recursive_repr()
-        self.assertEqual(recursive_repr, "Rank(...)")
+        assert recursive_repr == "Rank(...)"
 
     def test_rank_repr_with_mask(self):
         rank = DailyReturns().rank(mask=Mask())
         result = repr(rank)
         expected = "Rank(DailyReturns(...), method='ordinal', mask=Mask(...))"
-        self.assertEqual(result, expected)
-
+        assert result == expected
         recursive_repr = rank.recursive_repr()
-        self.assertEqual(recursive_repr, "Rank(...)")
+        assert recursive_repr == "Rank(...)"
 
 
-class TestWindowSafety(TestCase):
+class TestRepr:
     def test_zscore_is_window_safe(self):
-        self.assertTrue(F().zscore().window_safe)
+        assert F().zscore().window_safe
 
-    @parameter_space(__fail_fast=True, is_window_safe=[True, False])
+    @pytest.mark.parametrize("is_window_safe", [True, False])
     def test_window_safety_propagates_to_recarray_fields(self, is_window_safe):
         class MultipleOutputs(CustomFactor):
             outputs = ["a", "b"]
@@ -1600,33 +1663,30 @@ class TestWindowSafety(TestCase):
             window_safe = is_window_safe
 
         mo = MultipleOutputs()
-
         for attr in mo.a, mo.b:
-            self.assertEqual(attr.window_safe, mo.window_safe)
+            assert attr.window_safe == mo.window_safe
 
     def test_demean_is_window_safe_if_input_is_window_safe(self):
-        self.assertFalse(F().demean().window_safe)
-        self.assertFalse(F(window_safe=False).demean().window_safe)
-        self.assertTrue(F(window_safe=True).demean().window_safe)
+        assert not F().demean().window_safe
+        assert not F(window_safe=False).demean().window_safe
+        assert F(window_safe=True).demean().window_safe
 
     def test_winsorize_is_window_safe_if_input_is_window_safe(self):
-        self.assertFalse(
-            F().winsorize(min_percentile=0.05, max_percentile=0.95).window_safe
-        )
-        self.assertFalse(
-            F(window_safe=False)
+        assert not F().winsorize(min_percentile=0.05, max_percentile=0.95).window_safe
+        assert (
+            not F(window_safe=False)
             .winsorize(min_percentile=0.05, max_percentile=0.95)
             .window_safe
         )
-        self.assertTrue(
+        assert (
             F(window_safe=True)
             .winsorize(min_percentile=0.05, max_percentile=0.95)
             .window_safe
         )
 
 
-class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
-    @parameter_space(dtype_=(float64_dtype, datetime64ns_dtype))
+class TestPostProcessAndToWorkSpaceValue:
+    @pytest.mark.parametrize("dtype_", (float64_dtype, datetime64ns_dtype))
     def test_reversability(self, dtype_):
         class F(Factor):
             inputs = ()
@@ -1634,7 +1694,7 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
             window_length = 0
 
         f = F()
-        column_data = array(
+        column_data = np.array(
             [[0, f.missing_value], [1, f.missing_value], [2, 3]],
             dtype=dtype_,
         )
@@ -1643,7 +1703,7 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
 
         # only include the non-missing data
         pipeline_output = pd.Series(
-            data=array([0, 1, 2, 3], dtype=dtype_),
+            data=np.array([0, 1, 2, 3], dtype=dtype_),
             index=pd.MultiIndex.from_arrays(
                 [
                     [
@@ -1667,7 +1727,7 @@ class TestSpecialCases(WithUSEquityPricingPipelineEngine, ZiplineTestCase):
     ASSET_FINDER_COUNTRY_CODE = "US"
 
     def check_equivalent_terms(self, terms):
-        self.assertTrue(len(terms) > 1, "Need at least two terms to compare")
+        assert len(terms) > 1, "Need at least two terms to compare"
         pipe = Pipeline(terms)
 
         start, end = self.trading_days[[-10, -1]]
@@ -1690,9 +1750,9 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         seed=[1, 2, 3],
         mask=[
             np.zeros((10, 5), dtype=bool),
-            ones((10, 5), dtype=bool),
-            eye(10, 5, dtype=bool),
-            ~eye(10, 5, dtype=bool),
+            np.ones((10, 5), dtype=bool),
+            np.eye(10, 5, dtype=bool),
+            ~np.eye(10, 5, dtype=bool),
         ],
     )
     def test_summary_methods(self, seed, mask):
@@ -1700,7 +1760,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         rand = np.random.RandomState(seed)
         shape = (10, 5)
         data = rand.randn(*shape)
-        data[~mask] = np.nan
+        data[~mask] = nan
 
         workspace = {F(): data}
         terms = {
@@ -1725,22 +1785,22 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             }
 
         # Make sure we have test coverage for all summary funcs.
-        self.assertEqual(set(expected), summary_funcs.names)
+        assert set(expected) == summary_funcs.names
 
         self.check_terms(
             terms=terms,
             expected=expected,
             initial_workspace=workspace,
-            mask=self.build_mask(ones(shape)),
+            mask=self.build_mask(np.ones(shape)),
         )
 
     @parameter_space(
         seed=[4, 5, 6],
         mask=[
             np.zeros((10, 5), dtype=bool),
-            ones((10, 5), dtype=bool),
-            eye(10, 5, dtype=bool),
-            ~eye(10, 5, dtype=bool),
+            np.ones((10, 5), dtype=bool),
+            np.eye(10, 5, dtype=bool),
+            ~np.eye(10, 5, dtype=bool),
         ],
     )
     def test_built_in_vs_summary(self, seed, mask):
@@ -1748,7 +1808,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         rand = np.random.RandomState(seed)
         shape = (10, 5)
         data = rand.randn(*shape)
-        data[~mask] = np.nan
+        data[~mask] = nan
 
         workspace = {F(): data}
         terms = {
@@ -1763,7 +1823,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         result = self.run_terms(
             terms,
             initial_workspace=workspace,
-            mask=self.build_mask(ones(shape)),
+            mask=self.build_mask(np.ones(shape)),
         )
 
         assert_equal(result["demean"], result["alt_demean"])
@@ -1773,16 +1833,16 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         seed=[100, 200, 300],
         mask=[
             np.zeros((10, 5), dtype=bool),
-            ones((10, 5), dtype=bool),
-            eye(10, 5, dtype=bool),
-            ~eye(10, 5, dtype=bool),
+            np.ones((10, 5), dtype=bool),
+            np.eye(10, 5, dtype=bool),
+            ~np.eye(10, 5, dtype=bool),
         ],
     )
     def test_complex_expression(self, seed, mask):
         rand = np.random.RandomState(seed)
         shape = (10, 5)
         data = rand.randn(*shape)
-        data[~mask] = np.nan
+        data[~mask] = nan
 
         workspace = {F(): data}
         terms = {
@@ -1801,16 +1861,16 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             terms,
             expected,
             initial_workspace=workspace,
-            mask=self.build_mask(ones(shape)),
+            mask=self.build_mask(np.ones(shape)),
         )
 
     @parameter_space(
         seed=[40, 41, 42],
         mask=[
             np.zeros((10, 5), dtype=bool),
-            ones((10, 5), dtype=bool),
-            eye(10, 5, dtype=bool),
-            ~eye(10, 5, dtype=bool),
+            np.ones((10, 5), dtype=bool),
+            np.eye(10, 5, dtype=bool),
+            ~np.eye(10, 5, dtype=bool),
         ],
         # Three ways to mask:
         # 1. Don't mask.
@@ -1823,7 +1883,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         shape = (10, 5)
 
         # Create data with a mix of NaN and non-NaN values.
-        with_nans = np.where(mask, rand.randn(*shape), np.nan)
+        with_nans = np.where(mask, rand.randn(*shape), nan)
 
         # Create a version with NaNs filled with -1s.
         with_minus_1s = np.where(mask, with_nans, -1)
@@ -1870,12 +1930,12 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             }
 
         # Make sure we have test coverage for all summary funcs.
-        self.assertEqual(set(expected), summary_funcs.names)
+        assert set(expected) == summary_funcs.names
 
         if mask_mode == "root":
             root_mask = self.build_mask(mask)
         else:
-            root_mask = self.build_mask(ones_like(mask))
+            root_mask = self.build_mask(np.ones_like(mask))
 
         self.check_terms(
             terms=terms,
@@ -1896,11 +1956,5 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
 
         for method in summary_funcs.names:
             summarized = getattr(f, method)()
-            self.assertEqual(
-                repr(summarized),
-                "MyFactor().{}()".format(method),
-            )
-            self.assertEqual(
-                summarized.recursive_repr(),
-                "MyFactor().{}()".format(method),
-            )
+            assert repr(summarized) == "MyFactor().{}()".format(method)
+            assert summarized.recursive_repr() == "MyFactor().{}()".format(method)

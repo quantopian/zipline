@@ -40,6 +40,7 @@ from .resources.fetcher_inputs.fetcher_test_data import (
     PALLADIUM_DATA,
     NFLX_DATA,
 )
+import pytest
 
 
 # XXX: The algorithms in this suite do way more work than they should have to.
@@ -165,7 +166,7 @@ def handle_data(context, data):
             if "minute_perf" in result
         ]
 
-        self.assertEqual(6 * 390, len(signal))
+        assert 6 * 390 == len(signal)
 
         # csv data is:
         # symbol,date,signal
@@ -211,8 +212,8 @@ def handle_data(context, data):
     """
         )
 
-        self.assertEqual(5, results["ibm_signal"].iloc[-1])
-        self.assertEqual(5, results["dell_signal"].iloc[-1])
+        assert 5 == results["ibm_signal"].iloc[-1]
+        assert 5 == results["dell_signal"].iloc[-1]
 
     def test_fetch_csv_with_pure_signal_file(self):
         self.responses.add(
@@ -245,7 +246,7 @@ def handle_data(context, data):
             """
         )
 
-        self.assertEqual(results["cpi"][-1], 203.1)
+        assert results["cpi"][-1] == 203.1
 
     def test_algo_fetch_csv(self):
         self.responses.add(
@@ -276,9 +277,9 @@ def handle_data(context, data):
         """
         )
 
-        self.assertEqual(5, results["signal"][-1])
-        self.assertEqual(50, results["scaled"][-1])
-        self.assertEqual(24, results["price"][-1])  # fake value
+        assert 5 == results["signal"][-1]
+        assert 50 == results["scaled"][-1]
+        assert 24 == results["price"][-1]  # fake value
 
     def test_algo_fetch_csv_with_extra_symbols(self):
         self.responses.add(
@@ -309,9 +310,9 @@ def handle_data(context, data):
             """
         )
 
-        self.assertEqual(5, results["signal"][-1])
-        self.assertEqual(50, results["scaled"][-1])
-        self.assertEqual(24, results["price"][-1])  # fake value
+        assert 5 == results["signal"][-1]
+        assert 50 == results["scaled"][-1]
+        assert 24 == results["price"][-1]  # fake value
 
     @parameterized.expand(
         [
@@ -350,7 +351,7 @@ def handle_data(context, data):
         """
         results = self.run_algo(code.format(usecols=usecols))
         # 251 trading days in 2006
-        self.assertEqual(len(results), 251)
+        assert len(results) == 251
 
     def test_sources_merge_custom_ticker(self):
         requests_kwargs = {}
@@ -391,7 +392,7 @@ def handle_data(context, data):
             )
 
             np.testing.assert_array_equal([24] * 251, results["aapl"])
-            self.assertEqual(337, pd.to_numeric(results["palladium"]).iloc[-1])
+            assert 337 == pd.to_numeric(results["palladium"]).iloc[-1]
 
             expected = {
                 "allow_redirects": False,
@@ -399,7 +400,7 @@ def handle_data(context, data):
                 "timeout": 30.0,
             }
 
-            self.assertEqual(expected, requests_kwargs)
+            assert expected == requests_kwargs
 
     @parameterized.expand(
         [
@@ -462,10 +463,10 @@ def handle_data(context, data):
 
             results = self.run_algo(real_algocode, sim_params=sim_params)
 
-            self.assertEqual(len(results), 3)
-            self.assertEqual(3, results["sid_count"].iloc[0])
-            self.assertEqual(3, results["sid_count"].iloc[1])
-            self.assertEqual(4, results["sid_count"].iloc[2])
+            assert len(results) == 3
+            assert 3 == results["sid_count"].iloc[0]
+            assert 3 == results["sid_count"].iloc[1]
+            assert 4 == results["sid_count"].iloc[2]
 
     def test_fetcher_universe_non_security_return(self):
         self.responses.add(
@@ -505,7 +506,7 @@ def handle_data(context, data):
             content_type="text/csv",
         )
 
-        with self.assertRaises(UnsupportedOrderParameters):
+        with pytest.raises(UnsupportedOrderParameters):
             self.run_algo(
                 """
 from zipline.api import fetch_csv, order, sid
@@ -572,10 +573,10 @@ def handle_data(context, data):
             sim_params=sim_params,
         )
 
-        self.assertEqual(3, len(results))
-        self.assertEqual(3, results["sid_count"].iloc[0])
-        self.assertEqual(3, results["sid_count"].iloc[1])
-        self.assertEqual(4, results["sid_count"].iloc[2])
+        assert 3 == len(results)
+        assert 3 == results["sid_count"].iloc[0]
+        assert 3 == results["sid_count"].iloc[1]
+        assert 4 == results["sid_count"].iloc[2]
 
     def test_fetcher_in_before_trading_start(self):
         self.responses.add(
@@ -649,4 +650,4 @@ def handle_data(context, data):
             sim_params=sim_params,
         )
 
-        self.assertEqual(3, len(results))
+        assert 3 == len(results)

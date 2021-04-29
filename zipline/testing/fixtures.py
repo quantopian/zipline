@@ -7,7 +7,6 @@ from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
 from pandas.errors import PerformanceWarning
-from six import with_metaclass
 import responses
 from toolz import flip, groupby, merge
 from trading_calendars import (
@@ -105,7 +104,7 @@ class DebugMROMeta(FinalMeta):
                 raise
 
 
-class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
+class ZiplineTestCase(TestCase, metaclass=DebugMROMeta):
     """
     Shared extensions to core unittest.TestCase.
 
@@ -293,7 +292,7 @@ def alias(attr_name):
     return classproperty(flip(getattr, attr_name))
 
 
-class WithDefaultDateBounds(with_metaclass(DebugMROMeta, object)):
+class WithDefaultDateBounds(object, metaclass=DebugMROMeta):
     """
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
@@ -313,7 +312,7 @@ class WithDefaultDateBounds(with_metaclass(DebugMROMeta, object)):
     END_DATE = pd.Timestamp("2006-12-29", tz="utc")
 
 
-class WithLogger(object):
+class WithLogger:
     """
     ZiplineTestCase mixin providing cls.log_handler as an instance-level
     fixture.
@@ -501,7 +500,7 @@ class WithAssetFinder(WithDefaultDateBounds):
 
 
 # TODO_SS: The API here doesn't make sense in a multi-country test scenario.
-class WithTradingCalendars(object):
+class WithTradingCalendars:
     """
     ZiplineTestCase mixin providing cls.trading_calendar,
     cls.all_trading_calendars, cls.trading_calendar_for_asset_type as a
@@ -717,7 +716,7 @@ class WithTradingSessions(WithDefaultDateBounds, WithTradingCalendars):
             cls.trading_sessions[cal_str] = sessions
 
 
-class WithTmpDir(object):
+class WithTmpDir:
     """
     ZiplineTestCase mixing providing cls.tmpdir as a class-level fixture.
 
@@ -741,7 +740,7 @@ class WithTmpDir(object):
         )
 
 
-class WithInstanceTmpDir(object):
+class WithInstanceTmpDir:
     """
     ZiplineTestCase mixing providing self.tmpdir as an instance-level fixture.
 
@@ -1958,7 +1957,7 @@ class WithDataPortal(
         self.data_portal = self.make_data_portal()
 
 
-class WithResponses(object):
+class WithResponses:
     """
     ZiplineTestCase mixin that provides self.responses as an instance
     fixture.
@@ -2069,19 +2068,23 @@ class WithMakeAlgo(WithBenchmarkReturns, WithSimParams, WithLogger, WithDataPort
         return self.make_algo(**overrides).run()
 
 
-class WithWerror(object):
+class WithWerror:
     @classmethod
     def init_class_fixtures(cls):
         cls.enter_class_context(warnings.catch_warnings())
         warnings.simplefilter("error")
-
+        warnings.filterwarnings(
+            "ignore",
+            category=RuntimeWarning,
+        )
+        # warnings.simplefilter("ignore", RuntimeWarning, append=True)
         super(WithWerror, cls).init_class_fixtures()
 
 
 register_calendar_alias("TEST", "NYSE")
 
 
-class WithSeededRandomState(object):
+class WithSeededRandomState:
     RANDOM_SEED = np.array(list("lmao"), dtype="S1").view("i4").item()
 
     def init_instance_fixtures(self):
@@ -2089,7 +2092,7 @@ class WithSeededRandomState(object):
         self.rand = np.random.RandomState(self.RANDOM_SEED)
 
 
-class WithFXRates(object):
+class WithFXRates:
     """Fixture providing a factory for in-memory exchange rate data."""
 
     # Start date for exchange rates data.

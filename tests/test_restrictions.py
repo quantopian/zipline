@@ -43,10 +43,10 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         cls.ALL_ASSETS = [cls.ASSET1, cls.ASSET2, cls.ASSET3]
 
     def assert_is_restricted(self, rl, asset, dt):
-        self.assertTrue(rl.is_restricted(asset, dt))
+        assert rl.is_restricted(asset, dt)
 
     def assert_not_restricted(self, rl, asset, dt):
-        self.assertFalse(rl.is_restricted(asset, dt))
+        assert not rl.is_restricted(asset, dt)
 
     def assert_all_restrictions(self, rl, expected, dt):
         self.assert_many_restrictions(rl, self.ALL_ASSETS, expected, dt)
@@ -306,12 +306,12 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         # A union of a NoRestrictions with a non-trivial restriction should
         # yield the original restriction
         trivial_union_restrictions = no_restrictions_rl | st_restrict_asset1
-        self.assertIsInstance(trivial_union_restrictions, StaticRestrictions)
+        assert isinstance(trivial_union_restrictions, StaticRestrictions)
 
         # A union of two non-trivial restrictions should yield a
         # UnionRestrictions
         st_union_restrictions = st_restrict_asset1 | st_restrict_asset2
-        self.assertIsInstance(st_union_restrictions, _UnionRestrictions)
+        assert isinstance(st_union_restrictions, _UnionRestrictions)
 
         arb_dt = str_to_ts("2011-01-04")
         self.assert_is_restricted(st_restrict_asset1, self.ASSET1, arb_dt)
@@ -339,8 +339,8 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
             (hist_restrict_asset3_1, st_union_restrictions),
         ]:
             union_or_hist_restrictions = r1 | r2
-            self.assertIsInstance(union_or_hist_restrictions, _UnionRestrictions)
-            self.assertEqual(len(union_or_hist_restrictions.sub_restrictions), 3)
+            assert isinstance(union_or_hist_restrictions, _UnionRestrictions)
+            assert len(union_or_hist_restrictions.sub_restrictions) == 3
 
             # Includes the two static restrictions on ASSET1 and ASSET2,
             # and the historical restriction on ASSET3 starting on freeze_dt_1
@@ -363,8 +363,8 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         hist_union_restrictions = hist_restrict_asset3_1 | hist_restrict_asset3_2
         multi_union_restrictions = st_union_restrictions | hist_union_restrictions
 
-        self.assertIsInstance(multi_union_restrictions, _UnionRestrictions)
-        self.assertEqual(len(multi_union_restrictions.sub_restrictions), 4)
+        assert isinstance(multi_union_restrictions, _UnionRestrictions)
+        assert len(multi_union_restrictions.sub_restrictions) == 4
 
         # Includes the two static restrictions on ASSET1 and ASSET2, the
         # first historical restriction on ASSET3 starting on freeze_dt_1 and

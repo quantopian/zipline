@@ -6,7 +6,6 @@ from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import WithTmpDir
 from zipline.testing.predicates import (
     assert_equal,
-    assert_raises_str,
 )
 from click.testing import CliRunner
 from zipline.extensions import (
@@ -14,6 +13,7 @@ from zipline.extensions import (
     create_args,
     parse_extension_arg,
 )
+import pytest
 
 
 class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
@@ -52,24 +52,24 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
         assert_equal(n._arg_4_, "test4")
 
         msg = "invalid extension argument '1=test3', " "must be in key=value form"
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             parse_extension_arg("1=test3", {})
         msg = "invalid extension argument 'arg4 test4', " "must be in key=value form"
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             parse_extension_arg("arg4 test4", {})
         msg = "invalid extension argument 'arg5.1=test5', " "must be in key=value form"
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             parse_extension_arg("arg5.1=test5", {})
         msg = (
             "invalid extension argument 'arg6.6arg=test6', " "must be in key=value form"
         )
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             parse_extension_arg("arg6.6arg=test6", {})
         msg = (
             "invalid extension argument 'arg7.-arg7=test7', "
             "must be in key=value form"
         )
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             parse_extension_arg("arg7.-arg7=test7", {})
 
     def test_parse_namespaces(self):
@@ -95,7 +95,7 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
         n = Namespace()
 
         msg = "Conflicting assignments at namespace level 'second'"
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             create_args(
                 [
                     "first.second.a=blah1",

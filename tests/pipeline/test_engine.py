@@ -8,30 +8,9 @@ from unittest import skipIf
 
 from parameterized import parameterized
 import numpy as np
-from numpy import (
-    arange,
-    array,
-    concatenate,
-    float32,
-    float64,
-    full,
-    full_like,
-    log,
-    nan,
-    tile,
-    where,
-    zeros,
-)
+
 from numpy.testing import assert_almost_equal
-from pandas import (
-    Categorical,
-    DataFrame,
-    date_range,
-    Int64Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 from pandas.compat.chainmap import ChainMap
 from pandas.testing import assert_frame_equal
 from toolz import merge
@@ -93,6 +72,7 @@ from zipline.testing.predicates import assert_equal
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
 from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
+import pytest
 
 
 class RollingSumDifference(CustomFactor):
@@ -128,7 +108,7 @@ class OpenCloseSumAndDiff(CustomFactor):
 
 def assert_multi_index_is_product(testcase, index, *levels):
     """Assert that a MultiIndex contains the product of `*levels`."""
-    testcase.assertIsInstance(index, MultiIndex, "%s is not a MultiIndex" % index)
+    testcase.assertIsInstance(index, pd.MultiIndex, "%s is not a MultiIndex" % index)
     testcase.assertEqual(set(index), set(product(*levels)))
 
 
@@ -182,8 +162,8 @@ class RollingSumSum(CustomFactor):
 
 class WithConstantInputs(zf.WithAssetFinder):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4
-    START_DATE = Timestamp("2014-01-01", tz="utc")
-    END_DATE = Timestamp("2014-03-01", tz="utc")
+    START_DATE = pd.Timestamp("2014-01-01", tz="utc")
+    END_DATE = pd.Timestamp("2014-03-01", tz="utc")
     ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod
@@ -203,7 +183,7 @@ class WithConstantInputs(zf.WithAssetFinder):
             EquityPricing.high: 4,
         }
 
-        cls.dates = date_range(
+        cls.dates = pd.date_range(
             cls.START_DATE,
             cls.END_DATE,
             freq="D",
@@ -227,7 +207,7 @@ class ConstantInputTestCase(
         p = Pipeline()
 
         msg = "start_date must be before or equal to end_date .*"
-        with self.assertRaisesRegex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.engine.run_pipeline(p, self.dates[2], self.dates[1])
 
     def test_fail_usefully_on_insufficient_data(self):
@@ -245,7 +225,7 @@ class ConstantInputTestCase(
 
         # We shouldn't be able to compute dates[8], since we only know about 8
         # prior dates, and we need a window length of 10.
-        with self.assertRaises(NoFurtherDataError):
+        with pytest.raises(NoFurtherDataError):
             self.engine.run_pipeline(p, self.dates[8], self.dates[8])
 
     def test_input_dates_provided_by_default(self):
@@ -276,10 +256,10 @@ class ConstantInputTestCase(
         #  (i.e. start and end dates are the same) we should accurately get
         # data for the day prior.
         result = self.engine.run_pipeline(p, self.dates[1], self.dates[1])
-        self.assertEqual(result["f"][0], 1.0)
+        assert result["f"][0] == 1.0
 
     def test_screen(self):
-        asset_ids = array(self.asset_ids)
+        asset_ids = np.array(self.asset_ids)
         num_dates = 5
         dates = self.dates[10 : 10 + num_dates]
 
@@ -290,9 +270,9 @@ class ConstantInputTestCase(
 
             expected_sids = asset_ids[asset_ids <= asset_id]
             expected_assets = self.asset_finder.retrieve_all(expected_sids)
-            expected_result = DataFrame(
-                index=MultiIndex.from_product([dates, expected_assets]),
-                data=tile(expected_sids.astype(float), [len(dates)]),
+            expected_result = pd.DataFrame(
+                index=pd.MultiIndex.from_product([dates, expected_assets]),
+                data=np.tile(expected_sids.astype(float), [len(dates)]),
                 columns=["f"],
             )
 
@@ -317,12 +297,12 @@ class ConstantInputTestCase(
 
         for p in pipelines:
             result = self.engine.run_pipeline(p, dates[0], dates[-1])
-            self.assertEqual(set(result.columns), {"f"})
+            assert set(result.columns) == {"f"}
             assert_multi_index_is_product(self, result.index, dates, assets)
 
             check_arrays(
                 result["f"].unstack().values,
-                full(result_shape, expected_result, dtype=float),
+                np.full(result_shape, expected_result, dtype=float),
             )
 
     def test_multiple_rolling_factors(self):
@@ -347,22 +327,22 @@ class ConstantInputTestCase(
         )
         results = self.engine.run_pipeline(pipeline, dates[0], dates[-1])
 
-        self.assertEqual(set(results.columns), {"short", "high", "long"})
+        assert set(results.columns) == {"short", "high", "long"}
         assert_multi_index_is_product(self, results.index, dates, assets)
 
         # row-wise sum over an array whose values are all (1 - 2)
         check_arrays(
             results["short"].unstack().values,
-            full(shape, -short_factor.window_length, dtype=float),
+            np.full(shape, -short_factor.window_length, dtype=float),
         )
         check_arrays(
             results["long"].unstack().values,
-            full(shape, -long_factor.window_length, dtype=float),
+            np.full(shape, -long_factor.window_length, dtype=float),
         )
         # row-wise sum over an array whose values are all (1 - 3)
         check_arrays(
             results["high"].unstack().values,
-            full(shape, -2 * high_factor.window_length, dtype=float),
+            np.full(shape, -2 * high_factor.window_length, dtype=float),
         )
 
     def test_numeric_factor(self):
@@ -392,21 +372,21 @@ class ConstantInputTestCase(
         expected_high_low = 3.0 * (constants[high] - constants[low])
         assert_frame_equal(
             high_low_result,
-            DataFrame(expected_high_low, index=dates, columns=self.assets),
+            pd.DataFrame(expected_high_low, index=dates, columns=self.assets),
         )
 
         open_close_result = results["open_close"].unstack()
         expected_open_close = 3.0 * (constants[open] - constants[close])
         assert_frame_equal(
             open_close_result,
-            DataFrame(expected_open_close, index=dates, columns=self.assets),
+            pd.DataFrame(expected_open_close, index=dates, columns=self.assets),
         )
 
         avg_result = results["avg"].unstack()
         expected_avg = (expected_high_low + expected_open_close) / 2.0
         assert_frame_equal(
             avg_result,
-            DataFrame(expected_avg, index=dates, columns=self.assets),
+            pd.DataFrame(expected_avg, index=dates, columns=self.assets),
         )
 
     def test_masked_factor(self):
@@ -430,8 +410,8 @@ class ConstantInputTestCase(
         factor2_value = 3.0 * (constants[open] - constants[close])
 
         def create_expected_results(expected_value, mask):
-            expected_values = where(mask, expected_value, nan)
-            return DataFrame(expected_values, index=dates, columns=assets)
+            expected_values = np.where(mask, expected_value, np.nan)
+            return pd.DataFrame(expected_values, index=dates, columns=assets)
 
         cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
         expected_cascading_mask_result = make_cascading_boolean_array(
@@ -516,25 +496,25 @@ class ConstantInputTestCase(
             dates_to_test[0],
             dates_to_test[-1],
         )
-        self.assertIsNotNone(result)
-        self.assertEqual({"sumdiff", "open", "close", "volume"}, set(result.columns))
+        assert result is not None
+        assert {"sumdiff", "open", "close", "volume"} == set(result.columns)
 
         result_index = self.asset_ids * len(dates_to_test)
         result_shape = (len(result_index),)
         check_arrays(
             result["sumdiff"],
-            Series(
+            pd.Series(
                 index=result_index,
-                data=full(result_shape, -3, dtype=float),
+                data=np.full(result_shape, -3, dtype=float),
             ),
         )
 
         for name, const in [("open", 1), ("close", 2), ("volume", 3)]:
             check_arrays(
                 result[name],
-                Series(
+                pd.Series(
                     index=result_index,
-                    data=full(result_shape, const, dtype=float),
+                    data=np.full(result_shape, const, dtype=float),
                 ),
             )
 
@@ -569,11 +549,11 @@ class ConstantInputTestCase(
             ("open_attribute", open_attribute_expected),
         ):
             column_results = results[colname].unstack()
-            expected_results = DataFrame(
+            expected_results = pd.DataFrame(
                 expected_values,
                 index=dates,
                 columns=assets,
-                dtype=float64,
+                dtype=np.float64,
             )
             assert_frame_equal(column_results, expected_results)
 
@@ -588,8 +568,8 @@ class ConstantInputTestCase(
         close = EquityPricing.close
 
         def create_expected_results(expected_value, mask):
-            expected_values = where(mask, expected_value, nan)
-            return DataFrame(expected_values, index=dates, columns=assets)
+            expected_values = np.where(mask, expected_value, np.nan)
+            return pd.DataFrame(expected_values, index=dates, columns=assets)
 
         cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
         expected_cascading_mask_result = make_cascading_boolean_array(
@@ -602,7 +582,7 @@ class ConstantInputTestCase(
             first_value=False,
         )
 
-        expected_no_mask_result = full(
+        expected_no_mask_result = np.full(
             shape=(num_dates, num_assets),
             fill_value=True,
             dtype=bool_dtype,
@@ -649,11 +629,11 @@ class ConstantInputTestCase(
         open_values = [constants[EquityPricing.open]] * num_assets
         close_values = [constants[EquityPricing.close]] * num_assets
         expected_values = [list(zip(open_values, close_values))] * num_dates
-        expected_results = DataFrame(
+        expected_results = pd.DataFrame(
             expected_values,
             index=dates,
             columns=assets,
-            dtype=float64,
+            dtype=np.float64,
         )
 
         multiple_outputs = MultipleOutputs()
@@ -670,12 +650,12 @@ class ConstantInputTestCase(
         constants = self.constants
 
         def create_expected_results(expected_value):
-            expected_values = full(
+            expected_values = np.full(
                 (num_dates, num_assets),
                 expected_value,
-                float64,
+                np.float64,
             )
-            return DataFrame(expected_values, index=dates, columns=assets)
+            return pd.DataFrame(expected_values, index=dates, columns=assets)
 
         for window_length in range(1, 3):
             sum_, diff = OpenCloseSumAndDiff(
@@ -697,17 +677,17 @@ class ConstantInputTestCase(
     def test_loader_given_multiple_columns(self):
         class Loader1DataSet1(DataSet):
             col1 = Column(float)
-            col2 = Column(float32)
+            col2 = Column(np.float32)
             domain = self.domain
 
         class Loader1DataSet2(DataSet):
-            col1 = Column(float32)
-            col2 = Column(float32)
+            col1 = Column(np.float32)
+            col2 = Column(np.float32)
             domain = self.domain
 
         class Loader2DataSet(DataSet):
-            col1 = Column(float32)
-            col2 = Column(float32)
+            col1 = Column(np.float32)
+            col2 = Column(np.float32)
             domain = self.domain
 
         constants1 = {
@@ -763,15 +743,15 @@ class ConstantInputTestCase(
             for name, pipe_col in columns.items()
         }
 
-        index = MultiIndex.from_product([self.dates[2:], self.assets])
+        index = pd.MultiIndex.from_product([self.dates[2:], self.assets])
 
         def expected_for_col(col):
             val = vals[col]
             offset = columns[col].window_length - min_window
-            return concatenate(
+            return np.concatenate(
                 [
-                    full(offset * index.levshape[1], nan),
-                    full(
+                    np.full(offset * index.levshape[1], np.nan),
+                    np.full(
                         (index.levshape[0] - offset) * index.levshape[1],
                         val,
                         float,
@@ -779,7 +759,7 @@ class ConstantInputTestCase(
                 ],
             )
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             data={col: expected_for_col(col) for col in vals},
             index=index,
             columns=columns,
@@ -787,17 +767,13 @@ class ConstantInputTestCase(
 
         assert_frame_equal(result, expected)
 
-        self.assertEqual(
-            set(loader1.load_calls),
-            {
-                ColumnArgs.sorted_by_ds(Loader1DataSet1.col1, Loader1DataSet2.col1),
-                ColumnArgs.sorted_by_ds(Loader1DataSet1.col2, Loader1DataSet2.col2),
-            },
-        )
-        self.assertEqual(
-            set(loader2.load_calls),
-            {ColumnArgs.sorted_by_ds(Loader2DataSet.col1, Loader2DataSet.col2)},
-        )
+        assert set(loader1.load_calls) == {
+            ColumnArgs.sorted_by_ds(Loader1DataSet1.col1, Loader1DataSet2.col1),
+            ColumnArgs.sorted_by_ds(Loader1DataSet1.col2, Loader1DataSet2.col2),
+        }
+        assert set(loader2.load_calls) == {
+            ColumnArgs.sorted_by_ds(Loader2DataSet.col1, Loader2DataSet.col2)
+        }
 
 
 # Use very large sids that don't fit in that doesn't fit in an int32 as a
@@ -810,14 +786,14 @@ class FrameInputTestCase(
     zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTestCase
 ):
     asset_ids = ASSET_FINDER_EQUITY_SIDS = range(HUGE_SID, HUGE_SID + 3)
-    start = START_DATE = Timestamp("2015-01-01", tz="utc")
-    end = END_DATE = Timestamp("2015-01-31", tz="utc")
+    start = START_DATE = pd.Timestamp("2015-01-01", tz="utc")
+    end = END_DATE = pd.Timestamp("2015-01-31", tz="utc")
     ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod
     def init_class_fixtures(cls):
         super(FrameInputTestCase, cls).init_class_fixtures()
-        cls.dates = date_range(
+        cls.dates = pd.date_range(
             cls.start,
             cls.end,
             freq=cls.trading_calendar.day,
@@ -831,7 +807,7 @@ class FrameInputTestCase(
         return self.make_frame(True)
 
     def make_frame(self, data):
-        return DataFrame(data, columns=self.assets, index=self.dates)
+        return pd.DataFrame(data, columns=self.assets, index=self.dates)
 
     def test_compute_with_adjustments(self):
         dates, asset_ids = self.dates, self.asset_ids
@@ -841,7 +817,7 @@ class FrameInputTestCase(
         def apply_date(idx, offset=0):
             return dates[apply_idxs[idx] + offset]
 
-        adjustments = DataFrame.from_records(
+        adjustments = pd.DataFrame.from_records(
             [
                 dict(
                     kind=MULTIPLY,
@@ -869,11 +845,11 @@ class FrameInputTestCase(
                 ),
             ]
         )
-        low_base = DataFrame(self.make_frame(30.0))
+        low_base = pd.DataFrame(self.make_frame(30.0))
         low_loader = DataFrameLoader(low, low_base.copy(), adjustments=None)
 
         # Pre-apply inverse of adjustments to the baseline.
-        high_base = DataFrame(self.make_frame(30.0))
+        high_base = pd.DataFrame(self.make_frame(30.0))
         high_base.iloc[: apply_idxs[0], 1] /= 2.0
         high_base.iloc[: apply_idxs[1], 1] /= 3.0
         high_base.iloc[: apply_idxs[2], 1] /= 5.0
@@ -907,7 +883,7 @@ class FrameInputTestCase(
                     dates[start],
                     dates[stop],
                 )
-                self.assertEqual(set(results.columns), {"low", "high"})
+                assert set(results.columns) == {"low", "high"}
                 iloc_bounds = slice(start, stop + 1)  # +1 to include end date
 
                 low_results = results.unstack()["low"]
@@ -920,9 +896,9 @@ class FrameInputTestCase(
 class SyntheticBcolzTestCase(
     zf.WithAdjustmentReader, zf.WithAssetFinder, zf.ZiplineTestCase
 ):
-    first_asset_start = Timestamp("2015-04-01", tz="UTC")
-    START_DATE = Timestamp("2015-01-01", tz="utc")
-    END_DATE = Timestamp("2015-08-01", tz="utc")
+    first_asset_start = pd.Timestamp("2015-04-01", tz="UTC")
+    START_DATE = pd.Timestamp("2015-01-01", tz="utc")
+    END_DATE = pd.Timestamp("2015-08-01", tz="utc")
 
     @classmethod
     def make_equity_info(cls):
@@ -938,7 +914,7 @@ class SyntheticBcolzTestCase(
 
     @classmethod
     def make_exchanges_info(cls, *args, **kwargs):
-        return DataFrame({"exchange": ["NYSE"], "country_code": ["US"]})
+        return pd.DataFrame({"exchange": ["NYSE"], "country_code": ["US"]})
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
@@ -987,16 +963,16 @@ class SyntheticBcolzTestCase(
             if asset.start_date >= min_:
                 start = index.get_loc(asset.start_date, method="bfill")
                 # +1 to overwrite start_date:
-                df.iloc[: start + 1, df.columns.get_loc(asset)] = nan
+                df.iloc[: start + 1, df.columns.get_loc(asset)] = np.nan
             if asset.end_date <= max_:
                 end = index.get_loc(asset.end_date)
                 # +1 to *not* overwrite end_date:
-                df.iloc[end + 1 :, df.columns.get_loc(asset)] = nan
+                df.iloc[end + 1 :, df.columns.get_loc(asset)] = np.nan
 
     def test_SMA(self):
         window_length = 5
         asset_ids = self.all_asset_ids
-        dates = date_range(
+        dates = pd.date_range(
             self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
             freq=self.trading_calendar.day,
@@ -1018,7 +994,7 @@ class SyntheticBcolzTestCase(
         # computed results to be computed using values anchored on the
         # **previous** day's data.
         expected_raw = (
-            DataFrame(
+            pd.DataFrame(
                 expected_bar_values_2d(
                     dates - self.trading_calendar.day,
                     asset_ids,
@@ -1031,7 +1007,7 @@ class SyntheticBcolzTestCase(
             .values
         )
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             # Truncate off the extra rows needed to compute the SMAs.
             expected_raw[window_length:],
             index=dates_to_test,  # dates_to_test is dates[window_length:]
@@ -1049,7 +1025,7 @@ class SyntheticBcolzTestCase(
         # valuable.
         window_length = 5
         asset_ids = self.all_asset_ids
-        dates = date_range(
+        dates = pd.date_range(
             self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
             freq=self.trading_calendar.day,
@@ -1069,8 +1045,8 @@ class SyntheticBcolzTestCase(
 
         # We expect NaNs when the asset was undefined, otherwise 0 everywhere,
         # since the input is always increasing.
-        expected = DataFrame(
-            data=zeros((len(dates_to_test), len(asset_ids)), dtype=float),
+        expected = pd.DataFrame(
+            data=np.zeros((len(dates_to_test), len(asset_ids)), dtype=float),
             index=dates_to_test,
             columns=self.asset_finder.retrieve_all(asset_ids),
         )
@@ -1083,9 +1059,9 @@ class SyntheticBcolzTestCase(
 class ParameterizedFactorTestCase(
     zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTestCase
 ):
-    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
-    START_DATE = Timestamp("2015-01-31", tz="UTC")
-    END_DATE = Timestamp("2015-03-01", tz="UTC")
+    sids = ASSET_FINDER_EQUITY_SIDS = pd.Int64Index([1, 2, 3])
+    START_DATE = pd.Timestamp("2015-01-31", tz="UTC")
+    END_DATE = pd.Timestamp("2015-03-01", tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = "??"
 
     @classmethod
@@ -1093,7 +1069,7 @@ class ParameterizedFactorTestCase(
         super(ParameterizedFactorTestCase, cls).init_class_fixtures()
         day = cls.trading_calendar.day
 
-        cls.dates = dates = date_range(
+        cls.dates = dates = pd.date_range(
             "2015-02-01",
             "2015-02-28",
             freq=day,
@@ -1101,8 +1077,8 @@ class ParameterizedFactorTestCase(
         )
         sids = cls.sids
 
-        cls.raw_data = DataFrame(
-            data=arange(len(dates) * len(sids), dtype=float).reshape(
+        cls.raw_data = pd.DataFrame(
+            data=np.arange(len(dates) * len(sids), dtype=float).reshape(
                 len(dates),
                 len(sids),
             ),
@@ -1145,7 +1121,7 @@ class ParameterizedFactorTestCase(
         # ewma (which is itself a rolling-window function) because we only want
         # to look at ``window_length`` rows at a time.
         return self.raw_data.rolling(window_length).apply(
-            lambda subarray: (DataFrame(subarray).ewm(span=span).mean().values[-1])
+            lambda subarray: (pd.DataFrame(subarray).ewm(span=span).mean().values[-1])
         )[window_length:]
 
     def expected_ewmstd(self, window_length, decay_rate):
@@ -1157,7 +1133,7 @@ class ParameterizedFactorTestCase(
         # of an ewma (which is itself a rolling-window function) because we
         # only want to look at ``window_length`` rows at a time.
         return self.raw_data.rolling(window_length).apply(
-            lambda subarray: (DataFrame(subarray).ewm(span=span).std().values[-1])
+            lambda subarray: (pd.DataFrame(subarray).ewm(span=span).std().values[-1])
         )[window_length:]
 
     @parameterized.expand(
@@ -1219,7 +1195,7 @@ class ParameterizedFactorTestCase(
 
     @staticmethod
     def decay_rate_to_halflife(decay_rate):
-        return log(0.5) / log(decay_rate)
+        return np.log(0.5) / np.log(decay_rate)
 
     def ewm_cases():
         return product([EWMSTD, EWMA], [3, 5, 10])
@@ -1257,8 +1233,8 @@ class ParameterizedFactorTestCase(
     del ewm_cases
 
     def test_ewm_aliasing(self):
-        self.assertIs(ExponentialWeightedMovingAverage, EWMA)
-        self.assertIs(ExponentialWeightedMovingStdDev, EWMSTD)
+        assert ExponentialWeightedMovingAverage is EWMA
+        assert ExponentialWeightedMovingStdDev is EWMSTD
 
     def test_dollar_volume(self):
         results = self.engine.run_pipeline(
@@ -1319,7 +1295,7 @@ class StringColumnTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCase
         start_date, end_date = run_dates[[0, -1]]
 
         result = self.run_pipeline(pipe, start_date, end_date)
-        assert isinstance(result.c.values, Categorical)
+        assert isinstance(result.c.values, pd.Categorical)
 
         expected_raw_data = self.raw_expected_values(
             col,
@@ -1364,7 +1340,7 @@ class WindowSafetyPropagationTestCase(
         )
         results = self.run_pipeline(pipe, start_date, end_date).unstack()
 
-        expected_ranks = DataFrame(
+        expected_ranks = pd.DataFrame(
             self.raw_expected_values(
                 col,
                 dates[-19],
@@ -1429,22 +1405,20 @@ class PopulateInitialWorkspaceTestCase(
                 return (ndates, nassets)
 
             ws = initial_workspace.copy()
-            ws[precomputed_term] = full(
+            ws[precomputed_term] = np.full(
                 shape_for_term(precomputed_term),
                 precomputed_term_value,
-                dtype=float64,
+                dtype=np.float64,
             )
-            ws[precomputed_term_with_window] = full(
+            ws[precomputed_term_with_window] = np.full(
                 shape_for_term(precomputed_term_with_window),
                 precomputed_term_with_window_value,
-                dtype=float64,
+                dtype=np.float64,
             )
             return ws
 
         def dispatcher(c):
-            self.assertIsNot(
-                c, column, "Shouldn't need to dispatch precomputed term input!"
-            )
+            assert c is not column, "Shouldn't need to dispatch precomputed term input!"
             return self.loader
 
         engine = SimplePipelineEngine(
@@ -1470,35 +1444,35 @@ class PopulateInitialWorkspaceTestCase(
 
         assert_equal(
             results["precomputed_term"].values,
-            full_like(
+            np.full_like(
                 results["precomputed_term"],
                 precomputed_term_value,
             ),
         ),
         assert_equal(
             results["precomputed_term_with_window"].values,
-            full_like(
+            np.full_like(
                 results["precomputed_term_with_window"],
                 precomputed_term_with_window_value,
             ),
         ),
         assert_equal(
             results["depends_on_precomputed_term"].values,
-            full_like(
+            np.full_like(
                 results["depends_on_precomputed_term"],
                 precomputed_term_value + 1,
             ),
         )
         assert_equal(
             results["depends_on_precomputed_term_with_window"].values,
-            full_like(
+            np.full_like(
                 results["depends_on_precomputed_term_with_window"],
                 precomputed_term_with_window_value + 1,
             ),
         )
         assert_equal(
             results["depends_on_window_of_precomputed_term"].values,
-            full_like(
+            np.full_like(
                 results["depends_on_window_of_precomputed_term"],
                 precomputed_term_value,
             ),
@@ -1507,8 +1481,8 @@ class PopulateInitialWorkspaceTestCase(
 
 class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCase):
 
-    PIPELINE_START_DATE = Timestamp("2006-01-05", tz="UTC")
-    END_DATE = Timestamp("2006-12-29", tz="UTC")
+    PIPELINE_START_DATE = pd.Timestamp("2006-01-05", tz="UTC")
+    END_DATE = pd.Timestamp("2006-12-29", tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = "US"
 
     def test_run_chunked_pipeline(self):
@@ -1543,7 +1517,7 @@ class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestC
             end_date=self.END_DATE,
             chunksize=22,
         )
-        self.assertTrue(chunked_result.equals(pipeline_result))
+        assert chunked_result.equals(pipeline_result)
 
     def test_concatenate_empty_chunks(self):
         # Test that we correctly handle concatenating chunked pipelines when
@@ -1604,7 +1578,7 @@ class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCas
 
         # We should have one maximum every day.
         maxes_per_day = result.groupby(level=0)["maximum"].sum()
-        self.assertTrue((maxes_per_day == 1).all())
+        assert (maxes_per_day == 1).all()
 
         # The maximum computed by pipeline should match the maximum computed by
         # doing a groupby in pandas.
@@ -1641,25 +1615,22 @@ class ResolveDomainTestCase(zf.ZiplineTestCase):
 
         # the engine should resolve a pipeline that already has a domain
         # to that domain
-        self.assertIs(engine_jp.resolve_domain(pipe_us), US_EQUITIES)
+        assert engine_jp.resolve_domain(pipe_us) is US_EQUITIES
 
         # the engine should resolve a pipeline without a domain to the engine's
         # default
-        self.assertIs(engine_jp.resolve_domain(pipe_generic), JP_EQUITIES)
+        assert engine_jp.resolve_domain(pipe_generic) is JP_EQUITIES
 
         # a generic engine should resolve to the pipeline's domain
         # if it has one
-        self.assertIs(engine_generic.resolve_domain(pipe_us), US_EQUITIES)
+        assert engine_generic.resolve_domain(pipe_us) is US_EQUITIES
 
         # an engine with a default of GENERIC should raise a ValueError when
         # trying to infer a pipeline whose domain is also GENERIC
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             engine_generic.resolve_domain(pipe_generic)
 
         # infer domain from the column if the pipeline and engine have
         # a GENERIC domain
         pipe = Pipeline({"close": USEquityPricing.close.latest})
-        self.assertIs(
-            engine_generic.resolve_domain(pipe),
-            US_EQUITIES,
-        )
+        assert engine_generic.resolve_domain(pipe) is US_EQUITIES

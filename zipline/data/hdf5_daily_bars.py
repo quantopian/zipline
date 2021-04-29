@@ -897,7 +897,7 @@ class MultiCountryDailyBarReader(CurrencyAwareSessionBarReader):
                 ).format(list(unique_country_codes))
             )
 
-        return np.asscalar(unique_country_codes)
+        return unique_country_codes.item()
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         """

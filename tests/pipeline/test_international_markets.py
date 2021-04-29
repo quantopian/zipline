@@ -24,6 +24,8 @@ from zipline.testing.predicates import assert_equal
 from zipline.testing.core import parameter_space, random_tick_prices
 
 import zipline.testing.fixtures as zf
+import pytest
+import re
 
 
 def T(s):
@@ -445,23 +447,22 @@ class InternationalEquityTestCase(
         )
 
     def test_cannot_convert_volume_data(self):
-        with self.assertRaises(TypeError) as exc:
-            EquityPricing.volume.fx("EUR")
-
-        assert_equal(
-            str(exc.exception),
+        msg = (
             "The .fx() method cannot be called on EquityPricing.volume "
-            "because it does not produce currency-denominated data.",
+            "because it does not produce currency-denominated data."
         )
+
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            EquityPricing.volume.fx("EUR")
 
     def check_expected_latest_value(self, calendar, col, date, asset, value):
         """Check the expected result of column.latest from a pipeline."""
         if np.isnan(value):
             # If we got a NaN, we should be outside the asset's
             # lifetime.
-            self.assertTrue(date <= asset.start_date or date > asset.end_date)
+            assert (date <= asset.start_date) or (date > asset.end_date)
         else:
-            self.assertTrue(asset.start_date < date <= asset.end_date)
+            assert asset.start_date < date <= asset.end_date
             bars = self.daily_bar_data[calendar.name]
             # Subtract a day because pipeline shows values as of the morning
             expected_value = bars[asset.sid].loc[date - calendar.day, col]

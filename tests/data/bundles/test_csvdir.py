@@ -1,20 +1,24 @@
+import pytest
 import numpy as np
 import pandas as pd
-from os.path import dirname, join, realpath
+from os.path import (
+    dirname,
+    join,
+    realpath,
+)
 
 from trading_calendars import get_calendar
 
 from zipline.data.bundles import ingest, load, bundles
-from zipline.testing.fixtures import ZiplineTestCase
-from zipline.testing.predicates import assert_equal
 from zipline.utils.functional import apply
 
 TEST_RESOURCE_PATH = join(
-    dirname(dirname(dirname(realpath(__file__)))), "resources"  # zipline_repo/tests
+    dirname(dirname(dirname(realpath(__file__)))),
+    "resources",  # zipline_repo/tests
 )
 
 
-class CSVDIRBundleTestCase(ZiplineTestCase):
+class TestCSVDIRBundle:
     symbols = "AAPL", "IBM", "KO", "MSFT"
     asset_start = pd.Timestamp("2012-01-03", tz="utc")
     asset_end = pd.Timestamp("2014-12-31", tz="utc")
@@ -267,16 +271,22 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
         return pricing, adjustments
 
     def test_bundle(self):
-        environ = {"CSVDIR": join(TEST_RESOURCE_PATH, "csvdir_samples", "csvdir")}
+        environ = {
+            "CSVDIR": join(
+                TEST_RESOURCE_PATH,
+                "csvdir_samples",
+                "csvdir",
+            ),
+        }
 
         ingest("csvdir", environ=environ)
         bundle = load("csvdir", environ=environ)
         sids = 0, 1, 2, 3
-        assert_equal(set(bundle.asset_finder.sids), set(sids))
+        assert set(bundle.asset_finder.sids) == set(sids)
 
         for equity in bundle.asset_finder.retrieve_all(sids):
-            assert_equal(equity.start_date, self.asset_start, msg=equity)
-            assert_equal(equity.end_date, self.asset_end, msg=equity)
+            assert equity.start_date == self.asset_start, equity
+            assert equity.end_date == self.asset_end, equity
 
         sessions = self.calendar.all_sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
@@ -289,13 +299,11 @@ class CSVDIRBundleTestCase(ZiplineTestCase):
         expected_pricing, expected_adjustments = self._expected_data(
             bundle.asset_finder,
         )
-        assert_equal(actual, expected_pricing, array_decimal=2)
+        np.testing.assert_array_almost_equal(actual, expected_pricing, decimal=2)
 
         adjs_for_cols = bundle.adjustment_reader.load_pricing_adjustments(
             self.columns,
             sessions,
             pd.Index(sids),
         )
-        assert_equal(
-            [sorted(adj.keys()) for adj in adjs_for_cols], expected_adjustments
-        )
+        assert [sorted(adj.keys()) for adj in adjs_for_cols] == expected_adjustments

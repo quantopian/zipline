@@ -6,24 +6,7 @@ from itertools import product
 from operator import and_
 
 from toolz import compose
-from numpy import (
-    arange,
-    argsort,
-    array,
-    eye,
-    float64,
-    full,
-    inf,
-    isfinite,
-    nan,
-    nanpercentile,
-    ones,
-    ones_like,
-    putmask,
-    rot90,
-    sum as np_sum,
-    where,
-)
+import numpy as np
 from numpy.random import RandomState
 import pandas as pd
 
@@ -51,6 +34,7 @@ from zipline.utils.numpy_utils import (
     object_dtype,
 )
 from .base import BaseUSEquityPipelineTestCase
+import pytest
 
 
 def rowwise_rank(array, mask=None):
@@ -78,7 +62,7 @@ def rowwise_rank(array, mask=None):
     """
     # note that unlike scipy.stats.rankdata, the output here is 0-indexed, not
     # 1-indexed.
-    return argsort(argsort(array))
+    return np.argsort(np.argsort(array))
 
 
 class SomeFactor(Factor):
@@ -140,17 +124,17 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             (50, 50),
         ]
         for min_, max_ in bad_percentiles:
-            with self.assertRaises(BadPercentileBounds):
+            with pytest.raises(BadPercentileBounds):
                 f.percentile_between(min_, max_)
 
     def test_top_and_bottom(self):
         data = self.randn_data(seed=5)  # Fix a seed for determinism.
 
-        mask_data = ones_like(data, dtype=bool)
+        mask_data = np.ones_like(data, dtype=bool)
         mask_data[:, 0] = False
 
         nan_data = data.copy()
-        nan_data[:, 0] = nan
+        nan_data[:, 0] = np.nan
 
         mask = Mask()
 
@@ -202,7 +186,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         }
 
         # Test with 5 columns and no NaNs.
-        eye5 = eye(5, dtype=float64)
+        eye5 = np.eye(5, dtype=np.float64)
         expected = {}
         for name, quintile in iter_quintiles:
             if quintile < 4:
@@ -218,12 +202,12 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             terms=terms,
             expected=expected,
             initial_workspace={self.f: eye5},
-            mask=self.build_mask(ones((5, 5))),
+            mask=self.build_mask(np.ones((5, 5))),
         )
 
         # Test with 6 columns, no NaNs, and one masked entry per day.
-        eye6 = eye(6, dtype=float64)
-        mask = array(
+        eye6 = np.eye(6, dtype=np.float64)
+        mask = np.array(
             [
                 [1, 1, 1, 1, 1, 0],
                 [0, 1, 1, 1, 1, 1],
@@ -255,7 +239,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # same outcome as if we had masked the NaNs.
         # In particular, the NaNs should never pass any filters.
         eye6_withnans = eye6.copy()
-        putmask(eye6_withnans, ~mask, nan)
+        np.putmask(eye6_withnans, ~mask, np.nan)
         expected = {}
         for name, quintile in iter_quintiles:
             if quintile < 4:
@@ -281,7 +265,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # mostly for regression testing in case we write our own specialized
         # percentile calculation at some point in the future.
 
-        data = arange(25, dtype=float).reshape(5, 5) % 4
+        data = np.arange(25, dtype=float).reshape(5, 5) % 4
         quartiles = range(4)
         filter_names = ["pct_" + str(q) for q in quartiles]
 
@@ -295,21 +279,21 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             lower = quartile * 25.0
             upper = (quartile + 1) * 25.0
             expected[name] = and_(
-                nanpercentile(data, lower, axis=1, keepdims=True) <= data,
-                data <= nanpercentile(data, upper, axis=1, keepdims=True),
+                np.nanpercentile(data, lower, axis=1, keepdims=True) <= data,
+                data <= np.nanpercentile(data, upper, axis=1, keepdims=True),
             )
 
         self.check_terms(
             terms,
             expected,
             initial_workspace={self.f: data},
-            mask=self.build_mask(ones((5, 5))),
+            mask=self.build_mask(np.ones((5, 5))),
         )
 
     def test_percentile_after_mask(self):
-        f_input = eye(5)
-        g_input = arange(25, dtype=float).reshape(5, 5)
-        initial_mask = self.build_mask(ones((5, 5)))
+        f_input = np.eye(5)
+        g_input = np.arange(25, dtype=float).reshape(5, 5)
+        initial_mask = self.build_mask(np.ones((5, 5)))
 
         custom_mask = self.f < 1
         without_mask = self.g.percentile_between(80, 100)
@@ -322,10 +306,10 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         }
         expected = {
             # Mask that accepts everything except the diagonal.
-            "mask": ~eye(5, dtype=bool),
+            "mask": ~np.eye(5, dtype=bool),
             # Second should pass the largest value each day.  Each row is
             # strictly increasing, so we always select the last value.
-            "without_mask": array(
+            "without_mask": np.array(
                 [
                     [0, 0, 0, 0, 1],
                     [0, 0, 0, 0, 1],
@@ -338,7 +322,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             # With a mask, we should remove the diagonal as an option before
             # computing percentiles.  On the last day, we should get the
             # second-largest value, rather than the largest.
-            "with_mask": array(
+            "with_mask": np.array(
                 [
                     [0, 0, 0, 0, 1],
                     [0, 0, 0, 0, 1],
@@ -359,8 +343,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
     def test_isnan(self):
         data = self.randn_data(seed=10)
-        diag = eye(*data.shape, dtype=bool)
-        data[diag] = nan
+        diag = np.eye(*data.shape, dtype=bool)
+        data[diag] = np.nan
 
         self.check_terms(
             terms={
@@ -377,8 +361,8 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
     def test_notnan(self):
         data = self.randn_data(seed=10)
-        diag = eye(*data.shape, dtype=bool)
-        data[diag] = nan
+        diag = np.eye(*data.shape, dtype=bool)
+        data[diag] = np.nan
 
         self.check_terms(
             terms={
@@ -395,13 +379,13 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
     def test_isfinite(self):
         data = self.randn_data(seed=10)
-        data[:, 0] = nan
-        data[:, 2] = inf
-        data[:, 4] = -inf
+        data[:, 0] = np.nan
+        data[:, 2] = np.inf
+        data[:, 4] = -np.inf
 
         self.check_terms(
             terms={"isfinite": self.f.isfinite()},
-            expected={"isfinite": isfinite(data)},
+            expected={"isfinite": np.isfinite(data)},
             initial_workspace={self.f: data},
             mask=self.build_mask(self.ones_mask()),
         )
@@ -419,9 +403,9 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         shape = (10, 6)
         data = self.randn_data(seed=10, shape=shape)
-        data[eye(*shape, dtype=bool)] = input_factor.missing_value
+        data[np.eye(*shape, dtype=bool)] = input_factor.missing_value
 
-        expected_3 = array(
+        expected_3 = np.array(
             [
                 [1, 0, 0, 0, 1, 1],
                 [1, 1, 0, 0, 0, 1],
@@ -434,7 +418,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_4 = array(
+        expected_4 = np.array(
             [
                 [0, 0, 0, 0, 1, 1],
                 [1, 0, 0, 0, 0, 1],
@@ -456,7 +440,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                 "4": expected_4,
             },
             initial_workspace={input_factor: data},
-            mask=self.build_mask(ones(shape=shape)),
+            mask=self.build_mask(np.ones(shape=shape)),
         )
 
     def test_all_present_int_factor_input(self):
@@ -473,9 +457,9 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         shape = (10, 6)
         data = RandomState(5).choice(range(1, 5), size=shape, replace=True)
-        data[eye(*shape, dtype=bool)] = input_factor.missing_value
+        data[np.eye(*shape, dtype=bool)] = input_factor.missing_value
 
-        expected_3 = array(
+        expected_3 = np.array(
             [
                 [1, 0, 0, 0, 1, 1],
                 [1, 1, 0, 0, 0, 1],
@@ -488,7 +472,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_4 = array(
+        expected_4 = np.array(
             [
                 [0, 0, 0, 0, 1, 1],
                 [1, 0, 0, 0, 0, 1],
@@ -510,7 +494,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                 "4": expected_4,
             },
             initial_workspace={input_factor: data},
-            mask=self.build_mask(ones(shape=shape)),
+            mask=self.build_mask(np.ones(shape=shape)),
         )
 
     def test_all_present_classifier_input(self):
@@ -527,13 +511,13 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         shape = (10, 6)
         data = RandomState(6).choice(
-            array(["a", "e", "i", "o", "u"], dtype=object_dtype),
+            np.array(["a", "e", "i", "o", "u"], dtype=object_dtype),
             size=shape,
             replace=True,
         )
-        data[eye(*shape, dtype=bool)] = input_factor.missing_value
+        data[np.eye(*shape, dtype=bool)] = input_factor.missing_value
 
-        expected_3 = array(
+        expected_3 = np.array(
             [
                 [1, 0, 0, 0, 1, 1],
                 [1, 1, 0, 0, 0, 1],
@@ -546,7 +530,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_4 = array(
+        expected_4 = np.array(
             [
                 [0, 0, 0, 0, 1, 1],
                 [1, 0, 0, 0, 0, 1],
@@ -569,21 +553,18 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                 "4": expected_4,
             },
             initial_workspace={input_factor: data},
-            mask=self.build_mask(ones(shape=shape)),
+            mask=self.build_mask(np.ones(shape=shape)),
         )
 
     def test_all_present_filter_input(self):
         """Test error is raised when filter factor is input to `AllPresent`"""
-        with self.assertRaises(TypeError) as err:
+        expected_msg = "Input to filter `AllPresent` cannot be a Filter."
+        with pytest.raises(TypeError, match=expected_msg):
             AllPresent([Mask()], window_length=4)
-
-        self.assertEqual(
-            "Input to filter `AllPresent` cannot be a Filter.", str(err.exception)
-        )
 
     def test_all(self):
 
-        data = array(
+        data = np.array(
             [
                 [1, 1, 1, 1, 1, 1],
                 [0, 1, 1, 1, 1, 1],
@@ -603,7 +584,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # number of output rows for all inputs, so we only get the last 4
         # outputs for expected_3 even though we have enought input data to
         # compute 5 rows.
-        expected_3 = array(
+        expected_3 = np.array(
             [
                 [0, 0, 0, 1, 1, 1],
                 [1, 0, 0, 0, 1, 1],
@@ -613,7 +594,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_4 = array(
+        expected_4 = np.array(
             [
                 [0, 0, 0, 1, 1, 1],
                 [0, 0, 0, 0, 1, 1],
@@ -637,7 +618,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                 "4": expected_4,
             },
             initial_workspace={Input(): data},
-            mask=self.build_mask(ones(shape=data.shape)),
+            mask=self.build_mask(np.ones(shape=data.shape)),
         )
 
     def test_any(self):
@@ -658,7 +639,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         #
         #     all(a, b) == ~(any(~a, ~b))
         #
-        data = array(
+        data = np.array(
             [
                 [0, 0, 0, 0, 0, 0],
                 [1, 0, 0, 0, 0, 0],
@@ -678,7 +659,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
         # number of output rows for all inputs, so we only get the last 4
         # outputs for expected_3 even though we have enought input data to
         # compute 5 rows.
-        expected_3 = array(
+        expected_3 = np.array(
             [
                 [1, 1, 1, 0, 0, 0],
                 [0, 1, 1, 1, 0, 0],
@@ -688,7 +669,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_4 = array(
+        expected_4 = np.array(
             [
                 [1, 1, 1, 0, 0, 0],
                 [1, 1, 1, 1, 0, 0],
@@ -712,7 +693,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                 "4": expected_4,
             },
             initial_workspace={Input(): data},
-            mask=self.build_mask(ones(shape=data.shape)),
+            mask=self.build_mask(np.ones(shape=data.shape)),
         )
 
     def test_at_least_N(self):
@@ -722,7 +703,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         # This smoothing filter gives customizable "stickiness"
 
-        data = array(
+        data = np.array(
             [
                 [1, 1, 1, 1, 1, 1],
                 [1, 1, 1, 1, 1, 1],
@@ -735,7 +716,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_1 = array(
+        expected_1 = np.array(
             [
                 [1, 1, 1, 1, 1, 1],
                 [1, 1, 1, 1, 1, 1],
@@ -745,7 +726,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_2 = array(
+        expected_2 = np.array(
             [
                 [1, 1, 1, 1, 1, 1],
                 [1, 1, 1, 1, 1, 0],
@@ -755,7 +736,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_3 = array(
+        expected_3 = np.array(
             [
                 [1, 1, 1, 1, 1, 0],
                 [1, 1, 1, 1, 0, 0],
@@ -765,7 +746,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
             dtype=bool,
         )
 
-        expected_4 = array(
+        expected_4 = np.array(
             [
                 [1, 1, 1, 1, 0, 0],
                 [1, 1, 1, 0, 0, 0],
@@ -805,13 +786,13 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                 "AllEquiv": expected_4,
             },
             initial_workspace={Input(): data},
-            mask=self.build_mask(ones(shape=data.shape)),
+            mask=self.build_mask(np.ones(shape=data.shape)),
         )
 
     @parameter_space(factor_len=[2, 3, 4])
     def test_window_safe(self, factor_len):
         # all true data set of (days, securities)
-        data = full(self.default_shape, True, dtype=bool)
+        data = np.full(self.default_shape, True, dtype=bool)
 
         class InputFilter(Filter):
             inputs = ()
@@ -824,18 +805,18 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
             def compute(self, today, assets, out, filter_):
                 # sum for each column
-                out[:] = np_sum(filter_, axis=0)
+                out[:] = np.sum(filter_, axis=0)
 
         n = self.default_shape[0]
         output_shape = ((n - factor_len + 1), self.default_shape[1])
-        full(output_shape, factor_len, dtype=float64)
+        np.full(output_shape, factor_len, dtype=np.float64)
 
         self.check_terms(
             terms={
                 "windowsafe": TestFactor(),
             },
             expected={
-                "windowsafe": full(output_shape, factor_len, dtype=float64),
+                "windowsafe": np.full(output_shape, factor_len, dtype=np.float64),
             },
             initial_workspace={InputFilter(): data},
             mask=self.build_mask(self.ones_mask()),
@@ -851,23 +832,23 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
 
         # Factors are not window safe by default.
         factor = TestFactor()
-        self.assertFalse(factor.window_safe)
+        assert not factor.window_safe
 
         filter_ = TestFactor() > 3
-        self.assertTrue(filter_.window_safe)
+        assert filter_.window_safe
 
     @parameter_space(
         dtype=("float64", "datetime64[ns]"), seed=(1, 2, 3), __fail_fast=True
     )
     def test_top_with_groupby(self, dtype, seed):
         permute = partial(permute_rows, seed)
-        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+        permuted_array = compose(permute, partial(np.array, dtype=int64_dtype))
 
         shape = (8, 8)
 
         # Shuffle the input rows to verify that we correctly pick out the top
         # values independently of order.
-        factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
+        factor_data = permute(np.arange(0, 64, dtype=dtype).reshape(shape))
 
         classifier_data = permuted_array(
             [
@@ -948,13 +929,13 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
     )
     def test_top_and_bottom_with_groupby(self, dtype, seed):
         permute = partial(permute_rows, seed)
-        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+        permuted_array = compose(permute, partial(np.array, dtype=int64_dtype))
 
         shape = (8, 8)
 
         # Shuffle the input rows to verify that we correctly pick out the top
         # values independently of order.
-        factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
+        factor_data = permute(np.arange(0, 64, dtype=dtype).reshape(shape))
         classifier_data = permuted_array(
             [
                 [0, 0, 1, 1, 2, 2, 0, 0],
@@ -1086,13 +1067,13 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
     )
     def test_top_and_bottom_with_groupby_and_mask(self, dtype, seed):
         permute = partial(permute_rows, seed)
-        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+        permuted_array = compose(permute, partial(np.array, dtype=int64_dtype))
 
         shape = (8, 8)
 
         # Shuffle the input rows to verify that we correctly pick out the top
         # values independently of order.
-        factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
+        factor_data = permute(np.arange(0, 64, dtype=dtype).reshape(shape))
         classifier_data = permuted_array(
             [
                 [0, 0, 1, 1, 2, 2, 0, 0],
@@ -1150,7 +1131,7 @@ class FilterTestCase(BaseUSEquityPipelineTestCase):
                     dtype=bool,
                 ),
             },
-            mask=self.build_mask(permute(rot90(self.eye_mask(shape=shape)))),
+            mask=self.build_mask(permute(np.rot90(self.eye_mask(shape=shape)))),
         )
 
 
@@ -1211,7 +1192,7 @@ class SpecificAssetsTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         )
 
 
-class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
+class TestPostProcessAndToWorkSpaceValue:
     def test_reversability(self):
         class F(Filter):
             inputs = ()
@@ -1219,7 +1200,7 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
             missing_value = False
 
         f = F()
-        column_data = array(
+        column_data = np.array(
             [[True, f.missing_value], [True, f.missing_value], [True, True]],
             dtype=bool,
         )
@@ -1248,7 +1229,7 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
         )
 
 
-class ReprTestCase(ZiplineTestCase):
+class TestRepr:
     def test_maximum_repr(self):
         m = SomeFactor().top(1, groupby=SomeClassifier(), mask=SomeFilter())
 
@@ -1299,8 +1280,8 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             "result_1d": cond.if_else(f, g[self.assets[0]]),
         }
         expected = {
-            "result": where(cond_data, f_data, g_data),
-            "result_1d": where(cond_data, f_data, g_data[:, [0]]),
+            "result": np.where(cond_data, f_data, g_data),
+            "result_1d": np.where(cond_data, f_data, g_data[:, [0]]),
         }
 
         self.check_terms(
@@ -1335,8 +1316,8 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             "result_1d": cond.if_else(f, g[self.assets[5]]),
         }
         expected = {
-            "result": where(cond_data, f_data, g_data),
-            "result_1d": where(cond_data, f_data, g_data[:, [5]]),
+            "result": np.where(cond_data, f_data, g_data),
+            "result_1d": np.where(cond_data, f_data, g_data[:, [5]]),
         }
 
         self.check_terms(
@@ -1374,8 +1355,8 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             "result_1d": cond.if_else(f, g[self.assets[1]]),
         }
         expected = {
-            "result": where(cond_data, f_data, g_data),
-            "result_1d": where(cond_data, f_data, g_data[:, [1]]),
+            "result": np.where(cond_data, f_data, g_data),
+            "result_1d": np.where(cond_data, f_data, g_data[:, [1]]),
         }
 
         self.check_terms(
@@ -1463,8 +1444,8 @@ class IfElseTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             "result_1d": cond.if_else(f, g[self.assets[4]]),
         }
         expected = {
-            "result": where(cond_data, f_data, g_data),
-            "result_1d": where(cond_data, f_data, g_data[:, [4]]),
+            "result": np.where(cond_data, f_data, g_data),
+            "result_1d": np.where(cond_data, f_data, g_data[:, [4]]),
         }
 
         self.check_terms(

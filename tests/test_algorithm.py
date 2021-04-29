@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import warnings
 import datetime
 from datetime import timedelta
@@ -247,7 +248,7 @@ def handle_data(algo, data):
     set_cancel_policy(cancel_policy.NeverCancel())
 """
         algo = self.make_algo(script=code)
-        with self.assertRaises(SetCancelPolicyPostInit):
+        with pytest.raises(SetCancelPolicyPostInit):
             algo.run()
 
     def test_cancel_policy_invalid_param(self):
@@ -261,7 +262,7 @@ def handle_data(algo, data):
     pass
 """
         algo = self.make_algo(script=code)
-        with self.assertRaises(UnsupportedCancelPolicy):
+        with pytest.raises(UnsupportedCancelPolicy):
             algo.run()
 
     def test_zipline_api_resolves_dynamically(self):
@@ -282,7 +283,7 @@ def handle_data(algo, data):
 
             setattr(algo, name, fake_method)
             with ZiplineAPI(algo):
-                self.assertIs(sentinel, getattr(zipline.api, name)())
+                assert sentinel is getattr(zipline.api, name)()
 
     def test_sid_datetime(self):
         algo_text = """
@@ -312,7 +313,7 @@ def handle_data(context, data):
     get_datetime(timezone)
 """
         algo = self.make_algo(script=algo_text)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.run()
 
     @parameterized.expand(
@@ -340,14 +341,12 @@ def handle_data(context, data):
             data_frequency="minute",
             trading_calendar=self.trading_calendar,
         )
-
-        with self.assertRaises(ZeroCapitalError) as exc:
+        expected_msg = "initial capital base must be greater than zero"
+        with pytest.raises(ZeroCapitalError, match=expected_msg):
             # make_algo will trace to TradingAlgorithm,
             # where the exception will be raised
             self.make_algo(script=algo_text, sim_params=sim_params)
-        # Make sure the correct error was raised
-        error = exc.exception
-        self.assertEqual(str(error), "initial capital base must be greater than zero")
+            # Make sure the correct error was raised
 
     def test_get_environment(self):
         expected_env = {
@@ -360,8 +359,8 @@ def handle_data(context, data):
         }
 
         def initialize(algo):
-            self.assertEqual("zipline", algo.get_environment())
-            self.assertEqual(expected_env, algo.get_environment("*"))
+            assert "zipline" == algo.get_environment()
+            assert expected_env == algo.get_environment("*")
 
         def handle_data(algo, data):
             pass
@@ -384,31 +383,31 @@ def handle_data(context, data):
                 algo.order(algo.sid(2), 1, style=LimitOrder(0.01, asset=algo.sid(2)))
 
                 all_orders = algo.get_open_orders()
-                self.assertEqual(list(all_orders.keys()), [1, 2])
+                assert list(all_orders.keys()) == [1, 2]
 
-                self.assertEqual(all_orders[1], algo.get_open_orders(1))
-                self.assertEqual(len(all_orders[1]), 1)
+                assert all_orders[1] == algo.get_open_orders(1)
+                assert len(all_orders[1]) == 1
 
-                self.assertEqual(all_orders[2], algo.get_open_orders(2))
-                self.assertEqual(len(all_orders[2]), 3)
+                assert all_orders[2] == algo.get_open_orders(2)
+                assert len(all_orders[2]) == 3
 
             if algo.minute == 1:
                 # First order should have filled.
                 # Second order should still be open.
                 all_orders = algo.get_open_orders()
-                self.assertEqual(list(all_orders.keys()), [2])
+                assert list(all_orders.keys()) == [2]
 
-                self.assertEqual([], algo.get_open_orders(1))
+                assert [] == algo.get_open_orders(1)
 
                 orders_2 = algo.get_open_orders(2)
-                self.assertEqual(all_orders[2], orders_2)
-                self.assertEqual(len(all_orders[2]), 3)
+                assert all_orders[2] == orders_2
+                assert len(all_orders[2]) == 3
 
                 for order_ in orders_2:
                     algo.cancel_order(order_)
 
                 all_orders = algo.get_open_orders()
-                self.assertEqual(all_orders, {})
+                assert all_orders == {}
 
             algo.minute += 1
 
@@ -461,13 +460,13 @@ def log_nyse_close(context, data):
             # each minute should be a nyse session open
             session_label = nyse.minute_to_session_label(minute)
             session_open = nyse.session_open(session_label)
-            self.assertEqual(session_open, minute)
+            assert session_open == minute
 
         for minute in algo.nyse_closes:
             # each minute should be a minute before a nyse session close
             session_label = nyse.minute_to_session_label(minute)
             session_close = nyse.session_close(session_label)
-            self.assertEqual(session_close - timedelta(minutes=1), minute)
+            assert session_close - timedelta(minutes=1) == minute
 
         # Test that passing an invalid calendar parameter raises an error.
         erroring_algotext = dedent(
@@ -490,7 +489,7 @@ def log_nyse_close(context, data):
             ),
         )
 
-        with self.assertRaises(ScheduleFunctionInvalidCalendar):
+        with pytest.raises(ScheduleFunctionInvalidCalendar):
             algo.run()
 
     def test_schedule_function(self):
@@ -499,11 +498,8 @@ def log_nyse_close(context, data):
         def incrementer(algo, data):
             algo.func_called += 1
             curdt = algo.get_datetime().tz_convert(pytz.utc)
-            self.assertEqual(
-                curdt,
-                us_eastern.localize(
-                    datetime.datetime.combine(curdt.date(), datetime.time(9, 31)),
-                ),
+            assert curdt == us_eastern.localize(
+                datetime.datetime.combine(curdt.date(), datetime.time(9, 31))
             )
 
         def initialize(algo):
@@ -530,7 +526,7 @@ def log_nyse_close(context, data):
         )
         algo.run()
 
-        self.assertEqual(algo.func_called, algo.days)
+        assert algo.func_called == algo.days
 
     def test_event_context(self):
         expected_data = []
@@ -567,22 +563,21 @@ def log_nyse_close(context, data):
         )
         algo.run()
 
-        self.assertEqual(len(expected_data), 780)
-        self.assertEqual(collected_data_pre, expected_data)
-        self.assertEqual(collected_data_post, expected_data)
+        assert len(expected_data) == 780
+        assert collected_data_pre == expected_data
+        assert collected_data_post == expected_data
 
-        self.assertEqual(
-            len(function_stack),
-            3900,
-            "Incorrect number of functions called: %s != 3900" % len(function_stack),
-        )
+        assert (
+            len(function_stack) == 3900
+        ), "Incorrect number of functions called: %s != 3900" % len(function_stack)
         expected_functions = [pre, handle_data, f, g, post] * 97530
         for n, (f, g) in enumerate(zip(function_stack, expected_functions)):
-            self.assertEqual(
-                f,
-                g,
-                "function at position %d was incorrect, expected %s but got %s"
-                % (n, g.__name__, f.__name__),
+            assert (
+                f == g
+            ), "function at position %d was incorrect, expected %s but got %s" % (
+                n,
+                g.__name__,
+                f.__name__,
             )
 
     @parameterized.expand(
@@ -607,32 +602,32 @@ def log_nyse_close(context, data):
         algo.schedule_function(nop, time_rule=Never() & Always())
 
         event_rule = algo.event_manager._events[1].rule
-        self.assertIsInstance(event_rule, OncePerDay)
-        self.assertEqual(event_rule.cal, algo.trading_calendar)
+        assert isinstance(event_rule, OncePerDay)
+        assert event_rule.cal == algo.trading_calendar
 
         inner_rule = event_rule.rule
-        self.assertIsInstance(inner_rule, ComposedRule)
-        self.assertEqual(inner_rule.cal, algo.trading_calendar)
+        assert isinstance(inner_rule, ComposedRule)
+        assert inner_rule.cal == algo.trading_calendar
 
         first = inner_rule.first
         second = inner_rule.second
         composer = inner_rule.composer
 
-        self.assertIsInstance(first, Always)
-        self.assertEqual(first.cal, algo.trading_calendar)
-        self.assertEqual(second.cal, algo.trading_calendar)
+        assert isinstance(first, Always)
+        assert first.cal == algo.trading_calendar
+        assert second.cal == algo.trading_calendar
 
         if mode == "daily":
-            self.assertIsInstance(second, Always)
+            assert isinstance(second, Always)
         else:
-            self.assertIsInstance(second, ComposedRule)
-            self.assertIsInstance(second.first, Never)
-            self.assertEqual(second.first.cal, algo.trading_calendar)
+            assert isinstance(second, ComposedRule)
+            assert isinstance(second.first, Never)
+            assert second.first.cal == algo.trading_calendar
 
-            self.assertIsInstance(second.second, Always)
-            self.assertEqual(second.second.cal, algo.trading_calendar)
+            assert isinstance(second.second, Always)
+            assert second.second.cal == algo.trading_calendar
 
-        self.assertIs(composer, ComposedRule.lazy_and)
+        assert composer is ComposedRule.lazy_and
 
     def test_asset_lookup(self):
         algo = self.make_algo()
@@ -644,9 +639,10 @@ def log_nyse_close(context, data):
         algo.sim_params = algo.sim_params.create_new(
             start_session, pd.Timestamp("2001-12-01", tz="UTC")
         )
-        with self.assertRaises(SymbolNotFound):
+
+        with pytest.raises(SymbolNotFound):
             algo.symbol("PLAY")
-        with self.assertRaises(SymbolNotFound):
+        with pytest.raises(SymbolNotFound):
             algo.symbols("PLAY")
 
         # Test when first PLAY exists
@@ -654,47 +650,47 @@ def log_nyse_close(context, data):
             start_session, pd.Timestamp("2002-12-01", tz="UTC")
         )
         list_result = algo.symbols("PLAY")
-        self.assertEqual(3, list_result[0])
+        assert 3 == list_result[0]
 
         # Test after first PLAY ends
         algo.sim_params = algo.sim_params.create_new(
             start_session, pd.Timestamp("2004-12-01", tz="UTC")
         )
-        self.assertEqual(3, algo.symbol("PLAY"))
+        assert 3 == algo.symbol("PLAY")
 
         # Test after second PLAY begins
         algo.sim_params = algo.sim_params.create_new(
             start_session, pd.Timestamp("2005-12-01", tz="UTC")
         )
-        self.assertEqual(4, algo.symbol("PLAY"))
+        assert 4 == algo.symbol("PLAY")
 
         # Test after second PLAY ends
         algo.sim_params = algo.sim_params.create_new(
             start_session, pd.Timestamp("2006-12-01", tz="UTC")
         )
-        self.assertEqual(4, algo.symbol("PLAY"))
+        assert 4 == algo.symbol("PLAY")
         list_result = algo.symbols("PLAY")
-        self.assertEqual(4, list_result[0])
+        assert 4 == list_result[0]
 
         # Test lookup SID
-        self.assertIsInstance(algo.sid(3), Equity)
-        self.assertIsInstance(algo.sid(4), Equity)
+        assert isinstance(algo.sid(3), Equity)
+        assert isinstance(algo.sid(4), Equity)
 
         # Supplying a non-string argument to symbol()
         # should result in a TypeError.
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.symbol(1)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.symbol((1,))
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.symbol({1})
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.symbol([1])
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.symbol({"foo": "bar"})
 
     def test_future_symbol(self):
@@ -704,37 +700,37 @@ def log_nyse_close(context, data):
 
         # Check that we get the correct fields for the CLG06 symbol
         cl = algo.future_symbol("CLG06")
-        self.assertEqual(cl.sid, 5)
-        self.assertEqual(cl.symbol, "CLG06")
-        self.assertEqual(cl.root_symbol, "CL")
-        self.assertEqual(cl.start_date, pd.Timestamp("2005-12-01", tz="UTC"))
-        self.assertEqual(cl.notice_date, pd.Timestamp("2005-12-20", tz="UTC"))
-        self.assertEqual(cl.expiration_date, pd.Timestamp("2006-01-20", tz="UTC"))
+        assert cl.sid == 5
+        assert cl.symbol == "CLG06"
+        assert cl.root_symbol == "CL"
+        assert cl.start_date == pd.Timestamp("2005-12-01", tz="UTC")
+        assert cl.notice_date == pd.Timestamp("2005-12-20", tz="UTC")
+        assert cl.expiration_date == pd.Timestamp("2006-01-20", tz="UTC")
 
-        with self.assertRaises(SymbolNotFound):
+        with pytest.raises(SymbolNotFound):
             algo.future_symbol("")
 
-        with self.assertRaises(SymbolNotFound):
+        with pytest.raises(SymbolNotFound):
             algo.future_symbol("PLAY")
 
-        with self.assertRaises(SymbolNotFound):
+        with pytest.raises(SymbolNotFound):
             algo.future_symbol("FOOBAR")
 
         # Supplying a non-string argument to future_symbol()
         # should result in a TypeError.
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.future_symbol(1)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.future_symbol((1,))
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.future_symbol({1})
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.future_symbol([1])
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             algo.future_symbol({"foo": "bar"})
 
 
@@ -798,12 +794,12 @@ class TestSetSymbolLookupDate(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         def initialize(context):
             set_symbol_lookup_date(self.asset_ends[0])
-            self.assertEqual(zipline.api.symbol("DUP").sid, self.sids[0])
+            assert zipline.api.symbol("DUP").sid == self.sids[0]
 
             set_symbol_lookup_date(self.asset_ends[1])
-            self.assertEqual(zipline.api.symbol("DUP").sid, self.sids[1])
+            assert zipline.api.symbol("DUP").sid == self.sids[1]
 
-            with self.assertRaises(UnsupportedDatetimeFormat):
+            with pytest.raises(UnsupportedDatetimeFormat):
                 set_symbol_lookup_date("foobar")
 
         self.run_algorithm(initialize=initialize)
@@ -910,7 +906,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
             0,
         ]
         for i, expected in enumerate(expected_position_count):
-            self.assertEqual(result.iloc[i]["num_positions"], expected)
+            assert result.iloc[i]["num_positions"] == expected
 
     def test_noop_orders(self):
         asset = self.asset_finder.retrieve_asset(1)
@@ -966,7 +962,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         # Verify that positions are empty for all dates.
         empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
-        self.assertTrue(empty_positions.all())
+        assert empty_positions.all()
 
     def test_position_weights(self):
         sids = (1, 133, 1000)
@@ -1002,7 +998,7 @@ class TestPositions(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         expected_position_weights = [
             # No positions held on the first day.
-            pd.Series({}),
+            pd.Series({}, dtype=float),
             # Each equity's position value is its price times the number of
             # shares held. In this example, we hold a long position in 2 shares
             # of equity_1 so its weight is (95.0 * 2) = 190.0 divided by the
@@ -1142,12 +1138,12 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         results = algo.run()
 
         # fetching data at midnight gets us the previous market minute's data
-        self.assertEqual(390, results.iloc[0].the_price1)
-        self.assertEqual(392, results.iloc[0].the_high1)
+        assert 390 == results.iloc[0].the_price1
+        assert 392 == results.iloc[0].the_high1
 
         # make sure that price is ffilled, but not other fields
-        self.assertEqual(350, results.iloc[0].the_price2)
-        self.assertTrue(np.isnan(results.iloc[0].the_high2))
+        assert 350 == results.iloc[0].the_price2
+        assert np.isnan(results.iloc[0].the_high2)
 
         # 10-minute history
 
@@ -1179,9 +1175,7 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
             algo.history_values[0].loc[pd.IndexSlice[:, 2], "high"].iloc[:19],
         )
 
-        self.assertEqual(
-            352, algo.history_values[0].loc[pd.IndexSlice[:, 2], "high"].iloc[19]
-        )
+        assert 352 == algo.history_values[0].loc[pd.IndexSlice[:, 2], "high"].iloc[19]
 
         np.testing.assert_array_equal(
             np.full(40, np.nan),
@@ -1216,19 +1210,19 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         algo = self.make_algo(script=algo_code)
         results = algo.run()
 
-        self.assertEqual(392, results.the_high1[0])
-        self.assertEqual(390, results.the_price1[0])
+        assert 392 == results.the_high1[0]
+        assert 390 == results.the_price1[0]
 
         # nan because asset2 only trades every 50 minutes
-        self.assertTrue(np.isnan(results.the_high2[0]))
+        assert np.isnan(results.the_high2[0])
 
-        self.assertTrue(350, results.the_price2[0])
+        assert 350, results.the_price2[0]
 
-        self.assertEqual(392, algo.history_values[0]["high"][0])
-        self.assertEqual(390, algo.history_values[0]["price"][0])
+        assert 392 == algo.history_values[0]["high"][0]
+        assert 390 == algo.history_values[0]["price"][0]
 
-        self.assertEqual(352, algo.history_values[0]["high"][1])
-        self.assertEqual(350, algo.history_values[0]["price"][1])
+        assert 352 == algo.history_values[0]["high"][1]
+        assert 350 == algo.history_values[0]["price"][1]
 
     def test_portfolio_bts(self):
         algo_code = dedent(
@@ -1262,8 +1256,8 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # Simulation starts on 1/06, where the price in bts is 390, and
         # positions_value is 0. On 1/07, price is 780, and after buying one
         # share on the first bar of 1/06, positions_value is 780
-        self.assertEqual(results.pos_value.iloc[0], 0)
-        self.assertEqual(results.pos_value.iloc[1], 780)
+        assert results.pos_value.iloc[0] == 0
+        assert results.pos_value.iloc[1] == 780
 
     def test_account_bts(self):
         algo_code = dedent(
@@ -1298,7 +1292,7 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # second bar of 1/06, where the price is 391, and costs the default
         # commission of 0. On 1/07, the price is 780, and the increase in
         # portfolio value is 780-392-0
-        self.assertEqual(results.port_value.iloc[0], 10000)
+        assert results.port_value.iloc[0] == 10000
         self.assertAlmostEqual(
             results.port_value.iloc[1], 10000 + 780 - 392 - 0, places=2
         )
@@ -1337,16 +1331,16 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         results = self.run_algorithm(script=algo_code)
 
         # On 1/07, positions value should by 780, same as without split
-        self.assertEqual(results.pos_value.iloc[0], 0)
-        self.assertEqual(results.pos_value.iloc[1], 780)
+        assert results.pos_value.iloc[0] == 0
+        assert results.pos_value.iloc[1] == 780
 
         # On 1/07, after applying the split, 1 share becomes 2
-        self.assertEqual(results.pos_amount.iloc[0], 0)
-        self.assertEqual(results.pos_amount.iloc[1], 2)
+        assert results.pos_amount.iloc[0] == 0
+        assert results.pos_amount.iloc[1] == 2
 
         # On 1/07, after applying the split, last sale price is halved
-        self.assertEqual(results.last_sale_price.iloc[0], 0)
-        self.assertEqual(results.last_sale_price.iloc[1], 390)
+        assert results.last_sale_price.iloc[0] == 0
+        assert results.last_sale_price.iloc[1] == 390
 
     def test_account_bts_with_overnight_split(self):
         algo_code = dedent(
@@ -1377,7 +1371,7 @@ class TestBeforeTradingStart(zf.WithMakeAlgo, zf.ZiplineTestCase):
         results = self.run_algorithm(script=algo_code)
 
         # On 1/07, portfolio value is the same as without split
-        self.assertEqual(results.port_value.iloc[0], 10000)
+        assert results.port_value.iloc[0] == 10000
         self.assertAlmostEqual(
             results.port_value.iloc[1], 10000 + 780 - 392 - 0, places=2
         )
@@ -1510,7 +1504,7 @@ class TestAlgoScript(zf.WithMakeAlgo, zf.ZiplineTestCase):
             platform=platform,
         )
         algo.run()
-        self.assertEqual(algo.environment, platform)
+        assert algo.environment == platform
 
     def test_api_symbol(self):
         self.run_algorithm(script=api_symbol_algo)
@@ -1549,20 +1543,20 @@ def handle_data(context, data):
             val for sublist in results["transactions"].tolist() for val in sublist
         ]
 
-        self.assertEqual(len(all_txns), 1)
+        assert len(all_txns) == 1
         txn = all_txns[0]
 
         expected_spread = 0.05
         expected_price = test_algo.recorded_vars["price"] - expected_spread
 
-        self.assertEqual(expected_price, txn["price"])
+        assert expected_price == txn["price"]
 
         # make sure that the $100 commission was applied to our cash
         # the txn was for -1000 shares at 9.95, means -9.95k.  our capital_used
         # for that day was therefore 9.95k, but after the $100 commission,
         # it should be 9.85k.
-        self.assertEqual(9850, results.capital_used[1])
-        self.assertEqual(100, results["orders"].iloc[1][0]["commission"])
+        assert 9850 == results.capital_used[1]
+        assert 100 == results["orders"].iloc[1][0]["commission"]
 
     @parameterized.expand(
         [
@@ -1640,7 +1634,7 @@ def handle_data(context, data):
                 val for sublist in results["transactions"].tolist() for val in sublist
             ]
 
-            self.assertEqual(len(all_txns), 67)
+            assert len(all_txns) == 67
             # all_orders are all the incremental versions of the
             # orders as each new fill comes in.
             all_orders = list(toolz.concat(results["orders"]))
@@ -1649,19 +1643,26 @@ def handle_data(context, data):
                 # for each incremental version of each order, the commission
                 # should be its filled amount * 0.02
                 for order_ in all_orders:
-                    self.assertAlmostEqual(
-                        order_["filled"] * 0.02, order_["commission"]
+                    assert (
+                        round(abs(order_["filled"] * 0.02 - order_["commission"]), 7)
+                        == 0
                     )
             else:
                 # the commission should be at least the min_trade_cost
                 for order_ in all_orders:
                     if order_["filled"] > 0:
-                        self.assertAlmostEqual(
-                            max(order_["filled"] * 0.02, minimum_commission),
-                            order_["commission"],
+                        assert (
+                            round(
+                                abs(
+                                    max(order_["filled"] * 0.02, minimum_commission)
+                                    - order_["commission"]
+                                ),
+                                7,
+                            )
+                            == 0
                         )
                     else:
-                        self.assertEqual(0, order_["commission"])
+                        assert 0 == order_["commission"]
         finally:
             tempdir.cleanup()
 
@@ -1679,7 +1680,7 @@ def handle_data(context, data):
             """
         )
         test_algo = self.make_algo(script=code)
-        with self.assertRaises(IncompatibleSlippageModel):
+        with pytest.raises(IncompatibleSlippageModel):
             # Passing a futures slippage model as the first argument, which is
             # for setting equity models, should fail.
             test_algo.run()
@@ -1689,13 +1690,13 @@ def handle_data(context, data):
         results = test_algo.run()
 
         for i in range(1, 252):
-            self.assertEqual(results.iloc[i - 1]["incr"], i)
+            assert results.iloc[i - 1]["incr"] == i
 
     def test_algo_record_nan(self):
         test_algo = self.make_algo(script=record_float_magic % "nan")
         results = test_algo.run()
         for i in range(1, 252):
-            self.assertTrue(np.isnan(results.iloc[i - 1]["data"]))
+            assert np.isnan(results.iloc[i - 1]["data"])
 
     def test_batch_market_order_matches_multiple_manual_orders(self):
         share_counts = pd.Series([50, 100])
@@ -1725,7 +1726,7 @@ def handle_data(context, data):
             blotter=multi_blotter,
         )
         multi_stats = multi_test_algo.run()
-        self.assertFalse(multi_blotter.order_batch_called)
+        assert not multi_blotter.order_batch_called
 
         batch_blotter = RecordBatchBlotter()
         batch_test_algo = self.make_algo(
@@ -1757,7 +1758,7 @@ def handle_data(context, data):
             blotter=batch_blotter,
         )
         batch_stats = batch_test_algo.run()
-        self.assertTrue(batch_blotter.order_batch_called)
+        assert batch_blotter.order_batch_called
 
         for stats in (multi_stats, batch_stats):
             stats.orders = stats.orders.apply(
@@ -1800,7 +1801,7 @@ def handle_data(context, data):
             blotter=batch_blotter,
         )
         batch_test_algo.run()
-        self.assertTrue(batch_blotter.order_batch_called)
+        assert batch_blotter.order_batch_called
 
     def test_order_dead_asset(self):
         # after asset 0 is dead
@@ -1840,7 +1841,7 @@ def handle_data(context, data):
                 sim_params=params,
             )
 
-        with self.assertRaises(CannotOrderDelistedAsset):
+        with pytest.raises(CannotOrderDelistedAsset):
             test_algo.run()
 
     def test_portfolio_in_init(self):
@@ -1892,12 +1893,12 @@ def handle_data(context, data):
         error
         """
         algo = self.make_algo(script=algo_text)
-        with self.assertRaises(TypeError) as cm:
+        with pytest.raises(TypeError) as cm:
             algo.run()
 
-        self.assertEqual(
-            "%s() got an unexpected keyword argument 'blahblah'" % name,
-            cm.exception.args[0],
+        assert (
+            "%s() got an unexpected keyword argument 'blahblah'" % name
+            == cm.value.args[0]
         )
 
     @parameterized.expand(ARG_TYPE_TEST_CASES)
@@ -1906,7 +1907,7 @@ def handle_data(context, data):
         keyword = name.split("__")[1]
 
         algo = self.make_algo(script=inputs[0])
-        with self.assertRaises(TypeError) as cm:
+        with pytest.raises(TypeError) as cm:
             algo.run()
 
         expected = "Expected %s argument to be of type %s%s" % (
@@ -1915,7 +1916,7 @@ def handle_data(context, data):
             inputs[1],
         )
 
-        self.assertEqual(expected, cm.exception.args[0])
+        assert expected == cm.value.args[0]
 
     def test_empty_asset_list_to_history(self):
         params = SimulationParameters(
@@ -1947,13 +1948,12 @@ def handle_data(context, data):
     def test_get_open_orders_kwargs(self, name, script):
         algo = self.make_algo(script=script)
         if name == "bad_kwargs":
-            with self.assertRaises(TypeError) as cm:
+            with pytest.raises(TypeError) as cm:
                 algo.run()
-                self.assertEqual(
+                assert (
                     "Keyword argument `sid` is no longer "
                     "supported for get_open_orders. Use `asset` "
-                    "instead.",
-                    cm.exception.args[0],
+                    "instead." == cm.value.args[0]
                 )
         else:
             algo.run()
@@ -1968,8 +1968,8 @@ def handle_data(context, data):
         results = self.run_algorithm(script=empty_positions)
         num_positions = results.num_positions
         amounts = results.amounts
-        self.assertTrue(all(num_positions == 0))
-        self.assertTrue(all(amounts == 0))
+        assert all(num_positions == 0)
+        assert all(amounts == 0)
 
     def test_schedule_function_time_rule_positionally_misplaced(self):
         """
@@ -2008,39 +2008,37 @@ def handle_data(context, data):
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("ignore", PerformanceWarning)
+            warnings.simplefilter(
+                "ignore", RuntimeWarning
+            )  # TODO: CHECK WHY DO I HAVE TO DO THAT (empyrical)
 
             algo = self.make_algo(script=algocode, sim_params=sim_params)
             algo.run()
 
-            self.assertEqual(len(w), 2)
+            assert len(w) == 2
 
             for i, warning in enumerate(w):
-                self.assertIsInstance(warning.message, UserWarning)
-                self.assertEqual(
-                    warning.message.args[0],
-                    "Got a time rule for the second positional argument "
+                assert isinstance(warning.message, UserWarning)
+                assert (
+                    warning.message.args[0]
+                    == "Got a time rule for the second positional argument "
                     "date_rule. You should use keyword argument "
                     "time_rule= when calling schedule_function without "
-                    "specifying a date_rule",
+                    "specifying a date_rule"
                 )
+
                 # The warnings come from line 13 and 14 in the algocode
-                self.assertEqual(warning.lineno, 13 + i)
+                assert warning.lineno == 13 + i
 
-        self.assertEqual(
-            algo.done_at_open,
-            [
-                pd.Timestamp("2006-01-12 14:31:00", tz="UTC"),
-                pd.Timestamp("2006-01-13 14:31:00", tz="UTC"),
-            ],
-        )
+        assert algo.done_at_open == [
+            pd.Timestamp("2006-01-12 14:31:00", tz="UTC"),
+            pd.Timestamp("2006-01-13 14:31:00", tz="UTC"),
+        ]
 
-        self.assertEqual(
-            algo.done_at_close,
-            [
-                pd.Timestamp("2006-01-12 20:59:00", tz="UTC"),
-                pd.Timestamp("2006-01-13 20:59:00", tz="UTC"),
-            ],
-        )
+        assert algo.done_at_close == [
+            pd.Timestamp("2006-01-12 20:59:00", tz="UTC"),
+            pd.Timestamp("2006-01-13 20:59:00", tz="UTC"),
+        ]
 
 
 class TestCapitalChanges(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -2147,16 +2145,13 @@ def order_stuff(context, data):
             r["capital_change"] for r in results if "capital_change" in r
         ]
 
-        self.assertEqual(len(capital_change_packets), 1)
-        self.assertEqual(
-            capital_change_packets[0],
-            {
-                "date": pd.Timestamp("2006-01-06", tz="UTC"),
-                "type": "cash",
-                "target": 151000.0 if change_type == "target" else None,
-                "delta": 50000.0,
-            },
-        )
+        assert len(capital_change_packets) == 1
+        assert capital_change_packets[0] == {
+            "date": pd.Timestamp("2006-01-06", tz="UTC"),
+            "type": "cash",
+            "target": 151000.0 if change_type == "target" else None,
+            "delta": 50000.0,
+        }
 
         # 1/03: price = 10, place orders
         # 1/04: orders execute at price = 11, place orders
@@ -2268,9 +2263,9 @@ def order_stuff(context, data):
                 err_msg="cumulative " + stat,
             )
 
-        self.assertEqual(
-            algo.capital_change_deltas, {pd.Timestamp("2006-01-06", tz="UTC"): 50000.0}
-        )
+        assert algo.capital_change_deltas == {
+            pd.Timestamp("2006-01-06", tz="UTC"): 50000.0
+        }
 
     @parameterized.expand(
         [
@@ -2330,7 +2325,7 @@ def order_stuff(context, data):
             r["capital_change"] for r in results if "capital_change" in r
         ]
 
-        self.assertEqual(len(capital_change_packets), len(capital_changes))
+        assert len(capital_change_packets) == len(capital_changes)
         expected = [
             {
                 "date": pd.Timestamp(val[0], tz="UTC"),
@@ -2340,7 +2335,7 @@ def order_stuff(context, data):
             }
             for val in values
         ]
-        self.assertEqual(capital_change_packets, expected)
+        assert capital_change_packets == expected
 
         # 1/03: place orders at price = 100, execute at 101
         # 1/04: place orders at price = 490, execute at 491,
@@ -2440,18 +2435,14 @@ def order_stuff(context, data):
             )
 
         if change_loc == "interday":
-            self.assertEqual(
-                algo.capital_change_deltas,
-                {pd.Timestamp("2006-01-04", tz="UTC"): 1000.0},
-            )
+            assert algo.capital_change_deltas == {
+                pd.Timestamp("2006-01-04", tz="UTC"): 1000.0
+            }
         else:
-            self.assertEqual(
-                algo.capital_change_deltas,
-                {
-                    pd.Timestamp("2006-01-04 17:00", tz="UTC"): 500.0,
-                    pd.Timestamp("2006-01-04 18:00", tz="UTC"): 500.0,
-                },
-            )
+            assert algo.capital_change_deltas == {
+                pd.Timestamp("2006-01-04 17:00", tz="UTC"): 500.0,
+                pd.Timestamp("2006-01-04 18:00", tz="UTC"): 500.0,
+            }
 
     @parameterized.expand(
         [
@@ -2513,7 +2504,7 @@ def order_stuff(context, data):
             r["capital_change"] for r in results if "capital_change" in r
         ]
 
-        self.assertEqual(len(capital_change_packets), len(capital_changes))
+        assert len(capital_change_packets) == len(capital_changes)
         expected = [
             {
                 "date": pd.Timestamp(val[0], tz="UTC"),
@@ -2523,7 +2514,7 @@ def order_stuff(context, data):
             }
             for val in values
         ]
-        self.assertEqual(capital_change_packets, expected)
+        assert capital_change_packets == expected
 
         # 1/03: place orders at price = 100, execute at 101
         # 1/04: place orders at price = 490, execute at 491,
@@ -2707,18 +2698,14 @@ def order_stuff(context, data):
             )
 
         if change_loc == "interday":
-            self.assertEqual(
-                algo.capital_change_deltas,
-                {pd.Timestamp("2006-01-04", tz="UTC"): 1000.0},
-            )
+            assert algo.capital_change_deltas == {
+                pd.Timestamp("2006-01-04", tz="UTC"): 1000.0
+            }
         else:
-            self.assertEqual(
-                algo.capital_change_deltas,
-                {
-                    pd.Timestamp("2006-01-04 17:00", tz="UTC"): 500.0,
-                    pd.Timestamp("2006-01-04 18:00", tz="UTC"): 500.0,
-                },
-            )
+            assert algo.capital_change_deltas == {
+                pd.Timestamp("2006-01-04 17:00", tz="UTC"): 500.0,
+                pd.Timestamp("2006-01-04 18:00", tz="UTC"): 500.0,
+            }
 
 
 class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -2776,7 +2763,7 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         algo = self.make_algo(script=algo)
         algo.run()
-        self.assertFalse(algo.first_bar)
+        assert not algo.first_bar
 
 
 class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -2797,9 +2784,9 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
     def _check_algo(self, algo, expected_order_count, expected_exc):
 
-        with self.assertRaises(expected_exc) if expected_exc else nop_context:
+        with pytest.raises(expected_exc) if expected_exc else nop_context:
             algo.run()
-        self.assertEqual(algo.order_count, expected_order_count)
+        assert algo.order_count == expected_order_count
 
     def check_algo_succeeds(self, algo, order_count=4):
         # Default for order_count assumes one order per handle_data call.
@@ -2918,7 +2905,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             handle_data=handle_data,
         )
         self.check_algo_fails(algo, 0)
-        self.assertFalse(algo.could_trade)
+        assert not algo.could_trade
 
         # Set StaticRestrictions for one sid and fail.
         rlm = StaticRestrictions([self.sid])
@@ -2931,7 +2918,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         )
 
         self.check_algo_fails(algo, 0)
-        self.assertFalse(algo.could_trade)
+        assert not algo.could_trade
 
         # just log an error on the violation if we choose not to fail.
         algo = self.make_algo(
@@ -2944,13 +2931,12 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         with make_test_handler(self) as log_catcher:
             self.check_algo_succeeds(algo)
         logs = [r.message for r in log_catcher.records]
-        self.assertIn(
+        assert (
             "Order for 100 shares of Equity(133 [A]) at "
             "2006-01-03 21:00:00+00:00 violates trading constraint "
-            "RestrictedListOrder({})",
-            logs,
+            "RestrictedListOrder({})" in logs
         )
-        self.assertFalse(algo.could_trade)
+        assert not algo.could_trade
 
         # set the restricted list to exclude the sid, and succeed
         rlm = HistoricalRestrictions(
@@ -2969,7 +2955,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             handle_data=handle_data,
         )
         self.check_algo_succeeds(algo)
-        self.assertTrue(algo.could_trade)
+        assert algo.could_trade
 
     @parameterized.expand(
         [("order_first_restricted_sid", 0), ("order_second_restricted_sid", 1)]
@@ -2996,13 +2982,16 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             on_error="fail",
         )
         self.check_algo_fails(algo, 0)
-        self.assertFalse(algo.could_trade1)
-        self.assertFalse(algo.could_trade2)
+        assert not algo.could_trade1
+        assert not algo.could_trade2
 
     def test_set_do_not_order_list(self):
         def initialize(self, restricted_list):
             self.order_count = 0
-            self.set_do_not_order_list(restricted_list, on_error="fail")
+            # self.set_do_not_order_list(restricted_list, on_error="fail")
+            self.set_asset_restrictions(
+                StaticRestrictions(restricted_list), on_error="fail"
+            )
 
         def handle_data(algo, data):
             algo.could_trade = data.can_trade(algo.sid(self.sid))
@@ -3017,7 +3006,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         )
 
         self.check_algo_fails(algo, 0)
-        self.assertFalse(algo.could_trade)
+        assert not algo.could_trade
 
     def test_set_max_order_size(self):
         def initialize(algo, asset, max_shares, max_notional):
@@ -3116,10 +3105,10 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             initialize=initialize,
             handle_data=handle_data,
         )
-        with self.assertRaises(TradingControlViolation):
+        with pytest.raises(TradingControlViolation):
             algo.run()
 
-        self.assertEqual(algo.order_count, 3)
+        assert algo.order_count == 3
 
     def test_set_max_order_count_minutely(self):
         sim_params = self.make_simparams(data_frequency="minute")
@@ -3146,10 +3135,10 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             sim_params=sim_params,
         )
 
-        with self.assertRaises(TradingControlViolation):
+        with pytest.raises(TradingControlViolation):
             algo.run()
 
-        self.assertEqual(algo.order_count, 9)
+        assert algo.order_count == 9
 
         # Set a limit of 5 orders per day, and order 5 times in the first
         # minute of each day. This should succeed because the counter gets
@@ -3171,7 +3160,7 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         algo.run()
 
         # 5 orders per day times 4 days.
-        self.assertEqual(algo.order_count, 20)
+        assert algo.order_count == 20
 
     def test_long_only(self):
         def initialize(algo):
@@ -3222,13 +3211,13 @@ class TestTradingControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             algo.initialized = True
 
         def handle_data(algo, data):
-            with self.assertRaises(RegisterTradingControlPostInit):
+            with pytest.raises(RegisterTradingControlPostInit):
                 algo.set_max_position_size(self.sid, 1, 1)
-            with self.assertRaises(RegisterTradingControlPostInit):
+            with pytest.raises(RegisterTradingControlPostInit):
                 algo.set_max_order_size(self.sid, 1, 1)
-            with self.assertRaises(RegisterTradingControlPostInit):
+            with pytest.raises(RegisterTradingControlPostInit):
                 algo.set_max_order_count(1)
-            with self.assertRaises(RegisterTradingControlPostInit):
+            with pytest.raises(RegisterTradingControlPostInit):
                 algo.set_long_only()
 
         self.run_algorithm(initialize=initialize, handle_data=handle_data)
@@ -3284,18 +3273,18 @@ class TestAssetDateBounds(zf.WithMakeAlgo, zf.ZiplineTestCase):
             algo.order(algo.sid(3), 1)
 
             # Sid already expired.
-            with self.assertRaises(TradingControlViolation):
+            with pytest.raises(TradingControlViolation):
                 algo.order(algo.sid(1), 1)
 
             # Sid doesn't exist yet.
-            with self.assertRaises(TradingControlViolation):
+            with pytest.raises(TradingControlViolation):
                 algo.order(algo.sid(2), 1)
 
             algo.ran = True
 
         algo = self.make_algo(initialize=initialize, handle_data=handle_data)
         algo.run()
-        self.assertTrue(algo.ran)
+        assert algo.ran
 
 
 class TestAccountControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -3322,7 +3311,7 @@ class TestAccountControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         yield cls.sidint, frame
 
     def _check_algo(self, algo, expected_exc):
-        with self.assertRaises(expected_exc) if expected_exc else nop_context:
+        with pytest.raises(expected_exc) if expected_exc else nop_context:
             algo.run()
 
     def check_algo_succeeds(self, algo):
@@ -3347,9 +3336,8 @@ class TestAccountControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
             max_leverage=0,
         )
         self.check_algo_fails(algo)
-        self.assertEqual(
-            algo.recorded_vars["latest_time"],
-            pd.Timestamp("2006-01-04 21:00:00", tz="UTC"),
+        assert algo.recorded_vars["latest_time"] == pd.Timestamp(
+            "2006-01-04 21:00:00", tz="UTC"
         )
 
         # Set max leverage to 1 so buying one share passes
@@ -3392,18 +3380,16 @@ class TestAccountControls(zf.WithMakeAlgo, zf.ZiplineTestCase):
         offset = pd.Timedelta("1 days")
         algo = make_algo(min_leverage=1, grace_period=offset)
         self.check_algo_fails(algo)
-        self.assertEqual(
-            algo.recorded_vars["latest_time"],
-            pd.Timestamp("2006-01-04 21:00:00", tz="UTC"),
+        assert algo.recorded_vars["latest_time"] == pd.Timestamp(
+            "2006-01-04 21:00:00", tz="UTC"
         )
 
         # Increase the offset to 2 days, and the algorithm fails a day later
         offset = pd.Timedelta("2 days")
         algo = make_algo(min_leverage=1, grace_period=offset)
         self.check_algo_fails(algo)
-        self.assertEqual(
-            algo.recorded_vars["latest_time"],
-            pd.Timestamp("2006-01-05 21:00:00", tz="UTC"),
+        assert algo.recorded_vars["latest_time"] == pd.Timestamp(
+            "2006-01-05 21:00:00", tz="UTC"
         )
 
         # Set the min_leverage to .0001 and the algorithm succeeds.
@@ -3562,7 +3548,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
             val for sublist in results["transactions"].tolist() for val in sublist
         ]
 
-        self.assertEqual(len(all_txns), 1)
+        assert len(all_txns) == 1
         txn = all_txns[0]
 
         # Add 1 to the expected price because the order does not fill until the
@@ -3570,8 +3556,8 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         expected_spread = 0.05
         expected_price = (algo.order_price + 1) + expected_spread
 
-        self.assertEqual(txn["price"], expected_price)
-        self.assertEqual(results["orders"][0][0]["commission"], 0.0)
+        assert txn["price"] == expected_price
+        assert results["orders"][0][0]["commission"] == 0.0
 
     def test_volume_contract_slippage(self):
         algo_code = self.algo_with_slippage(
@@ -3584,7 +3570,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         results = algo.run()
 
         # There should be no commissions.
-        self.assertEqual(results["orders"][0][0]["commission"], 0.0)
+        assert results["orders"][0][0]["commission"] == 0.0
 
         # Flatten the list of transactions.
         all_txns = [
@@ -3594,7 +3580,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # With a volume limit of 0.05, and a total volume of 100 contracts
         # traded per minute, we should require 2 transactions to order 10
         # contracts.
-        self.assertEqual(len(all_txns), 2)
+        assert len(all_txns) == 2
 
         for i, txn in enumerate(all_txns):
             # Add 1 to the order price because the order does not fill until
@@ -3602,7 +3588,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
             order_price = algo.order_price + i + 1
             expected_impact = order_price * 0.1 * (0.05 ** 2)
             expected_price = order_price + expected_impact
-            self.assertEqual(txn["price"], expected_price)
+            assert txn["price"] == expected_price
 
 
 class TestAnalyzeAPIMethod(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -3629,7 +3615,7 @@ class TestAnalyzeAPIMethod(zf.WithMakeAlgo, zf.ZiplineTestCase):
             analyze=analyze,
         )
         results = algo.run()
-        self.assertIs(results, self.perf_ref)
+        assert results is self.perf_ref
 
 
 class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -3740,12 +3726,9 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
             results = algo.run()
 
             for daily_positions in results.positions:
-                self.assertEqual(1, len(daily_positions))
-                self.assertEqual(
-                    np.copysign(389, direction),
-                    daily_positions[0]["amount"],
-                )
-                self.assertEqual(1, results.positions[0][0]["sid"])
+                assert 1 == len(daily_positions)
+                assert np.copysign(389, direction) == daily_positions[0]["amount"]
+                assert 1 == results.positions[0][0]["sid"]
 
             # should be an order on day1, but no more orders afterwards
             np.testing.assert_array_equal([1, 0, 0], list(map(len, results.orders)))
@@ -3757,30 +3740,28 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
             the_order = results.orders[0][0]
 
-            self.assertEqual(ORDER_STATUS.CANCELLED, the_order["status"])
-            self.assertEqual(np.copysign(389, direction), the_order["filled"])
+            assert ORDER_STATUS.CANCELLED == the_order["status"]
+            assert np.copysign(389, direction) == the_order["filled"]
 
             warnings = [
                 record for record in log_catcher.records if record.level == WARNING
             ]
 
-            self.assertEqual(1, len(warnings))
+            assert 1 == len(warnings)
 
             if direction == 1:
-                self.assertEqual(
+                assert (
                     "Your order for 1000 shares of ASSET1 has been partially "
                     "filled. 389 shares were successfully purchased. "
                     "611 shares were not filled by the end of day and "
-                    "were canceled.",
-                    str(warnings[0].message),
+                    "were canceled." == str(warnings[0].message)
                 )
             elif direction == -1:
-                self.assertEqual(
+                assert (
                     "Your order for -1000 shares of ASSET1 has been partially "
                     "filled. 389 shares were successfully sold. "
                     "611 shares were not filled by the end of day and "
-                    "were canceled.",
-                    str(warnings[0].message),
+                    "were canceled." == str(warnings[0].message)
                 )
 
     def test_default_cancelation_policy(self):
@@ -3800,7 +3781,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 [389, 390, 221], list(map(len, results.transactions))
             )
 
-            self.assertFalse(log_catcher.has_warnings)
+            assert not log_catcher.has_warnings
 
     def test_eod_order_cancel_daily(self):
         # in daily mode, EODCancel does nothing.
@@ -3818,7 +3799,7 @@ class TestOrderCancelation(zf.WithMakeAlgo, zf.ZiplineTestCase):
                 [0, 1, 1], list(map(len, results.transactions))
             )
 
-            self.assertFalse(log_catcher.has_warnings)
+            assert not log_catcher.has_warnings
 
 
 class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -3978,61 +3959,52 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         expected_num_positions = [0, 3, 3, 3, 2, 2, 1]
 
         # Check expected cash.
-        self.assertEqual(expected_cash, list(output["ending_cash"]))
+        assert expected_cash == list(output["ending_cash"])
 
         # The cash recorded by the algo should be behind by a day from the
         # computed ending cash.
         expected_cash.insert(3, after_fills)
-        self.assertEqual(algo.cash, expected_cash[:-1])
+        assert algo.cash == expected_cash[:-1]
 
         # Check expected long/short counts.
         # We have longs if order_size > 0.
         # We have shorts if order_size < 0.
         if order_size > 0:
-            self.assertEqual(
-                expected_num_positions,
-                list(output["longs_count"]),
-            )
-            self.assertEqual(
-                [0] * len(self.test_days),
-                list(output["shorts_count"]),
-            )
+            assert expected_num_positions == list(output["longs_count"])
+            assert [0] * len(self.test_days) == list(output["shorts_count"])
         else:
-            self.assertEqual(
-                expected_num_positions,
-                list(output["shorts_count"]),
-            )
-            self.assertEqual(
-                [0] * len(self.test_days),
-                list(output["longs_count"]),
-            )
+            assert expected_num_positions == list(output["shorts_count"])
+            assert [0] * len(self.test_days) == list(output["longs_count"])
 
         # The number of positions recorded by the algo should be behind by a
         # day from the computed long/short counts.
         expected_num_positions.insert(3, 3)
-        self.assertEqual(algo.num_positions, expected_num_positions[:-1])
+        assert algo.num_positions == expected_num_positions[:-1]
 
         # Check expected transactions.
         # We should have a transaction of order_size shares per sid.
         transactions = output["transactions"]
         initial_fills = transactions.iloc[1]
-        self.assertEqual(len(initial_fills), len(assets))
+        assert len(initial_fills) == len(assets)
 
         last_minute_of_session = self.trading_calendar.session_close(self.test_days[1])
 
         for asset, txn in zip(assets, initial_fills):
-            self.assertDictContainsSubset(
-                {
-                    "amount": order_size,
-                    "commission": None,
-                    "dt": last_minute_of_session,
-                    "price": initial_fill_prices[asset],
-                    "sid": asset,
-                },
-                txn,
+            assert (
+                dict(
+                    txn,
+                    **{
+                        "amount": order_size,
+                        "commission": None,
+                        "dt": last_minute_of_session,
+                        "price": initial_fill_prices[asset],
+                        "sid": asset,
+                    },
+                )
+                == txn
             )
             # This will be a UUID.
-            self.assertIsInstance(txn["order_id"], str)
+            assert isinstance(txn["order_id"], str)
 
         def transactions_for_date(date):
             return transactions.iloc[self.test_days.get_loc(date)]
@@ -4042,36 +4014,30 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         (first_auto_close_transaction,) = transactions_for_date(
             assets[0].auto_close_date
         )
-        self.assertEqual(
-            first_auto_close_transaction,
-            {
-                "amount": -order_size,
-                "commission": None,
-                "dt": self.trading_calendar.session_close(
-                    assets[0].auto_close_date,
-                ),
-                "price": fp0,
-                "sid": assets[0],
-                "order_id": None,  # Auto-close txns emit Nones for order_id.
-            },
-        )
+        assert first_auto_close_transaction == {
+            "amount": -order_size,
+            "commission": None,
+            "dt": self.trading_calendar.session_close(
+                assets[0].auto_close_date,
+            ),
+            "price": fp0,
+            "sid": assets[0],
+            "order_id": None,  # Auto-close txns emit Nones for order_id.
+        }
 
         (second_auto_close_transaction,) = transactions_for_date(
             assets[1].auto_close_date
         )
-        self.assertEqual(
-            second_auto_close_transaction,
-            {
-                "amount": -order_size,
-                "commission": None,
-                "dt": self.trading_calendar.session_close(
-                    assets[1].auto_close_date,
-                ),
-                "price": fp1,
-                "sid": assets[1],
-                "order_id": None,  # Auto-close txns emit Nones for order_id.
-            },
-        )
+        assert second_auto_close_transaction == {
+            "amount": -order_size,
+            "commission": None,
+            "dt": self.trading_calendar.session_close(
+                assets[1].auto_close_date,
+            ),
+            "price": fp1,
+            "sid": assets[1],
+            "order_id": None,  # Auto-close txns emit Nones for order_id.
+        }
 
     def test_cancel_open_orders(self):
         """
@@ -4129,34 +4095,40 @@ class TestDailyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
         last_close_for_asset = algo.trading_calendar.session_close(first_asset_end_date)
 
-        self.assertDictContainsSubset(
-            {
-                "amount": 10,
-                "commission": 0.0,
-                "created": last_close_for_asset,
-                "dt": last_close_for_asset,
-                "sid": assets[0],
-                "status": ORDER_STATUS.OPEN,
-                "filled": 0,
-            },
-            original_open_orders[0],
+        assert (
+            dict(
+                original_open_orders[0],
+                **{
+                    "amount": 10,
+                    "commission": 0.0,
+                    "created": last_close_for_asset,
+                    "dt": last_close_for_asset,
+                    "sid": assets[0],
+                    "status": ORDER_STATUS.OPEN,
+                    "filled": 0,
+                },
+            )
+            == original_open_orders[0]
         )
 
         orders_after_auto_close = orders_for_date(first_asset_auto_close_date)
         assert len(orders_after_auto_close) == 1
-        self.assertDictContainsSubset(
-            {
-                "amount": 10,
-                "commission": 0.0,
-                "created": last_close_for_asset,
-                "dt": algo.trading_calendar.session_close(
-                    first_asset_auto_close_date,
-                ),
-                "sid": assets[0],
-                "status": ORDER_STATUS.CANCELLED,
-                "filled": 0,
-            },
-            orders_after_auto_close[0],
+        assert (
+            dict(
+                orders_after_auto_close[0],
+                **{
+                    "amount": 10,
+                    "commission": 0.0,
+                    "created": last_close_for_asset,
+                    "dt": algo.trading_calendar.session_close(
+                        first_asset_auto_close_date,
+                    ),
+                    "sid": assets[0],
+                    "status": ORDER_STATUS.CANCELLED,
+                    "filled": 0,
+                },
+            )
+            == orders_after_auto_close[0]
         )
 
 
@@ -4311,27 +4283,21 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         expected_position_counts.extend([1] * 390)
 
         # Check list lengths first to avoid expensive comparison
-        self.assertEqual(len(algo.cash), len(expected_cash))
+        assert len(algo.cash) == len(expected_cash)
         # TODO find more efficient way to compare these lists
-        self.assertEqual(algo.cash, expected_cash)
-        self.assertEqual(
-            list(output["ending_cash"]),
-            [
-                after_fills,
-                after_fills,
-                after_fills,
-                after_first_auto_close,
-                after_first_auto_close,
-                after_second_auto_close,
-                after_second_auto_close,
-            ],
-        )
+        assert algo.cash == expected_cash
+        assert list(output["ending_cash"]) == [
+            after_fills,
+            after_fills,
+            after_fills,
+            after_first_auto_close,
+            after_first_auto_close,
+            after_second_auto_close,
+            after_second_auto_close,
+        ]
 
-        self.assertEqual(algo.num_positions, expected_position_counts)
-        self.assertEqual(
-            list(output["longs_count"]),
-            [3, 3, 3, 2, 2, 1, 1],
-        )
+        assert algo.num_positions == expected_position_counts
+        assert list(output["longs_count"]) == [3, 3, 3, 2, 2, 1, 1]
 
         # Check expected transactions.
         # We should have a transaction of order_size shares per sid.
@@ -4341,20 +4307,23 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         # second in minute mode, because the fills happen on the second tick of
         # the backtest, which is still on the first day in minute mode.
         initial_fills = transactions.iloc[0]
-        self.assertEqual(len(initial_fills), len(assets))
+        assert len(initial_fills) == len(assets)
         for asset, txn in zip(assets, initial_fills):
-            self.assertDictContainsSubset(
-                {
-                    "amount": order_size,
-                    "commission": None,
-                    "dt": backtest_minutes[1],
-                    "price": initial_fill_prices[asset],
-                    "sid": asset,
-                },
-                txn,
+            assert (
+                dict(
+                    txn,
+                    **{
+                        "amount": order_size,
+                        "commission": None,
+                        "dt": backtest_minutes[1],
+                        "price": initial_fill_prices[asset],
+                        "sid": asset,
+                    },
+                )
+                == txn
             )
             # This will be a UUID.
-            self.assertIsInstance(txn["order_id"], str)
+            assert isinstance(txn["order_id"], str)
 
         def transactions_for_date(date):
             return transactions.iloc[self.test_days.get_loc(date)]
@@ -4364,36 +4333,30 @@ class TestMinutelyEquityAutoClose(zf.WithMakeAlgo, zf.ZiplineTestCase):
         (first_auto_close_transaction,) = transactions_for_date(
             assets[0].auto_close_date
         )
-        self.assertEqual(
-            first_auto_close_transaction,
-            {
-                "amount": -order_size,
-                "commission": None,
-                "dt": algo.trading_calendar.session_close(
-                    assets[0].auto_close_date,
-                ),
-                "price": fp0,
-                "sid": assets[0],
-                "order_id": None,  # Auto-close txns emit Nones for order_id.
-            },
-        )
+        assert first_auto_close_transaction == {
+            "amount": -order_size,
+            "commission": None,
+            "dt": algo.trading_calendar.session_close(
+                assets[0].auto_close_date,
+            ),
+            "price": fp0,
+            "sid": assets[0],
+            "order_id": None,  # Auto-close txns emit Nones for order_id.
+        }
 
         (second_auto_close_transaction,) = transactions_for_date(
             assets[1].auto_close_date
         )
-        self.assertEqual(
-            second_auto_close_transaction,
-            {
-                "amount": -order_size,
-                "commission": None,
-                "dt": algo.trading_calendar.session_close(
-                    assets[1].auto_close_date,
-                ),
-                "price": fp1,
-                "sid": assets[1],
-                "order_id": None,  # Auto-close txns emit Nones for order_id.
-            },
-        )
+        assert second_auto_close_transaction == {
+            "amount": -order_size,
+            "commission": None,
+            "dt": algo.trading_calendar.session_close(
+                assets[1].auto_close_date,
+            ),
+            "price": fp1,
+            "sid": assets[1],
+            "order_id": None,  # Auto-close txns emit Nones for order_id.
+        }
 
 
 class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -4485,7 +4448,7 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
             warnings = [r for r in log_catcher.records if r.level == logbook.WARNING]
 
             # one warning per order on the second day
-            self.assertEqual(6 * 390, len(warnings))
+            assert 6 * 390 == len(warnings)
 
             for w in warnings:
                 expected_message = (
@@ -4493,7 +4456,7 @@ class TestOrderAfterDelist(zf.WithMakeAlgo, zf.ZiplineTestCase):
                     "Any existing positions for this asset will be liquidated "
                     "on {date}.".format(sid=sid, date=asset.auto_close_date)
                 )
-                self.assertEqual(expected_message, w.message)
+                assert expected_message == w.message
 
 
 class AlgoInputValidationTestCase(zf.WithMakeAlgo, zf.ZiplineTestCase):
@@ -4515,5 +4478,5 @@ class AlgoInputValidationTestCase(zf.WithMakeAlgo, zf.ZiplineTestCase):
         )
         for method in ("initialize", "handle_data", "before_trading_start", "analyze"):
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 self.make_algo(script=script, **{method: lambda *args, **kwargs: None})

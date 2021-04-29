@@ -2,6 +2,7 @@ from functools import reduce
 import operator as op
 
 import numpy as np
+from numpy import nan
 import pandas as pd
 
 from zipline.lib.labelarray import LabelArray
@@ -9,7 +10,6 @@ from zipline.pipeline import Classifier
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.expression import methods_to_ops
 from zipline.testing import parameter_space
-from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     categorical_dtype,
@@ -17,6 +17,8 @@ from zipline.utils.numpy_utils import (
 )
 
 from .base import BaseUSEquityPipelineTestCase
+import pytest
+import re
 
 bytes_dtype = np.dtype("S3")
 unicode_dtype = np.dtype("U3")
@@ -168,18 +170,16 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             inputs = ()
             window_length = 0
 
-        with self.assertRaises(ValueError) as e:
-            C().eq(missing)
-        errmsg = str(e.exception)
-        self.assertEqual(
-            errmsg,
+        expected_msg = (
             "Comparison against self.missing_value ({v!r}) in C.eq().\n"
-            "Missing values have NaN semantics, so the requested comparison"
-            " would always produce False.\n"
-            "Use the isnull() method to check for missing values.".format(
+            "Missing values have NaN semantics, so the requested comparison "
+            "would always produce False.\nUse the isnull() method to check "
+            "for missing values.".format(
                 v=missing,
-            ),
+            )
         )
+        with pytest.raises(ValueError, match=re.escape(expected_msg)):
+            C().eq(missing)
 
     @parameter_space(compval=[0, 1, 999], missing=[-1, 0, 999])
     def test_not_equal(self, compval, missing):
@@ -242,9 +242,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             missing_value=missing,
         )
 
-        expected = (data.as_int_array() != data.reverse_categories.get(compval, -1)) & (
-            data.as_int_array() != data.reverse_categories[C.missing_value]
-        )
+        expected = (
+            data.as_int_array() != data.reverse_categories.get(compval, -1)
+        ) & (data.as_int_array() != data.reverse_categories[C.missing_value])
 
         self.check_terms(
             terms={
@@ -263,7 +263,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         missing=["a", "ab", "", "not in the array"],
         labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
     )
-    def test_string_elementwise_predicates(self, compval, missing, labelarray_dtype):
+    def test_string_elementwise_predicates(
+        self, compval, missing, labelarray_dtype
+    ):
         if labelarray_dtype == bytes_dtype:
             compval = compval.encode("utf-8")
             missing = missing.encode("utf-8")
@@ -430,9 +432,6 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         c = C()
 
         for bad_elems in ([missing], [missing, "random other value"]):
-            with self.assertRaises(ValueError) as e:
-                c.element_of(bad_elems)
-            errmsg = str(e.exception)
             expected = (
                 "Found self.missing_value ('not in the array') in choices"
                 " supplied to C.element_of().\n"
@@ -441,7 +440,8 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
                 "Use the isnull() method to check for missing values.\n"
                 "Received choices were {}.".format(bad_elems)
             )
-            self.assertEqual(errmsg, expected)
+            with pytest.raises(ValueError, match=re.escape(expected)):
+                c.element_of(bad_elems)
 
     @parameter_space(dtype_=Classifier.ALLOWED_DTYPES)
     def test_element_of_rejects_unhashable_type(self, dtype_):
@@ -453,17 +453,12 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         c = C()
 
-        with self.assertRaises(TypeError) as e:
-            c.element_of([{"a": 1}])
-
-        errmsg = str(e.exception)
         expected = (
-            "Expected `choices` to be an iterable of hashable values,"
-            " but got [{'a': 1}] instead.\n"
-            "This caused the following error: "
-            "TypeError(\"unhashable type: 'dict'\")."
+            """Expected `choices` to be an iterable of hashable values, but got [{'a': 1}] instead.\n"""
+            """This caused the following error: TypeError("unhashable type: 'dict'")."""
         )
-        self.assertEqual(errmsg, expected)
+        with pytest.raises(TypeError, match=re.escape(expected)):
+            c.element_of([{"a": 1}])
 
     @parameter_space(
         __fail_fast=True,
@@ -576,15 +571,12 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
 
         c = C()
 
-        with self.assertRaises(TypeError) as e:
-            c.relabel(lambda x: 0 / 0)  # Function should never be called.
-
-        result = str(e.exception)
         expected = (
             "relabel() is only defined on Classifiers producing strings "
             "but it was called on a Classifier of dtype int64."
         )
-        self.assertEqual(result, expected)
+        with pytest.raises(TypeError, match=re.escape(expected)):
+            c.relabel(lambda x: 0 / 0)  # Function should never be called.
 
     @parameter_space(
         compare_op=[op.gt, op.ge, op.le, op.lt],
@@ -597,14 +589,11 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             dtype = dtype_and_missing[0]
             missing_value = dtype_and_missing[1]
 
-        with self.assertRaises(TypeError) as e:
-            compare_op(C(), object())
-
-        self.assertEqual(
-            str(e.exception),
-            "cannot compare classifiers with %s"
-            % (methods_to_ops["__%s__" % compare_op.__name__],),
+        expected = "cannot compare classifiers with %s" % (
+            methods_to_ops["__%s__" % compare_op.__name__],
         )
+        with pytest.raises(TypeError, match=re.escape(expected)):
+            compare_op(C(), object())
 
     @parameter_space(
         dtype_and_missing=[(int64_dtype, -1), (categorical_dtype, None)],
@@ -644,9 +633,9 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             mask = self.build_mask(self.ones_mask(shape=data.shape))
             expected = np.array(
                 [
-                    [3, 3, np.nan, 1, 3, np.nan],
+                    [3, 3, nan, 1, 3, nan],
                     [4, 1, 1, 4, 4, 4],
-                    [np.nan, 1, 3, 3, 3, np.nan],
+                    [nan, 1, 3, 3, 3, nan],
                     [6, 6, 6, 6, 6, 6],
                 ],
             )
@@ -666,10 +655,10 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
             )
             expected = np.array(
                 [
-                    [2, 2, np.nan, 1, np.nan, np.nan],
-                    [3, 1, 1, 3, 3, np.nan],
-                    [np.nan, 1, 3, 3, 3, np.nan],
-                    [4, 4, np.nan, np.nan, 4, 4],
+                    [2, 2, nan, 1, nan, nan],
+                    [3, 1, 1, 3, 3, nan],
+                    [nan, 1, 3, 3, 3, nan],
+                    [4, 4, nan, nan, 4, 4],
                 ],
             )
 
@@ -688,7 +677,7 @@ class ClassifierTestCase(BaseUSEquityPipelineTestCase):
         )
 
 
-class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
+class TestPostProcessAndToWorkSpaceValue:
     def test_reversability_categorical(self):
         class F(Classifier):
             inputs = ()
@@ -770,7 +759,7 @@ class TestPostProcessAndToWorkSpaceValue(ZiplineTestCase):
         )
 
 
-class ReprTestCase(ZiplineTestCase):
+class TestRepr:
     def test_quantiles_graph_repr(self):
         quantiles = TestingDataSet.float_col.latest.quantiles(5)
-        self.assertEqual(quantiles.graph_repr(), "Quantiles(5)")
+        assert quantiles.graph_repr() == "Quantiles(5)"

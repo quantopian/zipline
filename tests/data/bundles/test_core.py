@@ -1,6 +1,9 @@
 import os
+import pytest
+import re
 
 from parameterized import parameterized
+import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 from toolz import valmap
@@ -36,20 +39,9 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
     WithDefaultDateBounds,
 )
-from zipline.testing.predicates import (
-    assert_equal,
-    assert_false,
-    assert_in,
-    assert_is,
-    assert_is_instance,
-    assert_is_none,
-    assert_raises,
-    assert_true,
-)
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.functional import apply
 import zipline.utils.paths as pth
-
 
 _1_ns = pd.Timedelta(1, unit="ns")
 
@@ -79,8 +71,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             def ingest(*args):
                 pass
 
-            assert_in(name, self.bundles)
-            assert_is(self.bundles[name].ingest, ingest)
+            assert name in self.bundles
+            assert self.bundles[name].ingest is ingest
 
         self._check_bundles(set("abcde"))
 
@@ -92,22 +84,21 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         @subtest(((c,) for c in "abcde"), "name")
         def _(name):
             self.register(name, ingest)
-            assert_in(name, self.bundles)
-            assert_is(self.bundles[name].ingest, ingest)
+            assert name in self.bundles
+            assert self.bundles[name].ingest is ingest
 
-        assert_equal(
-            valmap(op.attrgetter("ingest"), self.bundles),
-            {k: ingest for k in "abcde"},
-        )
+        assert valmap(op.attrgetter("ingest"), self.bundles) == {
+            k: ingest for k in "abcde"
+        }
         self._check_bundles(set("abcde"))
 
     def _check_bundles(self, names):
-        assert_equal(set(self.bundles.keys()), names)
+        assert set(self.bundles.keys()) == names
 
         for name in names:
             self.unregister(name)
 
-        assert_false(self.bundles)
+        assert not self.bundles
 
     def test_register_no_create(self):
         called = [False]
@@ -126,14 +117,14 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             show_progress,
             output_dir,
         ):
-            assert_is_none(asset_db_writer)
-            assert_is_none(minute_bar_writer)
-            assert_is_none(daily_bar_writer)
-            assert_is_none(adjustment_writer)
+            assert asset_db_writer is None
+            assert minute_bar_writer is None
+            assert daily_bar_writer is None
+            assert adjustment_writer is None
             called[0] = True
 
         self.ingest("bundle", self.environ)
-        assert_true(called[0])
+        assert called[0]
 
     def test_ingest(self):
         calendar = get_calendar("XNYS")
@@ -188,21 +179,21 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             show_progress,
             output_dir,
         ):
-            assert_is(environ, self.environ)
+            assert environ is self.environ
 
             asset_db_writer.write(equities=equities)
             minute_bar_writer.write(minute_bar_data)
             daily_bar_writer.write(daily_bar_data)
             adjustment_writer.write(splits=splits)
 
-            assert_is_instance(calendar, TradingCalendar)
-            assert_is_instance(cache, dataframe_cache)
-            assert_is_instance(show_progress, bool)
+            assert isinstance(calendar, TradingCalendar)
+            assert isinstance(cache, dataframe_cache)
+            assert isinstance(show_progress, bool)
 
         self.ingest("bundle", environ=self.environ)
         bundle = self.load("bundle", environ=self.environ)
 
-        assert_equal(set(bundle.asset_finder.sids), set(sids))
+        assert set(bundle.asset_finder.sids) == set(sids)
 
         columns = "open", "high", "low", "close", "volume"
 
@@ -214,10 +205,10 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         )
 
         for actual_column, colname in zip(actual, columns):
-            assert_equal(
+            np.testing.assert_array_equal(
                 actual_column,
                 expected_bar_values_2d(minutes, sids, equities, colname),
-                msg=colname,
+                err_msg=colname,
             )
 
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
@@ -227,11 +218,12 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             sids,
         )
         for actual_column, colname in zip(actual, columns):
-            assert_equal(
+            np.testing.assert_array_equal(
                 actual_column,
                 expected_bar_values_2d(sessions, sids, equities, colname),
-                msg=colname,
+                err_msg=colname,
             )
+
         adjs_for_cols = bundle.adjustment_reader.load_pricing_adjustments(
             columns,
             sessions,
@@ -239,42 +231,14 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         )
         for column, adjustments in zip(columns, adjs_for_cols[:-1]):
             # iterate over all the adjustments but `volume`
-            assert_equal(
-                adjustments,
-                {
-                    2: [
-                        Float64Multiply(
-                            first_row=0,
-                            last_row=2,
-                            first_col=0,
-                            last_col=0,
-                            value=first_split_ratio,
-                        )
-                    ],
-                    3: [
-                        Float64Multiply(
-                            first_row=0,
-                            last_row=3,
-                            first_col=1,
-                            last_col=1,
-                            value=second_split_ratio,
-                        )
-                    ],
-                },
-                msg=column,
-            )
-
-        # check the volume, the value should be 1/ratio
-        assert_equal(
-            adjs_for_cols[-1],
-            {
+            assert adjustments == {
                 2: [
                     Float64Multiply(
                         first_row=0,
                         last_row=2,
                         first_col=0,
                         last_col=0,
-                        value=1 / first_split_ratio,
+                        value=first_split_ratio,
                     )
                 ],
                 3: [
@@ -283,12 +247,32 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
                         last_row=3,
                         first_col=1,
                         last_col=1,
-                        value=1 / second_split_ratio,
+                        value=second_split_ratio,
                     )
                 ],
-            },
-            msg="volume",
-        )
+            }, column
+
+        # check the volume, the value should be 1/ratio
+        assert adjs_for_cols[-1] == {
+            2: [
+                Float64Multiply(
+                    first_row=0,
+                    last_row=2,
+                    first_col=0,
+                    last_col=0,
+                    value=1 / first_split_ratio,
+                )
+            ],
+            3: [
+                Float64Multiply(
+                    first_row=0,
+                    last_row=3,
+                    first_col=1,
+                    last_col=1,
+                    value=1 / second_split_ratio,
+                )
+            ],
+        }, "volume"
 
     def test_ingest_assets_versions(self):
         versions = (1, 2)
@@ -300,17 +284,15 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             called[0] = True
 
         now = pd.Timestamp.utcnow()
-        with self.assertRaisesRegex(
-            ValueError, "ingest .* creates writers .* downgrade"
-        ):
+        with pytest.raises(ValueError, match="ingest .* creates writers .* downgrade"):
             self.ingest(
                 "bundle",
                 self.environ,
                 assets_versions=versions,
                 timestamp=now - pd.Timedelta(seconds=1),
             )
-        assert_false(called[0])
-        assert_equal(len(ingestions_for_bundle("bundle", self.environ)), 1)
+        assert not called[0]
+        assert len(ingestions_for_bundle("bundle", self.environ)) == 1
 
         @self.register("bundle", create_writers=True)
         def bundle_ingest_create_writers(
@@ -326,10 +308,10 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             show_progress,
             output_dir,
         ):
-            self.assertIsNotNone(asset_db_writer)
-            self.assertIsNotNone(minute_bar_writer)
-            self.assertIsNotNone(daily_bar_writer)
-            self.assertIsNotNone(adjustment_writer)
+            assert asset_db_writer is not None
+            assert minute_bar_writer is not None
+            assert daily_bar_writer is not None
+            assert adjustment_writer is not None
 
             equities = make_simple_equity_info(
                 tuple(range(3)),
@@ -342,10 +324,10 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         # Explicitly use different timestamp; otherwise, test could run so fast
         # that first ingestion is re-used.
         self.ingest("bundle", self.environ, assets_versions=versions, timestamp=now)
-        assert_true(called[0])
+        assert called[0]
 
         ingestions = ingestions_for_bundle("bundle", self.environ)
-        assert_equal(len(ingestions), 2)
+        assert len(ingestions) == 2
         for version in sorted(set(versions) | {ASSET_DB_VERSION}):
             eng = sa.create_engine(
                 "sqlite:///"
@@ -363,24 +345,19 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
     @parameterized.expand([("clean",), ("load",)])
     def test_bundle_doesnt_exist(self, fnname):
-        with assert_raises(UnknownBundle) as e:
+        with pytest.raises(
+            UnknownBundle, match="No bundle registered with the name 'ayy'"
+        ):
             getattr(self, fnname)("ayy", environ=self.environ)
-
-        assert_equal(e.exception.name, "ayy")
 
     def test_load_no_data(self):
         # register but do not ingest data
         self.register("bundle", lambda *args: None)
 
         ts = pd.Timestamp("2014", tz="UTC")
-
-        with assert_raises(ValueError) as e:
+        expected_msg = "no data for bundle 'bundle' on or before %s" % ts
+        with pytest.raises(ValueError, match=re.escape(expected_msg)):
             self.load("bundle", timestamp=ts, environ=self.environ)
-
-        assert_in(
-            "no data for bundle 'bundle' on or before %s" % ts,
-            str(e.exception),
-        )
 
     def _list_bundle(self):
         return {
@@ -423,84 +400,62 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
         _wrote_to[:] = []
         self.ingest("bundle", environ=self.environ)
-        assert_equal(len(_wrote_to), 1, msg="ingest was called more than once")
+        assert len(_wrote_to) == 1, "ingest was called more than once"
         ingestions = self._list_bundle()
-        assert_in(
-            _wrote_to[0],
-            ingestions,
-            msg="output_dir was not in the bundle directory",
-        )
+        assert _wrote_to[0] in ingestions, "output_dir was not in the bundle directory"
+
         return _wrote_to[0]
 
     def test_clean_keep_last(self):
         first = self._empty_ingest()
 
-        assert_equal(
-            self.clean("bundle", keep_last=1, environ=self.environ),
-            set(),
-        )
-        assert_equal(
-            self._list_bundle(),
-            {first},
-            msg="directory should not have changed",
-        )
+        assert self.clean("bundle", keep_last=1, environ=self.environ) == set()
+        assert self._list_bundle() == {first}, "directory should not have changed"
 
         second = self._empty_ingest()
-        assert_equal(
-            self._list_bundle(),
-            {first, second},
-            msg="two ingestions are not present",
-        )
-        assert_equal(
-            self.clean("bundle", keep_last=1, environ=self.environ),
-            {first},
-        )
-        assert_equal(
-            self._list_bundle(),
-            {second},
-            msg="first ingestion was not removed with keep_last=2",
-        )
+        assert self._list_bundle() == {first, second}, "two ingestions are not present"
+        assert self.clean("bundle", keep_last=1, environ=self.environ) == {first}
+        assert self._list_bundle() == {
+            second
+        }, "first ingestion was not removed with keep_last=2"
 
         third = self._empty_ingest()
         fourth = self._empty_ingest()
         fifth = self._empty_ingest()
 
-        assert_equal(
-            self._list_bundle(),
-            {second, third, fourth, fifth},
-            msg="larger set of ingestions did not happen correctly",
-        )
+        assert self._list_bundle() == {
+            second,
+            third,
+            fourth,
+            fifth,
+        }, "larger set of ingestions did not happen correctly"
 
-        assert_equal(
-            self.clean("bundle", keep_last=2, environ=self.environ),
-            {second, third},
-        )
+        assert self.clean("bundle", keep_last=2, environ=self.environ) == {
+            second,
+            third,
+        }
 
-        assert_equal(
-            self._list_bundle(),
-            {fourth, fifth},
-            msg="keep_last=2 did not remove the correct number of ingestions",
-        )
+        assert self._list_bundle() == {
+            fourth,
+            fifth,
+        }, "keep_last=2 did not remove the correct number of ingestions"
 
-        with assert_raises(BadClean):
+        with pytest.raises(BadClean):
             self.clean("bundle", keep_last=-1, environ=self.environ)
 
-        assert_equal(
-            self._list_bundle(),
-            {fourth, fifth},
-            msg="keep_last=-1 removed some ingestions",
-        )
+        assert self._list_bundle() == {
+            fourth,
+            fifth,
+        }, "keep_last=-1 removed some ingestions"
 
-        assert_equal(
-            self.clean("bundle", keep_last=0, environ=self.environ),
-            {fourth, fifth},
-        )
+        assert self.clean("bundle", keep_last=0, environ=self.environ) == {
+            fourth,
+            fifth,
+        }
 
-        assert_equal(
-            self._list_bundle(),
-            set(),
-            msg="keep_last=0 did not remove the correct number of ingestions",
-        )
+        assert (
+            self._list_bundle() == set()
+        ), "keep_last=0 did not remove the correct number of ingestions"
 
     @staticmethod
     def _ts_of_run(run):
@@ -508,86 +463,76 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
 
     def test_clean_before_after(self):
         first = self._empty_ingest()
-        assert_equal(
+        assert (
             self.clean(
                 "bundle",
                 before=self._ts_of_run(first),
                 environ=self.environ,
-            ),
-            set(),
+            )
+            == set()
         )
-        assert_equal(
-            self._list_bundle(),
-            {first},
-            msg="directory should not have changed (before)",
-        )
+        assert self._list_bundle() == {
+            first
+        }, "directory should not have changed (before)"
 
-        assert_equal(
+        assert (
             self.clean(
                 "bundle",
                 after=self._ts_of_run(first),
                 environ=self.environ,
-            ),
-            set(),
-        )
-        assert_equal(
-            self._list_bundle(),
-            {first},
-            msg="directory should not have changed (after)",
+            )
+            == set()
         )
 
-        assert_equal(
+        assert self._list_bundle() == {
+            first
+        }, "directory should not have changed (after)"
+
+        assert (
             self.clean(
                 "bundle",
                 before=self._ts_of_run(first) + _1_ns,
                 environ=self.environ,
-            ),
-            {first},
+            )
+            == {first}
         )
-        assert_equal(
-            self._list_bundle(),
-            set(),
-            msg="directory now be empty (before)",
-        )
+        assert self._list_bundle() == set(), "directory now be empty (before)"
 
         second = self._empty_ingest()
-        assert_equal(
+        assert (
             self.clean(
                 "bundle",
                 after=self._ts_of_run(second) - _1_ns,
                 environ=self.environ,
-            ),
-            {second},
+            )
+            == {second}
         )
-        assert_equal(
-            self._list_bundle(),
-            set(),
-            msg="directory now be empty (after)",
-        )
+
+        assert self._list_bundle() == set(), "directory now be empty (after)"
 
         third = self._empty_ingest()
         fourth = self._empty_ingest()
         fifth = self._empty_ingest()
         sixth = self._empty_ingest()
 
-        assert_equal(
-            self._list_bundle(),
-            {third, fourth, fifth, sixth},
-            msg="larger set of ingestions did no happen correctly",
-        )
+        assert self._list_bundle() == {
+            third,
+            fourth,
+            fifth,
+            sixth,
+        }, "larger set of ingestions did no happen correctly"
 
-        assert_equal(
+        assert (
             self.clean(
                 "bundle",
                 before=self._ts_of_run(fourth),
                 after=self._ts_of_run(fifth),
                 environ=self.environ,
-            ),
-            {third, sixth},
+            )
+            == {third, sixth}
         )
 
-        assert_equal(
-            self._list_bundle(),
-            {fourth, fifth},
-            msg="did not strip first and last directories",
-        )
+        assert self._list_bundle() == {
+            fourth,
+            fifth,
+        }, "did not strip first and last directories"

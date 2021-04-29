@@ -1,25 +1,26 @@
-from pandas import Timestamp
-from parameterized import parameterized
+import pandas as pd
 from trading_calendars import get_calendar
 
-from zipline.testing import ZiplineTestCase
 from zipline.utils.date_utils import compute_date_range_chunks
+import pytest
 
 
 def T(s):
     """
     Helpful function to improve readibility.
     """
-    return Timestamp(s, tz="UTC")
+    return pd.Timestamp(s, tz="UTC")
 
 
-class TestDateUtils(ZiplineTestCase):
-    @classmethod
-    def init_class_fixtures(cls):
-        super(TestDateUtils, cls).init_class_fixtures()
-        cls.calendar = get_calendar("XNYS")
+@pytest.fixture(scope="class")
+def set_calendar(request):
+    request.cls.calendar = get_calendar("XNYS")
 
-    @parameterized.expand(
+
+@pytest.mark.usefixtures("set_calendar")
+class TestDateUtils:
+    @pytest.mark.parametrize(
+        "chunksize, expected",
         [
             (None, [(T("2017-01-03"), T("2017-01-31"))]),
             (
@@ -36,7 +37,7 @@ class TestDateUtils(ZiplineTestCase):
                     (T("2017-01-25"), T("2017-01-31")),
                 ],
             ),
-        ]
+        ],
     )
     def test_compute_date_range_chunks(self, chunksize, expected):
         # This date range results in 20 business days
@@ -47,39 +48,32 @@ class TestDateUtils(ZiplineTestCase):
             self.calendar.all_sessions, start_date, end_date, chunksize
         )
 
-        self.assertListEqual(list(date_ranges), expected)
+        assert list(date_ranges) == expected
 
     def test_compute_date_range_chunks_invalid_input(self):
         # Start date not found in calendar
-        with self.assertRaises(KeyError) as cm:
+        err_msg = "'Start date 2017-05-07 is not found in calendar.'"
+        with pytest.raises(KeyError, match=err_msg):
             compute_date_range_chunks(
                 self.calendar.all_sessions,
                 T("2017-05-07"),  # Sunday
                 T("2017-06-01"),
                 None,
             )
-        self.assertEqual(
-            str(cm.exception), "'Start date 2017-05-07 is not found in calendar.'"
-        )
 
         # End date not found in calendar
-        with self.assertRaises(KeyError) as cm:
+        err_msg = "'End date 2017-05-27 is not found in calendar.'"
+        with pytest.raises(KeyError, match=err_msg):
             compute_date_range_chunks(
                 self.calendar.all_sessions,
                 T("2017-05-01"),
                 T("2017-05-27"),  # Saturday
                 None,
             )
-        self.assertEqual(
-            str(cm.exception), "'End date 2017-05-27 is not found in calendar.'"
-        )
 
         # End date before start date
-        with self.assertRaises(ValueError) as cm:
+        err_msg = "End date 2017-05-01 cannot precede start date 2017-06-01."
+        with pytest.raises(ValueError, match=err_msg):
             compute_date_range_chunks(
                 self.calendar.all_sessions, T("2017-06-01"), T("2017-05-01"), None
             )
-        self.assertEqual(
-            str(cm.exception),
-            "End date 2017-05-01 cannot precede start date 2017-06-01.",
-        )

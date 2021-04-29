@@ -2,36 +2,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
 from functools import partial
-import re
 
-from nose.tools import (  # noqa
-    assert_almost_equal,
-    assert_almost_equals,
-    assert_dict_contains_subset,
-    assert_false,
-    assert_greater,
-    assert_greater_equal,
-    assert_in,
-    assert_is,
-    assert_is_instance,
-    assert_is_none,
-    assert_is_not,
-    assert_is_not_none,
-    assert_less,
-    assert_less_equal,
-    assert_multi_line_equal,
-    assert_not_almost_equal,
-    assert_not_almost_equals,
-    assert_not_equal,
-    assert_not_equals,
-    assert_not_in,
-    assert_not_is_instance,
-    assert_raises,
-    assert_raises_regexp,
-    assert_regexp_matches,
-    assert_true,
-    assert_tuple_equal,
-)
 import numpy as np
 import pandas as pd
 from pandas.testing import (
@@ -254,88 +225,6 @@ def assert_is_not_subclass(not_subcls, cls, msg=""):
         _safe_cls_name(not_subcls),
         _safe_cls_name(cls),
         msg,
-    )
-
-
-def assert_regex(result, expected, msg=""):
-    """Assert that ``expected`` matches the result.
-
-    Parameters
-    ----------
-    result : str
-        The string to search.
-    expected : str or compiled regex
-        The pattern to search for in ``result``.
-    msg : str, optional
-        An extra assertion message to print if this fails.
-    """
-    assert re.search(expected, result), "%s%r not found in %r" % (
-        _fmt_msg(msg),
-        expected,
-        result,
-    )
-
-
-@contextmanager
-def _assert_raises_helper(do_check, exc_type, msg):
-    try:
-        yield
-    except exc_type as e:
-        do_check(e)
-    else:
-        raise AssertionError("%s%s was not raised" % (_fmt_msg(msg), exc_type))
-
-
-def assert_raises_regex(exc, pattern, msg=""):
-    """Assert that some exception is raised in a context and that the message
-    matches some pattern.
-
-    Parameters
-    ----------
-    exc : type or tuple[type]
-        The exception type or types to expect.
-    pattern : str or compiled regex
-        The pattern to search for in the str of the raised exception.
-    msg : str, optional
-        An extra assertion message to print if this fails.
-    """
-
-    def check_exception(e):
-        assert re.search(pattern, str(e)), "%s%r not found in %r" % (
-            _fmt_msg(msg),
-            pattern,
-            str(e),
-        )
-
-    return _assert_raises_helper(
-        do_check=check_exception,
-        exc_type=exc,
-        msg=msg,
-    )
-
-
-def assert_raises_str(exc, expected_str, msg=""):
-    """Assert that some exception is raised in a context and that the message
-    exactly matches some string.
-
-    Parameters
-    ----------
-    exc : type or tuple[type]
-        The exception type or types to expect.
-    expected_str : str
-        The expected result of ``str(exception)``.
-    msg : str, optional
-        An extra assertion message to print if this fails.
-    """
-
-    def check_exception(e):
-        result = str(e)
-        assert_messages_equal(result, expected_str, msg=msg)
-
-    return _assert_raises_helper(
-        check_exception,
-        exc_type=exc,
-        msg=msg,
     )
 
 

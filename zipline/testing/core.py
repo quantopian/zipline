@@ -17,10 +17,9 @@ from traceback import format_exception
 
 from logbook import TestHandler
 from mock import patch
-from nose.tools import nottest
+
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
-from six import with_metaclass
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
@@ -250,31 +249,6 @@ def all_subindices(index):
         index[start:stop]
         for start, stop in product_upper_triangle(range(len(index) + 1))
     )
-
-
-def chrange(start, stop):
-    """
-    Construct an iterable of length-1 strings beginning with `start` and ending
-    with `stop`.
-
-    Parameters
-    ----------
-    start : str
-        The first character.
-    stop : str
-        The last character.
-
-    Returns
-    -------
-    chars: iterable[str]
-        Iterable of strings beginning with start and ending with stop.
-
-    Examples
-    --------
-    >>> chrange('A', 'C')
-    ['A', 'B', 'C']
-    """
-    return list(map(chr, range(ord(start), ord(stop) + 1)))
 
 
 def make_trade_data_for_asset_info(
@@ -871,7 +845,7 @@ class SubTestFailures(AssertionError):
         )
 
 
-@nottest
+# @nottest
 def subtest(iterator, *_names):
     """
     Construct a subtest in a unittest.
@@ -1253,7 +1227,7 @@ def make_alternating_boolean_array(shape, first_value=True):
         raise ValueError(
             "Shape must be 2-dimensional. Given shape was {}".format(shape)
         )
-    alternating = np.empty(shape, dtype=np.bool)
+    alternating = np.empty(shape, dtype=bool)
     for row in alternating:
         row[::2] = first_value
         row[1::2] = not (first_value)
@@ -1286,7 +1260,7 @@ def make_cascading_boolean_array(shape, first_value=True):
         raise ValueError(
             "Shape must be 2-dimensional. Given shape was {}".format(shape)
         )
-    cascading = np.full(shape, not (first_value), dtype=np.bool)
+    cascading = np.full(shape, not (first_value), dtype=bool)
     ending_col = shape[1] - 1
     for row in cascading:
         if ending_col > 0:
@@ -1313,7 +1287,7 @@ def permute_rows(seed, array):
     return np.apply_along_axis(rand.permutation, 1, array)
 
 
-@nottest
+# @nottest
 def make_test_handler(testcase, *args, **kwargs):
     """
     Returns a TestHandler which will be used by the given testcase. This
@@ -1357,7 +1331,7 @@ zipline_git_root = abspath(
 )
 
 
-@nottest
+# @nottest
 def test_resource_path(*path_parts):
     return os.path.join(zipline_git_root, "tests", "resources", *path_parts)
 
@@ -1396,7 +1370,7 @@ class tmp_dir(TempDirectory, object):
     pass
 
 
-class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
+class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
     """A helper for tmp_bcolz_equity_minute_bar_reader and
     tmp_bcolz_equity_daily_bar_reader.
 

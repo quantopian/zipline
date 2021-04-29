@@ -14,13 +14,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest , windows-latest, macos-latest ]
-        python-version: [ 3.8 ]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [3.8]
         exclude:
-        - os: macos-latest
-          python-version: 3.9
-        - os: windows-latest
-          python-version: 3.9
+          - os: macos-latest
+            python-version: 3.9
+          - os: windows-latest
+            python-version: 3.9
 
     steps:
       - name: Checkout Zipline
@@ -87,6 +87,6 @@ jobs:
         run: |
           flake8
 
-      - name: Unittests with tox & nose
+      - name: Unittests with tox & pytest
         run: |
           tox -p auto -q

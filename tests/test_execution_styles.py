@@ -29,6 +29,7 @@ from zipline.testing.fixtures import (
 )
 
 from zipline.testing.predicates import assert_equal
+import pytest
 
 
 class ExecutionStyleTestCase(
@@ -154,14 +155,14 @@ class ExecutionStyleTestCase(
         Test that execution styles throw appropriate exceptions upon receipt
         of an invalid price field.
         """
-        with self.assertRaises(BadOrderParameters):
+        with pytest.raises(BadOrderParameters):
             LimitOrder(price)
 
-        with self.assertRaises(BadOrderParameters):
+        with pytest.raises(BadOrderParameters):
             StopOrder(price)
 
         for lmt, stp in [(price, 1), (1, price), (price, price)]:
-            with self.assertRaises(BadOrderParameters):
+            with pytest.raises(BadOrderParameters):
                 StopLimitOrder(lmt, stp)
 
     def test_market_order_prices(self):

@@ -59,7 +59,7 @@ class TestParameterSpace(TestCase):
         pass
 
 
-class TestMakeBooleanArray(TestCase):
+class TestMakeBooleanArray:
     def test_make_alternating_boolean_array(self):
         check_arrays(
             make_alternating_boolean_array((3, 3)),
@@ -141,8 +141,8 @@ class TestTestingSlippage(
 
         price, volume = model.process_order(self.bar_data, order)
 
-        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
-        self.assertEqual(volume, filled_per_tick)
+        assert price == self.EQUITY_MINUTE_CONSTANT_CLOSE
+        assert volume == filled_per_tick
 
     def test_fill_all(self):
         filled_per_tick = TestingSlippage.ALL
@@ -153,22 +153,22 @@ class TestTestingSlippage(
 
         price, volume = model.process_order(self.bar_data, order)
 
-        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
-        self.assertEqual(volume, order_amount)
+        assert price == self.EQUITY_MINUTE_CONSTANT_CLOSE
+        assert volume == order_amount
 
 
-class TestPredicates(ZiplineTestCase):
+class TestPredicates:
     def test_wildcard(self):
         for obj in 1, object(), "foo", {}:
-            self.assertEqual(obj, wildcard)
-            self.assertEqual([obj], [wildcard])
-            self.assertEqual({"foo": wildcard}, {"foo": wildcard})
+            assert obj == wildcard
+            assert [obj] == [wildcard]
+            assert {"foo": wildcard} == {"foo": wildcard}
 
     def test_instance_of(self):
-        self.assertEqual(1, instance_of(int))
-        self.assertNotEqual(1, instance_of(str))
-        self.assertEqual(1, instance_of((str, int)))
-        self.assertEqual("foo", instance_of((str, int)))
+        assert 1 == instance_of(int)
+        assert 1 != instance_of(str)
+        assert 1 == instance_of((str, int))
+        assert "foo" == instance_of((str, int))
 
     def test_instance_of_exact(self):
         class Foo(object):
@@ -177,5 +177,5 @@ class TestPredicates(ZiplineTestCase):
         class Bar(Foo):
             pass
 
-        self.assertEqual(Bar(), instance_of(Foo))
-        self.assertNotEqual(Bar(), instance_of(Foo, exact=True))
+        assert Bar() == instance_of(Foo)
+        assert Bar() != instance_of(Foo, exact=True)

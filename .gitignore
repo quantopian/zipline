@@ -86,3 +86,10 @@ archive
 
 conda/ta-lib
 conda/logbook
+
+# Vscode custome settings
+.vscode
+
+# Python Virtual envs
+.venv
+Pipfile

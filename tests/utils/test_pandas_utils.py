@@ -1,11 +1,8 @@
 """
 Tests for zipline/utils/pandas_utils.py
 """
-from unittest import skipIf
-
 import pandas as pd
 
-from zipline.testing import parameter_space, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 from zipline.utils.pandas_utils import (
     categorical_df_concat,
@@ -13,10 +10,11 @@ from zipline.utils.pandas_utils import (
     new_pandas,
     skip_pipeline_new_pandas,
 )
+import pytest
 
 
-class TestNearestUnequalElements(ZiplineTestCase):
-    @parameter_space(tz=["UTC", "US/Eastern"], __fail_fast=True)
+class TestNearestUnequalElements:
+    @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
     def test_nearest_unequal_elements(self, tz):
 
         dts = pd.to_datetime(
@@ -43,9 +41,9 @@ class TestNearestUnequalElements(ZiplineTestCase):
         ):
             computed = nearest_unequal_elements(dts, t(dt))
             expected = (t(before), t(after))
-            self.assertEqual(computed, expected)
+            assert computed == expected
 
-    @parameter_space(tz=["UTC", "US/Eastern"], __fail_fast=True)
+    @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
     def test_nearest_unequal_elements_short_dts(self, tz):
 
         # Length 1.
@@ -61,7 +59,7 @@ class TestNearestUnequalElements(ZiplineTestCase):
         ):
             computed = nearest_unequal_elements(dts, t(dt))
             expected = (t(before), t(after))
-            self.assertEqual(computed, expected)
+            assert computed == expected
 
         # Length 0
         dts = pd.to_datetime([]).tz_localize(tz)
@@ -72,31 +70,24 @@ class TestNearestUnequalElements(ZiplineTestCase):
         ):
             computed = nearest_unequal_elements(dts, t(dt))
             expected = (t(before), t(after))
-            self.assertEqual(computed, expected)
+            assert computed == expected
 
     def test_nearest_unequal_bad_input(self):
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError, match="dts must be unique"):
             nearest_unequal_elements(
                 pd.to_datetime(["2014", "2014"]),
                 pd.Timestamp("2014"),
             )
 
-        self.assertEqual(str(e.exception), "dts must be unique")
-
-        with self.assertRaises(ValueError) as e:
+        with pytest.raises(ValueError, match="dts must be sorted in increasing order"):
             nearest_unequal_elements(
                 pd.to_datetime(["2014", "2013"]),
                 pd.Timestamp("2014"),
             )
 
-        self.assertEqual(
-            str(e.exception),
-            "dts must be sorted in increasing order",
-        )
 
-
-class TestCatDFConcat(ZiplineTestCase):
-    @skipIf(new_pandas, skip_pipeline_new_pandas)
+class TestCatDFConcat:
+    @pytest.mark.skipif(new_pandas, reason=skip_pipeline_new_pandas)
     def test_categorical_df_concat(self):
 
         inp = [
@@ -173,14 +164,12 @@ class TestCatDFConcat(ZiplineTestCase):
             ),
         ]
 
-        with self.assertRaises(ValueError) as cm:
+        with pytest.raises(
+            ValueError, match="Input DataFrames must have the same columns/dtypes."
+        ):
             categorical_df_concat(mismatched_dtypes)
-        self.assertEqual(
-            str(cm.exception), "Input DataFrames must have the same columns/dtypes."
-        )
 
-        with self.assertRaises(ValueError) as cm:
+        with pytest.raises(
+            ValueError, match="Input DataFrames must have the same columns/dtypes."
+        ):
             categorical_df_concat(mismatched_column_names)
-        self.assertEqual(
-            str(cm.exception), "Input DataFrames must have the same columns/dtypes."
-        )

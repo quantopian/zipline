@@ -1,12 +1,11 @@
+import numpy as np
+import pandas as pd
 import itertools
 
-import pandas as pd
-import numpy as np
-
 from zipline.data.fx import DEFAULT_FX_RATE
-
 from zipline.testing.predicates import assert_equal
 import zipline.testing.fixtures as zp_fixtures
+import pytest
 
 
 class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
@@ -17,6 +16,8 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
     and implement the ``reader`` property, returning an FXRateReader that uses
     the data stored in ``cls.fx_rates``.
     """
+
+    __test__ = False
 
     FX_RATES_START_DATE = pd.Timestamp("2014-01-01", tz="UTC")
     FX_RATES_END_DATE = pd.Timestamp("2014-01-31", tz="UTC")
@@ -249,12 +250,16 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
 
 
 class InMemoryFXReaderTestCase(_FXReaderTestCase):
+    __test__ = True
+
     @property
     def reader(self):
         return self.in_memory_fx_rate_reader
 
 
 class HDF5FXReaderTestCase(zp_fixtures.WithTmpDir, _FXReaderTestCase):
+    __test__ = True
+
     @classmethod
     def init_class_fixtures(cls):
         super(HDF5FXReaderTestCase, cls).init_class_fixtures()
@@ -283,8 +288,8 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
             expected = dts.get_loc(dt, method="ffill")
             assert_equal(result, expected)
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             dts.get_loc(pd.Timestamp("2014-01-01"), method="ffill")
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             zp_fixtures.fast_get_loc_ffilled(dts, pd.Timestamp("2014-01-01"))

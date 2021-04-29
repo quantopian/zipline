@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import TestCase
 
 from zipline.utils.argcheck import (
     verify_callable_argspec,
@@ -27,15 +26,17 @@ from zipline.utils.argcheck import (
     MismatchedArguments,
 )
 
+import pytest
 
-class TestArgCheck(TestCase):
+
+class TestArgCheck:
     def test_not_callable(self):
         """
         Check the results of a non-callable object.
         """
         not_callable = "a"
 
-        with self.assertRaises(NotCallable):
+        with pytest.raises(NotCallable):
             verify_callable_argspec(not_callable)
 
     def test_no_starargs(self):
@@ -46,7 +47,7 @@ class TestArgCheck(TestCase):
         def f(a):
             pass
 
-        with self.assertRaises(NoStarargs):
+        with pytest.raises(NoStarargs):
             verify_callable_argspec(f, expect_starargs=True)
 
     def test_starargs(self):
@@ -67,7 +68,7 @@ class TestArgCheck(TestCase):
         def f(*args):
             pass
 
-        with self.assertRaises(UnexpectedStarargs):
+        with pytest.raises(UnexpectedStarargs):
             verify_callable_argspec(f, expect_starargs=False)
 
     def test_ignore_starargs(self):
@@ -92,7 +93,7 @@ class TestArgCheck(TestCase):
         def f():
             pass
 
-        with self.assertRaises(NoKwargs):
+        with pytest.raises(NoKwargs):
             verify_callable_argspec(f, expect_kwargs=True)
 
     def test_kwargs(self):
@@ -113,7 +114,7 @@ class TestArgCheck(TestCase):
         def f(**kwargs):
             pass
 
-        with self.assertRaises(UnexpectedKwargs):
+        with pytest.raises(UnexpectedKwargs):
             verify_callable_argspec(f, expect_kwargs=False)
 
     def test_ignore_kwargs(self):
@@ -138,14 +139,14 @@ class TestArgCheck(TestCase):
         def f(a, b):
             pass
 
-        with self.assertRaises(NotEnoughArguments):
+        with pytest.raises(NotEnoughArguments):
             verify_callable_argspec(f, [Argument("a"), Argument("b"), Argument("c")])
 
     def test_arg_superset(self):
         def f(a, b, c):
             pass
 
-        with self.assertRaises(TooManyArguments):
+        with pytest.raises(TooManyArguments):
             verify_callable_argspec(f, [Argument("a"), Argument("b")])
 
     def test_no_default(self):
@@ -156,7 +157,7 @@ class TestArgCheck(TestCase):
         def f(a):
             pass
 
-        with self.assertRaises(MismatchedArguments):
+        with pytest.raises(MismatchedArguments):
             verify_callable_argspec(f, [Argument("a", 1)])
 
     def test_default(self):
@@ -183,7 +184,7 @@ class TestArgCheck(TestCase):
         def f(a, b):
             pass
 
-        with self.assertRaises(MismatchedArguments):
+        with pytest.raises(MismatchedArguments):
             verify_callable_argspec(f, [Argument("c"), Argument("d")])
 
     def test_ignore_args(self):
@@ -201,7 +202,7 @@ class TestArgCheck(TestCase):
 
         verify_callable_argspec(f)
         verify_callable_argspec(g)
-        with self.assertRaises(NotCallable):
+        with pytest.raises(NotCallable):
             verify_callable_argspec(h)
 
     def test_out_of_order(self):
@@ -212,7 +213,7 @@ class TestArgCheck(TestCase):
         def f(a, b):
             pass
 
-        with self.assertRaises(MismatchedArguments):
+        with pytest.raises(MismatchedArguments):
             verify_callable_argspec(f, [Argument("b"), Argument("a")])
 
     def test_wrong_default(self):
@@ -224,7 +225,7 @@ class TestArgCheck(TestCase):
         def f(a=1):
             pass
 
-        with self.assertRaises(MismatchedArguments):
+        with pytest.raises(MismatchedArguments):
             verify_callable_argspec(f, [Argument("a", 2)])
 
     def test_any_default(self):
@@ -244,7 +245,7 @@ class TestArgCheck(TestCase):
         expected_args = [Argument("a", Argument.any_default)]
         verify_callable_argspec(f, expected_args)
         verify_callable_argspec(g, expected_args)
-        with self.assertRaises(MismatchedArguments):
+        with pytest.raises(MismatchedArguments):
             verify_callable_argspec(h, expected_args)
 
     def test_ignore_name(self):
@@ -264,7 +265,7 @@ class TestArgCheck(TestCase):
         expected_args = [Argument(Argument.ignore, Argument.no_default)]
         verify_callable_argspec(f, expected_args)
         verify_callable_argspec(f, expected_args)
-        with self.assertRaises(MismatchedArguments):
+        with pytest.raises(MismatchedArguments):
             verify_callable_argspec(h, expected_args)
 
     def test_bound_method(self):
@@ -275,7 +276,7 @@ class TestArgCheck(TestCase):
         method = C().f
 
         verify_callable_argspec(method, [Argument("a"), Argument("b")])
-        with self.assertRaises(NotEnoughArguments):
+        with pytest.raises(NotEnoughArguments):
             # Assert that we don't count self.
             verify_callable_argspec(
                 method,

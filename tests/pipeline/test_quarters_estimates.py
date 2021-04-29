@@ -2,7 +2,6 @@ from datetime import timedelta
 from functools import partial
 
 import itertools
-from nose.tools import assert_true
 from parameterized import parameterized
 import numpy as np
 from numpy.testing import assert_array_equal, assert_almost_equal
@@ -20,7 +19,6 @@ from zipline.pipeline.data import DataSet
 from zipline.pipeline.data import Column
 from zipline.pipeline.domain import EquitySessionDomain
 from zipline.pipeline.loaders.earnings_estimates import (
-    INVALID_NUM_QTRS_MESSAGE,
     NextEarningsEstimatesLoader,
     NextSplitAdjustedEarningsEstimatesLoader,
     normalize_quarters,
@@ -33,10 +31,11 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import assert_equal, assert_raises_regex
+from zipline.testing.predicates import assert_equal
 from zipline.testing.predicates import assert_frame_equal
 from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.numpy_utils import float64_dtype
+import pytest
 
 
 class Estimates(DataSet):
@@ -346,20 +345,23 @@ class WithWrongLoaderDefinition(WithEstimates):
         }
         p = Pipeline(columns)
 
-        with self.assertRaises(ValueError) as e:
+        err_msg = (
+            r"Passed invalid number of quarters -[0-9],-[0-9]; "
+            r"must pass a number of quarters >= 0"
+        )
+        with pytest.raises(ValueError, match=err_msg):
             engine.run_pipeline(
                 p,
                 start_date=self.trading_days[0],
                 end_date=self.trading_days[-1],
             )
-            assert_raises_regex(e, INVALID_NUM_QTRS_MESSAGE % "-1,-2")
 
     def test_no_num_announcements_attr(self):
         dataset = QuartersEstimatesNoNumQuartersAttr(1)
         engine = self.make_engine()
         p = Pipeline({c.name: c.latest for c in dataset.columns})
 
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             engine.run_pipeline(
                 p,
                 start_date=self.trading_days[0],
@@ -428,7 +430,7 @@ class WrongSplitsLoaderDefinition(WithEstimates, ZiplineTestCase):
             Estimates.estimate: "estimate",
         }
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             loader(
                 dummy_df,
                 {column.name: val for column, val in columns.items()},
@@ -601,7 +603,7 @@ class WithEstimatesTimeZero(WithEstimates):
             # Separate assertion for all-null DataFrame to avoid setting
             # column dtypes on `all_expected`.
             if sid == max(self.ASSET_FINDER_EQUITY_SIDS):
-                assert_true(sid_estimates.isnull().all().all())
+                assert sid_estimates.isnull().all().all()
             else:
                 ts_sorted_estimates = self.events[
                     self.events[SID_FIELD_NAME] == sid
@@ -2942,7 +2944,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
         }
 
 
-class QuarterShiftTestCase(ZiplineTestCase):
+class TestQuarterShift:
     """
     This tests, in isolation, quarter calculation logic for shifting quarters
     backwards/forwards from a starting point.
@@ -2956,5 +2958,6 @@ class QuarterShiftTestCase(ZiplineTestCase):
         )
         # Can't use assert_series_equal here with check_names=False
         # because that still fails due to name differences.
+        # TODO: With pandas > 1. assert_series_equal seems to work fine
         assert_equal(input_yrs, result_years)
         assert_equal(input_qtrs, result_quarters)

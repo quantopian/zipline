@@ -19,13 +19,12 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
     WithResponses,
 )
-from zipline.testing.predicates import (
-    assert_equal,
-)
+
 from zipline.utils.functional import apply
 
 TEST_RESOURCE_PATH = join(
-    dirname(dirname(dirname(realpath(__file__)))), "resources"  # zipline_repo/tests
+    dirname(dirname(dirname(realpath(__file__)))),
+    "resources",  # zipline_repo/tests
 )
 
 
@@ -49,7 +48,9 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
 
         # Load raw data from quandl test resources.
         data = load_data_table(
-            file=join(TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"),
+            file=join(
+                TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"
+            ),
             index_col="date",
         )
         data["sid"] = pd.factorize(data.symbol)[0]
@@ -70,7 +71,9 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
                 yield vs
 
         # the first index our written data will appear in the files on disk
-        start_idx = self.calendar.all_sessions.get_loc(self.start_date, "ffill") + 1
+        start_idx = (
+            self.calendar.all_sessions.get_loc(self.start_date, "ffill") + 1
+        )
 
         # convert an index into the raw dataframe into an index into the
         # final data
@@ -80,7 +83,8 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
             sid = sids[symbol]
             return (
                 1
-                - all_.iloc[idx]["ex_dividend", sid] / all_.iloc[idx - 1]["close", sid]
+                - all_.iloc[idx]["ex_dividend", sid]
+                / all_.iloc[idx - 1]["close", sid]
             )
 
         adjustments = [
@@ -186,7 +190,8 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
 
     def test_bundle(self):
         with open(
-            join(TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"), "rb"
+            join(TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"),
+            "rb",
         ) as quandl_response:
             self.responses.add(
                 self.responses.GET,
@@ -215,7 +220,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
 
         bundle = load("quandl", environ=environ)
         sids = 0, 1, 2, 3
-        assert_equal(set(bundle.asset_finder.sids), set(sids))
+        assert set(bundle.asset_finder.sids) == set(sids)
 
         sessions = self.calendar.all_sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
@@ -227,7 +232,9 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
         expected_pricing, expected_adjustments = self._expected_data(
             bundle.asset_finder,
         )
-        assert_equal(actual, expected_pricing, array_decimal=2)
+        np.testing.assert_array_almost_equal(
+            actual, expected_pricing, decimal=2
+        )
 
         adjs_for_cols = bundle.adjustment_reader.load_pricing_adjustments(
             self.columns,
@@ -238,8 +245,4 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
         for column, adjustments, expected in zip(
             self.columns, adjs_for_cols, expected_adjustments
         ):
-            assert_equal(
-                adjustments,
-                expected,
-                msg=column,
-            )
+            assert adjustments == expected, column

@@ -35,6 +35,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.numpy_utils import datetime64ns_dtype
+import pytest
 
 
 class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
@@ -147,11 +148,11 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
         open_slice = OpenPrice()[my_asset]
 
-        with self.assertRaises(UnsupportedPipelineOutput):
+        with pytest.raises(UnsupportedPipelineOutput):
             Pipeline(columns={"open_slice": open_slice})
 
         pipe = Pipeline(columns={})
-        with self.assertRaises(UnsupportedPipelineOutput):
+        with pytest.raises(UnsupportedPipelineOutput):
             pipe.add(open_slice, "open_slice")
 
     def test_loadable_term_slices(self):
@@ -160,7 +161,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         """
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
-        with self.assertRaises(NonSliceableTerm):
+        with pytest.raises(NonSliceableTerm):
             USEquityPricing.close[my_asset]
 
     def test_non_existent_asset(self):
@@ -182,7 +183,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             def compute(self, today, assets, out, returns_slice):
                 pass
 
-        with self.assertRaises(NonExistentAssetInTimeFrame):
+        with pytest.raises(NonExistentAssetInTimeFrame):
             self.run_pipeline(
                 Pipeline(columns={"uses_sliced_input": UsesSlicedInput()}),
                 self.pipeline_start_date,
@@ -208,7 +209,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             def compute(self, today, assets, out, sma_slice):
                 pass
 
-        with self.assertRaises(NonWindowSafeInput):
+        with pytest.raises(NonWindowSafeInput):
             self.run_pipeline(
                 Pipeline(columns={"uses_sliced_input": UsesSlicedInput()}),
                 self.pipeline_start_date,
@@ -233,7 +234,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             def compute(self, today, assets, out, my_unsafe_factor_slice):
                 pass
 
-        with self.assertRaises(NonWindowSafeInput):
+        with pytest.raises(NonWindowSafeInput):
             self.run_pipeline(
                 Pipeline(columns={"uses_sliced_input": UsesSlicedInput()}),
                 self.pipeline_start_date,
@@ -254,13 +255,13 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
         # Make sure that correlations are not safe if either the factor *or*
         # the target slice are not window safe.
-        with self.assertRaises(NonWindowSafeInput):
+        with pytest.raises(NonWindowSafeInput):
             my_unsafe_factor.pearsonr(
                 target=my_safe_factor_slice,
                 correlation_length=10,
             )
 
-        with self.assertRaises(NonWindowSafeInput):
+        with pytest.raises(NonWindowSafeInput):
             my_safe_factor.pearsonr(
                 target=my_unsafe_factor_slice,
                 correlation_length=10,
@@ -434,22 +435,22 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         date_factor = DateFactor()
         date_factor_slice = date_factor[my_asset]
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             date_factor.pearsonr(
                 target=returns_slice,
                 correlation_length=correlation_length,
             )
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             date_factor.spearmanr(
                 target=returns_slice,
                 correlation_length=correlation_length,
             )
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             returns.pearsonr(
                 target=date_factor_slice,
                 correlation_length=correlation_length,
             )
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             returns.pearsonr(
                 target=date_factor_slice,
                 correlation_length=correlation_length,
@@ -519,12 +520,12 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         date_factor = DateFactor()
         date_factor_slice = date_factor[my_asset]
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             date_factor.linear_regression(
                 target=returns_slice,
                 regression_length=regression_length,
             )
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             returns.linear_regression(
                 target=date_factor_slice,
                 regression_length=regression_length,
@@ -534,7 +535,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
         slice_ = Returns(window_length=2)[my_asset]
         result = repr(slice_)
-        self.assertEqual(result, "Returns(...)[{}]".format(my_asset))
+        assert result == "Returns(...)[{}]".format(my_asset)
 
     def test_slice_subtypes(self):
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
@@ -544,17 +545,17 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             window_length = 1
             dtype = float
 
-        self.assertIsInstance(SomeFactor()[my_asset], Factor)
+        assert isinstance(SomeFactor()[my_asset], Factor)
 
         class SomeFilter(Filter):
             inputs = ()
             window_length = 1
 
-        self.assertIsInstance(SomeFilter()[my_asset], Filter)
+        assert isinstance(SomeFilter()[my_asset], Filter)
 
         class SomeClassifier(Classifier):
             inputs = ()
             window_length = 1
             dtype = object
 
-        self.assertIsInstance(SomeClassifier()[my_asset], Classifier)
+        assert isinstance(SomeClassifier()[my_asset], Classifier)

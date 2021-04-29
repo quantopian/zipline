@@ -1,5 +1,4 @@
 from datetime import time
-from unittest import TestCase
 import pandas as pd
 from trading_calendars import get_calendar
 from trading_calendars.utils.pandas_utils import days_at_time
@@ -12,21 +11,25 @@ from zipline.gens.sim_engine import (
     SESSION_END,
 )
 
+import pytest
 
-class TestClock(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.nyse_calendar = get_calendar("NYSE")
 
-        # july 15 is friday, so there are 3 sessions in this range (15, 18, 19)
-        cls.sessions = cls.nyse_calendar.sessions_in_range(
-            pd.Timestamp("2016-07-15"), pd.Timestamp("2016-07-19")
-        )
+@pytest.fixture(scope="class")
+def set_session(request):
+    request.cls.nyse_calendar = get_calendar("NYSE")
 
-        trading_o_and_c = cls.nyse_calendar.schedule.loc[cls.sessions]
-        cls.opens = trading_o_and_c["market_open"]
-        cls.closes = trading_o_and_c["market_close"]
+    # july 15 is friday, so there are 3 sessions in this range (15, 18, 19)
+    request.cls.sessions = request.cls.nyse_calendar.sessions_in_range(
+        pd.Timestamp("2016-07-15"), pd.Timestamp("2016-07-19")
+    )
 
+    trading_o_and_c = request.cls.nyse_calendar.schedule.loc[request.cls.sessions]
+    request.cls.opens = trading_o_and_c["market_open"]
+    request.cls.closes = trading_o_and_c["market_close"]
+
+
+@pytest.mark.usefixtures("set_session")
+class TestClock:
     def test_bts_before_session(self):
         clock = MinuteSimulationClock(
             self.sessions,
@@ -41,13 +44,13 @@ class TestClock(TestCase):
         def _check_session_bts_first(session_label, events, bts_dt):
             minutes = self.nyse_calendar.minutes_for_session(session_label)
 
-            self.assertEqual(393, len(events))
+            assert 393 == len(events)
 
-            self.assertEqual(events[0], (session_label, SESSION_START))
-            self.assertEqual(events[1], (bts_dt, BEFORE_TRADING_START_BAR))
+            assert events[0] == (session_label, SESSION_START)
+            assert events[1] == (bts_dt, BEFORE_TRADING_START_BAR)
             for i in range(2, 392):
-                self.assertEqual(events[i], (minutes[i - 2], BAR))
-            self.assertEqual(events[392], (minutes[-1], SESSION_END))
+                assert events[i] == (minutes[i - 2], BAR)
+            assert events[392] == (minutes[-1], SESSION_END)
 
         _check_session_bts_first(
             self.sessions[0],
@@ -104,19 +107,19 @@ class TestClock(TestCase):
         def _check_session_bts_during(session_label, events, bts_dt):
             minutes = self.nyse_calendar.minutes_for_session(session_label)
 
-            self.assertEqual(393, len(events))
+            assert 393 == len(events)
 
-            self.assertEqual(events[0], (session_label, SESSION_START))
+            assert events[0] == (session_label, SESSION_START)
 
             for i in range(1, bts_idx):
-                self.assertEqual(events[i], (minutes[i - 1], BAR))
+                assert events[i] == (minutes[i - 1], BAR)
 
-            self.assertEqual(events[bts_idx], (bts_dt, BEFORE_TRADING_START_BAR))
+            assert events[bts_idx] == (bts_dt, BEFORE_TRADING_START_BAR)
 
             for i in range(bts_idx + 1, 391):
-                self.assertEqual(events[i], (minutes[i - 2], BAR))
+                assert events[i] == (minutes[i - 2], BAR)
 
-            self.assertEqual(events[392], (minutes[-1], SESSION_END))
+            assert events[392] == (minutes[-1], SESSION_END)
 
         clock = MinuteSimulationClock(
             self.sessions,
@@ -158,13 +161,13 @@ class TestClock(TestCase):
         def _check_session_bts_after(session_label, events):
             minutes = self.nyse_calendar.minutes_for_session(session_label)
 
-            self.assertEqual(392, len(events))
-            self.assertEqual(events[0], (session_label, SESSION_START))
+            assert 392 == len(events)
+            assert events[0] == (session_label, SESSION_START)
 
             for i in range(1, 391):
-                self.assertEqual(events[i], (minutes[i - 1], BAR))
+                assert events[i] == (minutes[i - 1], BAR)
 
-            self.assertEqual(events[-1], (minutes[389], SESSION_END))
+            assert events[-1] == (minutes[389], SESSION_END)
 
         for i in range(0, 2):
             _check_session_bts_after(

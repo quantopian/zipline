@@ -1,8 +1,7 @@
-from zipline.testing import ZiplineTestCase
 from zipline.utils.sharedoc import copydoc
 
 
-class TestSharedoc(ZiplineTestCase):
+class TestSharedoc:
     def test_copydoc(self):
         def original_docstring_function():
             """
@@ -14,6 +13,4 @@ class TestSharedoc(ZiplineTestCase):
         def copied_docstring_function():
             pass
 
-        self.assertEqual(
-            original_docstring_function.__doc__, copied_docstring_function.__doc__
-        )
+        assert original_docstring_function.__doc__ == copied_docstring_function.__doc__

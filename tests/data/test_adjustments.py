@@ -8,7 +8,10 @@ from zipline.data.adjustments import (
 )
 from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
 from zipline.testing import parameter_space
-from zipline.testing.predicates import assert_equal
+from zipline.testing.predicates import (
+    assert_frame_equal,
+    assert_series_equal,
+)
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
     WithTradingCalendars,
@@ -78,7 +81,7 @@ class TestSQLiteAdjustmentsWriter(
 
     def assert_all_empty(self, dfs):
         for k, v in dfs.items():
-            assert_equal(len(v), 0, msg="%s dataframe should be empty" % k)
+            assert len(v) == 0, "%s dataframe should be empty" % k
 
     def test_calculate_dividend_ratio(self):
         first_date_ix = 200
@@ -157,7 +160,8 @@ class TestSQLiteAdjustmentsWriter(
             payout_sort_key,
         )
         expected_dividend_payouts.reset_index(drop=True, inplace=True)
-        assert_equal(dividend_payouts, expected_dividend_payouts)
+
+        assert_frame_equal(dividend_payouts, expected_dividend_payouts)
 
         expected_dividend_ratios = pd.DataFrame(
             [[T(1), 0.95, 0], [T(2), 0.90, 1]],
@@ -168,37 +172,27 @@ class TestSQLiteAdjustmentsWriter(
             inplace=True,
         )
         dividend_ratios.reset_index(drop=True, inplace=True)
-        assert_equal(dividend_ratios, expected_dividend_ratios)
+        assert_frame_equal(dividend_ratios, expected_dividend_ratios)
 
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
-                " amount=10.000",
-            )
+        assert self.log_handler.has_warning(
+            "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
+            " amount=10.000",
         )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
-                " amount=0.100",
-            )
+        assert self.log_handler.has_warning(
+            "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
+            " amount=0.100",
         )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
-                " amount=0.100",
-            )
+        assert self.log_handler.has_warning(
+            "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
+            " amount=0.100",
         )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,"
-                " amount=0.510",
-            )
+        assert self.log_handler.has_warning(
+            "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,"
+            " amount=0.510",
         )
-        self.assertTrue(
-            self.log_handler.has_warning(
-                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18,"
-                " amount=0.400",
-            )
+        assert self.log_handler.has_warning(
+            "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18,"
+            " amount=0.400",
         )
 
     def _test_identity(self, name):
@@ -228,7 +222,7 @@ class TestSQLiteAdjustmentsWriter(
         output = dfs.pop(name).sort_values(sort_key)
         self.assert_all_empty(dfs)
         # from nose.tools import set_trace;set_trace()
-        assert_equal(input_, output)
+        assert_frame_equal(input_, output)
 
     def test_splits(self):
         self._test_identity("splits")
@@ -270,7 +264,7 @@ class TestSQLiteAdjustmentsWriter(
         output = dfs.pop("stock_dividend_payouts").sort_values(sort_key)
         self.assert_all_empty(dfs)
 
-        assert_equal(output, input_[sorted(input_.columns)])
+        assert_frame_equal(output, input_[sorted(input_.columns)])
 
     @parameter_space(convert_dates=[True, False])
     def test_empty_frame_dtypes(self, convert_dates):
@@ -289,7 +283,7 @@ class TestSQLiteAdjustmentsWriter(
         dfs = self.component_dataframes(convert_dates)
 
         for df in dfs.values():
-            assert_equal(len(df), 0)
+            assert len(df) == 0
 
         for key in "splits", "mergers", "dividends":
             result = dfs[key].dtypes
@@ -300,7 +294,7 @@ class TestSQLiteAdjustmentsWriter(
                     "sid": np.dtype("int64"),
                 }
             ).sort_index()
-            assert_equal(result, expected)
+            assert_series_equal(result, expected)
 
         result = dfs["dividend_payouts"].dtypes
         expected = pd.Series(
@@ -314,7 +308,7 @@ class TestSQLiteAdjustmentsWriter(
             }
         ).sort_index()
 
-        assert_equal(result, expected)
+        assert_series_equal(result, expected)
 
         result = dfs["stock_dividend_payouts"].dtypes
         expected = pd.Series(
@@ -329,4 +323,4 @@ class TestSQLiteAdjustmentsWriter(
             }
         ).sort_index()
 
-        assert_equal(result, expected)
+        assert_series_equal(result, expected)

@@ -64,11 +64,11 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
     def test_factory(self):
         returns = [0.1] * 100
         r_objects = factory.create_returns_from_list(returns, self.sim_params)
-        self.assertLessEqual(r_objects.index[-1], pd.Timestamp("2006-12-31", tz="UTC"))
+        assert r_objects.index[-1] <= pd.Timestamp("2006-12-31", tz="UTC")
 
     def test_drawdown(self):
         for period in PERIODS:
-            self.assertTrue(all(x["max_drawdown"] == 0 for x in self.metrics[period]))
+            assert all(x["max_drawdown"] == 0 for x in self.metrics[period])
 
     def test_benchmark_returns_06(self):
         for period, period_len in zip(PERIODS, [1, 3, 6, 12]):
@@ -82,25 +82,30 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
             )
 
     def test_trading_days(self):
-        self.assertEqual(
-            [x["trading_days"] for x in self.metrics["twelve_month"]],
-            [251],
-        )
-        self.assertEqual(
-            [x["trading_days"] for x in self.metrics["one_month"]],
-            [20, 19, 23, 19, 22, 22, 20, 23, 20, 22, 21, 20],
-        )
+        assert [x["trading_days"] for x in self.metrics["twelve_month"]] == [251]
+        assert [x["trading_days"] for x in self.metrics["one_month"]] == [
+            20,
+            19,
+            23,
+            19,
+            22,
+            22,
+            20,
+            23,
+            20,
+            22,
+            21,
+            20,
+        ]
 
     def test_benchmark_volatility(self):
         # Volatility is calculated by a empyrical function so testing
         # of period volatility will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         for period in PERIODS:
-            self.assertTrue(
-                all(
-                    isinstance(x["benchmark_volatility"], float)
-                    for x in self.metrics[period]
-                )
+            assert all(
+                isinstance(x["benchmark_volatility"], float)
+                for x in self.metrics[period]
             )
 
     def test_algorithm_returns(self):
@@ -119,11 +124,8 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         # of period volatility will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         for period in PERIODS:
-            self.assertTrue(
-                all(
-                    isinstance(x["algo_volatility"], float)
-                    for x in self.metrics[period]
-                )
+            assert all(
+                isinstance(x["algo_volatility"], float) for x in self.metrics[period]
             )
 
     def test_algorithm_sharpe(self):
@@ -131,20 +133,16 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         # of period sharpe ratios will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         for period in PERIODS:
-            self.assertTrue(
-                all(isinstance(x["sharpe"], float) for x in self.metrics[period])
-            )
+            assert all(isinstance(x["sharpe"], float) for x in self.metrics[period])
 
     def test_algorithm_sortino(self):
         # The sortino ratio is calculated by a empyrical function so testing
         # of period sortino ratios will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         for period in PERIODS:
-            self.assertTrue(
-                all(
-                    isinstance(x["sortino"], float) or x["sortino"] is None
-                    for x in self.metrics[period]
-                )
+            assert all(
+                isinstance(x["sortino"], float) or x["sortino"] is None
+                for x in self.metrics[period]
             )
 
     def test_algorithm_beta(self):
@@ -152,11 +150,9 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         # of period beta will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         for period in PERIODS:
-            self.assertTrue(
-                all(
-                    isinstance(x["beta"], float) or x["beta"] is None
-                    for x in self.metrics[period]
-                )
+            assert all(
+                isinstance(x["beta"], float) or x["beta"] is None
+                for x in self.metrics[period]
             )
 
     def test_algorithm_alpha(self):
@@ -164,11 +160,9 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         # of period alpha will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         for period in PERIODS:
-            self.assertTrue(
-                all(
-                    isinstance(x["alpha"], float) or x["alpha"] is None
-                    for x in self.metrics[period]
-                )
+            assert all(
+                isinstance(x["alpha"], float) or x["alpha"] is None
+                for x in self.metrics[period]
             )
 
     def test_treasury_returns(self):
@@ -182,10 +176,9 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         # These values are all expected to be zero because we explicity zero
         # out the treasury period returns as they are no longer actually used.
         for period in PERIODS:
-            self.assertEqual(
-                [x["treasury_period_return"] for x in metrics[period]],
-                [0.0] * len(metrics[period]),
-            )
+            assert [x["treasury_period_return"] for x in metrics[period]] == [
+                0.0
+            ] * len(metrics[period])
 
     def test_benchmarkrange(self):
         start_session = self.trading_calendar.minute_to_session_label(
@@ -252,37 +245,32 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         else:
             expected_end_month = start_month - 1
 
-        self.assertEqual(expected_end_month, actual_end_month)
+        assert expected_end_month == actual_end_month
 
     def assert_range_length(self, col, total_months, period_length, start_date):
         if period_length > total_months:
-            self.assertFalse(col)
+            assert not col
         else:
             period_end = pd.Timestamp(col[-1]["period_label"], tz="utc")
-            self.assertEqual(
-                len(col),
-                total_months - (period_length - 1),
-                (
-                    "mismatch for total months - expected:{total_months}/"
-                    "actual:{actual}, period:{period_length}, "
-                    "start:{start_date}, calculated end:{end}"
-                ).format(
-                    total_months=total_months,
-                    period_length=period_length,
-                    start_date=start_date,
-                    end=period_end,
-                    actual=len(col),
-                ),
+            assert len(col) == total_months - (period_length - 1), (
+                "mismatch for total months - expected:{total_months}/"
+                "actual:{actual}, period:{period_length}, "
+                "start:{start_date}, calculated end:{end}"
+            ).format(
+                total_months=total_months,
+                period_length=period_length,
+                start_date=start_date,
+                end=period_end,
+                actual=len(col),
             )
             self.assert_month(start_date.month, period_end.month)
 
     def test_algorithm_leverages(self):
         # Max leverage for an algorithm with 'None' as leverage is 0.
         for period, expected_len in zip(PERIODS, [12, 10, 7, 1]):
-            self.assertEqual(
-                [x["max_leverage"] for x in self.metrics[period]],
-                [0.0] * expected_len,
-            )
+            assert [x["max_leverage"] for x in self.metrics[period]] == [
+                0.0
+            ] * expected_len
 
         test_period = ClassicRiskMetrics.risk_metric_period(
             start_session=self.start_session,
@@ -294,7 +282,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
 
         # This return period has a list instead of None for algorithm_leverages
         # Confirm that max_leverage is set to the max of those values
-        self.assertEqual(test_period["max_leverage"], 0.03)
+        assert test_period["max_leverage"] == 0.03
 
     def test_sharpe_value_when_null(self):
         # Sharpe is displayed as '0.0' instead of np.nan
@@ -306,7 +294,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
             benchmark_returns=self.benchmark_returns,
             algorithm_leverages=pd.Series(0.0, index=self.algo_returns.index),
         )
-        self.assertEqual(test_period["sharpe"], 0.0)
+        assert test_period["sharpe"] == 0.0
 
     def test_sharpe_value_when_benchmark_null(self):
         # Sharpe is displayed as '0.0' instead of np.nan
@@ -318,7 +306,7 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
             benchmark_returns=null_returns,
             algorithm_leverages=pd.Series(0.0, index=self.algo_returns.index),
         )
-        self.assertEqual(test_period["sharpe"], 0.0)
+        assert test_period["sharpe"] == 0.0
 
     def test_representation(self):
         test_period = ClassicRiskMetrics.risk_metric_period(
@@ -345,4 +333,4 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
             "max_leverage",
         }
 
-        self.assertEqual(set(test_period), metrics)
+        assert set(test_period) == metrics

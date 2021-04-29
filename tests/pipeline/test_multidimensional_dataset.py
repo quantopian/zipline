@@ -2,43 +2,37 @@ from collections import OrderedDict
 import itertools
 from textwrap import dedent
 
-from parameterized import parameterized
 import numpy as np
-
 from zipline.pipeline.data import (
     Column,
     DataSetFamily,
     DataSetFamilySlice,
 )
-from zipline.testing import ZiplineTestCase
-from zipline.testing.predicates import (
-    assert_equal,
-    assert_is,
-    assert_is_not,
-    assert_is_subclass,
-    assert_raises_str,
-)
+from zipline.testing.predicates import assert_is_subclass
+
+import pytest
+import re
 
 
-class TestDataSetFamily(ZiplineTestCase):
+class TestDataSetFamily:
     def test_repr(self):
         class MD1(DataSetFamily):
             extra_dims = [("dim_0", [])]
 
         expected_repr = "<DataSetFamily: 'MD1', extra_dims=['dim_0']>"
-        assert_equal(repr(MD1), expected_repr)
+        assert repr(MD1) == expected_repr
 
         class MD2(DataSetFamily):
             extra_dims = [("dim_0", []), ("dim_1", [])]
 
         expected_repr = "<DataSetFamily: 'MD2', extra_dims=['dim_0', 'dim_1']>"
-        assert_equal(repr(MD2), expected_repr)
+        assert repr(MD2) == expected_repr
 
         class MD3(DataSetFamily):
             extra_dims = [("dim_1", []), ("dim_0", [])]
 
         expected_repr = "<DataSetFamily: 'MD3', extra_dims=['dim_1', 'dim_0']>"
-        assert_equal(repr(MD3), expected_repr)
+        assert repr(MD3) == expected_repr
 
     def test_cache(self):
         class MD1(DataSetFamily):
@@ -50,20 +44,20 @@ class TestDataSetFamily(ZiplineTestCase):
         MD1Slice = MD1.slice(dim_0="a")
         MD2Slice = MD2.slice(dim_0="a")
 
-        assert_equal(MD1Slice.extra_coords, MD2Slice.extra_coords)
-        assert_is_not(MD1Slice, MD2Slice)
+        assert MD1Slice.extra_coords == MD2Slice.extra_coords
+        assert MD1Slice is not MD2Slice
 
     def test_empty_extra_dims(self):
         msg = (
             "DataSetFamily must be defined with non-empty extra_dims,"
             " or with `_abstract = True`"
         )
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
 
             class NoExtraDims(DataSetFamily):
                 pass
 
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
 
             class EmptyExtraDims(DataSetFamily):
                 extra_dims = []
@@ -71,12 +65,12 @@ class TestDataSetFamily(ZiplineTestCase):
         class AbstractParent(DataSetFamily):
             _abstract = True
 
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
 
             class NoExtraDimsChild(AbstractParent):
                 pass
 
-        with assert_raises_str(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
 
             class EmptyExtraDimsChild(AbstractParent):
                 extra_dims = []
@@ -90,28 +84,26 @@ class TestDataSetFamily(ZiplineTestCase):
                 ("dim_1", {"d", "e", "f"}),
             ]
 
-    def spec(*cs):
-        return (cs,)
-
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "dims_spec",
         [
-            spec(("dim_0", range(10))),
-            spec(
+            (("dim_0", range(10)),),
+            (
                 ("dim_0", range(10)),
                 ("dim_1", range(10, 15)),
             ),
-            spec(
+            (
                 ("dim_0", range(10)),
                 ("dim_1", range(10, 15)),
                 ("dim_2", range(5, 15)),
             ),
-            spec(
+            (
                 ("dim_0", range(6)),
                 ("dim_1", {"a", "b", "c"}),
                 ("dim_2", range(5, 15)),
                 ("dim_3", {"b", "c", "e"}),
             ),
-        ]
+        ],
     )
     def test_valid_slice(self, dims_spec):
         class MD(DataSetFamily):
@@ -124,7 +116,7 @@ class TestDataSetFamily(ZiplineTestCase):
             boolean = Column("?")
 
         expected_dims = OrderedDict([(k, frozenset(v)) for k, v in dims_spec])
-        assert_equal(MD.extra_dims, expected_dims)
+        assert MD.extra_dims == expected_dims
 
         for valid_combination in itertools.product(*expected_dims.values()):
             Slice = MD.slice(*valid_combination)
@@ -144,14 +136,14 @@ class TestDataSetFamily(ZiplineTestCase):
                 ),
             ]
             for alt in alternate_constructions:
-                assert_is(Slice, alt, msg="Slices are not properly memoized")
+                assert Slice is alt, "Slices are not properly memoized"
 
             expected_coords = OrderedDict(
                 zip(expected_dims, valid_combination),
             )
-            assert_equal(Slice.extra_coords, expected_coords)
+            assert Slice.extra_coords == expected_coords
 
-            assert_is(Slice.dataset_family, MD)
+            assert Slice.dataset_family is MD
 
             assert_is_subclass(Slice, DataSetFamilySlice)
 
@@ -163,9 +155,9 @@ class TestDataSetFamily(ZiplineTestCase):
                 ("boolean", np.dtype("?"), Slice),
             }
             actual_columns = {(c.name, c.dtype, c.dataset) for c in Slice.columns}
-            assert_equal(actual_columns, expected_columns)
+            assert actual_columns == expected_columns
 
-    del spec
+    # del spec
 
     def test_slice_unknown_dims(self):
         class MD(DataSetFamily):
@@ -177,7 +169,7 @@ class TestDataSetFamily(ZiplineTestCase):
         def expect_slice_fails(*args, **kwargs):
             expected_msg = kwargs.pop("expected_msg")
 
-            with assert_raises_str(TypeError, expected_msg):
+            with pytest.raises(TypeError, match=expected_msg):
                 MD.slice(*args, **kwargs)
 
         # insufficient positional
@@ -248,7 +240,7 @@ class TestDataSetFamily(ZiplineTestCase):
         def expect_slice_fails(*args, **kwargs):
             expected_msg = kwargs.pop("expected_msg")
 
-            with assert_raises_str(ValueError, expected_msg):
+            with pytest.raises(ValueError, match=expected_msg):
                 MD.slice(*args, **kwargs)
 
         expect_slice_fails(
@@ -288,7 +280,7 @@ class TestDataSetFamily(ZiplineTestCase):
             column_3 = Column("i8", -1)
 
         assert_is_subclass(Child, Parent)
-        assert_equal(Child.extra_dims, Parent.extra_dims)
+        assert Child.extra_dims == Parent.extra_dims
 
         ChildSlice = Child.slice(dim_0="a", dim_1="d")
 
@@ -300,7 +292,7 @@ class TestDataSetFamily(ZiplineTestCase):
                 ChildSlice.column_3,
             }
         )
-        assert_equal(ChildSlice.columns, expected_child_slice_columns)
+        assert ChildSlice.columns == expected_child_slice_columns
 
     def test_column_access_without_slice(self):
         class Parent(DataSetFamily):
@@ -331,25 +323,25 @@ class TestDataSetFamily(ZiplineTestCase):
             )
 
         expected_msg = make_expected_msg("Parent", "column_0")
-        with assert_raises_str(AttributeError, expected_msg):
+        with pytest.raises(AttributeError, match=re.escape(expected_msg)):
             Parent.column_0
 
         expected_msg = make_expected_msg("Parent", "column_1")
-        with assert_raises_str(AttributeError, expected_msg):
+        with pytest.raises(AttributeError, match=re.escape(expected_msg)):
             Parent.column_1
 
         expected_msg = make_expected_msg("Child", "column_0")
-        with assert_raises_str(AttributeError, expected_msg):
+        with pytest.raises(AttributeError, match=re.escape(expected_msg)):
             Child.column_0
 
         expected_msg = make_expected_msg("Child", "column_1")
-        with assert_raises_str(AttributeError, expected_msg):
+        with pytest.raises(AttributeError, match=re.escape(expected_msg)):
             Child.column_1
 
         expected_msg = make_expected_msg("Child", "column_2")
-        with assert_raises_str(AttributeError, expected_msg):
+        with pytest.raises(AttributeError, match=re.escape(expected_msg)):
             Child.column_2
 
         expected_msg = make_expected_msg("Child", "column_3")
-        with assert_raises_str(AttributeError, expected_msg):
+        with pytest.raises(AttributeError, match=re.escape(expected_msg)):
             Child.column_3

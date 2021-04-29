@@ -74,13 +74,13 @@ class TestBeforeTradingStartTiming(
             sim_params=sim_params,
         )
 
-        self.assertEqual(len(bts_times), num_sessions)
+        assert len(bts_times) == num_sessions
         expected_times = [
             pd.Timestamp("2016-03-11 8:45", tz="US/Eastern").tz_convert("UTC"),
             pd.Timestamp("2016-03-14 8:45", tz="US/Eastern").tz_convert("UTC"),
             pd.Timestamp("2016-03-15 8:45", tz="US/Eastern").tz_convert("UTC"),
         ]
-        self.assertEqual(bts_times, expected_times[:num_sessions])
+        assert bts_times == expected_times[:num_sessions]
 
 
 class BeforeTradingStartsOnlyClock(object):
@@ -122,4 +122,4 @@ def initialize(context):
 
         # since the clock only ever emitted a single before_trading_start
         # event, we can check that the simulation_dt was properly set
-        self.assertEqual(dt, algo_simulator.simulation_dt)
+        assert dt == algo_simulator.simulation_dt

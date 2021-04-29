@@ -87,7 +87,7 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
             x: rule.should_trigger(self.cal.next_open(T(x))) for x in expected.keys()
         }
 
-        self.assertEquals(expected, results)
+        assert expected == results
 
         # Ensure that offset from start of week also works around edge cases.
         rule = NthTradingDayOfWeek(1)
@@ -112,7 +112,7 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
             x: rule.should_trigger(self.cal.next_open(T(x))) for x in expected.keys()
         }
 
-        self.assertEquals(expected, results)
+        assert expected == results
 
         # `week_end`
         rule = NDaysBeforeLastTradingDayOfWeek(0)
@@ -136,7 +136,7 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
             x: rule.should_trigger(self.cal.next_open(T(x))) for x in expected.keys()
         }
 
-        self.assertEquals(expected, results)
+        assert expected == results
 
     @parameterized.expand([("week_start",), ("week_end",)])
     def test_week_and_time_composed_rule(self, rule_type):
@@ -165,15 +165,12 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
 
         for m in week_minutes:
             if should_trigger(m):
-                self.assertEqual(
-                    m,
-                    dt
-                    + timedelta(days=trigger_day_offset)
-                    + timedelta(minutes=trigger_minute_offset),
+                assert m == dt + timedelta(days=trigger_day_offset) + timedelta(
+                    minutes=trigger_minute_offset
                 )
                 n_triggered += 1
 
-        self.assertEqual(n_triggered, 1)
+        assert n_triggered == 1
 
     def test_offset_too_far(self):
         minute_groups = minutes_for_days(self.cal, ordered_days=True)
@@ -189,8 +186,8 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
 
         for session_minutes in minute_groups:
             for minute in session_minutes:
-                self.assertFalse(after_open_rule.should_trigger(minute))
-                self.assertFalse(before_close_rule.should_trigger(minute))
+                assert not after_open_rule.should_trigger(minute)
+                assert not before_close_rule.should_trigger(minute)
 
 
 class TestStatefulRulesNYSE(StatefulRulesTests, TestCase):

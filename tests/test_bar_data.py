@@ -42,6 +42,7 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
+import pytest
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -55,15 +56,15 @@ def str_to_ts(dt_str):
     return pd.Timestamp(dt_str, tz="UTC")
 
 
-class WithBarDataChecks(object):
+class WithBarDataChecks:
     def assert_same(self, val1, val2):
         try:
-            self.assertEqual(val1, val2)
+            assert val1 == val2
         except AssertionError:
             if val1 is pd.NaT:
-                self.assertTrue(val2 is pd.NaT)
+                assert val2 is pd.NaT
             elif np.isnan(val1):
-                self.assertTrue(np.isnan(val2))
+                assert np.isnan(val2)
             else:
                 raise
 
@@ -100,7 +101,7 @@ class WithBarDataChecks(object):
             "_last_calculated_universe",
             "_universe_last_updatedat",
         ]:
-            with self.assertRaises(AttributeError):
+            with pytest.raises(AttributeError):
                 getattr(bar_data, field)
 
 
@@ -224,9 +225,9 @@ class TestMinuteBarData(
         for minute in list(concat(all_minutes)):
             bar_data = self.create_bardata(lambda: minute)
 
-            self.assertEqual(
-                self.trading_calendar.minute_to_session_label(minute),
-                bar_data.current_session,
+            assert (
+                self.trading_calendar.minute_to_session_label(minute)
+                == bar_data.current_session
             )
 
     def test_current_session_minutes(self):
@@ -253,22 +254,22 @@ class TestMinuteBarData(
             )
             self.check_internal_consistency(bar_data)
 
-            self.assertFalse(bar_data.can_trade(self.ASSET1))
-            self.assertFalse(bar_data.can_trade(self.ASSET2))
+            assert not bar_data.can_trade(self.ASSET1)
+            assert not bar_data.can_trade(self.ASSET2)
 
-            self.assertFalse(bar_data.is_stale(self.ASSET1))
-            self.assertFalse(bar_data.is_stale(self.ASSET2))
+            assert not bar_data.is_stale(self.ASSET1)
+            assert not bar_data.is_stale(self.ASSET2)
 
             for field in ALL_FIELDS:
                 for asset in self.ASSETS:
                     asset_value = bar_data.current(asset, field)
 
                     if field in OHLCP:
-                        self.assertTrue(np.isnan(asset_value))
+                        assert np.isnan(asset_value)
                     elif field == "volume":
-                        self.assertEqual(0, asset_value)
+                        assert 0 == asset_value
                     elif field == "last_traded":
-                        self.assertTrue(asset_value is pd.NaT)
+                        assert asset_value is pd.NaT
 
     def test_regular_minute(self):
         minutes = self.trading_calendar.minutes_for_session(
@@ -298,19 +299,19 @@ class TestMinuteBarData(
             self.check_internal_consistency(bar_data)
             asset2_has_data = ((idx + 1) % 10) == 0
 
-            self.assertTrue(bar_data.can_trade(self.ASSET1))
-            self.assertFalse(bar_data.is_stale(self.ASSET1))
+            assert bar_data.can_trade(self.ASSET1)
+            assert not bar_data.is_stale(self.ASSET1)
 
             if idx < 9:
-                self.assertFalse(bar_data.can_trade(self.ASSET2))
-                self.assertFalse(bar_data.is_stale(self.ASSET2))
+                assert not bar_data.can_trade(self.ASSET2)
+                assert not bar_data.is_stale(self.ASSET2)
             else:
-                self.assertTrue(bar_data.can_trade(self.ASSET2))
+                assert bar_data.can_trade(self.ASSET2)
 
                 if asset2_has_data:
-                    self.assertFalse(bar_data.is_stale(self.ASSET2))
+                    assert not bar_data.is_stale(self.ASSET2)
                 else:
-                    self.assertTrue(bar_data.is_stale(self.ASSET2))
+                    assert bar_data.is_stale(self.ASSET2)
 
             for field in ALL_FIELDS:
                 asset1_value = bar_data.current(self.ASSET1, field)
@@ -319,44 +320,45 @@ class TestMinuteBarData(
                 # now check the actual values
                 if idx == 0 and field == "low":
                     # first low value is 0, which is interpreted as NaN
-                    self.assertTrue(np.isnan(asset1_value))
+                    assert np.isnan(asset1_value)
                 else:
                     if field in OHLC:
-                        self.assertEqual(idx + 1 + field_info[field], asset1_value)
+                        assert idx + 1 + field_info[field] == asset1_value
 
                         if asset2_has_data:
-                            self.assertEqual(idx + 1 + field_info[field], asset2_value)
+                            assert idx + 1 + field_info[field] == asset2_value
                         else:
-                            self.assertTrue(np.isnan(asset2_value))
+                            assert np.isnan(asset2_value)
                     elif field == "volume":
-                        self.assertEqual((idx + 1) * 100, asset1_value)
+                        assert (idx + 1) * 100 == asset1_value
 
                         if asset2_has_data:
-                            self.assertEqual((idx + 1) * 100, asset2_value)
+                            assert (idx + 1) * 100 == asset2_value
                         else:
-                            self.assertEqual(0, asset2_value)
+                            assert 0 == asset2_value
                     elif field == "price":
-                        self.assertEqual(idx + 1, asset1_value)
+                        assert idx + 1 == asset1_value
 
                         if asset2_has_data:
-                            self.assertEqual(idx + 1, asset2_value)
+                            assert idx + 1 == asset2_value
                         elif idx < 9:
                             # no price to forward fill from
-                            self.assertTrue(np.isnan(asset2_value))
+                            assert np.isnan(asset2_value)
                         else:
                             # forward-filled price
-                            self.assertEqual((idx // 10) * 10, asset2_value)
+                            assert (idx // 10) * 10 == asset2_value
                     elif field == "last_traded":
-                        self.assertEqual(minute, asset1_value)
+                        assert minute == asset1_value
 
                         if idx < 9:
-                            self.assertTrue(asset2_value is pd.NaT)
+                            assert asset2_value is pd.NaT
                         elif asset2_has_data:
-                            self.assertEqual(minute, asset2_value)
+                            assert minute == asset2_value
                         else:
                             last_traded_minute = minutes[(idx // 10) * 10]
-                            self.assertEqual(
-                                last_traded_minute - timedelta(minutes=1), asset2_value
+                            assert (
+                                last_traded_minute - timedelta(minutes=1)
+                                == asset2_value
                             )
 
     def test_minute_of_last_day(self):
@@ -370,8 +372,8 @@ class TestMinuteBarData(
                 lambda: minute,
             )
 
-            self.assertTrue(bar_data.can_trade(self.ASSET1))
-            self.assertTrue(bar_data.can_trade(self.ASSET2))
+            assert bar_data.can_trade(self.ASSET1)
+            assert bar_data.can_trade(self.ASSET2)
 
     def test_minute_after_assets_stopped(self):
         minutes = self.trading_calendar.minutes_for_session(
@@ -388,11 +390,11 @@ class TestMinuteBarData(
                 lambda: minute,
             )
 
-            self.assertFalse(bar_data.can_trade(self.ASSET1))
-            self.assertFalse(bar_data.can_trade(self.ASSET2))
+            assert not bar_data.can_trade(self.ASSET1)
+            assert not bar_data.can_trade(self.ASSET2)
 
-            self.assertFalse(bar_data.is_stale(self.ASSET1))
-            self.assertFalse(bar_data.is_stale(self.ASSET2))
+            assert not bar_data.is_stale(self.ASSET1)
+            assert not bar_data.is_stale(self.ASSET2)
 
             self.check_internal_consistency(bar_data)
 
@@ -401,11 +403,11 @@ class TestMinuteBarData(
                     asset_value = bar_data.current(asset, field)
 
                     if field in OHLCP:
-                        self.assertTrue(np.isnan(asset_value))
+                        assert np.isnan(asset_value)
                     elif field == "volume":
-                        self.assertEqual(0, asset_value)
+                        assert 0 == asset_value
                     elif field == "last_traded":
-                        self.assertEqual(last_trading_minute, asset_value)
+                        assert last_trading_minute == asset_value
 
     def test_get_value_is_unadjusted(self):
         # verify there is a split for SPLIT_ASSET
@@ -413,9 +415,9 @@ class TestMinuteBarData(
             "splits", self.SPLIT_ASSET.sid
         )
 
-        self.assertEqual(1, len(splits))
+        assert 1 == len(splits)
         split = splits[0]
-        self.assertEqual(split[0], pd.Timestamp("2016-01-06", tz="UTC"))
+        assert split[0] == pd.Timestamp("2016-01-06", tz="UTC")
 
         # ... but that's it's not applied when using spot value
         minutes = self.trading_calendar.minutes_for_sessions_in_range(
@@ -426,7 +428,7 @@ class TestMinuteBarData(
             bar_data = self.create_bardata(
                 lambda: minute,
             )
-            self.assertEqual(idx + 1, bar_data.current(self.SPLIT_ASSET, "price"))
+            assert idx + 1 == bar_data.current(self.SPLIT_ASSET, "price")
 
     def test_get_value_is_adjusted_if_needed(self):
         # on cls.days[1], the first 9 minutes of ILLIQUID_SPLIT_ASSET are
@@ -442,13 +444,13 @@ class TestMinuteBarData(
             bar_data = self.create_bardata(
                 lambda: minute,
             )
-            self.assertEqual(380, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price"))
+            assert 380 == bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
 
         bar_data = self.create_bardata(
             lambda: day0_minutes[-1],
         )
 
-        self.assertEqual(390, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price"))
+        assert 390 == bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
 
         for idx, minute in enumerate(day1_minutes[0:9]):
             bar_data = self.create_bardata(
@@ -456,7 +458,7 @@ class TestMinuteBarData(
             )
 
             # should be half of 390, due to the split
-            self.assertEqual(195, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price"))
+            assert 195 == bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
 
     def test_get_value_at_midnight(self):
         # make sure that if we try to get a minute price at a non-market
@@ -477,21 +479,15 @@ class TestMinuteBarData(
         with handle_non_market_minutes(bar_data), handle_non_market_minutes(bar_data2):
             for bd in [bar_data, bar_data2]:
                 for field in ["close", "price"]:
-                    self.assertEqual(390, bd.current(self.ASSET1, field))
+                    assert 390 == bd.current(self.ASSET1, field)
 
                 # make sure that if the asset didn't trade at the previous
                 # close, we properly ffill (or not ffill)
-                self.assertEqual(
-                    350, bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "price")
-                )
+                assert 350 == bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "price")
 
-                self.assertTrue(
-                    np.isnan(bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "high"))
-                )
+                assert np.isnan(bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "high"))
 
-                self.assertEqual(
-                    0, bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "volume")
-                )
+                assert 0 == bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "volume")
 
     def test_get_value_during_non_market_hours(self):
         # make sure that if we try to get the OHLCV values of ASSET1 during
@@ -501,14 +497,14 @@ class TestMinuteBarData(
             simulation_dt_func=lambda: pd.Timestamp("2016-01-06 4:15", tz="US/Eastern"),
         )
 
-        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "open")))
-        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "high")))
-        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "low")))
-        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "close")))
-        self.assertEqual(0, bar_data.current(self.ASSET1, "volume"))
+        assert np.isnan(bar_data.current(self.ASSET1, "open"))
+        assert np.isnan(bar_data.current(self.ASSET1, "high"))
+        assert np.isnan(bar_data.current(self.ASSET1, "low"))
+        assert np.isnan(bar_data.current(self.ASSET1, "close"))
+        assert 0 == bar_data.current(self.ASSET1, "volume")
 
         # price should still forward fill
-        self.assertEqual(390, bar_data.current(self.ASSET1, "price"))
+        assert 390 == bar_data.current(self.ASSET1, "price")
 
     def test_can_trade_equity_same_cal_outside_lifetime(self):
 
@@ -531,7 +527,7 @@ class TestMinuteBarData(
                 simulation_dt_func=lambda: minute,
             )
 
-            self.assertFalse(bar_data.can_trade(self.ASSET1))
+            assert not bar_data.can_trade(self.ASSET1)
 
         # after asset lifetime
         session_after_asset1_end = self.trading_calendar.next_session_label(
@@ -553,7 +549,7 @@ class TestMinuteBarData(
                 simulation_dt_func=lambda: minute,
             )
 
-            self.assertFalse(bar_data.can_trade(self.ASSET1))
+            assert not bar_data.can_trade(self.ASSET1)
 
     def test_can_trade_equity_same_cal_exchange_closed(self):
         # verify that can_trade returns true for minutes that are
@@ -569,7 +565,7 @@ class TestMinuteBarData(
                 simulation_dt_func=lambda: minute,
             )
 
-            self.assertTrue(bar_data.can_trade(self.ASSET1))
+            assert bar_data.can_trade(self.ASSET1)
 
     def test_can_trade_equity_same_cal_no_last_price(self):
         # self.HILARIOUSLY_ILLIQUID_ASSET's first trade is at
@@ -586,14 +582,14 @@ class TestMinuteBarData(
                 simulation_dt_func=lambda: minute,
             )
 
-            self.assertFalse(bar_data.can_trade(self.HILARIOUSLY_ILLIQUID_ASSET))
+            assert not bar_data.can_trade(self.HILARIOUSLY_ILLIQUID_ASSET)
 
         for minute in minutes_in_session[50:]:
             bar_data = self.create_bardata(
                 simulation_dt_func=lambda: minute,
             )
 
-            self.assertTrue(bar_data.can_trade(self.HILARIOUSLY_ILLIQUID_ASSET))
+            assert bar_data.can_trade(self.HILARIOUSLY_ILLIQUID_ASSET)
 
     def test_is_stale_during_non_market_hours(self):
         bar_data = self.create_bardata(
@@ -601,7 +597,7 @@ class TestMinuteBarData(
         )
 
         with handle_non_market_minutes(bar_data):
-            self.assertTrue(bar_data.is_stale(self.HILARIOUSLY_ILLIQUID_ASSET))
+            assert bar_data.is_stale(self.HILARIOUSLY_ILLIQUID_ASSET)
 
     def test_overnight_adjustments(self):
         # verify there is a split for SPLIT_ASSET
@@ -609,9 +605,9 @@ class TestMinuteBarData(
             "splits", self.SPLIT_ASSET.sid
         )
 
-        self.assertEqual(1, len(splits))
+        assert 1 == len(splits)
         split = splits[0]
-        self.assertEqual(split[0], pd.Timestamp("2016-01-06", tz="UTC"))
+        assert split[0] == pd.Timestamp("2016-01-06", tz="UTC")
 
         # Current day is 1/06/16
         day = self.equity_daily_bar_days[1]
@@ -637,7 +633,7 @@ class TestMinuteBarData(
                 value = bar_data.current(self.SPLIT_ASSET, field)
 
                 # Assert the price is adjusted for the overnight split
-                self.assertEqual(value, expected[field])
+                assert value == expected[field]
 
     def test_can_trade_restricted(self):
         """
@@ -671,7 +667,7 @@ class TestMinuteBarData(
                 simulation_dt_func=lambda: info[0],
                 restrictions=rlm,
             )
-            self.assertEqual(bar_data.can_trade(self.ASSET1), info[1])
+            assert bar_data.can_trade(self.ASSET1) == info[1]
 
 
 class TestMinuteBarDataFuturesCalendar(
@@ -772,8 +768,8 @@ class TestMinuteBarDataFuturesCalendar(
 
             series = bar_data.can_trade([nyse_asset, ice_asset])
 
-            self.assertEqual(info[1], series.loc[nyse_asset])
-            self.assertEqual(info[2], series.loc[ice_asset])
+            assert info[1] == series.loc[nyse_asset]
+            assert info[2] == series.loc[ice_asset]
 
     def test_can_trade_delisted(self):
         """
@@ -797,7 +793,7 @@ class TestMinuteBarDataFuturesCalendar(
 
         for info in minutes_to_check:
             bar_data = self.create_bardata(simulation_dt_func=lambda: info[0])
-            self.assertEqual(bar_data.can_trade(auto_closing_asset), info[1])
+            assert bar_data.can_trade(auto_closing_asset) == info[1]
 
 
 class TestDailyBarData(
@@ -952,7 +948,7 @@ class TestDailyBarData(
                 simulation_dt_func=lambda: self.get_last_minute_of_session(session)
             )
 
-            self.assertEqual(session, bar_data.current_session)
+            assert session == bar_data.current_session
 
     def test_day_before_assets_trading(self):
         # use the day before self.bcolz_daily_bar_days[0]
@@ -965,22 +961,22 @@ class TestDailyBarData(
         )
         self.check_internal_consistency(bar_data)
 
-        self.assertFalse(bar_data.can_trade(self.ASSET1))
-        self.assertFalse(bar_data.can_trade(self.ASSET2))
+        assert not bar_data.can_trade(self.ASSET1)
+        assert not bar_data.can_trade(self.ASSET2)
 
-        self.assertFalse(bar_data.is_stale(self.ASSET1))
-        self.assertFalse(bar_data.is_stale(self.ASSET2))
+        assert not bar_data.is_stale(self.ASSET1)
+        assert not bar_data.is_stale(self.ASSET2)
 
         for field in ALL_FIELDS:
             for asset in self.ASSETS:
                 asset_value = bar_data.current(asset, field)
 
                 if field in OHLCP:
-                    self.assertTrue(np.isnan(asset_value))
+                    assert np.isnan(asset_value)
                 elif field == "volume":
-                    self.assertEqual(0, asset_value)
+                    assert 0 == asset_value
                 elif field == "last_traded":
-                    self.assertTrue(asset_value is pd.NaT)
+                    assert asset_value is pd.NaT
 
     def test_semi_active_day(self):
         # on self.equity_daily_bar_days[0], only asset1 has data
@@ -991,30 +987,30 @@ class TestDailyBarData(
         )
         self.check_internal_consistency(bar_data)
 
-        self.assertTrue(bar_data.can_trade(self.ASSET1))
-        self.assertFalse(bar_data.can_trade(self.ASSET2))
+        assert bar_data.can_trade(self.ASSET1)
+        assert not bar_data.can_trade(self.ASSET2)
 
         # because there is real data
-        self.assertFalse(bar_data.is_stale(self.ASSET1))
+        assert not bar_data.is_stale(self.ASSET1)
 
         # because there has never been a trade bar yet
-        self.assertFalse(bar_data.is_stale(self.ASSET2))
+        assert not bar_data.is_stale(self.ASSET2)
 
-        self.assertEqual(3, bar_data.current(self.ASSET1, "open"))
-        self.assertEqual(4, bar_data.current(self.ASSET1, "high"))
-        self.assertEqual(1, bar_data.current(self.ASSET1, "low"))
-        self.assertEqual(2, bar_data.current(self.ASSET1, "close"))
-        self.assertEqual(200, bar_data.current(self.ASSET1, "volume"))
-        self.assertEqual(2, bar_data.current(self.ASSET1, "price"))
-        self.assertEqual(
-            self.equity_daily_bar_days[0], bar_data.current(self.ASSET1, "last_traded")
+        assert 3 == bar_data.current(self.ASSET1, "open")
+        assert 4 == bar_data.current(self.ASSET1, "high")
+        assert 1 == bar_data.current(self.ASSET1, "low")
+        assert 2 == bar_data.current(self.ASSET1, "close")
+        assert 200 == bar_data.current(self.ASSET1, "volume")
+        assert 2 == bar_data.current(self.ASSET1, "price")
+        assert self.equity_daily_bar_days[0] == bar_data.current(
+            self.ASSET1, "last_traded"
         )
 
         for field in OHLCP:
-            self.assertTrue(np.isnan(bar_data.current(self.ASSET2, field)), field)
+            assert np.isnan(bar_data.current(self.ASSET2, field)), field
 
-        self.assertEqual(0, bar_data.current(self.ASSET2, "volume"))
-        self.assertTrue(bar_data.current(self.ASSET2, "last_traded") is pd.NaT)
+        assert 0 == bar_data.current(self.ASSET2, "volume")
+        assert bar_data.current(self.ASSET2, "last_traded") is pd.NaT
 
     def test_fully_active_day(self):
         bar_data = self.create_bardata(
@@ -1026,17 +1022,17 @@ class TestDailyBarData(
 
         # on self.equity_daily_bar_days[1], both assets have data
         for asset in self.ASSETS:
-            self.assertTrue(bar_data.can_trade(asset))
-            self.assertFalse(bar_data.is_stale(asset))
+            assert bar_data.can_trade(asset)
+            assert not bar_data.is_stale(asset)
 
-            self.assertEqual(4, bar_data.current(asset, "open"))
-            self.assertEqual(5, bar_data.current(asset, "high"))
-            self.assertEqual(2, bar_data.current(asset, "low"))
-            self.assertEqual(3, bar_data.current(asset, "close"))
-            self.assertEqual(300, bar_data.current(asset, "volume"))
-            self.assertEqual(3, bar_data.current(asset, "price"))
-            self.assertEqual(
-                self.equity_daily_bar_days[1], bar_data.current(asset, "last_traded")
+            assert 4 == bar_data.current(asset, "open")
+            assert 5 == bar_data.current(asset, "high")
+            assert 2 == bar_data.current(asset, "low")
+            assert 3 == bar_data.current(asset, "close")
+            assert 300 == bar_data.current(asset, "volume")
+            assert 3 == bar_data.current(asset, "price")
+            assert self.equity_daily_bar_days[1] == bar_data.current(
+                asset, "last_traded"
             )
 
     def test_last_active_day(self):
@@ -1049,10 +1045,10 @@ class TestDailyBarData(
 
         for asset in self.ASSETS:
             if asset in (1, 2):
-                self.assertFalse(bar_data.can_trade(asset))
+                assert not bar_data.can_trade(asset)
             else:
-                self.assertTrue(bar_data.can_trade(asset))
-            self.assertFalse(bar_data.is_stale(asset))
+                assert bar_data.can_trade(asset)
+            assert not bar_data.is_stale(asset)
 
             if asset in (1, 2):
                 assert_almost_equal(nan, bar_data.current(asset, "open"))
@@ -1062,12 +1058,12 @@ class TestDailyBarData(
                 assert_almost_equal(0, bar_data.current(asset, "volume"))
                 assert_almost_equal(nan, bar_data.current(asset, "price"))
             else:
-                self.assertEqual(6, bar_data.current(asset, "open"))
-                self.assertEqual(7, bar_data.current(asset, "high"))
-                self.assertEqual(4, bar_data.current(asset, "low"))
-                self.assertEqual(5, bar_data.current(asset, "close"))
-                self.assertEqual(500, bar_data.current(asset, "volume"))
-                self.assertEqual(5, bar_data.current(asset, "price"))
+                assert 6 == bar_data.current(asset, "open")
+                assert 7 == bar_data.current(asset, "high")
+                assert 4 == bar_data.current(asset, "low")
+                assert 5 == bar_data.current(asset, "close")
+                assert 500 == bar_data.current(asset, "volume")
+                assert 5 == bar_data.current(asset, "price")
 
     def test_after_assets_dead(self):
         session = self.END_DATE
@@ -1078,18 +1074,18 @@ class TestDailyBarData(
         self.check_internal_consistency(bar_data)
 
         for asset in self.ASSETS:
-            self.assertFalse(bar_data.can_trade(asset))
-            self.assertFalse(bar_data.is_stale(asset))
+            assert not bar_data.can_trade(asset)
+            assert not bar_data.is_stale(asset)
 
             for field in OHLCP:
-                self.assertTrue(np.isnan(bar_data.current(asset, field)))
+                assert np.isnan(bar_data.current(asset, field))
 
-            self.assertEqual(0, bar_data.current(asset, "volume"))
+            assert 0 == bar_data.current(asset, "volume")
 
             last_traded_dt = bar_data.current(asset, "last_traded")
 
             if asset in (self.ASSET1, self.ASSET2):
-                self.assertEqual(self.equity_daily_bar_days[3], last_traded_dt)
+                assert self.equity_daily_bar_days[3] == last_traded_dt
 
     @parameterized.expand(
         [("split", 2, 3, 3, 1.5), ("merger", 2, 3, 3, 1.8), ("dividend", 2, 3, 3, 2.88)]
@@ -1113,36 +1109,41 @@ class TestDailyBarData(
             table_name, liquid_asset.sid
         )
 
-        self.assertEqual(1, len(adjustments))
+        assert 1 == len(adjustments)
         adjustment = adjustments[0]
-        self.assertEqual(adjustment[0], pd.Timestamp("2016-01-06", tz="UTC"))
+        assert adjustment[0] == pd.Timestamp("2016-01-06", tz="UTC")
 
         # ... but that's it's not applied when using spot value
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.equity_daily_bar_days[0],
         )
-        self.assertEqual(liquid_day_0_price, bar_data.current(liquid_asset, "price"))
+        assert liquid_day_0_price == bar_data.current(liquid_asset, "price")
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.equity_daily_bar_days[1],
         )
-        self.assertEqual(liquid_day_1_price, bar_data.current(liquid_asset, "price"))
+        assert liquid_day_1_price == bar_data.current(liquid_asset, "price")
 
         # ... except when we have to forward fill across a day boundary
         # ILLIQUID_ASSET has no data on days 0 and 2, and a split on day 2
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.equity_daily_bar_days[1],
         )
-        self.assertEqual(
-            illiquid_day_0_price, bar_data.current(illiquid_asset, "price")
-        )
+        assert illiquid_day_0_price == bar_data.current(illiquid_asset, "price")
 
         bar_data = self.create_bardata(
             simulation_dt_func=lambda: self.equity_daily_bar_days[2],
         )
 
         # 3 (price from previous day) * 0.5 (split ratio)
-        self.assertAlmostEqual(
-            illiquid_day_1_price_adjusted, bar_data.current(illiquid_asset, "price")
+        assert (
+            round(
+                abs(
+                    illiquid_day_1_price_adjusted
+                    - bar_data.current(illiquid_asset, "price")
+                ),
+                7,
+            )
+            == 0
         )
 
     def test_can_trade_restricted(self):
@@ -1168,4 +1169,4 @@ class TestDailyBarData(
             bar_data = self.create_bardata(
                 simulation_dt_func=lambda: info[0], restrictions=rlm
             )
-            self.assertEqual(bar_data.can_trade(self.ASSET1), info[1])
+            assert bar_data.can_trade(self.ASSET1) == info[1]

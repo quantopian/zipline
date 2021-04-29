@@ -33,9 +33,9 @@ class TestStatelessRulesCMES(StatelessRulesTests, TestCase):
         for session_minutes in minute_groups:
             for i, minute in enumerate(session_minutes):
                 if i != 564:
-                    self.assertFalse(after_open.should_trigger(minute))
+                    assert not after_open.should_trigger(minute)
                 else:
-                    self.assertTrue(after_open.should_trigger(minute))
+                    assert after_open.should_trigger(minute)
 
 
 class TestStatefulRulesCMES(StatefulRulesTests, TestCase):

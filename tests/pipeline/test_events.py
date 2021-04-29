@@ -4,6 +4,8 @@ Tests for setting up an EventsLoader.
 from datetime import time
 from itertools import product
 from unittest import skipIf
+import pytest
+import re
 
 import numpy as np
 import pandas as pd
@@ -155,13 +157,14 @@ def make_events(add_nulls):
     return pd.concat(event_frames, ignore_index=True)
 
 
-class EventIndexerTestCase(ZiplineTestCase):
-    @classmethod
-    def init_class_fixtures(cls):
-        super(EventIndexerTestCase, cls).init_class_fixtures()
-        cls.events = make_events(add_nulls=False).sort_values("event_date")
-        cls.events.reset_index(inplace=True)
+@pytest.fixture(scope="class")
+def event(request):
+    request.cls.events = make_events(add_nulls=False).sort_values("event_date")
+    request.cls.events.reset_index(inplace=True)
 
+
+@pytest.mark.usefixtures("event")
+class TestEventIndexer:
     def test_previous_event_indexer(self):
         events = self.events
         event_sids = events["sid"].values
@@ -196,7 +199,7 @@ class EventIndexerTestCase(ZiplineTestCase):
 
     def check_previous_event_indexer(self, events, all_dates, sid, indexer):
         relevant_events = events[events.sid == sid]
-        self.assertEqual(len(relevant_events), 2)
+        assert len(relevant_events) == 2
 
         ix1, ix2 = relevant_events.index
 
@@ -213,14 +216,14 @@ class EventIndexerTestCase(ZiplineTestCase):
             if date >= event2_first_eligible:
                 # If we've seen event 2, it should win even if we've seen event
                 # 1, because events are sorted by event_date.
-                self.assertEqual(computed_index, ix2)
+                assert computed_index == ix2
             elif date >= event1_first_eligible:
                 # If we've seen event 1 but not event 2, event 1 should win.
-                self.assertEqual(computed_index, ix1)
+                assert computed_index == ix1
             else:
                 # If we haven't seen either event, then we should have -1 as
                 # sentinel.
-                self.assertEqual(computed_index, -1)
+                assert computed_index == -1
 
     def test_next_event_indexer(self):
         events = self.events
@@ -257,7 +260,7 @@ class EventIndexerTestCase(ZiplineTestCase):
 
     def check_next_event_indexer(self, events, all_dates, sid, indexer):
         relevant_events = events[events.sid == sid]
-        self.assertEqual(len(relevant_events), 2)
+        assert len(relevant_events) == 2
 
         ix1, ix2 = relevant_events.index
         e1, e2 = relevant_events["event_date"].dt.tz_localize("UTC")
@@ -269,13 +272,13 @@ class EventIndexerTestCase(ZiplineTestCase):
             if t1 <= date <= e1:
                 # If e1 is eligible, it should be chosen even if e2 is
                 # eligible, since it's earlier.
-                self.assertEqual(computed_index, ix1)
+                assert computed_index == ix1
             elif t2 <= date <= e2:
                 # e2 is eligible and e1 is not, so e2 should be chosen.
-                self.assertEqual(computed_index, ix2)
+                assert computed_index == ix2
             else:
                 # Neither event is eligible.  Return -1 as a sentinel.
-                self.assertEqual(computed_index, -1)
+                assert computed_index == -1
 
 
 class EventsLoaderEmptyTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase):
@@ -485,7 +488,7 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
 
         for asset, asset_result in results.iteritems():
             relevant_events = events[events.sid == asset.sid]
-            self.assertEqual(len(relevant_events), 2)
+            assert len(relevant_events) == 2
 
             v1, v2 = relevant_events[self.previous_value_columns[column]]
             event1_first_eligible = max(
@@ -501,11 +504,11 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
                 if date >= event2_first_eligible:
                     # If we've seen event 2, it should win even if we've seen
                     # event 1, because events are sorted by event_date.
-                    self.assertEqual(computed_value, v2)
+                    assert computed_value == v2
                 elif date >= event1_first_eligible:
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
-                    self.assertEqual(computed_value, v1)
+                    assert computed_value == v1
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
@@ -528,7 +531,7 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
         dates = dates.tz_localize(None)
         for asset, asset_result in results.iteritems():
             relevant_events = events[events.sid == asset.sid]
-            self.assertEqual(len(relevant_events), 2)
+            assert len(relevant_events) == 2
 
             v1, v2 = relevant_events[self.next_value_columns[column]]
             e1, e2 = relevant_events["event_date"]
@@ -538,11 +541,11 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
                 if t1 <= date <= e1:
                     # If we've seen event 2, it should win even if we've seen
                     # event 1, because events are sorted by event_date.
-                    self.assertEqual(computed_value, v1)
+                    assert computed_value == v1
                 elif t2 <= date <= e2:
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
-                    self.assertEqual(computed_value, v2)
+                    assert computed_value == v2
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
@@ -567,13 +570,10 @@ class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase
         EventsLoader(events, {EventDataSet_US.next_float: "c"}, {})
         EventsLoader(events, {}, {EventDataSet_US.previous_float: "c"})
 
-        with self.assertRaises(ValueError) as e:
-            EventsLoader(events, {EventDataSet_US.next_float: "d"}, {})
-
-        msg = str(e.exception)
         expected = (
             "EventsLoader missing required columns ['d'].\n"
             "Got Columns: ['c', 'event_date', 'sid', 'timestamp']\n"
             "Expected Columns: ['d', 'event_date', 'sid', 'timestamp']"
         )
-        self.assertEqual(msg, expected)
+        with pytest.raises(ValueError, match=re.escape(expected)):
+            EventsLoader(events, {EventDataSet_US.next_float: "d"}, {})

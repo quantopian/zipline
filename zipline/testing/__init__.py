@@ -15,7 +15,6 @@ from .core import (  # noqa
     assert_timestamp_equal,
     check_allclose,
     check_arrays,
-    chrange,
     create_daily_df_for_asset,
     create_data_portal,
     create_data_portal_from_trade_history,

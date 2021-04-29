@@ -32,6 +32,8 @@ from zipline.testing.fixtures import (
 from zipline.utils.classproperty import classproperty
 from zipline.utils.input_validation import _qualified_name
 from zipline.utils.numpy_utils import int64_dtype
+import pytest
+import re
 
 
 class NDaysAgoFactor(CustomFactor):
@@ -195,8 +197,8 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
         # land prior to the first date of 2012. The downsampled terms will fail
         # to request enough extra rows.
         for i in range(0, 30, 5):
-            with self.assertRaisesRegex(
-                NoFurtherDataError, r"\s*Insufficient data to compute Pipeline"
+            with pytest.raises(
+                NoFurtherDataError, match=r"\s*Insufficient data to compute Pipeline"
             ):
                 self.check_extra_row_calculations(
                     downsampled_terms,
@@ -568,14 +570,12 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
                 end_session,
                 min_extra_rows,
             )
-            self.assertEqual(
-                result,
+            assert (
+                result == expected_extra_rows
+            ), "Expected {} extra_rows from {}, but got {}.".format(
                 expected_extra_rows,
-                "Expected {} extra_rows from {}, but got {}.".format(
-                    expected_extra_rows,
-                    term,
-                    result,
-                ),
+                term,
+                result,
             )
 
 
@@ -717,15 +717,13 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine, ZiplineTestCas
     def test_errors_on_bad_downsample_frequency(self):
 
         f = NDaysAgoFactor(window_length=3)
-        with self.assertRaises(ValueError) as e:
-            f.downsample("bad")
-
         expected = (
             "{}() expected a value in "
             "('month_start', 'quarter_start', 'week_start', 'year_start') "
             "for argument 'frequency', but got 'bad' instead."
         ).format(_qualified_name(f.downsample))
-        self.assertEqual(str(e.exception), expected)
+        with pytest.raises(ValueError, match=re.escape(expected)):
+            f.downsample("bad")
 
 
 class DownsampledGBPipelineTestCase(DownsampledPipelineTestCase):

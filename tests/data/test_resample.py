@@ -447,7 +447,7 @@ class MinuteToDailyAggregationTestCase(
         for minute in minutes:
             value = getattr(aggregator, method_name)([asset], minute)[0]
             # Prevent regression on building an array when scalar is intended.
-            self.assertIsInstance(value, Real)
+            assert isinstance(value, Real)
             results.append(value)
 
             # Call a second time with the same dt, to prevent regression
@@ -455,7 +455,7 @@ class MinuteToDailyAggregationTestCase(
             # instead of the last value.
             value = getattr(aggregator, method_name)([asset], minute)[0]
             # Prevent regression on building an array when scalar is intended.
-            self.assertIsInstance(value, Real)
+            assert isinstance(value, Real)
             repeat_results.append(value)
 
         assert_almost_equal(
@@ -510,7 +510,7 @@ class MinuteToDailyAggregationTestCase(
                 0
             ]
             # Prevent regression on building an array when scalar is intended.
-            self.assertIsInstance(value, Real)
+            assert isinstance(value, Real)
             assert_almost_equal(
                 value,
                 EXPECTED_AGGREGATION[sid][field][i],
@@ -524,7 +524,7 @@ class MinuteToDailyAggregationTestCase(
                 0
             ]
             # Prevent regression on building an array when scalar is intended.
-            self.assertIsInstance(value, Real)
+            assert isinstance(value, Real)
             assert_almost_equal(
                 value,
                 EXPECTED_AGGREGATION[sid][field][i],
@@ -545,7 +545,7 @@ class MinuteToDailyAggregationTestCase(
                 value = values[j]
                 # Prevent regression on building an array when scalar is
                 # intended.
-                self.assertIsInstance(value, Real)
+                assert isinstance(value, Real)
                 results[asset].append(value)
 
             # Call a second time with the same dt, to prevent regression
@@ -556,7 +556,7 @@ class MinuteToDailyAggregationTestCase(
                 value = values[j]
                 # Prevent regression on building an array when scalar is
                 # intended.
-                self.assertIsInstance(value, Real)
+                assert isinstance(value, Real)
                 repeat_results[asset].append(value)
         for asset in assets:
             assert_almost_equal(
@@ -584,7 +584,7 @@ class MinuteToDailyAggregationTestCase(
                 value = values[j]
                 # Prevent regression on building an array when scalar is
                 # intended.
-                self.assertIsInstance(value, Real)
+                assert isinstance(value, Real)
                 assert_almost_equal(
                     value,
                     EXPECTED_AGGREGATION[asset][field][i],
@@ -599,7 +599,7 @@ class MinuteToDailyAggregationTestCase(
                 value = values[j]
                 # Prevent regression on building an array when scalar is
                 # intended.
-                self.assertIsInstance(value, Real)
+                assert isinstance(value, Real)
                 assert_almost_equal(
                     value,
                     EXPECTED_AGGREGATION[asset][field][i],
@@ -700,9 +700,9 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
     def test_sessions(self):
         sessions = self.session_bar_reader.sessions
 
-        self.assertEqual(self.NUM_SESSIONS, len(sessions))
-        self.assertEqual(self.START_DATE, sessions[0])
-        self.assertEqual(self.END_DATE, sessions[-1])
+        assert self.NUM_SESSIONS == len(sessions)
+        assert self.START_DATE == sessions[0]
+        assert self.END_DATE == sessions[-1]
 
     def test_last_available_dt(self):
         calendar = self.trading_calendar
@@ -710,7 +710,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
             calendar, self.bcolz_future_minute_bar_reader
         )
 
-        self.assertEqual(self.END_DATE, session_bar_reader.last_available_dt)
+        assert self.END_DATE == session_bar_reader.last_available_dt
 
     def test_get_value(self):
         calendar = self.trading_calendar
@@ -734,15 +734,14 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
                     )
 
     def test_first_trading_day(self):
-        self.assertEqual(self.START_DATE, self.session_bar_reader.first_trading_day)
+        assert self.START_DATE == self.session_bar_reader.first_trading_day
 
     def test_get_last_traded_dt(self):
         future = self.asset_finder.retrieve_asset(self.ASSET_FINDER_FUTURE_SIDS[0])
 
-        self.assertEqual(
-            self.trading_calendar.previous_session_label(self.END_DATE),
-            self.session_bar_reader.get_last_traded_dt(future, self.END_DATE),
-        )
+        assert self.trading_calendar.previous_session_label(
+            self.END_DATE
+        ) == self.session_bar_reader.get_last_traded_dt(future, self.END_DATE)
 
 
 class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader, ZiplineTestCase):
@@ -770,18 +769,14 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader, ZiplineTestCase):
         opens = DataFrame(data=result[0], index=outer_minutes, columns=[1, 2])
         opens_with_price = opens.dropna()
 
-        self.assertEqual(
-            1440,
-            len(opens),
+        assert 1440 == len(opens), (
             "The result should have 1440 bars, the number of minutes in a "
-            "trading session on the target calendar.",
+            "trading session on the target calendar."
         )
 
-        self.assertEqual(
-            390,
-            len(opens_with_price),
+        assert 390 == len(opens_with_price), (
             "The result, after dropping nans, should have 390 bars, the "
-            " number of bars in a trading session in the reader's calendar.",
+            " number of bars in a trading session in the reader's calendar."
         )
 
         slicer = outer_minutes.slice_indexer(
@@ -858,17 +853,13 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         opens = DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
         opens_with_price = opens.dropna()
 
-        self.assertEqual(
-            21,
-            len(opens),
+        assert 21 == len(opens), (
             "The reindexed result should have 21 days, which is the number of "
-            "business days in 2015-11",
+            "business days in 2015-11"
         )
-        self.assertEqual(
-            20,
-            len(opens_with_price),
+        assert 20 == len(opens_with_price), (
             "The reindexed result after dropping nans should have 20 days, "
-            "because Thanksgiving is a NYSE holiday.",
+            "because Thanksgiving is a NYSE holiday."
         )
 
         tday = pd.Timestamp("2015-11-26", tz="UTC")
@@ -904,17 +895,13 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         opens = DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
         opens_with_price = opens.dropna()
 
-        self.assertEqual(
-            3,
-            len(opens),
+        assert 3 == len(opens), (
             "The reindexed result should have 3 days, which is the number of "
-            "business days in from Thanksgiving to end of 2015-11.",
+            "business days in from Thanksgiving to end of 2015-11."
         )
-        self.assertEqual(
-            2,
-            len(opens_with_price),
+        assert 2 == len(opens_with_price), (
             "The reindexed result after dropping nans should have 2 days, "
-            "because Thanksgiving is a NYSE holiday.",
+            "because Thanksgiving is a NYSE holiday."
         )
 
     def test_load_raw_arrays_holiday_end(self):
@@ -926,17 +913,13 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         opens = DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
         opens_with_price = opens.dropna()
 
-        self.assertEqual(
-            19,
-            len(opens),
+        assert 19 == len(opens), (
             "The reindexed result should have 19 days, which is the number of "
-            "business days in from start of 2015-11 up to Thanksgiving.",
+            "business days in from start of 2015-11 up to Thanksgiving."
         )
-        self.assertEqual(
-            18,
-            len(opens_with_price),
+        assert 18 == len(opens_with_price), (
             "The reindexed result after dropping nans should have 18 days, "
-            "because Thanksgiving is a NYSE holiday.",
+            "because Thanksgiving is a NYSE holiday."
         )
 
     def test_get_value(self):
@@ -948,32 +931,28 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         )
         tday = pd.Timestamp("2015-11-26", tz="UTC")
 
-        self.assertTrue(isnan(self.reader.get_value(1, tday, "close")))
+        assert isnan(self.reader.get_value(1, tday, "close"))
 
-        self.assertEqual(self.reader.get_value(1, tday, "volume"), 0)
+        assert self.reader.get_value(1, tday, "volume") == 0
 
     def test_last_availabe_dt(self):
-        self.assertEqual(self.reader.last_available_dt, self.END_DATE)
+        assert self.reader.last_available_dt == self.END_DATE
 
     def test_get_last_traded_dt(self):
         asset = self.asset_finder.retrieve_asset(1)
-        self.assertEqual(
-            self.reader.get_last_traded_dt(asset, self.END_DATE), self.END_DATE
-        )
+        assert self.reader.get_last_traded_dt(asset, self.END_DATE) == self.END_DATE
 
     def test_sessions(self):
         sessions = self.reader.sessions
-        self.assertEqual(21, len(sessions), "There should be 21 sessions in 2015-11.")
-        self.assertEqual(pd.Timestamp("2015-11-02", tz="UTC"), sessions[0])
-        self.assertEqual(pd.Timestamp("2015-11-30", tz="UTC"), sessions[-1])
+        assert 21 == len(sessions), "There should be 21 sessions in 2015-11."
+        assert pd.Timestamp("2015-11-02", tz="UTC") == sessions[0]
+        assert pd.Timestamp("2015-11-30", tz="UTC") == sessions[-1]
 
     def test_first_trading_day(self):
-        self.assertEqual(self.reader.first_trading_day, self.START_DATE)
+        assert self.reader.first_trading_day == self.START_DATE
 
     def test_trading_calendar(self):
-        self.assertEqual(
-            "us_futures",
-            self.reader.trading_calendar.name,
+        assert "us_futures" == self.reader.trading_calendar.name, (
             "The calendar for the reindex reader should be the "
-            "specified futures calendar.",
+            "specified futures calendar."
         )
