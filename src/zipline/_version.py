@@ -41,8 +41,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "zipline-"
-    cfg.versionfile_source = "zipline/_version.py"
+    cfg.parentdir_prefix = "src/zipline-"
+    cfg.versionfile_source = "src/zipline/_version.py"
     cfg.verbose = False
     return cfg
 

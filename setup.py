@@ -77,9 +77,9 @@ class LazyBuildExtCommandClass(dict):
 def window_specialization(typename):
     """Make an extension for an AdjustedArrayWindow specialization."""
     return Extension(
-        "zipline.lib._{name}window".format(name=typename),
-        ["zipline/lib/_{name}window.pyx".format(name=typename)],
-        depends=["zipline/lib/_windowtemplate.pxi"],
+        "src.zipline.lib._{name}window".format(name=typename),
+        ["src/zipline/lib/_{name}window.pyx".format(name=typename)],
+        depends=["src/zipline/lib/_windowtemplate.pxi"],
     )
 
 
@@ -87,34 +87,47 @@ ext_options = dict(
     compiler_directives=dict(profile=True, language_level="3"), annotate=True
 )
 ext_modules = [
-    Extension(name="zipline.assets._assets", sources=["zipline/assets/_assets.pyx"]),
     Extension(
-        name="zipline.assets.continuous_futures",
-        sources=["zipline/assets/continuous_futures.pyx"],
+        name="src.zipline.assets._assets", sources=["src/zipline/assets/_assets.pyx"]
     ),
-    Extension(name="zipline.lib.adjustment", sources=["zipline/lib/adjustment.pyx"]),
-    Extension(name="zipline.lib._factorize", sources=["zipline/lib/_factorize.pyx"]),
+    Extension(
+        name="src.zipline.assets.continuous_futures",
+        sources=["src/zipline/assets/continuous_futures.pyx"],
+    ),
+    Extension(
+        name="src.zipline.lib.adjustment", sources=["src/zipline/lib/adjustment.pyx"]
+    ),
+    Extension(
+        name="src.zipline.lib._factorize", sources=["src/zipline/lib/_factorize.pyx"]
+    ),
     window_specialization("float64"),
     window_specialization("int64"),
     window_specialization("int64"),
     window_specialization("uint8"),
     window_specialization("label"),
-    Extension(name="zipline.lib.rank", sources=["zipline/lib/rank.pyx"]),
-    Extension(name="zipline.data._equities", sources=["zipline/data/_equities.pyx"]),
+    Extension(name="src.zipline.lib.rank", sources=["src/zipline/lib/rank.pyx"]),
     Extension(
-        name="zipline.data._adjustments", sources=["zipline/data/_adjustments.pyx"]
+        name="src.zipline.data._equities", sources=["src/zipline/data/_equities.pyx"]
     ),
-    Extension(name="zipline._protocol", sources=["zipline/_protocol.pyx"]),
     Extension(
-        name="zipline.finance._finance_ext",
-        sources=["zipline/finance/_finance_ext.pyx"],
+        name="src.zipline.data._adjustments",
+        sources=["src/zipline/data/_adjustments.pyx"],
     ),
-    Extension(name="zipline.gens.sim_engine", sources=["zipline/gens/sim_engine.pyx"]),
+    Extension(name="src.zipline._protocol", sources=["src/zipline/_protocol.pyx"]),
     Extension(
-        name="zipline.data._minute_bar_internal",
-        sources=["zipline/data/_minute_bar_internal.pyx"],
+        name="src.zipline.finance._finance_ext",
+        sources=["src/zipline/finance/_finance_ext.pyx"],
     ),
-    Extension(name="zipline.data._resample", sources=["zipline/data/_resample.pyx"]),
+    Extension(
+        name="src.zipline.gens.sim_engine", sources=["src/zipline/gens/sim_engine.pyx"]
+    ),
+    Extension(
+        name="src.zipline.data._minute_bar_internal",
+        sources=["src/zipline/data/_minute_bar_internal.pyx"],
+    ),
+    Extension(
+        name="src.zipline.data._resample", sources=["src/zipline/data/_resample.pyx"]
+    ),
 ]
 for ext_module in ext_modules:
     ext_module.cython_directives = dict(language_level="3")
@@ -130,7 +143,7 @@ setup(
             "zipline = zipline.__main__:main",
         ],
     },
-    packages=find_packages(include=["zipline", "zipline.*"]),
+    packages=find_packages(include=["src"]),
     ext_modules=ext_modules,
     package_data={
         root.replace(os.sep, "."): ["*.pyi", "*.pyx", "*.pxi", "*.pxd"]

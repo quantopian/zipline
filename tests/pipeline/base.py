@@ -12,7 +12,7 @@ from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.hooks import NoHooks
 from zipline.pipeline.term import AssetExists, InputDates
-from zipline.testing import check_arrays
+from zipline.testing.core import check_arrays
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithTradingSessions,

@@ -79,7 +79,6 @@ TAGS
 
 *.dSYM/
 revision
-src
 .python-version
 conda
 archive
