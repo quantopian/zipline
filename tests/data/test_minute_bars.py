@@ -18,6 +18,7 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 from numpy.testing import assert_almost_equal, assert_array_equal
+from unittest import skip
 
 from zipline.data.bar_reader import NoDataForSid, NoDataOnDate
 from zipline.data.minute_bars import (
@@ -1208,6 +1209,7 @@ class BcolzMinuteBarTestCase(
             "close and the next open."
         )
 
+    @skip("not requiring tables for now")
     def test_minute_updates(self):
         """
         Test minute updates.
