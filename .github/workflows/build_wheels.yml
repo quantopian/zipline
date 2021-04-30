@@ -2,10 +2,8 @@ name: PyPI
 
 on:
   push:
-    branches:
-    - ci
-#    tags:
-#      - '**'           # Push events to every tag including hierarchical tags like v1.0/beta
+    tags:
+      - '**'           # Push events to every tag including hierarchical tags like v1.0/beta
 
 jobs:
   build_wheels:
@@ -38,15 +36,9 @@ jobs:
             platform_id: macosx_x86_64
           - os: ubuntu-latest
             platform_id: manylinux_x86_64
-#          - os: windows-latest
-#            platform_id: win_amd64
         exclude:
           - os: macos-latest
             manylinux_image: manylinux2010
-#          - os: windows-latest
-#            manylinux_image: manylinux2010
-#          - os: windows-latest
-#            python: 39
 
     steps:
       - name: Checkout zipline
