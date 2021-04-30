@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
 #      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"
-      CIBW_TEST_COMMAND: chmod +x {project}/rebuild-cython.sh; ./{project}/rebuild-cython.sh; pytest {project}
+      CIBW_TEST_COMMAND: ls {project}; ls {project}/zipline/data; which zipline
       CIBW_BEFORE_TEST_LINUX: >
         curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
         tar xvfz ta-lib-0.4.0-src.tar.gz &&
