@@ -38,8 +38,8 @@ jobs:
             platform_id: macosx_x86_64
           - os: ubuntu-latest
             platform_id: manylinux_x86_64
-          - os: windows-latest
-            platform_id: win_amd64
+#          - os: windows-latest
+#            platform_id: win_amd64
         exclude:
           - os: macos-latest
             manylinux_image: manylinux2010
