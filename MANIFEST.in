@@ -1,5 +1,5 @@
-include LICENSE README.md pyproject.toml setup.py setup.cfg
-include versioneer.py
+prune *
+include LICENSE README.md pyproject.toml setup.py setup.cfg, versioneer.py
 include src/zipline/_version.py
 
 recursive-include src/zipline *.pyi

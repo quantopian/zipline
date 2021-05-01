@@ -77,8 +77,8 @@ class LazyBuildExtCommandClass(dict):
 def window_specialization(typename):
     """Make an extension for an AdjustedArrayWindow specialization."""
     return Extension(
-        "src.zipline.lib._{name}window".format(name=typename),
-        ["src/zipline/lib/_{name}window.pyx".format(name=typename)],
+        name=f"zipline.lib._{typename}window",
+        sources=[f"src/zipline/lib/_{typename}window.pyx"],
         depends=["src/zipline/lib/_windowtemplate.pxi"],
     )
 
@@ -88,45 +88,45 @@ ext_options = dict(
 )
 ext_modules = [
     Extension(
-        name="src.zipline.assets._assets", sources=["src/zipline/assets/_assets.pyx"]
+        name="zipline.assets._assets", sources=["src/zipline/assets/_assets.pyx"]
     ),
     Extension(
-        name="src.zipline.assets.continuous_futures",
+        name="zipline.assets.continuous_futures",
         sources=["src/zipline/assets/continuous_futures.pyx"],
     ),
     Extension(
-        name="src.zipline.lib.adjustment", sources=["src/zipline/lib/adjustment.pyx"]
+        name="zipline.lib.adjustment", sources=["src/zipline/lib/adjustment.pyx"]
     ),
     Extension(
-        name="src.zipline.lib._factorize", sources=["src/zipline/lib/_factorize.pyx"]
+        name="zipline.lib._factorize", sources=["src/zipline/lib/_factorize.pyx"]
     ),
     window_specialization("float64"),
     window_specialization("int64"),
     window_specialization("int64"),
     window_specialization("uint8"),
     window_specialization("label"),
-    Extension(name="src.zipline.lib.rank", sources=["src/zipline/lib/rank.pyx"]),
+    Extension(name="zipline.lib.rank", sources=["src/zipline/lib/rank.pyx"]),
     Extension(
-        name="src.zipline.data._equities", sources=["src/zipline/data/_equities.pyx"]
+        name="zipline.data._equities", sources=["src/zipline/data/_equities.pyx"]
     ),
     Extension(
-        name="src.zipline.data._adjustments",
+        name="zipline.data._adjustments",
         sources=["src/zipline/data/_adjustments.pyx"],
     ),
-    Extension(name="src.zipline._protocol", sources=["src/zipline/_protocol.pyx"]),
+    Extension(name="zipline._protocol", sources=["src/zipline/_protocol.pyx"]),
     Extension(
-        name="src.zipline.finance._finance_ext",
+        name="zipline.finance._finance_ext",
         sources=["src/zipline/finance/_finance_ext.pyx"],
     ),
     Extension(
-        name="src.zipline.gens.sim_engine", sources=["src/zipline/gens/sim_engine.pyx"]
+        name="zipline.gens.sim_engine", sources=["src/zipline/gens/sim_engine.pyx"]
     ),
     Extension(
-        name="src.zipline.data._minute_bar_internal",
+        name="zipline.data._minute_bar_internal",
         sources=["src/zipline/data/_minute_bar_internal.pyx"],
     ),
     Extension(
-        name="src.zipline.data._resample", sources=["src/zipline/data/_resample.pyx"]
+        name="zipline.data._resample", sources=["src/zipline/data/_resample.pyx"]
     ),
 ]
 for ext_module in ext_modules:
@@ -136,18 +136,17 @@ version = versioneer.get_version()
 
 setup(
     version=version,
-    test_suite="tests",
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     entry_points={
         "console_scripts": [
             "zipline = zipline.__main__:main",
         ],
     },
-    packages=find_packages(include=["src"]),
+    # packages=find_packages(include=["src/zipline"]),
     ext_modules=ext_modules,
     package_data={
         root.replace(os.sep, "."): ["*.pyi", "*.pyx", "*.pxi", "*.pxd"]
-        for root, dirnames, filenames in os.walk("zipline")
+        for root, dirnames, filenames in os.walk("src/zipline/")
         if "__pycache__" not in root
     },
 )
