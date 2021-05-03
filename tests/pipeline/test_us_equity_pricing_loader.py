@@ -470,8 +470,8 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                     assert adj.last_col == expected.last_col
                     assert_allclose(adj.value, expected.value)
 
-    @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
     @parameterized.expand([(True,), (False,)])
+    @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
     def test_load_adjustments_to_df(self, convert_dts):
         reader = self.adjustment_reader
         adjustment_dfs = reader.unpack_db_to_component_dfs(convert_dates=convert_dts)

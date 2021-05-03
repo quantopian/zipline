@@ -1,9 +1,7 @@
 name: CI Tests
 
 on:
-  push:
-    branches:
-      - ci_test
+  workflow_dispatch:
   pull_request:
     branches:
       - main
@@ -14,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.8]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        python-version: [ 3.8 ]
 
     steps:
       - name: Checkout Zipline

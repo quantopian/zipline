@@ -3,7 +3,7 @@ name: PyPI
 on:
   push:
     branches:
-      - ci_test
+      - main
     tags:
       - '**'           # Push events to every tag including hierarchical tags like v1.0/beta
 

@@ -1,5 +1,5 @@
 {% set name = "zipline-reloaded" %}
-{% set version = "2.0.0rc4" %}
+{% set version = "2.0.0.post1" %}
 
 
 package:
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  md5: 079e66a820381c0ee3eff15b3f991e7e
+  md5: 0d52dd537387709402abc62c4f67bafb
 
 build:
   number: 0
@@ -45,7 +45,7 @@ requirements:
     - multipledispatch >=0.6.0
     - networkx >=2.0
     - numexpr >=2.6.1
-    - pandas >=1.0
+    - pandas >=1.1.0
     - patsy >=0.4.0
     - python >=3.7
     - python-dateutil >=2.4.2
