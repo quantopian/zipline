@@ -8,7 +8,6 @@ from zipline.pipeline.data import (
     DataSetFamily,
     DataSetFamilySlice,
 )
-from zipline.testing.predicates import assert_is_subclass
 
 import pytest
 import re
@@ -145,7 +144,7 @@ class TestDataSetFamily:
 
             assert Slice.dataset_family is MD
 
-            assert_is_subclass(Slice, DataSetFamilySlice)
+            assert issubclass(Slice, DataSetFamilySlice)
 
             expected_columns = {
                 ("f8", np.dtype("f8"), Slice),
@@ -154,7 +153,9 @@ class TestDataSetFamily:
                 ("M8", np.dtype("M8[ns]"), Slice),
                 ("boolean", np.dtype("?"), Slice),
             }
-            actual_columns = {(c.name, c.dtype, c.dataset) for c in Slice.columns}
+            actual_columns = {
+                (c.name, c.dtype, c.dataset) for c in Slice.columns
+            }
             assert actual_columns == expected_columns
 
     # del spec
@@ -182,7 +183,8 @@ class TestDataSetFamily:
         expect_slice_fails(
             "a",
             expected_msg=(
-                "no coordinate provided to MD for the following dimension:" " dim_1"
+                "no coordinate provided to MD for the following dimension:"
+                " dim_1"
             ),
         )
 
@@ -246,23 +248,31 @@ class TestDataSetFamily:
         expect_slice_fails(
             "not-in-0",
             "c",
-            expected_msg=("'not-in-0' is not a value along the dim_0 dimension of MD"),
+            expected_msg=(
+                "'not-in-0' is not a value along the dim_0 dimension of MD"
+            ),
         )
         expect_slice_fails(
             dim_0="not-in-0",
             dim_1="c",
-            expected_msg=("'not-in-0' is not a value along the dim_0 dimension of MD"),
+            expected_msg=(
+                "'not-in-0' is not a value along the dim_0 dimension of MD"
+            ),
         )
 
         expect_slice_fails(
             "a",
             "not-in-1",
-            expected_msg=("'not-in-1' is not a value along the dim_1 dimension of MD"),
+            expected_msg=(
+                "'not-in-1' is not a value along the dim_1 dimension of MD"
+            ),
         )
         expect_slice_fails(
             dim_0="a",
             dim_1="not-in-1",
-            expected_msg=("'not-in-1' is not a value along the dim_1 dimension of MD"),
+            expected_msg=(
+                "'not-in-1' is not a value along the dim_1 dimension of MD"
+            ),
         )
 
     def test_inheritance(self):
@@ -279,7 +289,7 @@ class TestDataSetFamily:
             column_2 = Column("O")
             column_3 = Column("i8", -1)
 
-        assert_is_subclass(Child, Parent)
+        assert issubclass(Child, Parent)
         assert Child.extra_dims == Parent.extra_dims
 
         ChildSlice = Child.slice(dim_0="a", dim_1="d")

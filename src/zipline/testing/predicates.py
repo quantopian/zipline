@@ -98,7 +98,11 @@ class instance_of(object):
         typenames = tuple(t.__name__ for t in self.types)
         return "%s(%s%s)" % (
             type(self).__name__,
-            (typenames[0] if len(typenames) == 1 else "(%s)" % ", ".join(typenames)),
+            (
+                typenames[0]
+                if len(typenames) == 1
+                else "(%s)" % ", ".join(typenames)
+            ),
             ", exact=True" if self.exact else "",
         )
 
@@ -181,51 +185,6 @@ def _fmt_msg(msg):
     if not msg:
         return ""
     return msg + "\n"
-
-
-def _safe_cls_name(cls):
-    try:
-        return cls.__name__
-    except AttributeError:
-        return repr(cls)
-
-
-def assert_is_subclass(subcls, cls, msg=""):
-    """Assert that ``subcls`` is a subclass of ``cls``.
-
-    Parameters
-    ----------
-    subcls : type
-        The type to check.
-    cls : type
-        The type to check ``subcls`` against.
-    msg : str, optional
-        An extra assertion message to print if this fails.
-    """
-    assert issubclass(subcls, cls), "%s is not a subclass of %s\n%s" % (
-        _safe_cls_name(subcls),
-        _safe_cls_name(cls),
-        msg,
-    )
-
-
-def assert_is_not_subclass(not_subcls, cls, msg=""):
-    """Assert that ``not_subcls`` is not a subclass of ``cls``.
-
-    Parameters
-    ----------
-    not_subcls : type
-        The type to check.
-    cls : type
-        The type to check ``not_subcls`` against.
-    msg : str, optional
-        An extra assertion message to print if this fails.
-    """
-    assert not issubclass(not_subcls, cls), "%s is a subclass of %s\n%s" % (
-        _safe_cls_name(not_subcls),
-        _safe_cls_name(cls),
-        msg,
-    )
 
 
 def make_assert_equal_assertion_error(assertion_message, path, msg):
@@ -364,7 +323,11 @@ def assert_dict_equal(result, expected, path=(), msg="", **kwargs):
     for k, (resultv, expectedv) in dzip_exact(result, expected).items():
         try:
             assert_equal(
-                resultv, expectedv, path=path + ("[%r]" % (k,),), msg=msg, **kwargs
+                resultv,
+                expectedv,
+                path=path + ("[%r]" % (k,),),
+                msg=msg,
+                **kwargs,
             )
         except AssertionError as e:
             failures.append(str(e))
@@ -391,7 +354,11 @@ def asssert_mappingproxy_equal(result, expected, path=(), msg="", **kwargs):
 
         try:
             assert_equal(
-                resultv, expectedv, path=path + ("[%r]" % (k,),), msg=msg, **kwargs
+                resultv,
+                expectedv,
+                path=path + ("[%r]" % (k,),),
+                msg=msg,
+                **kwargs,
             )
         except AssertionError as e:
             failures.append(str(e))
@@ -412,7 +379,9 @@ def assert_ordereddict_equal(result, expected, path=(), **kwargs):
 def assert_sequence_equal(result, expected, path=(), msg="", **kwargs):
     result_len = len(result)
     expected_len = len(expected)
-    assert result_len == expected_len, "%s%s lengths do not match: %d != %d\n%s" % (
+    assert (
+        result_len == expected_len
+    ), "%s%s lengths do not match: %d != %d\n%s" % (
         _fmt_msg(msg),
         type(result).__name__,
         result_len,
@@ -420,7 +389,9 @@ def assert_sequence_equal(result, expected, path=(), msg="", **kwargs):
         _fmt_path(path),
     )
     for n, (resultv, expectedv) in enumerate(zip(result, expected)):
-        assert_equal(resultv, expectedv, path=path + ("[%d]" % n,), msg=msg, **kwargs)
+        assert_equal(
+            resultv, expectedv, path=path + ("[%d]" % n,), msg=msg, **kwargs
+        )
 
 
 @assert_equal.register(set, set)
@@ -436,7 +407,13 @@ def assert_set_equal(result, expected, path=(), msg="", **kwargs):
 
 @assert_equal.register(np.ndarray, np.ndarray)
 def assert_array_equal(
-    result, expected, path=(), msg="", array_verbose=True, array_decimal=None, **kwargs
+    result,
+    expected,
+    path=(),
+    msg="",
+    array_verbose=True,
+    array_decimal=None,
+    **kwargs,
 ):
     result_dtype = result.dtype
     expected_dtype = expected.dtype
@@ -445,7 +422,8 @@ def assert_array_equal(
         assert result_dtype == expected_dtype, (
             "\nType mismatch:\n\n"
             "result dtype: %s\n"
-            "expected dtype: %s\n%s" % (result_dtype, expected_dtype, _fmt_path(path))
+            "expected dtype: %s\n%s"
+            % (result_dtype, expected_dtype, _fmt_path(path))
         )
 
         f = partial(
@@ -475,7 +453,10 @@ def assert_array_equal(
 @assert_equal.register(LabelArray, LabelArray)
 def assert_labelarray_equal(result, expected, path=(), **kwargs):
     assert_equal(
-        result.categories, expected.categories, path=path + (".categories",), **kwargs
+        result.categories,
+        expected.categories,
+        path=path + (".categories",),
+        **kwargs,
     )
     assert_equal(
         result.as_int_array(),
@@ -581,7 +562,9 @@ def assert_timestamp_and_datetime_equal(
     )
 
     if isinstance(result, pd.Timestamp) and isinstance(expected, pd.Timestamp):
-        assert_equal(result.tz, expected.tz, path=path + (".tz",), msg=msg, **kwargs)
+        assert_equal(
+            result.tz, expected.tz, path=path + (".tz",), msg=msg, **kwargs
+        )
 
     result = pd.Timestamp(result)
     expected = pd.Timestamp(expected)
@@ -668,7 +651,9 @@ def assert_messages_equal(result, expected, msg=""):
 
 def index_of_first_difference(left, right):
     """Get the index of the first difference between two strings."""
-    difflocs = (i for (i, (lc, rc)) in enumerate(zip_longest(left, right)) if lc != rc)
+    difflocs = (
+        i for (i, (lc, rc)) in enumerate(zip_longest(left, right)) if lc != rc
+    )
     try:
         return next(difflocs)
     except StopIteration:

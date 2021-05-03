@@ -923,7 +923,7 @@ class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTe
             assert_frame_equal(output_result, expected_output_result)
 
 
-class VectorizedBetaTestCase(zf.ZiplineTestCase):
+class TestVectorizedBeta:
     def compare_with_empyrical(self, dependents, independent):
         INFINITY = 1000000  # close enough
         result = vectorized_beta(
@@ -940,7 +940,7 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         assert_equal(result, expected, array_decimal=7)
         return result
 
-    @parameter_space(seed=[1, 2, 3], __fail_fast=True)
+    @pytest.mark.parametrize("seed", [1, 2, 3])
     def test_matches_empyrical_beta_aligned(self, seed):
         rand = np.random.RandomState(seed)
 
@@ -952,12 +952,9 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         result = self.compare_with_empyrical(dependents, independent)
         assert (np.abs(result - true_betas) < 0.01).all()
 
-    @parameter_space(
-        seed=[1, 2],
-        pct_dependent=[0.3],
-        pct_independent=[0.75],
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("seed", [1, 2])
+    @pytest.mark.parametrize("pct_dependent", [0.3])
+    @pytest.mark.parametrize("pct_independent", [0.75])
     def test_nan_handling_matches_empyrical(self, seed, pct_dependent, pct_independent):
         rand = np.random.RandomState(seed)
 
@@ -980,7 +977,7 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         # have any nans in the output even though we had some in the input.
         assert not np.isnan(result).any()
 
-    @parameter_space(nan_offset=[-1, 0, 1])
+    @pytest.mark.parametrize("nan_offset", [-1, 0, 1])
     def test_produce_nans_when_too_much_missing_data(self, nan_offset):
         rand = np.random.RandomState(42)
 
@@ -1066,7 +1063,7 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         assert_equal(np.isnan(result5), np.array([False, False, False, False, False]))
 
 
-class VectorizedCorrelationTestCase(zf.ZiplineTestCase):
+class TestVectorizedCorrelation:
     def naive_columnwise_func(self, func, left, right):
         out = np.empty_like(left[0])
         assert left.shape == right.shape
@@ -1088,12 +1085,9 @@ class VectorizedCorrelationTestCase(zf.ZiplineTestCase):
     def naive_columnwise_spearman(self, left, right):
         return self.naive_columnwise_func(spearmanr, left, right)
 
-    @parameter_space(
-        seed=[1, 2, 42],
-        nan_offset=[-1, 0, 1],
-        nans=["dependent", "independent", "both"],
-        __fail_fast=True,
-    )
+    @pytest.mark.parametrize("seed", [1, 2, 42])
+    @pytest.mark.parametrize("nan_offset", [-1, 0, 1])
+    @pytest.mark.parametrize("nans", ["dependent", "independent", "both"])
     def test_produce_nans_when_too_much_missing_data(self, seed, nans, nan_offset):
         rand = np.random.RandomState(seed)
 

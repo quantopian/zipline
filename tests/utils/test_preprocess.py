@@ -4,7 +4,6 @@ Tests for zipline.utils.validate.
 from operator import attrgetter
 from types import FunctionType
 
-from parameterized import parameterized
 import numpy as np
 import pytz
 import pytest
@@ -32,13 +31,14 @@ qualname = attrgetter("__qualname__")
 
 
 class TestPreprocess:
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "name, args, kwargs",
         [
             ("too_many", (1, 2, 3), {}),
             ("too_few", (1,), {}),
             ("collision", (1,), {"a": 1}),
             ("unexpected", (1,), {"q": 1}),
-        ]
+        ],
     )
     def test_preprocess_doesnt_change_TypeErrors(self, name, args, kwargs):
         """
@@ -86,14 +86,15 @@ class TestPreprocess:
 
         assert arglebargle.__name__ == "arglebargle"
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "args, kwargs",
         [
             ((1, 2), {}),
             ((1, 2), {"c": 3}),
             ((1,), {"b": 2}),
             ((), {"a": 1, "b": 2}),
             ((), {"a": 1, "b": 2, "c": 3}),
-        ]
+        ],
     )
     def test_preprocess_no_processors(self, args, kwargs):
         @preprocess()
@@ -127,14 +128,15 @@ class TestPreprocess:
             def func_with_arg_named_b(b):
                 pass
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "args, kwargs",
         [
             ((1, 2), {}),
             ((1, 2), {"c": 3}),
             ((1,), {"b": 2}),
             ((), {"a": 1, "b": 2}),
             ((), {"a": 1, "b": 2, "c": 3}),
-        ]
+        ],
     )
     def test_preprocess_on_function(self, args, kwargs):
 
@@ -150,14 +152,15 @@ class TestPreprocess:
 
             assert func(*args, **kwargs), ("1", 2.0, 4)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "args, kwargs",
         [
             ((1, 2), {}),
             ((1, 2), {"c": 3}),
             ((1,), {"b": 2}),
             ((), {"a": 1, "b": 2}),
             ((), {"a": 1, "b": 2, "c": 3}),
-        ]
+        ],
     )
     def test_preprocess_on_method(self, args, kwargs):
         decorators = [

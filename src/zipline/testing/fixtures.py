@@ -2063,19 +2063,6 @@ class WithMakeAlgo(WithBenchmarkReturns, WithSimParams, WithLogger, WithDataPort
         return self.make_algo(**overrides).run()
 
 
-class WithWerror:
-    @classmethod
-    def init_class_fixtures(cls):
-        cls.enter_class_context(warnings.catch_warnings())
-        warnings.simplefilter("error")
-        warnings.filterwarnings(
-            "ignore",
-            category=RuntimeWarning,
-        )
-        # warnings.simplefilter("ignore", RuntimeWarning, append=True)
-        super(WithWerror, cls).init_class_fixtures()
-
-
 register_calendar_alias("TEST", "NYSE")
 
 

@@ -348,7 +348,7 @@ def initialize(context):
             algo.run()
 
 
-class TestOrderRounding(zf.ZiplineTestCase):
+class TestOrderRounding:
     def test_order_rounding(self):
         answer_key = [
             (0, 0),

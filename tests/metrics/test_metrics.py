@@ -17,7 +17,6 @@ from zipline.testing.fixtures import (
     WithMakeAlgo,
     WithConstantEquityMinuteBarData,
     WithConstantFutureMinuteBarData,
-    WithWerror,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal, wildcard
@@ -48,7 +47,6 @@ class TestConstantPrice(
     WithConstantEquityMinuteBarData,
     WithConstantFutureMinuteBarData,
     WithMakeAlgo,
-    WithWerror,
     ZiplineTestCase,
 ):
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
@@ -1310,7 +1308,7 @@ class TestConstantPrice(
         )
 
 
-class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
+class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
     FUTURE_DAILY_BAR_SOURCE_FROM_MINUTE = True
 
