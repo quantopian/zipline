@@ -40,7 +40,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python }}
           activate-environment: recipe
-          channels: ml4t, conda-forge, defaults, anaconda
+          channels: ml4t, conda-forge, defaults, anaconda, ranaroussi, adteam
 
       - name: conda install
         run: |

@@ -57,7 +57,6 @@ requirements:
     - sqlalchemy >=1.0
     - statsmodels >=0.6.1
     - ta-lib >=0.4.09
-    - pytables >=3.4.3
     - toolz >=0.8.2
     - trading-calendars >=1.6.1
     - {{ pin_compatible('numpy') }}
