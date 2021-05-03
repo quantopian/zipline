@@ -52,7 +52,7 @@ jobs:
         uses: actions/setup-python@v2
 
       - name: Build and test wheels
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: joerick/cibuildwheel@v1.11.0
         env:
           CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.14
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
