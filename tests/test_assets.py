@@ -2272,6 +2272,7 @@ class TestVectorizedSymbolLookup(WithAssetFinder, ZiplineTestCase):
         assert results == [af.lookup_symbol(sym, dt, fuzzy=True) for sym in syms]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 class TestAssetFinderPreprocessors(WithTmpDir, ZiplineTestCase):
     def test_asset_finder_doesnt_silently_create_useless_empty_files(self):
         nonexistent_path = self.tmpdir.getpath(self.id() + "__nothing_here")

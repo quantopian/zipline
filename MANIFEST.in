@@ -1,12 +1,6 @@
 prune *
 include LICENSE README.md pyproject.toml setup.py setup.cfg, versioneer.py
-include src/zipline/_version.py
 
-recursive-include src/zipline *.pyi
-recursive-include src/zipline *.pxi
-recursive-include src/zipline *.pxd
-
+graft src
 graft tests
-graft src/zipline/resources
-
 global-exclude __pycache__ *.py[cod] .*

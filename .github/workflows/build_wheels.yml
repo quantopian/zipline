@@ -2,6 +2,8 @@ name: PyPI
 
 on:
   push:
+    branches:
+      - ci_test
     tags:
       - '**'           # Push events to every tag including hierarchical tags like v1.0/beta
 
@@ -48,34 +50,6 @@ jobs:
 
       - name: Setup Python
         uses: actions/setup-python@v2
-
-      - uses: ilammy/msvc-dev-cmd@v1
-      - name: Build something requiring CL.EXE
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          powershell -Command "(New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')"
-          powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')"
-          pushd C:\ta-lib\c\
-          pushd make\cdd\win32\msvc
-          nmake
-          popd
-          pushd make\cdr\win32\msvc
-          nmake
-          popd
-          pushd make\cmd\win32\msvc
-          nmake
-          popd
-          pushd make\cmr\win32\msvc
-          nmake
-          popd
-          pushd make\csd\win32\msvc
-          nmake
-          popd
-          pushd make\csr\win32\msvc
-          nmake
-          popd
-          popd
-          del ta-lib-0.4.0-msvc.zip
 
       - name: Build and test wheels
         uses: joerick/cibuildwheel@v1.10.0

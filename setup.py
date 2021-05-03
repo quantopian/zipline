@@ -144,9 +144,11 @@ setup(
     },
     # packages=find_packages(include=["src/zipline"]),
     ext_modules=ext_modules,
+    # package_dir={'': 'src'},
+    # packages=find_packages(where='src'),
     package_data={
         root.replace(os.sep, "."): ["*.pyi", "*.pyx", "*.pxi", "*.pxd"]
-        for root, dirnames, filenames in os.walk("src/zipline/")
+        for root, dirnames, filenames in os.walk("src/zipline")
         if "__pycache__" not in root
     },
 )

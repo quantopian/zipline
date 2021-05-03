@@ -17,7 +17,6 @@ from parameterized import parameterized
 import pandas as pd
 import numpy as np
 from mock import patch
-
 from zipline.errors import UnsupportedOrderParameters
 from zipline.sources.requests_csv import mask_requests_args
 from zipline.utils import factory
@@ -27,7 +26,8 @@ from zipline.testing.fixtures import (
     WithMakeAlgo,
     ZiplineTestCase,
 )
-from .resources.fetcher_inputs.fetcher_test_data import (
+
+from tests.resources.fetcher_inputs.fetcher_test_data import (
     AAPL_CSV_DATA,
     AAPL_IBM_CSV_DATA,
     AAPL_MINUTE_CSV_DATA,
@@ -54,47 +54,49 @@ class FetcherTestCase(WithResponses, WithMakeAlgo, ZiplineTestCase):
 
     @classmethod
     def make_equity_info(cls):
+        start_date = pd.Timestamp("2006-01-01", tz="UTC")
+        end_date = pd.Timestamp("2007-01-01", tz="UTC")
         return pd.DataFrame.from_dict(
             {
                 24: {
-                    "start_date": pd.Timestamp("2006-01-01", tz="UTC"),
-                    "end_date": pd.Timestamp("2007-01-01", tz="UTC"),
+                    "start_date": start_date,
+                    "end_date": end_date,
                     "symbol": "AAPL",
                     "exchange": "nasdaq",
                 },
                 3766: {
-                    "start_date": pd.Timestamp("2006-01-01", tz="UTC"),
-                    "end_date": pd.Timestamp("2007-01-01", tz="UTC"),
+                    "start_date": start_date,
+                    "end_date": end_date,
                     "symbol": "IBM",
                     "exchange": "nasdaq",
                 },
                 5061: {
-                    "start_date": pd.Timestamp("2006-01-01", tz="UTC"),
-                    "end_date": pd.Timestamp("2007-01-01", tz="UTC"),
+                    "start_date": start_date,
+                    "end_date": end_date,
                     "symbol": "MSFT",
                     "exchange": "nasdaq",
                 },
                 14848: {
-                    "start_date": pd.Timestamp("2006-01-01", tz="UTC"),
-                    "end_date": pd.Timestamp("2007-01-01", tz="UTC"),
+                    "start_date": start_date,
+                    "end_date": end_date,
                     "symbol": "YHOO",
                     "exchange": "nasdaq",
                 },
                 25317: {
-                    "start_date": pd.Timestamp("2006-01-01", tz="UTC"),
-                    "end_date": pd.Timestamp("2007-01-01", tz="UTC"),
+                    "start_date": start_date,
+                    "end_date": end_date,
                     "symbol": "DELL",
                     "exchange": "nasdaq",
                 },
                 13: {
-                    "start_date": pd.Timestamp("2006-01-01", tz="UTC"),
+                    "start_date": start_date,
                     "end_date": pd.Timestamp("2010-01-01", tz="UTC"),
                     "symbol": "NFLX",
                     "exchange": "nasdaq",
                 },
                 9999999: {
-                    "start_date": pd.Timestamp("2006-01-01", tz="UTC"),
-                    "end_date": pd.Timestamp("2007-01-01", tz="UTC"),
+                    "start_date": start_date,
+                    "end_date": end_date,
                     "symbol": "AAPL",
                     "exchange": "non_us_exchange",
                 },
@@ -414,7 +416,7 @@ def handle_data(context, data):
     )
     def test_fetcher_universe(self, name, data, column_name):
         # Patching fetch_url here rather than using responses because (a) it's
-        # easier given the paramaterization, and (b) there are enough tests
+        # easier given the parameterization, and (b) there are enough tests
         # using responses that the fetch_url code is getting a good workout so
         # we don't have to use it in every test.
         with patch(
@@ -455,7 +457,7 @@ def handle_data(context, data):
     record(sid_count=len(actual))
     record(bar_count=context.bar_count)
     context.bar_count += 1
-            """
+                """
             replacement = ""
             if column_name:
                 replacement = ",symbol_column='%s'\n" % column_name
@@ -546,7 +548,6 @@ def handle_data(context, data):
             """
 from pandas import Timestamp
 from zipline.api import fetch_csv, record, get_datetime
-
 def initialize(context):
     fetch_csv(
         'https://fake.urls.com/fetcher_universe_data.csv',
@@ -558,14 +559,12 @@ def initialize(context):
         Timestamp('2006-01-11 00:00:00+0000', tz='UTC'):[24, 3766, 5061, 14848]
     }
     context.bar_count = 0
-
 def handle_data(context, data):
     expected = context.expected_sids[get_datetime().replace(hour=0, minute=0)]
     actual = data.fetcher_assets
     for stk in expected:
         if stk not in actual:
             raise Exception("{stk} is missing".format(stk=stk))
-
     record(sid_count=len(actual))
     record(bar_count=context.bar_count)
     context.bar_count += 1
@@ -604,7 +603,7 @@ def initialize(context):
 
 def before_trading_start(context, data):
     record(Short_Interest = data.current(context.stock, 'dtc'))
-""",
+    """,
             sim_params=sim_params,
         )
 
@@ -634,19 +633,17 @@ def before_trading_start(context, data):
             """
 from zipline.api import fetch_csv, symbol
 import numpy as np
-
 def initialize(context):
     fetch_csv('https://fake.urls.com/fetcher_nflx_data.csv',
                date_column = 'Settlement Date',
                date_format = '%m/%d/%y')
     context.nflx = symbol('NFLX')
     context.aapl = symbol('AAPL', country_code='US')
-
 def handle_data(context, data):
     assert np.isnan(data.current(context.nflx, 'invalid_column'))
     assert np.isnan(data.current(context.aapl, 'invalid_column'))
     assert np.isnan(data.current(context.aapl, 'dtc'))
-""",
+    """,
             sim_params=sim_params,
         )
 
