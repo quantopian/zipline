@@ -150,13 +150,15 @@ while working to identify dependencies. Should this be your experience, consider
 [mamba](https://github.com/mamba-org/mamba) instead, which works much faster and
 reliably in most cases.
 
-Once ``conda`` has been set up you can install Zipline from the ``ml4t`` channel
-(assuming you are listing additional channels like `conda-forge <https://conda-forge.org/>`_
-in your `.condarc <https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html>`_ configuration file):
+Once ``conda`` has been set up you can install Zipline from the ``ml4t`` channel.
+You'll also need to activate the `conda-forge` and `ranaroussi` channels to source various dependencies.
+You can do so either by adding them to your
+`.condarc <https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html>`_
+configuration file, or as command line flags:
 
 .. code-block:: bash
 
-    conda install -c ml4t zipline-reloaded
+    conda install -c ml4t -c conda-forge -c ranaroussi zipline-reloaded
 
 .. _managing-conda-environments:
 
