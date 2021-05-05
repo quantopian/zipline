@@ -37,7 +37,7 @@ pip install zipline-reloaded
 Alternatively, if you are using the [Anaconda](https://www.anaconda.com/products/individual) or [miniconda](https://docs.conda.io/en/latest/miniconda.html) distributions, you can use
 
 ```bash
-conda install -c ml4t -c conda-forge zipline-reloaded
+conda install -c ml4t -c conda-forge -c ranaroussi zipline-reloaded
 ```
 
 You can also [enable](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) `conda-forge` by listing it in your `.condarc`.
