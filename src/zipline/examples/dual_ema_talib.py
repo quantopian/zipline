@@ -23,7 +23,7 @@ its shares once the averages cross again (indicating downwards
 momentum).
 
 """
-
+import os
 from zipline.api import order, record, symbol
 from zipline.finance import commission, slippage
 
@@ -126,6 +126,9 @@ def analyze(context=None, results=None):
         log.info(msg)
 
     plt.show()
+
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        plt.close("all")
 
 
 def _test_args():

@@ -2,11 +2,7 @@ import mock
 
 import zipline.__main__ as main
 import zipline
-from zipline.testing import ZiplineTestCase
-from zipline.testing.fixtures import WithTmpDir
-from zipline.testing.predicates import (
-    assert_equal,
-)
+from zipline.testing.predicates import assert_equal
 from click.testing import CliRunner
 from zipline.extensions import (
     Namespace,
@@ -16,10 +12,7 @@ from zipline.extensions import (
 import pytest
 
 
-class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
-    def init_instance_fixtures(self):
-        super(CmdLineTestCase, self).init_instance_fixtures()
-
+class TestCmdLine:
     def test_parse_args(self):
         n = Namespace()
 
@@ -45,11 +38,11 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
             },
         )
         create_args(arg_list, n)
-        assert_equal(n.key, "value")
-        assert_equal(n.arg1, "test1")
-        assert_equal(n.arg2, "test2")
-        assert_equal(n.arg_3, "test3")
-        assert_equal(n._arg_4_, "test4")
+        assert n.key == "value"
+        assert n.arg1 == "test1"
+        assert n.arg2 == "test2"
+        assert n.arg_3 == "test3"
+        assert n._arg_4_ == "test4"
 
         msg = "invalid extension argument '1=test3', " "must be in key=value form"
         with pytest.raises(ValueError, match=msg):
@@ -86,11 +79,11 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
             n,
         )
 
-        assert_equal(n.first.second.a, "blah1")
-        assert_equal(n.first.second.b, "blah2")
-        assert_equal(n.first.third, "blah3")
-        assert_equal(n.second.a, "blah4")
-        assert_equal(n.second.b, "blah5")
+        assert n.first.second.a == "blah1"
+        assert n.first.second.b == "blah2"
+        assert n.first.third == "blah3"
+        assert n.second.a == "blah4"
+        assert n.second.b == "blah5"
 
         n = Namespace()
 
@@ -123,20 +116,21 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
             ],
         )
 
-        assert_equal(result.exit_code, 0)  # assert successful invocation
-        assert_equal(zipline.extension_args.first.second.a, "blah1")
-        assert_equal(zipline.extension_args.first.second.b, "blah2")
-        assert_equal(zipline.extension_args.first.third, "blah3")
-        assert_equal(zipline.extension_args.second.a.b, "blah4")
-        assert_equal(zipline.extension_args.second.b.a, "blah5")
-        assert_equal(zipline.extension_args.a1, "value1")
-        assert_equal(zipline.extension_args.b_, "value2")
+        assert result.exit_code == 0  # assert successful invocation
+        assert zipline.extension_args.first.second.a == "blah1"
+        assert zipline.extension_args.first.second.b == "blah2"
+        assert zipline.extension_args.first.third == "blah3"
+        assert zipline.extension_args.second.a.b == "blah4"
+        assert zipline.extension_args.second.b.a == "blah5"
+        assert zipline.extension_args.a1 == "value1"
+        assert zipline.extension_args.b_ == "value2"
 
-    def test_benchmark_argument_handling(self):
+    def test_benchmark_argument_handling(self, tmp_path):
         runner = CliRunner()
 
         # CLI validates that the algo file exists, so create an empty file.
-        algo_path = self.tmpdir.getpath("dummy_algo.py")
+        algo_path = str(tmp_path / "dummy_algo.py")
+
         with open(algo_path, "w"):
             pass
 
@@ -172,43 +166,44 @@ class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
             return mock_run.call_args[1]["benchmark_spec"]
 
         spec = run_and_get_benchmark_spec([])
-        assert_equal(spec.benchmark_returns, None)
-        assert_equal(spec.benchmark_file, None)
-        assert_equal(spec.benchmark_sid, None)
-        assert_equal(spec.benchmark_symbol, None)
-        assert_equal(spec.no_benchmark, False)
+        assert spec.benchmark_returns is None
+        assert spec.benchmark_file is None
+        assert spec.benchmark_sid is None
+        assert spec.benchmark_symbol is None
+        assert spec.no_benchmark is False
 
         spec = run_and_get_benchmark_spec(["--no-benchmark"])
-        assert_equal(spec.benchmark_returns, None)
-        assert_equal(spec.benchmark_file, None)
-        assert_equal(spec.benchmark_sid, None)
-        assert_equal(spec.benchmark_symbol, None)
-        assert_equal(spec.no_benchmark, True)
+        assert spec.benchmark_returns is None
+        assert spec.benchmark_file is None
+        assert spec.benchmark_sid is None
+        assert spec.benchmark_symbol is None
+        assert spec.no_benchmark is True
 
         for symbol in "AAPL", "SPY":
             spec = run_and_get_benchmark_spec(["--benchmark-symbol", symbol])
-            assert_equal(spec.benchmark_returns, None)
-            assert_equal(spec.benchmark_file, None)
-            assert_equal(spec.benchmark_sid, None)
-            assert_equal(spec.benchmark_symbol, symbol)
-            assert_equal(spec.no_benchmark, False)
+            assert spec.benchmark_returns is None
+            assert spec.benchmark_file is None
+            assert spec.benchmark_sid is None
+            assert spec.benchmark_symbol is symbol
+            assert spec.no_benchmark is False
 
         for sid in 2, 3:
             spec = run_and_get_benchmark_spec(["--benchmark-sid", str(sid)])
-            assert_equal(spec.benchmark_returns, None)
-            assert_equal(spec.benchmark_file, None)
-            assert_equal(spec.benchmark_sid, sid)
-            assert_equal(spec.benchmark_symbol, None)
-            assert_equal(spec.no_benchmark, False)
+            assert spec.benchmark_returns is None
+            assert spec.benchmark_file is None
+            assert spec.benchmark_sid == sid
+            assert spec.benchmark_symbol is None
+            assert spec.no_benchmark is False
 
         # CLI also validates the returns file exists.
-        bm_path = self.tmpdir.getpath("returns.csv")
+        bm_path = str(tmp_path / "returns.csv")
+
         with open(bm_path, "w"):
             pass
 
         spec = run_and_get_benchmark_spec(["--benchmark-file", bm_path])
-        assert_equal(spec.benchmark_returns, None)
-        assert_equal(spec.benchmark_file, bm_path)
-        assert_equal(spec.benchmark_sid, None)
-        assert_equal(spec.benchmark_symbol, None)
-        assert_equal(spec.no_benchmark, False)
+        assert spec.benchmark_returns is None
+        assert spec.benchmark_file == bm_path
+        assert spec.benchmark_sid is None
+        assert spec.benchmark_symbol is None
+        assert spec.no_benchmark is False

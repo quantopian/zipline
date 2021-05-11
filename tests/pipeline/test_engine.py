@@ -1588,7 +1588,7 @@ class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCas
         assert_equal(groupby_max.to_numpy(), pipeline_max.to_numpy())
 
 
-class ResolveDomainTestCase(zf.ZiplineTestCase):
+class TestResolveDomain:
     def test_resolve_domain(self):
         # we need to pass a get_loader and an asset_finder to construct
         # SimplePipelineEngine, but do not expect to use them

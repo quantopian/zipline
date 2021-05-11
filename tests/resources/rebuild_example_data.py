@@ -131,7 +131,8 @@ def main(ctx, rebuild_input):
                 _exit()
 
             expected_perf_path = d.getpath(
-                "example_data/expected_perf/%s" % pd.__version__.replace(".", "-"),
+                "example_data/expected_perf/%s"
+                % pd.__version__.replace(".", "-"),
             )
 
             # allow users to run some analysis to make sure that the new
