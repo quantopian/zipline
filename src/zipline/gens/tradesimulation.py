@@ -124,9 +124,11 @@ class AlgorithmSimulator(object):
 
             # handle any transactions and commissions coming out new orders
             # placed in the last bar
-            new_transactions, new_commissions, closed_orders = blotter.get_transactions(
-                current_data
-            )
+            (
+                new_transactions,
+                new_commissions,
+                closed_orders,
+            ) = blotter.get_transactions(current_data)
 
             blotter.prune_orders(closed_orders)
 
@@ -153,7 +155,9 @@ class AlgorithmSimulator(object):
                 metrics_tracker.process_order(new_order)
 
         def once_a_day(
-            midnight_dt, current_data=self.current_data, data_portal=self.data_portal
+            midnight_dt,
+            current_data=self.current_data,
+            data_portal=self.data_portal,
         ):
             # process any capital changes that came overnight
             for capital_change in algo.calculate_capital_changes(
@@ -172,11 +176,14 @@ class AlgorithmSimulator(object):
 
             # handle any splits that impact any positions or any open orders.
             assets_we_care_about = (
-                metrics_tracker.positions.keys() | algo.blotter.open_orders.keys()
+                metrics_tracker.positions.keys()
+                | algo.blotter.open_orders.keys()
             )
 
             if assets_we_care_about:
-                splits = data_portal.get_splits(assets_we_care_about, midnight_dt)
+                splits = data_portal.get_splits(
+                    assets_we_care_about, midnight_dt
+                )
                 if splits:
                     algo.blotter.process_splits(splits)
                     metrics_tracker.handle_splits(splits)
@@ -204,6 +211,14 @@ class AlgorithmSimulator(object):
                     return algo.calculate_capital_changes(
                         dt, emission_rate=emission_rate, is_interday=False
                     )
+
+            elif algo.data_frequency == "daily":
+
+                def execute_order_cancellation_policy():
+                    algo.blotter.execute_daily_cancel_policy(SESSION_END)
+
+                def calculate_minute_capital_changes(dt):
+                    return []
 
             else:
 
@@ -281,7 +296,9 @@ class AlgorithmSimulator(object):
         # would not be processed until the first bar of the next day.
         blotter = algo.blotter
         assets_to_cancel = [
-            asset for asset in blotter.open_orders if past_auto_close_date(asset)
+            asset
+            for asset in blotter.open_orders
+            if past_auto_close_date(asset)
         ]
         for asset in assets_to_cancel:
             blotter.cancel_all_orders_for_asset(asset)

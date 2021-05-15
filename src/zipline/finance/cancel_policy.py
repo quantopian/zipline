@@ -15,12 +15,11 @@
 import abc
 
 from abc import abstractmethod
-from six import with_metaclass
 
 from zipline.gens.sim_engine import SESSION_END
 
 
-class CancelPolicy(with_metaclass(abc.ABCMeta)):
+class CancelPolicy(metaclass=abc.ABCMeta):
     """Abstract cancellation policy interface."""
 
     @abstractmethod

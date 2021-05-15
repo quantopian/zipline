@@ -47,7 +47,7 @@ class SimulationBlotter(Blotter):
         future_commission=None,
         cancel_policy=None,
     ):
-        super(SimulationBlotter, self).__init__(cancel_policy=cancel_policy)
+        super().__init__(cancel_policy=cancel_policy)
 
         # these orders are aggregated by asset
         self.open_orders = defaultdict(list)
@@ -138,7 +138,9 @@ class SimulationBlotter(Blotter):
         elif amount > self.max_shares:
             # Arbitrary limit of 100 billion (US) shares will never be
             # exceeded except by a buggy algorithm.
-            raise OverflowError("Can't order more than %d shares" % self.max_shares)
+            raise OverflowError(
+                "Can't order more than %d shares" % self.max_shares
+            )
 
         is_buy = amount > 0
         order = Order(
@@ -234,11 +236,62 @@ class SimulationBlotter(Blotter):
         assert not orders
         del self.open_orders[asset]
 
+    # End of day cancel for daily frequency
+    def execute_daily_cancel_policy(self, event):
+        if self.cancel_policy.should_cancel(event):
+            warn = self.cancel_policy.warn_on_cancel
+            for asset in copy(self.open_orders):
+                orders = self.open_orders[asset]
+                if len(orders) > 1:
+                    order = orders[0]
+                    self.cancel(order.id, relay_status=True)
+                    if warn:
+                        if order.filled > 0:
+                            warning_logger.warn(
+                                "Your order for {order_amt} shares of "
+                                "{order_sym} has been partially filled. "
+                                "{order_filled} shares were successfully "
+                                "purchased. {order_failed} shares were not "
+                                "filled by the end of day and "
+                                "were canceled.".format(
+                                    order_amt=order.amount,
+                                    order_sym=order.asset.symbol,
+                                    order_filled=order.filled,
+                                    order_failed=order.amount - order.filled,
+                                )
+                            )
+                        elif order.filled < 0:
+                            warning_logger.warn(
+                                "Your order for {order_amt} shares of "
+                                "{order_sym} has been partially filled. "
+                                "{order_filled} shares were successfully "
+                                "sold. {order_failed} shares were not "
+                                "filled by the end of day and "
+                                "were canceled.".format(
+                                    order_amt=order.amount,
+                                    order_sym=order.asset.symbol,
+                                    order_filled=-1 * order.filled,
+                                    order_failed=-1
+                                    * (order.amount - order.filled),
+                                )
+                            )
+                        else:
+                            warning_logger.warn(
+                                "Your order for {order_amt} shares of "
+                                "{order_sym} failed to fill by the end of day "
+                                "and was canceled.".format(
+                                    order_amt=order.amount,
+                                    order_sym=order.asset.symbol,
+                                )
+                            )
+
     def execute_cancel_policy(self, event):
         if self.cancel_policy.should_cancel(event):
             warn = self.cancel_policy.warn_on_cancel
             for asset in copy(self.open_orders):
-                self.cancel_all_orders_for_asset(asset, warn, relay_status=False)
+                self.cancel_all_orders_for_asset(
+                    asset, warn, relay_status=False
+                )
 
     def reject(self, order_id, reason=""):
         """
@@ -342,7 +395,9 @@ class SimulationBlotter(Blotter):
             for asset, asset_orders in self.open_orders.items():
                 slippage = self.slippage_models[type(asset)]
 
-                for order, txn in slippage.simulate(bar_data, asset, asset_orders):
+                for order, txn in slippage.simulate(
+                    bar_data, asset, asset_orders
+                ):
                     commission = self.commission_models[type(asset)]
                     additional_commission = commission.calculate(order, txn)
 
