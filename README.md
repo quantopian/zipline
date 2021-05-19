@@ -15,7 +15,7 @@ Zipline is a Pythonic event-driven system for backtesting, developed and used as
 by [Stefan Jansen](https://www.linkedin.com/in/applied-ai/) who is trying to keep the library up to date and available to his readers and the wider Python algotrading community.
 
 - [Join our Community!](https://exchange.ml4trading.io)
-- [Documentation](https://zipline.ml4ctrading.io)
+- [Documentation](https://zipline.ml4trading.io)
 
 ## Features
 
