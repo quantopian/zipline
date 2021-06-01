@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from zipline.data import BcolzMinuteBarWriter
-from zipline.utils.calendars import get_calendar
+from trading_calendars import get_calendar
 
 
 def generate_daily_test_data(
@@ -91,7 +91,9 @@ def generate_minute_test_data(
     :return: None
     """
 
-    full_minutes = BcolzMinuteBarWriter.full_minutes_for_days(first_day, last_day)
+    full_minutes = BcolzMinuteBarWriter.full_minutes_for_days(
+        first_day, last_day
+    )
     minutes_count = len(full_minutes)
 
     cal = get_calendar("XNYS")

@@ -17,7 +17,7 @@ from warnings import warn
 import pandas as pd
 
 from .assets import Asset
-from .utils.enum import enum
+from enum import IntEnum
 from ._protocol import BarData, InnerPosition  # noqa
 
 
@@ -49,20 +49,24 @@ class MutableView(object):
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
-DATASOURCE_TYPE = enum(
-    "AS_TRADED_EQUITY",
-    "MERGER",
-    "SPLIT",
-    "DIVIDEND",
-    "TRADE",
-    "TRANSACTION",
-    "ORDER",
-    "EMPTY",
-    "DONE",
-    "CUSTOM",
-    "BENCHMARK",
-    "COMMISSION",
-    "CLOSE_POSITION",
+DATASOURCE_TYPE = IntEnum(
+    "DATASOURCE_TYPE",
+    [
+        "AS_TRADED_EQUITY",
+        "MERGER",
+        "SPLIT",
+        "DIVIDEND",
+        "TRADE",
+        "TRANSACTION",
+        "ORDER",
+        "EMPTY",
+        "DONE",
+        "CUSTOM",
+        "BENCHMARK",
+        "COMMISSION",
+        "CLOSE_POSITION",
+    ],
+    start=0,
 )
 
 # Expected fields/index values for a dividend Series.
@@ -123,7 +127,10 @@ def _deprecated_getitem_method(name, attrs):
         The ``__getitem__`` method to put in the class dict.
     """
     attrs = frozenset(attrs)
-    msg = "'{name}[{attr!r}]' is deprecated, please use" " '{name}.{attr}' instead"
+    msg = (
+        "'{name}[{attr!r}]' is deprecated, please use"
+        " '{name}.{attr}' instead"
+    )
 
     def __getitem__(self, key):
         """``__getitem__`` is deprecated, please use attribute access instead."""
@@ -235,7 +242,9 @@ class Portfolio(object):
         position_values = pd.Series(
             {
                 asset: (
-                    position.last_sale_price * position.amount * asset.price_multiplier
+                    position.last_sale_price
+                    * position.amount
+                    * asset.price_multiplier
                 )
                 for asset, position in self.positions.items()
             },

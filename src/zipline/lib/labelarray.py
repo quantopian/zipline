@@ -37,12 +37,16 @@ from ._factorize import (
 
 def compare_arrays(left, right):
     "Eq check with a short-circuit for identical objects."
-    return left is right or ((left.shape == right.shape) and (left == right).all())
+    return left is right or (
+        (left.shape == right.shape) and (left == right).all()
+    )
 
 
 def _make_unsupported_method(name):
     def method(*args, **kwargs):
-        raise NotImplementedError("Method %s is not supported on LabelArrays." % name)
+        raise NotImplementedError(
+            "Method %s is not supported on LabelArrays." % name
+        )
 
     method.__name__ = name
     method.__doc__ = "Unsupported LabelArray Method: %s" % name
@@ -173,7 +177,11 @@ class LabelArray(ndarray):
                 sort=sort,
             )
         else:
-            codes, categories, reverse_categories = factorize_strings_known_categories(
+            (
+                codes,
+                categories,
+                reverse_categories,
+            ) = factorize_strings_known_categories(
                 values.ravel(ravel_order),
                 categories=categories,
                 missing_value=missing_value,
@@ -286,7 +294,9 @@ class LabelArray(ndarray):
            responsible for copying over the parent array's category metadata.
         """
         if obj is None:
-            raise TypeError("Direct construction of LabelArrays is not supported.")
+            raise TypeError(
+                "Direct construction of LabelArrays is not supported."
+            )
 
         # See docstring for an explanation of when these will or will not be
         # set.
@@ -336,7 +346,9 @@ class LabelArray(ndarray):
         Coerce self into a pandas DataFrame of Categoricals.
         """
         if len(self.shape) != 2:
-            raise ValueError("Can't convert a non-2D LabelArray into a DataFrame.")
+            raise ValueError(
+                "Can't convert a non-2D LabelArray into a DataFrame."
+            )
 
         expected_shape = (len(index), len(columns))
         if expected_shape != self.shape:
@@ -414,15 +426,6 @@ class LabelArray(ndarray):
 
         self.as_int_array()[indexer] = value_code
 
-    def __setslice__(self, i, j, sequence):
-        """
-        This method was deprecated in Python 2.0. It predates slice objects,
-        but Python 2.7.11 still uses it if you implement it, which ndarray
-        does.  In newer Pythons, __setitem__ is always called, but we need to
-        manuallly forward in py2.
-        """
-        self.__setitem__(slice(i, j), sequence)
-
     def __getitem__(self, indexer):
         result = super(LabelArray, self).__getitem__(indexer)
         if result.ndim:
@@ -440,13 +443,17 @@ class LabelArray(ndarray):
         """
         Like isnan, but checks for locations where we store missing values.
         """
-        return self.as_int_array() == self.reverse_categories[self.missing_value]
+        return (
+            self.as_int_array() == self.reverse_categories[self.missing_value]
+        )
 
     def not_missing(self):
         """
         Like ~isnan, but checks for locations where we store missing values.
         """
-        return self.as_int_array() != self.reverse_categories[self.missing_value]
+        return (
+            self.as_int_array() != self.reverse_categories[self.missing_value]
+        )
 
     def _equality_check(op):
         """
@@ -648,7 +655,9 @@ class LabelArray(ndarray):
         else:
             allowed_outtypes = self.SUPPORTED_NON_NONE_SCALAR_TYPES
 
-        def f_to_use(x, missing_value=self.missing_value, otypes=allowed_outtypes):
+        def f_to_use(
+            x, missing_value=self.missing_value, otypes=allowed_outtypes
+        ):
 
             # Don't call f on the missing value; those locations don't exist
             # semantically. We return _sortable_sentinel rather than None
@@ -676,9 +685,9 @@ class LabelArray(ndarray):
 
             return ret
 
-        new_categories_with_duplicates = np.vectorize(f_to_use, otypes=[object])(
-            self.categories
-        )
+        new_categories_with_duplicates = np.vectorize(
+            f_to_use, otypes=[object]
+        )(self.categories)
 
         # If f() maps multiple inputs to the same output, then we can end up
         # with the same code duplicated multiple times. Compress the categories
@@ -812,7 +821,9 @@ class _sortable_sentinel(object):
 def labelarray_where(cond, trues, falses):
     """LabelArray-aware implementation of np.where."""
     if trues.missing_value != falses.missing_value:
-        raise ValueError("Can't compute where on arrays with different missing values.")
+        raise ValueError(
+            "Can't compute where on arrays with different missing values."
+        )
 
     strs = np.where(cond, trues.as_string_array(), falses.as_string_array())
     return LabelArray(strs, missing_value=trues.missing_value)

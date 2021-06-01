@@ -15,7 +15,6 @@
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import inspect
-from six import with_metaclass
 import warnings
 
 import datetime
@@ -187,7 +186,9 @@ class EventManager(object):
     def __init__(self, create_context=None):
         self._events = []
         self._create_context = (
-            create_context if create_context is not None else lambda *_: nop_context
+            create_context
+            if create_context is not None
+            else lambda *_: nop_context
         )
 
     def add_event(self, event, prepend=False):
@@ -285,7 +286,10 @@ class ComposedRule(StatelessRule):
     """
 
     def __init__(self, first, second, composer):
-        if not (isinstance(first, StatelessRule) and isinstance(second, StatelessRule)):
+        if not (
+            isinstance(first, StatelessRule)
+            and isinstance(second, StatelessRule)
+        ):
             raise ValueError("Only two StatelessRules can be composed")
 
         self.first = first
@@ -296,7 +300,9 @@ class ComposedRule(StatelessRule):
         """
         Composes the two rules with a lazy composer.
         """
-        return self.composer(self.first.should_trigger, self.second.should_trigger, dt)
+        return self.composer(
+            self.first.should_trigger, self.second.should_trigger, dt
+        )
 
     @staticmethod
     def lazy_and(first_should_trigger, second_should_trigger, dt):
@@ -463,7 +469,7 @@ class NotHalfDay(StatelessRule):
         return self.cal.minute_to_session_label(dt) not in self.cal.early_closes
 
 
-class TradingDayOfWeekRule(with_metaclass(ABCMeta, StatelessRule)):
+class TradingDayOfWeekRule(StatelessRule, metaclass=ABCMeta):
     @preprocess(n=lossless_float_to_int("TradingDayOfWeekRule"))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_WEEK_RANGE:
@@ -508,7 +514,7 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
         super(NDaysBeforeLastTradingDayOfWeek, self).__init__(n, invert=True)
 
 
-class TradingDayOfMonthRule(with_metaclass(ABCMeta, StatelessRule)):
+class TradingDayOfMonthRule(StatelessRule, metaclass=ABCMeta):
     @preprocess(n=lossless_float_to_int("TradingDayOfMonthRule"))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_MONTH_RANGE:

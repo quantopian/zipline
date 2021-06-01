@@ -4,7 +4,6 @@ from itertools import repeat
 from textwrap import dedent
 from weakref import WeakKeyDictionary
 
-from six import with_metaclass
 from toolz import first
 
 from zipline.currency import Currency
@@ -83,7 +82,9 @@ class _BoundColumnDescr(object):
     parent classes.
     """
 
-    def __init__(self, dtype, missing_value, name, doc, metadata, currency_aware):
+    def __init__(
+        self, dtype, missing_value, name, doc, metadata, currency_aware
+    ):
         # Validating and calculating default missing values here guarantees
         # that we fail quickly if the user passes an unsupporte dtype or fails
         # to provide a missing value for a dtype that requires one
@@ -528,7 +529,9 @@ class DataSetMeta(type):
 
     @property
     def columns(self):
-        return frozenset(getattr(self, colname) for colname in self._column_names)
+        return frozenset(
+            getattr(self, colname) for colname in self._column_names
+        )
 
     @property
     def qualname(self):
@@ -551,7 +554,7 @@ class DataSetMeta(type):
         return "<DataSet: %r, domain=%s>" % (self.__name__, self.domain)
 
 
-class DataSet(with_metaclass(DataSetMeta, object)):
+class DataSet(object, metaclass=DataSetMeta):
     """
     Base class for Pipeline datasets.
 
@@ -756,7 +759,10 @@ class DataSetFamilyMeta(abc.ABCMeta):
 
         if not is_abstract:
             self.extra_dims = extra_dims = OrderedDict(
-                [(k, frozenset(v)) for k, v in OrderedDict(self.extra_dims).items()]
+                [
+                    (k, frozenset(v))
+                    for k, v in OrderedDict(self.extra_dims).items()
+                ]
             )
             if not extra_dims:
                 raise ValueError(

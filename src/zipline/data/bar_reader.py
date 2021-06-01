@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABCMeta, abstractmethod, abstractproperty
-from six import with_metaclass
 
 
 class NoDataOnDate(Exception):
@@ -42,7 +41,7 @@ class NoDataForSid(Exception):
 OHLCV = ("open", "high", "low", "close", "volume")
 
 
-class BarReader(with_metaclass(ABCMeta, object)):
+class BarReader(object, metaclass=ABCMeta):
     @abstractproperty
     def data_frequency(self):
         pass

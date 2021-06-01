@@ -15,14 +15,13 @@
 
 import abc
 from sys import float_info
-from six import with_metaclass
 from numpy import isfinite
 import zipline.utils.math_utils as zp_math
 from zipline.errors import BadOrderParameters
 from zipline.utils.compat import consistent_round
 
 
-class ExecutionStyle(with_metaclass(abc.ABCMeta)):
+class ExecutionStyle(metaclass=abc.ABCMeta):
     """Base class for order execution styles."""
 
     _exchange = None

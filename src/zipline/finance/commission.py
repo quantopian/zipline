@@ -15,7 +15,6 @@
 from abc import abstractmethod
 from collections import defaultdict
 
-from six import with_metaclass
 from toolz import merge
 
 from zipline.assets import Equity, Future
@@ -87,7 +86,7 @@ class NoCommission(CommissionModel):
 
 
 # todo: update to Python3
-class EquityCommissionModel(with_metaclass(AllowedAssetMarker, CommissionModel)):
+class EquityCommissionModel(CommissionModel, metaclass=AllowedAssetMarker):
     """
     Base class for commission models which only support equities.
     """
@@ -96,7 +95,7 @@ class EquityCommissionModel(with_metaclass(AllowedAssetMarker, CommissionModel))
 
 
 # todo: update to Python3
-class FutureCommissionModel(with_metaclass(AllowedAssetMarker, CommissionModel)):
+class FutureCommissionModel(CommissionModel, metaclass=AllowedAssetMarker):
     """
     Base class for commission models which only support futures.
     """
@@ -212,7 +211,10 @@ class PerContract(FutureCommissionModel):
     """
 
     def __init__(
-        self, cost, exchange_fee, min_trade_cost=DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE
+        self,
+        cost,
+        exchange_fee,
+        min_trade_cost=DEFAULT_MINIMUM_COST_PER_FUTURE_TRADE,
     ):
         # If 'cost' or 'exchange fee' are constants, use a dummy mapping to
         # treat them as a dictionary that always returns the same value.
@@ -254,14 +256,11 @@ class PerContract(FutureCommissionModel):
         else:
             exchange_fee = "<varies>"
 
-        return (
-            "{class_name}(cost_per_contract={cost_per_contract}, "
-            "exchange_fee={exchange_fee}, min_trade_cost={min_trade_cost})".format(
-                class_name=self.__class__.__name__,
-                cost_per_contract=cost_per_contract,
-                exchange_fee=exchange_fee,
-                min_trade_cost=self.min_trade_cost,
-            )
+        return "{class_name}(cost_per_contract={cost_per_contract}, " "exchange_fee={exchange_fee}, min_trade_cost={min_trade_cost})".format(
+            class_name=self.__class__.__name__,
+            cost_per_contract=cost_per_contract,
+            exchange_fee=exchange_fee,
+            min_trade_cost=self.min_trade_cost,
         )
 
     def calculate(self, order, transaction):

@@ -17,7 +17,6 @@ import math
 import numpy as np
 from pandas import isnull
 from toolz import merge
-from six import with_metaclass
 
 from zipline.assets import Equity, Future
 from zipline.errors import HistoryWindowStartsBeforeData
@@ -26,7 +25,10 @@ from zipline.finance.shared import AllowedAssetMarker, FinancialModelMeta
 from zipline.finance.transaction import create_transaction
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.dummy import DummyMapping
-from zipline.utils.input_validation import expect_bounded, expect_strictly_bounded
+from zipline.utils.input_validation import (
+    expect_bounded,
+    expect_strictly_bounded,
+)
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -189,11 +191,16 @@ class SlippageModel(metaclass=FinancialModelMeta):
             txn = None
 
             try:
-                execution_price, execution_volume = self.process_order(data, order)
+                execution_price, execution_volume = self.process_order(
+                    data, order
+                )
 
                 if execution_price is not None:
                     txn = create_transaction(
-                        order, data.current_dt, execution_price, execution_volume
+                        order,
+                        data.current_dt,
+                        execution_price,
+                        execution_volume,
                     )
 
             except LiquidityExceeded:
@@ -224,8 +231,7 @@ class NoSlippage(SlippageModel):
         )
 
 
-# todo: update to Python3
-class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
+class EquitySlippageModel(SlippageModel, metaclass=AllowedAssetMarker):
     """
     Base class for slippage models which only support equities.
     """
@@ -233,8 +239,7 @@ class EquitySlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
     allowed_asset_types = (Equity,)
 
 
-# todo: update to Python3
-class FutureSlippageModel(with_metaclass(AllowedAssetMarker, SlippageModel)):
+class FutureSlippageModel(SlippageModel, metaclass=AllowedAssetMarker):
     """
     Base class for slippage models which only support futures.
     """
@@ -270,7 +275,9 @@ class VolumeShareSlippage(SlippageModel):
     """
 
     def __init__(
-        self, volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT, price_impact=0.1
+        self,
+        volume_limit=DEFAULT_EQUITY_VOLUME_SLIPPAGE_BAR_LIMIT,
+        price_impact=0.1,
     ):
 
         super(VolumeShareSlippage, self).__init__()
@@ -402,7 +409,13 @@ class MarketImpactBase(SlippageModel):
 
     @abstractmethod
     def get_simulated_impact(
-        self, order, current_price, current_volume, txn_volume, mean_volume, volatility
+        self,
+        order,
+        current_price,
+        current_volume,
+        txn_volume,
+        mean_volume,
+        volatility,
     ):
         """
         Calculate simulated price impact.
@@ -436,7 +449,9 @@ class MarketImpactBase(SlippageModel):
         if not volume:
             return None, None
 
-        txn_volume = int(min(self.get_txn_volume(data, order), abs(order.open_amount)))
+        txn_volume = int(
+            min(self.get_txn_volume(data, order), abs(order.open_amount))
+        )
 
         # If the computed transaction volume is zero or a decimal value, 'int'
         # will round it down to zero. In that case just bail.
@@ -457,7 +472,9 @@ class MarketImpactBase(SlippageModel):
                 volatility=volatility,
             )
 
-        impacted_price = price + math.copysign(simulated_impact, order.direction)
+        impacted_price = price + math.copysign(
+            simulated_impact, order.direction
+        )
 
         if fill_price_worse_than_limit_price(impacted_price, order):
             return None, None
@@ -579,7 +596,13 @@ class VolatilityVolumeShare(MarketImpactBase):
         )
 
     def get_simulated_impact(
-        self, order, current_price, current_volume, txn_volume, mean_volume, volatility
+        self,
+        order,
+        current_price,
+        current_volume,
+        txn_volume,
+        mean_volume,
+        volatility,
     ):
         try:
             eta = self._eta[order.asset.root_symbol]
@@ -665,7 +688,9 @@ class FixedBasisPointsSlippage(SlippageModel):
         max_volume = int(self.volume_limit * volume)
 
         price = data.current(order.asset, "close")
-        shares_to_fill = min(abs(order.open_amount), max_volume - self.volume_for_bar)
+        shares_to_fill = min(
+            abs(order.open_amount), max_volume - self.volume_for_bar
+        )
 
         if shares_to_fill == 0:
             raise LiquidityExceeded()

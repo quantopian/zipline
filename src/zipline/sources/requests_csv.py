@@ -10,7 +10,6 @@ import pandas as pd
 from pandas import read_csv
 import pytz
 import requests
-from six import with_metaclass
 from io import StringIO
 from zipline.errors import MultipleSymbolsFound, SymbolNotFound, ZiplineError
 from zipline.protocol import DATASOURCE_TYPE, Event
@@ -111,7 +110,9 @@ SHARED_REQUESTS_KWARGS = {
 
 def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     requests_kwargs = {
-        key: val for (key, val) in kwargs.items() if key in ALLOWED_REQUESTS_KWARGS
+        key: val
+        for (key, val) in kwargs.items()
+        if key in ALLOWED_REQUESTS_KWARGS
     }
     if params_checker is not None:
         url, s_params = params_checker(url)
@@ -132,7 +133,7 @@ def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     return request_pair(requests_kwargs, url)
 
 
-class PandasCSV(with_metaclass(ABCMeta, object)):
+class PandasCSV(object, metaclass=ABCMeta):
     def __init__(
         self,
         pre_func,
@@ -240,7 +241,9 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
 
     def mask_pandas_args(self, kwargs):
         pandas_kwargs = {
-            key: val for (key, val) in kwargs.items() if key in ALLOWED_READ_CSV_KWARGS
+            key: val
+            for (key, val) in kwargs.items()
+            if key in ALLOWED_READ_CSV_KWARGS
         }
         if "usecols" in pandas_kwargs:
             usecols = pandas_kwargs["usecols"]
@@ -543,7 +546,9 @@ class PandasRequestsCSV(PandasCSV):
             # in validation, this will catch it.
             new_url = response.headers["location"]
             raise FetcherCSVRedirectError(
-                url=url, new_url=new_url, extra={"old_url": url, "new_url": new_url}
+                url=url,
+                new_url=new_url,
+                extra={"old_url": url, "new_url": new_url},
             )
 
         content_length = 0

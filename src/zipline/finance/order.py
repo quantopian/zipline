@@ -14,18 +14,23 @@
 # limitations under the License.
 import math
 import uuid
+from enum import IntEnum
 
 import zipline.protocol as zp
 from zipline.assets import Asset
-from zipline.utils.enum import enum
+
 from zipline.utils.input_validation import expect_types
 
-ORDER_STATUS = enum(
-    "OPEN",
-    "FILLED",
-    "CANCELLED",
-    "REJECTED",
-    "HELD",
+ORDER_STATUS = IntEnum(
+    "ORDER STATUS",
+    [
+        "OPEN",
+        "FILLED",
+        "CANCELLED",
+        "REJECTED",
+        "HELD",
+    ],
+    start=0,
 )
 
 SELL = 1 << 0
@@ -61,7 +66,15 @@ class Order(object):
 
     @expect_types(asset=Asset)
     def __init__(
-        self, dt, asset, amount, stop=None, limit=None, filled=0, commission=0, id=None
+        self,
+        dt,
+        asset,
+        amount,
+        stop=None,
+        limit=None,
+        filled=0,
+        commission=0,
+        id=None,
     ):
         """
         @dt - datetime.datetime that the order was placed
@@ -126,8 +139,15 @@ class Order(object):
         Update internal state based on price triggers and the
         trade event's price.
         """
-        stop_reached, limit_reached, sl_stop_reached = self.check_order_triggers(price)
-        if (stop_reached, limit_reached) != (self.stop_reached, self.limit_reached):
+        (
+            stop_reached,
+            limit_reached,
+            sl_stop_reached,
+        ) = self.check_order_triggers(price)
+        if (stop_reached, limit_reached) != (
+            self.stop_reached,
+            self.limit_reached,
+        ):
             self.dt = dt
         self.stop_reached = stop_reached
         self.limit_reached = limit_reached

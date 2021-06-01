@@ -1,5 +1,3 @@
-import unittest
-
 import numpy as np
 import pandas as pd
 
@@ -77,7 +75,9 @@ class TestConstantPrice(
     future_contract_multiplier = 2
 
     # this is the expected exposure for a position of one contract
-    future_constant_exposure = FUTURE_MINUTE_CONSTANT_CLOSE * future_contract_multiplier
+    future_constant_exposure = (
+        FUTURE_MINUTE_CONSTANT_CLOSE * future_contract_multiplier
+    )
 
     @classmethod
     def make_futures_info(cls):
@@ -178,7 +178,9 @@ class TestConstantPrice(
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_slippage(self, direction, check_portfolio_during_simulation):
+    def test_equity_slippage(
+        self, direction, check_portfolio_during_simulation
+    ):
         if direction not in ("long", "short"):
             raise ValueError(
                 "direction must be either long or short, got: %r" % direction,
@@ -289,7 +291,8 @@ class TestConstantPrice(
         )
 
         first_day_capital_used = -(
-            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE + abs(per_fill_slippage.sum())
+            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE
+            + abs(per_fill_slippage.sum())
         )
         expected_capital_used = pd.Series(0.0, index=self.closes)
         expected_capital_used.iloc[0] = first_day_capital_used
@@ -354,7 +357,9 @@ class TestConstantPrice(
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_commissions(self, direction, check_portfolio_during_simulation):
+    def test_equity_commissions(
+        self, direction, check_portfolio_during_simulation
+    ):
         if direction not in ("long", "short"):
             raise ValueError(
                 "direction must be either long or short, got: %r" % direction,
@@ -473,7 +478,8 @@ class TestConstantPrice(
         )
 
         first_day_capital_used = -(
-            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE + per_fill_commission.sum()
+            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE
+            + per_fill_commission.sum()
         )
         expected_capital_used = pd.Series(0.0, index=self.closes)
         expected_capital_used.iloc[0] = first_day_capital_used
@@ -540,7 +546,9 @@ class TestConstantPrice(
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_single_position(self, direction, check_portfolio_during_simulation):
+    def test_equity_single_position(
+        self, direction, check_portfolio_during_simulation
+    ):
         if direction not in ("long", "short"):
             raise ValueError(
                 "direction must be either long or short, got: %r" % direction,
@@ -822,7 +830,9 @@ class TestConstantPrice(
         }
 
         # we only order on the first day
-        expected_orders = [[expected_single_order]] + [[]] * (len(self.closes) - 1)
+        expected_orders = [[expected_single_order]] + [[]] * (
+            len(self.closes) - 1
+        )
 
         assert_equal(
             orders.tolist(),
@@ -952,7 +962,9 @@ class TestConstantPrice(
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_future_single_position(self, direction, check_portfolio_during_simulation):
+    def test_future_single_position(
+        self, direction, check_portfolio_during_simulation
+    ):
         if direction not in ("long", "short"):
             raise ValueError(
                 "direction must be either long or short, got: %r" % direction,
@@ -1105,7 +1117,9 @@ class TestConstantPrice(
         # gross market exposure is
         # sum(long_exposure) + sum(abs(short_exposure))
         # current notional capital is the current portfolio value
-        expected_max_leverage = self.future_constant_exposure / capital_base_series
+        expected_max_leverage = (
+            self.future_constant_exposure / capital_base_series
+        )
         assert_equal(
             perf["max_leverage"],
             expected_max_leverage,
@@ -1417,7 +1431,9 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
                 else None
             ),
             adjustment_reader=(
-                self.adjustment_reader if self.DATA_PORTAL_USE_ADJUSTMENTS else None
+                self.adjustment_reader
+                if self.DATA_PORTAL_USE_ADJUSTMENTS
+                else None
             ),
             future_minute_reader=(
                 self.bcolz_future_minute_bar_reader
@@ -1434,8 +1450,12 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
             ),
             last_available_session=self.DATA_PORTAL_LAST_AVAILABLE_SESSION,
             last_available_minute=self.DATA_PORTAL_LAST_AVAILABLE_MINUTE,
-            minute_history_prefetch_length=(self.DATA_PORTAL_MINUTE_HISTORY_PREFETCH),
-            daily_history_prefetch_length=(self.DATA_PORTAL_DAILY_HISTORY_PREFETCH),
+            minute_history_prefetch_length=(
+                self.DATA_PORTAL_MINUTE_HISTORY_PREFETCH
+            ),
+            daily_history_prefetch_length=(
+                self.DATA_PORTAL_DAILY_HISTORY_PREFETCH
+            ),
         )
 
     @classmethod
@@ -1506,7 +1526,9 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_single_position(self, direction, check_portfolio_during_simulation):
+    def test_equity_single_position(
+        self, direction, check_portfolio_during_simulation
+    ):
         if direction not in ("long", "short"):
             raise ValueError(
                 "direction must be either long or short, got: %r" % direction,
@@ -1865,7 +1887,8 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
         )
 
         expected_returns = (
-            portfolio_snapshots["portfolio_value"] / self.SIM_PARAMS_CAPITAL_BASE
+            portfolio_snapshots["portfolio_value"]
+            / self.SIM_PARAMS_CAPITAL_BASE
         ) - 1
         assert_equal(
             portfolio_snapshots["returns"],
@@ -1896,7 +1919,9 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_future_single_position(self, direction, check_portfolio_during_simulation):
+    def test_future_single_position(
+        self, direction, check_portfolio_during_simulation
+    ):
         if direction not in ("long", "short"):
             raise ValueError(
                 "direction must be either long or short, got: %r" % direction,
@@ -2055,7 +2080,10 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
             delta = -future_execution_close_prices + expected_fill_price
 
         expected_portfolio_value = pd.Series(
-            (self.SIM_PARAMS_CAPITAL_BASE + self.future_contract_multiplier * delta),
+            (
+                self.SIM_PARAMS_CAPITAL_BASE
+                + self.future_contract_multiplier * delta
+            ),
             index=self.future_closes,
         )
 
@@ -2258,7 +2286,9 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
             check_names=False,
         )
 
-        all_minutes = self.trading_calendars[Future].minutes_for_sessions_in_range(
+        all_minutes = self.trading_calendars[
+            Future
+        ].minutes_for_sessions_in_range(
             self.START_DATE,
             self.END_DATE,
         )
@@ -2300,7 +2330,8 @@ class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
         )
 
         expected_returns = (
-            portfolio_snapshots["portfolio_value"] / self.SIM_PARAMS_CAPITAL_BASE
+            portfolio_snapshots["portfolio_value"]
+            / self.SIM_PARAMS_CAPITAL_BASE
         ) - 1
         assert_equal(
             portfolio_snapshots["returns"],

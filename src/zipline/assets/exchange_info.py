@@ -1,4 +1,4 @@
-from zipline.utils.calendars import get_calendar
+from trading_calendars import get_calendar
 
 
 class ExchangeInfo(object):

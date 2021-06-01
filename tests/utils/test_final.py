@@ -1,5 +1,6 @@
 import pytest
-from abc import abstractmethod, ABCMeta
+
+# from abc import abstractmethod, ABCMeta
 from unittest import TestCase
 
 from zipline.utils.final import (

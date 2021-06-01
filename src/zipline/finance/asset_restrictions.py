@@ -6,15 +6,19 @@ import pandas as pd
 from collections import namedtuple
 from toolz import groupby
 
-from zipline.utils.enum import enum
+from enum import IntEnum
 from zipline.utils.numpy_utils import vectorized_is_element
 from zipline.assets import Asset
 
 Restriction = namedtuple("Restriction", ["asset", "effective_date", "state"])
 
-RESTRICTION_STATES = enum(
-    "ALLOWED",
-    "FROZEN",
+RESTRICTION_STATES = IntEnum(
+    "RESTRICTION_STATES",
+    [
+        "ALLOWED",
+        "FROZEN",
+    ],
+    start=0,
 )
 
 
@@ -101,10 +105,13 @@ class _UnionRestrictions(Restrictions):
 
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
-            return any(r.is_restricted(assets, dt) for r in self.sub_restrictions)
+            return any(
+                r.is_restricted(assets, dt) for r in self.sub_restrictions
+            )
 
         return reduce(
-            operator.or_, (r.is_restricted(assets, dt) for r in self.sub_restrictions)
+            operator.or_,
+            (r.is_restricted(assets, dt) for r in self.sub_restrictions),
         )
 
 
@@ -160,7 +167,9 @@ class HistoricalRestrictions(Restrictions):
         # A dict mapping each asset to its restrictions, which are sorted by
         # ascending order of effective_date
         self._restrictions_by_asset = {
-            asset: sorted(restrictions_for_asset, key=lambda x: x.effective_date)
+            asset: sorted(
+                restrictions_for_asset, key=lambda x: x.effective_date
+            )
             for asset, restrictions_for_asset in groupby(
                 lambda x: x.asset, restrictions
             ).items()
@@ -176,7 +185,8 @@ class HistoricalRestrictions(Restrictions):
 
         is_restricted = partial(self._is_restricted_for_asset, dt=dt)
         return pd.Series(
-            index=pd.Index(assets), data=vectorize(is_restricted, otypes=[bool])(assets)
+            index=pd.Index(assets),
+            data=vectorize(is_restricted, otypes=[bool])(assets),
         )
 
     def _is_restricted_for_asset(self, asset, dt):

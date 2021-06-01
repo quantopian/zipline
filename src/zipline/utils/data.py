@@ -34,7 +34,13 @@ class RollingPanel(object):
     """
 
     def __init__(
-        self, window, items, sids, cap_multiple=2, dtype=np.float64, initial_dates=None
+        self,
+        window,
+        items,
+        sids,
+        cap_multiple=2,
+        dtype=np.float64,
+        initial_dates=None,
     ):
 
         self._pos = window
@@ -204,11 +210,17 @@ class RollingPanel(object):
         major_axis = pd.DatetimeIndex(deepcopy(current_dates), tz="utc")
         if values.ndim == 3:
             return pd.Panel(
-                values, self.items, major_axis, self.minor_axis, dtype=self.dtype
+                values,
+                self.items,
+                major_axis,
+                self.minor_axis,
+                dtype=self.dtype,
             )
 
         elif values.ndim == 2:
-            return pd.DataFrame(values, major_axis, self.minor_axis, dtype=self.dtype)
+            return pd.DataFrame(
+                values, major_axis, self.minor_axis, dtype=self.dtype
+            )
 
     def set_current(self, panel):
         """
@@ -238,159 +250,3 @@ class RollingPanel(object):
     @property
     def window_length(self):
         return self._window
-
-
-class MutableIndexRollingPanel(object):
-    """
-    A version of RollingPanel that exists for backwards compatibility with
-    batch_transform. This is a copy to allow behavior of RollingPanel to drift
-    away from this without breaking this class.
-
-    This code should be considered frozen, and should not be used in the
-    future. Instead, see RollingPanel.
-    """
-
-    def __init__(self, window, items, sids, cap_multiple=2, dtype=np.float64):
-
-        self._pos = 0
-        self._window = window
-
-        self.items = _ensure_index(items)
-        self.minor_axis = _ensure_index(sids)
-
-        self.cap_multiple = cap_multiple
-        self.cap = cap_multiple * window
-
-        self.dtype = dtype
-        self.date_buf = np.empty(self.cap, dtype="M8[ns]")
-
-        self.buffer = self._create_buffer()
-
-    def _oldest_frame_idx(self):
-        return max(self._pos - self._window, 0)
-
-    def oldest_frame(self, raw=False):
-        """
-        Get the oldest frame in the panel.
-        """
-        if raw:
-            return self.buffer.values[:, self._oldest_frame_idx(), :]
-        return self.buffer.iloc[:, self._oldest_frame_idx(), :]
-
-    def set_sids(self, sids):
-        self.minor_axis = _ensure_index(sids)
-        self.buffer = self.buffer.reindex(minor_axis=self.minor_axis)
-
-    def _create_buffer(self):
-        panel = pd.Panel(
-            items=self.items,
-            minor_axis=self.minor_axis,
-            major_axis=range(self.cap),
-            dtype=self.dtype,
-        )
-        return panel
-
-    def get_current(self):
-        """
-        Get a Panel that is the current data in view. It is not safe to persist
-        these objects because internal data might change
-        """
-
-        where = slice(self._oldest_frame_idx(), self._pos)
-        major_axis = pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="utc")
-        return pd.Panel(
-            self.buffer.values[:, where, :],
-            self.items,
-            major_axis,
-            self.minor_axis,
-            dtype=self.dtype,
-        )
-
-    def set_current(self, panel):
-        """
-        Set the values stored in our current in-view data to be values of the
-        passed panel.  The passed panel must have the same indices as the panel
-        that would be returned by self.get_current.
-        """
-        where = slice(self._oldest_frame_idx(), self._pos)
-        self.buffer.values[:, where, :] = panel.values
-
-    def current_dates(self):
-        where = slice(self._oldest_frame_idx(), self._pos)
-        return pd.DatetimeIndex(deepcopy(self.date_buf[where]), tz="utc")
-
-    def _roll_data(self):
-        """
-        Roll window worth of data up to position zero.
-        Save the effort of having to expensively roll at each iteration
-        """
-
-        self.buffer.values[:, : self._window, :] = self.buffer.values[
-            :, -self._window :, :
-        ]
-        self.date_buf[: self._window] = self.date_buf[-self._window :]
-        self._pos = self._window
-
-    def add_frame(self, tick, frame, minor_axis=None, items=None):
-        """ """
-        if self._pos == self.cap:
-            self._roll_data()
-
-        if isinstance(frame, pd.DataFrame):
-            minor_axis = frame.columns
-            items = frame.index
-
-        if set(minor_axis).difference(set(self.minor_axis)) or set(items).difference(
-            set(self.items)
-        ):
-            self._update_buffer(frame)
-
-        vals = frame.T.astype(self.dtype)
-        self.buffer.loc[:, self._pos, :] = vals
-        self.date_buf[self._pos] = tick
-
-        self._pos += 1
-
-    def _update_buffer(self, frame):
-
-        # Get current frame as we only need to care about the data that is in
-        # the active window
-        old_buffer = self.get_current()
-        if self._pos >= self._window:
-            # Don't count the last major_axis entry if we're past our window,
-            # since it's about to roll off the end of the panel.
-            old_buffer = old_buffer.iloc[:, 1:, :]
-
-        nans = pd.isnull(old_buffer)
-
-        # Find minor_axes that have only nans
-        # Note that minor is axis 2
-        non_nan_cols = set(old_buffer.minor_axis[~np.all(nans, axis=(0, 1))])
-        # Determine new columns to be added
-        new_cols = set(frame.columns).difference(non_nan_cols)
-        # Update internal minor axis
-        self.minor_axis = _ensure_index(new_cols.union(non_nan_cols))
-
-        # Same for items (fields)
-        # Find items axes that have only nans
-        # Note that items is axis 0
-        non_nan_items = set(old_buffer.items[~np.all(nans, axis=(1, 2))])
-        new_items = set(frame.index).difference(non_nan_items)
-        self.items = _ensure_index(new_items.union(non_nan_items))
-
-        # :NOTE:
-        # There is a simpler and 10x faster way to do this:
-        #
-        # Reindex buffer to update axes (automatically adds nans)
-        # self.buffer = self.buffer.reindex(items=self.items,
-        #                                   major_axis=np.arange(self.cap),
-        #                                   minor_axis=self.minor_axis)
-        #
-        # However, pandas==0.12.0, for which we remain backwards compatible,
-        # has a bug in .reindex() that this triggers. Using .update() as before
-        # seems to work fine.
-
-        new_buffer = self._create_buffer()
-        new_buffer.update(self.buffer.loc[non_nan_items, :, non_nan_cols])
-
-        self.buffer = new_buffer

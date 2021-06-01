@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from distutils.version import StrictVersion
 from trading_calendars.utils.pandas_utils import days_at_time  # noqa: reexport
+from pandas.errors import PerformanceWarning
 
 pandas_version = StrictVersion(pd.__version__)
 new_pandas = pandas_version >= StrictVersion("0.19")
@@ -19,28 +20,17 @@ skip_pipeline_new_pandas = (
 )
 skip_pipeline_blaze = "Blaze doesn't play nicely with Pandas >=1.0"
 
-if pandas_version >= StrictVersion("0.20"):
 
-    def normalize_date(dt):
-        """
-        Normalize datetime.datetime value to midnight. Returns datetime.date as
-        a datetime.datetime at midnight
+def normalize_date(dt):
+    """
+    Normalize datetime.datetime value to midnight. Returns datetime.date as
+    a datetime.datetime at midnight
 
-        Returns
-        -------
-        normalized : datetime.datetime or Timestamp
-        """
-        return dt.normalize()
-
-
-else:
-    from pandas.tseries.tools import normalize_date  # noqa
-
-
-if pandas_version >= StrictVersion("0.23"):
-    from pandas.errors import PerformanceWarning
-else:
-    from pandas.core.common import PerformanceWarning
+    Returns
+    -------
+    normalized : datetime.datetime or Timestamp
+    """
+    return dt.normalize()
 
 
 def july_5th_holiday_observance(datetime_index):
@@ -232,35 +222,6 @@ def ignore_pandas_nan_categorical_warning():
         yield
 
 
-if pandas_version < StrictVersion("1.0"):
-    _INDEXER_NAMES = ["_" + name for (name, _) in pd.core.indexing.get_indexers_list()]
-
-    def clear_dataframe_indexer_caches(df):
-        """
-        Clear cached attributes from a pandas DataFrame.
-
-        By default pandas memoizes indexers (`iloc`, `loc`, `ix`, etc.) objects on
-        DataFrames, resulting in refcycles that can lead to unexpectedly long-lived
-        DataFrames. This function attempts to clear those cycles by deleting the
-        cached indexers from the frame.
-
-        Parameters
-        ----------
-        df : pd.DataFrame
-        """
-        for attr in _INDEXER_NAMES:
-            try:
-                delattr(df, attr)
-            except AttributeError:
-                pass
-
-
-else:
-
-    def clear_dataframe_indexer_caches(df):
-        pass
-
-
 def categorical_df_concat(df_list, inplace=False):
     """
     Prepare list of pandas DataFrames to be used as input to pd.concat.
@@ -376,5 +337,7 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
             bad_loc = np.flatnonzero(~same)[0]
             raise ValueError(
                 "{}\nFirst difference is at index {}: "
-                "{} != {}".format(message, bad_loc, first[bad_loc], other[bad_loc]),
+                "{} != {}".format(
+                    message, bad_loc, first[bad_loc], other[bad_loc]
+                ),
             )

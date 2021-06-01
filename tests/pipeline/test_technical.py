@@ -143,7 +143,9 @@ class TestAroon:
                 np.recarray(
                     shape=(nassets,),
                     dtype=dtype,
-                    buf=np.array([100 * 3 / 9, 100 * 5 / 9] * nassets, dtype="f8"),
+                    buf=np.array(
+                        [100 * 3 / 9, 100 * 5 / 9] * nassets, dtype="f8"
+                    ),
                 ),
             ),
         ],
@@ -154,7 +156,9 @@ class TestAroon:
         assets = pd.Index(np.arange(self.nassets, dtype=np.int64))
         shape = (self.nassets,)
         out = np.recarray(
-            shape=shape, dtype=self.dtype, buf=np.empty(shape=shape, dtype=self.dtype)
+            shape=shape,
+            dtype=self.dtype,
+            buf=np.empty(shape=shape, dtype=self.dtype),
         )
 
         aroon.compute(today, assets, out, lows, highs)
@@ -345,7 +349,7 @@ class TestIchimokuKinkoHyo:
         )
 
     @pytest.mark.parametrize(
-        "arg", {"tenkan_sen_length", "kijun_sen_length", "chikou_span_length"}
+        "arg", ["tenkan_sen_length", "kijun_sen_length", "chikou_span_length"]
     )
     def test_input_validation(self, arg):
         window_length = 52
@@ -467,13 +471,19 @@ class TestMovingAverageConvergenceDivergence:
             "MACDSignal() expected a value greater than or equal to 1"
             " for argument %r, but got 0 instead."
         )
-        with pytest.raises(ValueError, match=re.escape(template % "fast_period")):
+        with pytest.raises(
+            ValueError, match=re.escape(template % "fast_period")
+        ):
             MovingAverageConvergenceDivergenceSignal(fast_period=0)
 
-        with pytest.raises(ValueError, match=re.escape(template % "slow_period")):
+        with pytest.raises(
+            ValueError, match=re.escape(template % "slow_period")
+        ):
             MovingAverageConvergenceDivergenceSignal(slow_period=0)
 
-        with pytest.raises(ValueError, match=re.escape(template % "signal_period")):
+        with pytest.raises(
+            ValueError, match=re.escape(template % "signal_period")
+        ):
             MovingAverageConvergenceDivergenceSignal(signal_period=0)
 
         err_msg = (
@@ -549,7 +559,10 @@ class TestRSI:
             # seed(seed_value)
             # data = abs(randn(15, 3))
             # expected = [RSI(data[:, i])[-1] for i in range(3)]
-            (100, np.array([41.032913785966, 51.553585468393, 51.022005016446])),
+            (
+                100,
+                np.array([41.032913785966, 51.553585468393, 51.022005016446]),
+            ),
             (101, np.array([43.506969935466, 46.145367530182, 50.57407044197])),
             (102, np.array([46.610102205934, 47.646892444315, 52.13182788538])),
         ],
@@ -652,7 +665,9 @@ class TestAnnualizedVolatility:
         ann_vol = AnnualizedVolatility()
         today = pd.Timestamp("2016", tz="utc")
         assets = np.arange(nassets, dtype=np.float64)
-        returns = np.full((ann_vol.window_length, nassets), 0.004, dtype=np.float64)
+        returns = np.full(
+            (ann_vol.window_length, nassets), 0.004, dtype=np.float64
+        )
         out = np.empty(shape=(nassets,), dtype=np.float64)
 
         ann_vol.compute(today, assets, out, returns, 252)

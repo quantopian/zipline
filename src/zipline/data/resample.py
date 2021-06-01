@@ -16,7 +16,6 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 import pandas as pd
-from six import with_metaclass
 
 from zipline.data._resample import (
     _minute_to_session_open,
@@ -271,7 +270,9 @@ class DailyHistoryAggregator(object):
                         highs.append(last_max)
                         continue
                     elif last_visited_dt == prev_dt:
-                        curr_val = self._minute_reader.get_value(asset, dt, "high")
+                        curr_val = self._minute_reader.get_value(
+                            asset, dt, "high"
+                        )
                         if pd.isnull(curr_val):
                             val = last_max
                         elif pd.isnull(last_max):
@@ -340,7 +341,9 @@ class DailyHistoryAggregator(object):
                         lows.append(last_min)
                         continue
                     elif last_visited_dt == prev_dt:
-                        curr_val = self._minute_reader.get_value(asset, dt, "low")
+                        curr_val = self._minute_reader.get_value(
+                            asset, dt, "low"
+                        )
                         val = np.nanmin([last_min, curr_val])
                         entries[asset] = (dt_value, val)
                         lows.append(val)
@@ -578,7 +581,9 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def sessions(self):
         cal = self._calendar
         first = self._minute_bar_reader.first_trading_day
-        last = cal.minute_to_session_label(self._minute_bar_reader.last_available_dt)
+        last = cal.minute_to_session_label(
+            self._minute_bar_reader.last_available_dt
+        )
         return cal.sessions_in_range(first, last)
 
     @lazyval
@@ -599,7 +604,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         return self.trading_calendar.minute_to_session_label(last_dt)
 
 
-class ReindexBarReader(with_metaclass(ABCMeta)):
+class ReindexBarReader(metaclass=ABCMeta):
     """
     A base class for readers which reindexes results, filling in the additional
     indices with empty data.
@@ -630,7 +635,11 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
     """
 
     def __init__(
-        self, trading_calendar, reader, first_trading_session, last_trading_session
+        self,
+        trading_calendar,
+        reader,
+        first_trading_session,
+        last_trading_session,
     ):
         self._trading_calendar = trading_calendar
         self._reader = reader
