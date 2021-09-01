@@ -387,9 +387,10 @@ class SQLiteAdjustmentWriter(object):
     def _write(self, tablename, expected_dtypes, frame):
         if frame is None or frame.empty:
             # keeping the dtypes correct for empty frames is not easy
-            frame = pd.DataFrame(
-                np.array([], dtype=list(expected_dtypes.items())),
-            )
+            # frame = pd.DataFrame(
+            #     np.array([], dtype=list(expected_dtypes.items())),
+            # )
+            frame = pd.DataFrame(expected_dtypes, index=[])
         else:
             if frozenset(frame.columns) != frozenset(expected_dtypes):
                 raise ValueError(

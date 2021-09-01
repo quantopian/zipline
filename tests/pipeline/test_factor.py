@@ -45,7 +45,6 @@ from zipline.utils.numpy_utils import (
     categorical_dtype,
     datetime64ns_dtype,
     float64_dtype,
-    ignore_nanwarnings,
     int64_dtype,
     NaTns,
 )
@@ -1746,6 +1745,7 @@ class TestSpecialCases(WithUSEquityPricingPipelineEngine, ZiplineTestCase):
 
 
 class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
+    @pytest.mark.filterwarnings("ignore", module=np.lib.nanfunctions)
     @parameter_space(
         seed=[1, 2, 3],
         mask=[
@@ -1773,16 +1773,15 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             "notnull_count": F().notnull_count(),
         }
 
-        with ignore_nanwarnings():
-            expected = {
-                "mean": as_column(np.nanmean(data, axis=1)),
-                "sum": as_column(np.nansum(data, axis=1)),
-                "median": as_column(np.nanmedian(data, axis=1)),
-                "min": as_column(np.nanmin(data, axis=1)),
-                "max": as_column(np.nanmax(data, axis=1)),
-                "stddev": as_column(np.nanstd(data, axis=1)),
-                "notnull_count": as_column((~np.isnan(data)).sum(axis=1)),
-            }
+        expected = {
+            "mean": as_column(np.nanmean(data, axis=1)),
+            "sum": as_column(np.nansum(data, axis=1)),
+            "median": as_column(np.nanmedian(data, axis=1)),
+            "min": as_column(np.nanmin(data, axis=1)),
+            "max": as_column(np.nanmax(data, axis=1)),
+            "stddev": as_column(np.nanstd(data, axis=1)),
+            "notnull_count": as_column((~np.isnan(data)).sum(axis=1)),
+        }
 
         # Make sure we have test coverage for all summary funcs.
         assert set(expected) == summary_funcs.names
@@ -1829,6 +1828,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
         assert_equal(result["demean"], result["alt_demean"])
         assert_equal(result["zscore"], result["alt_zscore"])
 
+    @pytest.mark.filterwarnings("ignore", module=np.lib.nanfunctions)
     @parameter_space(
         seed=[100, 200, 300],
         mask=[
@@ -1849,9 +1849,8 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             "rescaled": (F() - F().min()) / (F().max() - F().min()),
         }
 
-        with ignore_nanwarnings():
-            mins = as_column(np.nanmin(data, axis=1))
-            maxes = as_column(np.nanmax(data, axis=1))
+        mins = as_column(np.nanmin(data, axis=1))
+        maxes = as_column(np.nanmax(data, axis=1))
 
         expected = {
             "rescaled": (data - mins) / (maxes - mins),
@@ -1864,6 +1863,7 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             mask=self.build_mask(np.ones(shape)),
         )
 
+    @pytest.mark.filterwarnings("ignore", module=np.lib.nanfunctions)
     @parameter_space(
         seed=[40, 41, 42],
         mask=[
@@ -1908,26 +1908,25 @@ class SummaryTestCase(BaseUSEquityPipelineTestCase, ZiplineTestCase):
             "notnull_count": F().fillna(-1).notnull_count(**kwargs),
         }
 
-        with ignore_nanwarnings():
-            if mask_mode == "none":
-                # If we aren't masking, we should expect the results to see the
-                # -1s.
-                expected_input = with_minus_1s
-            else:
-                # If we are masking, we should expect the results to see NaNs.
-                expected_input = with_nans
+        if mask_mode == "none":
+            # If we aren't masking, we should expect the results to see the
+            # -1s.
+            expected_input = with_minus_1s
+        else:
+            # If we are masking, we should expect the results to see NaNs.
+            expected_input = with_nans
 
-            expected = {
-                "mean": as_column(np.nanmean(expected_input, axis=1)),
-                "sum": as_column(np.nansum(expected_input, axis=1)),
-                "median": as_column(np.nanmedian(expected_input, axis=1)),
-                "min": as_column(np.nanmin(expected_input, axis=1)),
-                "max": as_column(np.nanmax(expected_input, axis=1)),
-                "stddev": as_column(np.nanstd(expected_input, axis=1)),
-                "notnull_count": as_column(
-                    (~np.isnan(expected_input)).sum(axis=1),
-                ),
-            }
+        expected = {
+            "mean": as_column(np.nanmean(expected_input, axis=1)),
+            "sum": as_column(np.nansum(expected_input, axis=1)),
+            "median": as_column(np.nanmedian(expected_input, axis=1)),
+            "min": as_column(np.nanmin(expected_input, axis=1)),
+            "max": as_column(np.nanmax(expected_input, axis=1)),
+            "stddev": as_column(np.nanstd(expected_input, axis=1)),
+            "notnull_count": as_column(
+                (~np.isnan(expected_input)).sum(axis=1),
+            ),
+        }
 
         # Make sure we have test coverage for all summary funcs.
         assert set(expected) == summary_funcs.names

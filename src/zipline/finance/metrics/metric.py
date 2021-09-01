@@ -538,7 +538,9 @@ class _ClassicRiskMetrics(object):
         tzinfo = end_date.tzinfo
         end_date = end_date.tz_convert(None)
         for period_timestamp in months:
-            period = period_timestamp.to_period(freq="%dM" % months_per)
+            period = period_timestamp.tz_localize(None).to_period(
+                freq="%dM" % months_per
+            )
             if period.end_time > end_date:
                 break
 

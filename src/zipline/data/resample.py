@@ -28,6 +28,7 @@ from zipline.data.bar_reader import NoDataOnDate
 from zipline.data.minute_bars import MinuteBarReader
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
+from zipline.utils.math_utils import nanmax, nanmin
 
 _MINUTE_TO_SESSION_OHCLV_HOW = OrderedDict(
     (
@@ -270,9 +271,7 @@ class DailyHistoryAggregator(object):
                         highs.append(last_max)
                         continue
                     elif last_visited_dt == prev_dt:
-                        curr_val = self._minute_reader.get_value(
-                            asset, dt, "high"
-                        )
+                        curr_val = self._minute_reader.get_value(asset, dt, "high")
                         if pd.isnull(curr_val):
                             val = last_max
                         elif pd.isnull(last_max):
@@ -292,7 +291,7 @@ class DailyHistoryAggregator(object):
                             dt,
                             [asset],
                         )[0].T
-                        val = np.nanmax(np.append(window, last_max))
+                        val = nanmax(np.append(window, last_max))
                         entries[asset] = (dt_value, val)
                         highs.append(val)
                         continue
@@ -303,7 +302,7 @@ class DailyHistoryAggregator(object):
                         dt,
                         [asset],
                     )[0].T
-                    val = np.nanmax(window)
+                    val = nanmax(window)
                     entries[asset] = (dt_value, val)
                     highs.append(val)
                     continue
@@ -341,10 +340,8 @@ class DailyHistoryAggregator(object):
                         lows.append(last_min)
                         continue
                     elif last_visited_dt == prev_dt:
-                        curr_val = self._minute_reader.get_value(
-                            asset, dt, "low"
-                        )
-                        val = np.nanmin([last_min, curr_val])
+                        curr_val = self._minute_reader.get_value(asset, dt, "low")
+                        val = nanmin([last_min, curr_val])
                         entries[asset] = (dt_value, val)
                         lows.append(val)
                         continue
@@ -358,7 +355,7 @@ class DailyHistoryAggregator(object):
                             dt,
                             [asset],
                         )[0].T
-                        val = np.nanmin(np.append(window, last_min))
+                        val = nanmin(np.append(window, last_min))
                         entries[asset] = (dt_value, val)
                         lows.append(val)
                         continue
@@ -369,7 +366,7 @@ class DailyHistoryAggregator(object):
                         dt,
                         [asset],
                     )[0].T
-                    val = np.nanmin(window)
+                    val = nanmin(window)
                     entries[asset] = (dt_value, val)
                     lows.append(val)
                     continue
@@ -581,9 +578,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def sessions(self):
         cal = self._calendar
         first = self._minute_bar_reader.first_trading_day
-        last = cal.minute_to_session_label(
-            self._minute_bar_reader.last_available_dt
-        )
+        last = cal.minute_to_session_label(self._minute_bar_reader.last_available_dt)
         return cal.sessions_in_range(first, last)
 
     @lazyval

@@ -46,7 +46,7 @@ def rebalance(context, data):
         order_target_percent(asset, -one_third)
 
     # Remove any assets that should no longer be in our portfolio.
-    portfolio_assets = longs | shorts
+    portfolio_assets = longs.union(shorts)
     positions = context.portfolio.positions
     for asset in positions.keys() - set(portfolio_assets):
         # This will fail if the asset was removed from our portfolio because it

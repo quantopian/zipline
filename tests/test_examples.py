@@ -112,6 +112,7 @@ class TestsExamplesTests:
 
     # some columns contain values with unique ids that will not be the same
 
+    @pytest.mark.filterwarnings("ignore: Matplotlib is currently using agg")
     @pytest.mark.parametrize(
         "benchmark_returns", [read_checked_in_benchmark_data(), None]
     )
@@ -136,9 +137,7 @@ class TestsExamplesTests:
         # Exclude positions column as the positions do not always have the
         # same order
         columns = [
-            column
-            for column in examples._cols_to_check
-            if column != "positions"
+            column for column in examples._cols_to_check if column != "positions"
         ]
         assert_equal(
             actual_perf[columns],

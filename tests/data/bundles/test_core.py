@@ -274,6 +274,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             ],
         }, "volume"
 
+    @pytest.mark.filterwarnings("ignore: Overwriting bundle with name")
     def test_ingest_assets_versions(self):
         versions = (1, 2)
 

@@ -103,23 +103,18 @@ class BcolzMinuteBarTestCase(
         self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 10.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 20.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 30.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 40.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 50.0 == volume_price
 
     def test_precision_after_scaling(self):
@@ -739,7 +734,7 @@ class BcolzMinuteBarTestCase(
                 assert_array_equal(np.zeros(9), ohlcv_window[i][0])
 
     def test_write_cols(self):
-        minute_0 = self.market_opens[self.test_calendar_start]
+        minute_0 = self.market_opens[self.test_calendar_start].tz_localize(None)
         minute_1 = minute_0 + timedelta(minutes=1)
         sid = 1
         cols = {
@@ -794,7 +789,9 @@ class BcolzMinuteBarTestCase(
 
     def test_write_cols_mismatch_length(self):
         dts = pd.date_range(
-            self.market_opens[self.test_calendar_start], periods=2, freq="min"
+            self.market_opens[self.test_calendar_start].tz_localize(None),
+            periods=2,
+            freq="min",
         ).asi8.astype("datetime64[s]")
         sid = 1
         cols = {
