@@ -21,7 +21,7 @@ jobs:
         make install &&
         ldconfig
       CIBW_BEFORE_TEST_MACOS: >
-        brew install freetype pkg-config gcc openssl hdf5 ta-lib
+        brew install freetype pkg-config gcc openssl c-blosc hdf5 ta-lib
       CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"
       CIBW_TEST_EXTRAS: test
       CIBW_BUILD_VERBOSITY: 1

@@ -38,7 +38,7 @@ jobs:
       - name: Install TA-Lib macOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          brew install freetype pkg-config gcc openssl hdf5 ta-lib
+          brew install freetype pkg-config gcc openssl c-blosc hdf5 ta-lib
 
       - name: Developer Command Prompt for Microsoft Visual C++
         uses: ilammy/msvc-dev-cmd@v1
