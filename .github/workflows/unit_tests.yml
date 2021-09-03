@@ -45,7 +45,6 @@ jobs:
 
       - name: Install TA-Lib Windows
         if: ${{ matrix.os == 'windows-latest' }}
-        shell: bash
         run: |
           powershell -Command "(New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')"
           powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')"
@@ -80,6 +79,7 @@ jobs:
           python -m pip install -U setuptools wheel
           python -m pip install -U tox tox-gh-actions
           python -m pip install -e .[test]
+        shell: bash
 
       - name: Lint with flake8
         run: "python -m flake8"
