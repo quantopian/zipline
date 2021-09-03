@@ -75,10 +75,8 @@ jobs:
           set -xe
           python -VV
           python -m site
-          python -m pip install -U pip
-          python -m pip install -U setuptools wheel
-          python -m pip install -U tox tox-gh-actions
-          python -m pip install -e .[test]
+          pip install -U pip setuptools wheel tox tox-gh-actions
+          pip install -e .[test]
         shell: bash
 
       - name: Lint with flake8
