@@ -1,10 +1,14 @@
-name: CI Tests
+name: tests
 
 on:
   workflow_dispatch:
   pull_request:
     branches:
       - main
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build:
@@ -38,7 +42,7 @@ jobs:
       - name: Install TA-Lib macOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          brew install freetype pkg-config gcc openssl hdf5 ta-lib
+          brew install freetype pkg-config gcc openssl hdf5 ta-lib c-blosc
 
       - name: Developer Command Prompt for Microsoft Visual C++
         uses: ilammy/msvc-dev-cmd@v1
@@ -72,10 +76,12 @@ jobs:
 
       - name: Install Zipline
         run: |
+          set -xe
           python -VV
           python -m site
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade tox tox-gh-actions
+          python -m pip install -U pip
+          python -m pip install -U setuptools wheel
+          python -m pip install -U tox tox-gh-actions
           python -m pip install -e .[test]
 
       - name: Lint with flake8
