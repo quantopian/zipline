@@ -114,7 +114,6 @@ def initialize(context):
             BeforeTradingStartsOnlyClock(dt),
             benchmark_source,
             NoRestrictions(),
-            None,
         )
 
         # run through the algo's simulation

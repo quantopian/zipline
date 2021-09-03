@@ -139,18 +139,12 @@ cdef class BarData:
     restrictions : zipline.finance.asset_restrictions.Restrictions
         Object that combines and returns restricted list information from
         multiple sources
-    universe_func : callable, optional
-        Function which returns the current 'universe'.  This is for
-        backwards compatibility with older API concepts.
     """
     cdef object data_portal
     cdef object simulation_dt_func
     cdef object data_frequency
     cdef object restrictions
     cdef dict _views
-    cdef object _universe_func
-    cdef object _last_calculated_universe
-    cdef object _universe_last_updated_at
     cdef bool _daily_mode
     cdef object _trading_calendar
     cdef object _is_restricted
@@ -158,7 +152,7 @@ cdef class BarData:
     cdef bool _adjust_minutes
 
     def __init__(self, data_portal, simulation_dt_func, data_frequency,
-                 trading_calendar, restrictions, universe_func=None):
+                 trading_calendar, restrictions):
         self.data_portal = data_portal
         self.simulation_dt_func = simulation_dt_func
         self.data_frequency = data_frequency
@@ -166,50 +160,10 @@ cdef class BarData:
 
         self._daily_mode = (self.data_frequency == "daily")
 
-        self._universe_func = universe_func
-        self._last_calculated_universe = None
-        self._universe_last_updated_at = None
-
         self._adjust_minutes = False
 
         self._trading_calendar = trading_calendar
         self._is_restricted = restrictions.is_restricted
-
-    cdef _get_equity_price_view(self, asset):
-        """
-        Returns a DataPortalSidView for the given asset.  Used to support the
-        data[sid(N)] public API.  Not needed if DataPortal is used standalone.
-
-        Parameters
-        ----------
-        asset : Asset
-            Asset that is being queried.
-
-        Returns
-        -------
-        SidView : Accessor into the given asset's data.
-        """
-        try:
-            self._warn_deprecated("`data[sid(N)]` is deprecated. Use "
-                                  "`data.current`.")
-            view = self._views[asset]
-        except KeyError:
-            try:
-                asset = self.data_portal.asset_finder.retrieve_asset(asset)
-            except ValueError:
-                # assume fetcher
-                pass
-            view = self._views[asset] = self._create_sid_view(asset)
-
-        return view
-
-    cdef _create_sid_view(self, asset):
-        return SidView(
-            asset,
-            self.data_portal,
-            self.simulation_dt_func,
-            self.data_frequency
-        )
 
     cdef _get_current_minute(self):
         """
@@ -741,181 +695,6 @@ cdef class BarData:
             return self._trading_calendar.minutes_for_session(
                 self.current_session
             )
-
-    #################
-    # OLD API SUPPORT
-    #################
-    cdef _calculate_universe(self):
-        if self._universe_func is None:
-            return []
-
-        simulation_dt = self.simulation_dt_func()
-        if self._last_calculated_universe is None or \
-                self._universe_last_updated_at != simulation_dt:
-            self._last_calculated_universe = self._universe_func()
-            self._universe_last_updated_at = simulation_dt
-
-        return self._last_calculated_universe
-
-    def __iter__(self):
-        self._warn_deprecated("Iterating over the assets in `data` is "
-                              "deprecated.")
-        for asset in self._calculate_universe():
-            yield asset
-
-    def __contains__(self, asset):
-        self._warn_deprecated("Checking whether an asset is in data is "
-                              "deprecated.")
-        universe = self._calculate_universe()
-        return asset in universe
-
-    def items(self):
-        self._warn_deprecated("Iterating over the assets in `data` is "
-                              "deprecated.")
-        return [(asset, self[asset]) for asset in self._calculate_universe()]
-
-    def iteritems(self):
-        self._warn_deprecated("Iterating over the assets in `data` is "
-                              "deprecated.")
-        for asset in self._calculate_universe():
-            yield asset, self[asset]
-
-    def __len__(self):
-        self._warn_deprecated("Iterating over the assets in `data` is "
-                              "deprecated.")
-
-        return len(self._calculate_universe())
-
-    def keys(self):
-        self._warn_deprecated("Iterating over the assets in `data` is "
-                              "deprecated.")
-
-        return list(self._calculate_universe())
-
-    def iterkeys(self):
-        return iter(self.keys())
-
-    def __getitem__(self, name):
-        return self._get_equity_price_view(name)
-
-    cdef _warn_deprecated(self, msg):
-        warnings.warn(
-            msg,
-            category=ZiplineDeprecationWarning,
-            stacklevel=1
-        )
-
-cdef class SidView:
-    cdef object asset
-    cdef object data_portal
-    cdef object simulation_dt_func
-    cdef object data_frequency
-
-    """
-    This class exists to temporarily support the deprecated data[sid(N)] API.
-    """
-    def __init__(self, asset, data_portal, simulation_dt_func, data_frequency):
-        """
-        Parameters
-        ---------
-        asset : Asset
-            The asset for which the instance retrieves data.
-
-        data_portal : DataPortal
-            Provider for bar pricing data.
-
-        simulation_dt_func: function
-            Function which returns the current simulation time.
-            This is usually bound to a method of TradingSimulation.
-
-        data_frequency: string
-            The frequency of the bar data; i.e. whether the data is
-            'daily' or 'minute' bars
-        """
-        self.asset = asset
-        self.data_portal = data_portal
-        self.simulation_dt_func = simulation_dt_func
-        self.data_frequency = data_frequency
-
-    def __getattr__(self, column):
-        # backwards compatibility code for Q1 API
-        if column == "close_price":
-            column = "close"
-        elif column == "open_price":
-            column = "open"
-        elif column == "dt":
-            return self.dt
-        elif column == "datetime":
-            return self.datetime
-        elif column == "sid":
-            return self.sid
-
-        return self.data_portal.get_spot_value(
-            self.asset,
-            column,
-            self.simulation_dt_func(),
-            self.data_frequency
-        )
-
-    def __contains__(self, column):
-        return self.data_portal.contains(self.asset, column)
-
-    def __getitem__(self, column):
-        return self.__getattr__(column)
-
-    property sid:
-        def __get__(self):
-            return self.asset
-
-    property dt:
-        def __get__(self):
-            return self.datetime
-
-    property datetime:
-        def __get__(self):
-            return self.data_portal.get_last_traded_dt(
-                self.asset,
-                self.simulation_dt_func(),
-                self.data_frequency)
-
-    property current_dt:
-        def __get__(self):
-            return self.simulation_dt_func()
-
-    def mavg(self, num_minutes):
-        self._warn_deprecated("The `mavg` method is deprecated.")
-        return self.data_portal.get_simple_transform(
-            self.asset, "mavg", self.simulation_dt_func(),
-            self.data_frequency, bars=num_minutes
-        )
-
-    def stddev(self, num_minutes):
-        self._warn_deprecated("The `stddev` method is deprecated.")
-        return self.data_portal.get_simple_transform(
-            self.asset, "stddev", self.simulation_dt_func(),
-            self.data_frequency, bars=num_minutes
-        )
-
-    def vwap(self, num_minutes):
-        self._warn_deprecated("The `vwap` method is deprecated.")
-        return self.data_portal.get_simple_transform(
-            self.asset, "vwap", self.simulation_dt_func(),
-            self.data_frequency, bars=num_minutes
-        )
-
-    def returns(self):
-        self._warn_deprecated("The `returns` method is deprecated.")
-        return self.data_portal.get_simple_transform(
-            self.asset, "returns", self.simulation_dt_func(),
-            self.data_frequency
-        )
-
-    cdef _warn_deprecated(self, msg):
-        warnings.warn(
-            msg,
-            category=ZiplineDeprecationWarning,
-            stacklevel=1
-        )
 
 cdef class InnerPosition:
     """The real values of a position.

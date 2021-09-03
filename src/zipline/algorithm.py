@@ -32,7 +32,6 @@ from zipline.errors import (
     AttachPipelineAfterInitialize,
     CannotOrderDelistedAsset,
     DuplicatePipelineName,
-    HistoryInInitialize,
     IncompatibleCommissionModel,
     IncompatibleSlippageModel,
     NoSuchPipeline,
@@ -269,9 +268,7 @@ class TradingAlgorithm(object):
                 asset_finder is not None
                 and asset_finder is not data_portal.asset_finder
             ):
-                raise ValueError(
-                    "Inconsistent asset_finders in TradingAlgorithm()"
-                )
+                raise ValueError("Inconsistent asset_finders in TradingAlgorithm()")
             self.asset_finder = data_portal.asset_finder
 
         self.benchmark_returns = benchmark_returns
@@ -407,8 +404,6 @@ class TradingAlgorithm(object):
 
         self.restrictions = NoRestrictions()
 
-        self._backwards_compat_universe = None
-
     def init_engine(self, get_loader):
         """
         Construct and store a PipelineEngine from loader.
@@ -490,9 +485,7 @@ class TradingAlgorithm(object):
         """
         If the clock property is not set, then create one based on frequency.
         """
-        trading_o_and_c = self.trading_calendar.schedule.loc[
-            self.sim_params.sessions
-        ]
+        trading_o_and_c = self.trading_calendar.schedule.loc[self.sim_params.sessions]
         market_closes = trading_o_and_c["market_close"]
         minutely_emission = False
 
@@ -536,9 +529,7 @@ class TradingAlgorithm(object):
 
     def _create_benchmark_source(self):
         if self.benchmark_sid is not None:
-            benchmark_asset = self.asset_finder.retrieve_asset(
-                self.benchmark_sid
-            )
+            benchmark_asset = self.asset_finder.retrieve_asset(self.benchmark_sid)
             benchmark_returns = None
         else:
 
@@ -587,21 +578,10 @@ class TradingAlgorithm(object):
             self._create_clock(),
             benchmark_source,
             self.restrictions,
-            universe_func=self._calculate_universe,
         )
 
         metrics_tracker.handle_start_of_simulation(benchmark_source)
         return self.trading_client.transform()
-
-    def _calculate_universe(self):
-        # this exists to provide backwards compatibility for older,
-        # deprecated APIs, particularly around the iterability of
-        # BarData (ie, 'for sid in data`).
-        if self._backwards_compat_universe is None:
-            self._backwards_compat_universe = self.asset_finder.retrieve_all(
-                self.asset_finder.sids
-            )
-        return self._backwards_compat_universe
 
     def compute_eager_pipelines(self):
         """
@@ -663,9 +643,7 @@ class TradingAlgorithm(object):
         for perf in perfs:
             if "daily_perf" in perf:
 
-                perf["daily_perf"].update(
-                    perf["daily_perf"].pop("recorded_vars")
-                )
+                perf["daily_perf"].update(perf["daily_perf"].pop("recorded_vars"))
                 perf["daily_perf"].update(perf["cumulative_risk_metrics"])
                 daily_perfs.append(perf["daily_perf"])
             else:
@@ -875,9 +853,7 @@ class TradingAlgorithm(object):
         )
 
         # ingest this into dataportal
-        self.data_portal.handle_extra_source(
-            csv_data_source.df, self.sim_params
-        )
+        self.data_portal.handle_extra_source(csv_data_source.df, self.sim_params)
 
         return csv_data_source
 
@@ -963,9 +939,7 @@ class TradingAlgorithm(object):
         else:
             raise ScheduleFunctionInvalidCalendar(
                 given_calendar=calendar,
-                allowed_calendars=(
-                    "[calendars.US_EQUITIES, calendars.US_FUTURES]"
-                ),
+                allowed_calendars=("[calendars.US_EQUITIES, calendars.US_FUTURES]"),
             )
 
         self.add_event(
@@ -1189,22 +1163,16 @@ class TradingAlgorithm(object):
                 " {1}.".format(asset.symbol, asset.end_date)
             )
         else:
-            last_price = self.trading_client.current_data.current(
-                asset, "price"
-            )
+            last_price = self.trading_client.current_data.current(asset, "price")
 
             if np.isnan(last_price):
                 raise CannotOrderDelistedAsset(
                     msg="Cannot order {0} on {1} as there is no last "
-                    "price for the security.".format(
-                        asset.symbol, self.datetime
-                    )
+                    "price for the security.".format(asset.symbol, self.datetime)
                 )
 
         if tolerant_equals(last_price, 0):
-            zero_message = "Price of 0 for {psid}; can't infer value".format(
-                psid=asset
-            )
+            zero_message = "Price of 0 for {psid}; can't infer value".format(psid=asset)
             if self.logger:
                 self.logger.debug(zero_message)
             # Don't place any order
@@ -1241,9 +1209,7 @@ class TradingAlgorithm(object):
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def order(
-        self, asset, amount, limit_price=None, stop_price=None, style=None
-    ):
+    def order(self, asset, amount, limit_price=None, stop_price=None, style=None):
         """Place an order for a fixed number of shares.
 
         Parameters
@@ -1297,9 +1263,7 @@ class TradingAlgorithm(object):
         amount = self.round_order(amount)
 
         # Raises a ZiplineError if invalid parameters are detected.
-        self.validate_order_params(
-            asset, amount, limit_price, stop_price, style
-        )
+        self.validate_order_params(asset, amount, limit_price, stop_price, style)
 
         # Convert deprecated limit_price and stop_price parameters to use
         # ExecutionStyle objects.
@@ -1320,9 +1284,7 @@ class TradingAlgorithm(object):
         """
         return int(round_if_near_integer(amount))
 
-    def validate_order_params(
-        self, asset, amount, limit_price, stop_price, style
-    ):
+    def validate_order_params(self, asset, amount, limit_price, stop_price, style):
         """
         Helper method for validating parameters to the order API function.
 
@@ -1355,9 +1317,7 @@ class TradingAlgorithm(object):
             )
 
     @staticmethod
-    def __convert_order_params_for_blotter(
-        asset, limit_price, stop_price, style
-    ):
+    def __convert_order_params_for_blotter(asset, limit_price, stop_price, style):
         """
         Helper method for converting deprecated limit_price and stop_price
         arguments into ExecutionStyle instances.
@@ -1379,9 +1339,7 @@ class TradingAlgorithm(object):
 
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
-    def order_value(
-        self, asset, value, limit_price=None, stop_price=None, style=None
-    ):
+    def order_value(self, asset, value, limit_price=None, stop_price=None, style=None):
         """
         Place an order for a fixed amount of money.
 
@@ -1627,11 +1585,8 @@ class TradingAlgorithm(object):
         except TypeError:
             self._symbol_lookup_date = pd.Timestamp(dt).tz_convert("UTC")
         except ValueError:
-            raise UnsupportedDatetimeFormat(
-                input=dt, method="set_symbol_lookup_date"
-            )
+            raise UnsupportedDatetimeFormat(input=dt, method="set_symbol_lookup_date")
 
-    # Remain backwards compatibility
     @property
     def data_frequency(self):
         return self.sim_params.data_frequency
@@ -1925,9 +1880,7 @@ class TradingAlgorithm(object):
         """
         style = MarketOrder()
         order_args = [
-            (asset, amount, style)
-            for (asset, amount) in share_counts.items()
-            if amount
+            (asset, amount, style) for (asset, amount) in share_counts.items() if amount
         ]
         return self.blotter.batch_order(order_args)
 
@@ -1996,55 +1949,6 @@ class TradingAlgorithm(object):
             order_id = order_param.id
 
         self.blotter.cancel(order_id)
-
-    @api_method
-    @require_initialized(HistoryInInitialize())
-    def history(self, bar_count, frequency, field, ffill=True):
-        """DEPRECATED: use ``data.history`` instead."""
-        warnings.warn(
-            "The `history` method is deprecated.  Use `data.history` instead.",
-            category=ZiplineDeprecationWarning,
-            stacklevel=4,
-        )
-
-        return self.get_history_window(
-            bar_count, frequency, self._calculate_universe(), field, ffill
-        )
-
-    def get_history_window(self, bar_count, frequency, assets, field, ffill):
-        if not self._in_before_trading_start:
-            return self.data_portal.get_history_window(
-                assets,
-                self.datetime,
-                bar_count,
-                frequency,
-                field,
-                self.data_frequency,
-                ffill,
-            )
-        else:
-            # If we are in before_trading_start, we need to get the window
-            # as of the previous market minute
-            adjusted_dt = self.trading_calendar.previous_minute(self.datetime)
-
-            window = self.data_portal.get_history_window(
-                assets,
-                adjusted_dt,
-                bar_count,
-                frequency,
-                field,
-                self.data_frequency,
-                ffill,
-            )
-
-            # Get the adjustments between the last market minute and the
-            # current before_trading_start dt and apply to the window
-            adjs = self.data_portal.get_adjustments(
-                assets, field, adjusted_dt, self.datetime
-            )
-            window = window * adjs
-
-            return window
 
     ####################
     # Account Controls #
@@ -2383,9 +2287,7 @@ class TradingAlgorithm(object):
         # until chunksize days of data have been loaded.
         sim_end_session = self.sim_params.end_session
 
-        end_loc = min(
-            start_date_loc + chunksize, sessions.get_loc(sim_end_session)
-        )
+        end_loc = min(start_date_loc + chunksize, sessions.get_loc(sim_end_session))
 
         end_session = sessions[end_loc]
 
@@ -2424,11 +2326,7 @@ class TradingAlgorithm(object):
         """
         Return a list of all the TradingAlgorithm API methods.
         """
-        return [
-            fn
-            for fn in vars(cls).values()
-            if getattr(fn, "is_api_method", False)
-        ]
+        return [fn for fn in vars(cls).values() if getattr(fn, "is_api_method", False)]
 
 
 # Map from calendar name to default domain for that calendar.

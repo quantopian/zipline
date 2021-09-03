@@ -12,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from warnings import warn
-
 import pandas as pd
 
 from .assets import Asset
@@ -110,58 +108,8 @@ class Event(object):
         return pd.Series(self.__dict__, index=index)
 
 
-def _deprecated_getitem_method(name, attrs):
-    """Create a deprecated ``__getitem__`` method that tells users to use
-    getattr instead.
-
-    Parameters
-    ----------
-    name : str
-        The name of the object in the warning message.
-    attrs : iterable[str]
-        The set of allowed attributes.
-
-    Returns
-    -------
-    __getitem__ : callable[any, str]
-        The ``__getitem__`` method to put in the class dict.
-    """
-    attrs = frozenset(attrs)
-    msg = (
-        "'{name}[{attr!r}]' is deprecated, please use"
-        " '{name}.{attr}' instead"
-    )
-
-    def __getitem__(self, key):
-        """``__getitem__`` is deprecated, please use attribute access instead."""
-        warn(msg.format(name=name, attr=key), DeprecationWarning, stacklevel=2)
-        if key in attrs:
-            return getattr(self, key)
-        raise KeyError(key)
-
-    return __getitem__
-
-
 class Order(Event):
-    # If you are adding new attributes, don't update this set. This method
-    # is deprecated to normal attribute access so we don't want to encourage
-    # new usages.
-    __getitem__ = _deprecated_getitem_method(
-        "order",
-        {
-            "dt",
-            "sid",
-            "amount",
-            "stop",
-            "limit",
-            "id",
-            "filled",
-            "commission",
-            "stop_reached",
-            "limit_reached",
-            "created",
-        },
-    )
+    pass
 
 
 class Portfolio(object):
@@ -211,24 +159,6 @@ class Portfolio(object):
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
-    # If you are adding new attributes, don't update this set. This method
-    # is deprecated to normal attribute access so we don't want to encourage
-    # new usages.
-    __getitem__ = _deprecated_getitem_method(
-        "portfolio",
-        {
-            "capital_used",
-            "starting_cash",
-            "portfolio_value",
-            "pnl",
-            "returns",
-            "cash",
-            "positions",
-            "start_date",
-            "positions_value",
-        },
-    )
-
     @property
     def current_portfolio_weights(self):
         """
@@ -242,9 +172,7 @@ class Portfolio(object):
         position_values = pd.Series(
             {
                 asset: (
-                    position.last_sale_price
-                    * position.amount
-                    * asset.price_multiplier
+                    position.last_sale_price * position.amount * asset.price_multiplier
                 )
                 for asset, position in self.positions.items()
             },
@@ -286,32 +214,6 @@ class Account(object):
 
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
-
-    # If you are adding new attributes, don't update this set. This method
-    # is deprecated to normal attribute access so we don't want to encourage
-    # new usages.
-    __getitem__ = _deprecated_getitem_method(
-        "account",
-        {
-            "settled_cash",
-            "accrued_interest",
-            "buying_power",
-            "equity_with_loan",
-            "total_positions_value",
-            "total_positions_exposure",
-            "regt_equity",
-            "regt_margin",
-            "initial_margin_requirement",
-            "maintenance_margin_requirement",
-            "available_funds",
-            "excess_liquidity",
-            "cushion",
-            "day_trades_remaining",
-            "leverage",
-            "net_leverage",
-            "net_liquidation",
-        },
-    )
 
 
 class Position(object):
@@ -361,49 +263,6 @@ class Position(object):
             )
         }
 
-    # If you are adding new attributes, don't update this set. This method
-    # is deprecated to normal attribute access so we don't want to encourage
-    # new usages.
-    __getitem__ = _deprecated_getitem_method(
-        "position",
-        {
-            "sid",
-            "amount",
-            "cost_basis",
-            "last_sale_price",
-            "last_sale_date",
-        },
-    )
-
-
-# Copied from Position and renamed.  This is used to handle cases where a user
-# does something like `context.portfolio.positions[100]` instead of
-# `context.portfolio.positions[sid(100)]`.
-class _DeprecatedSidLookupPosition(object):
-    def __init__(self, sid):
-        self.sid = sid
-        self.amount = 0
-        self.cost_basis = 0.0  # per share
-        self.last_sale_price = 0.0
-        self.last_sale_date = None
-
-    def __repr__(self):
-        return "_DeprecatedSidLookupPosition({0})".format(self.__dict__)
-
-    # If you are adding new attributes, don't update this set. This method
-    # is deprecated to normal attribute access so we don't want to encourage
-    # new usages.
-    __getitem__ = _deprecated_getitem_method(
-        "position",
-        {
-            "sid",
-            "amount",
-            "cost_basis",
-            "last_sale_price",
-            "last_sale_date",
-        },
-    )
-
 
 class Positions(dict):
     """A dict-like object containing the algorithm's current positions."""
@@ -411,15 +270,8 @@ class Positions(dict):
     def __missing__(self, key):
         if isinstance(key, Asset):
             return Position(InnerPosition(key))
-        elif isinstance(key, int):
-            warn(
-                "Referencing positions by integer is deprecated."
-                " Use an asset instead."
-            )
-        else:
-            warn(
-                "Position lookup expected a value of type Asset but got {0}"
-                " instead.".format(type(key).__name__)
-            )
 
-        return _DeprecatedSidLookupPosition(key)
+        raise ValueError(
+            "Position lookup expected a value of type Asset"
+            f" but got {type(key).__name__} instead"
+        )

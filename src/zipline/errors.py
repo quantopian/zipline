@@ -306,14 +306,6 @@ at frequency '{data_frequency}'.
 """.strip()
 
 
-class HistoryInInitialize(ZiplineError):
-    """
-    Raised when an algorithm calls history() in initialize.
-    """
-
-    msg = "history() should only be called in handle_data()"
-
-
 class OrderInBeforeTradingStart(ZiplineError):
     """
     Raised when an algorithm calls an order method in before_trading_start.

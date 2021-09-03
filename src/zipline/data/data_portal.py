@@ -34,7 +34,10 @@ from zipline.data.continuous_future_reader import (
     ContinuousFutureSessionBarReader,
     ContinuousFutureMinuteBarReader,
 )
-from zipline.assets.roll_finder import CalendarRollFinder, VolumeRollFinder
+from zipline.assets.roll_finder import (
+    CalendarRollFinder,
+    VolumeRollFinder,
+)
 from zipline.data.dispatch_bar_reader import (
     AssetDispatchMinuteBarReader,
     AssetDispatchSessionBarReader,
@@ -49,12 +52,9 @@ from zipline.data.history_loader import (
     MinuteHistoryLoader,
 )
 from zipline.data.bar_reader import NoDataOnDate
-from zipline.utils.math_utils import nansum, nanmean, nanstd
-from zipline.utils.memoize import remember_last, weak_lru_cache
-from zipline.utils.pandas_utils import (
-    normalize_date,
-    timedelta_to_integral_minutes,
-)
+
+from zipline.utils.memoize import remember_last
+from zipline.utils.pandas_utils import normalize_date
 from zipline.errors import HistoryWindowStartsBeforeData
 
 
@@ -1211,128 +1211,6 @@ class DataPortal(object):
             return [x for x in assets if isinstance(x, Asset)]
         else:
             return [assets] if isinstance(assets, Asset) else []
-
-    # cache size picked somewhat loosely.  this code exists purely to
-    # handle deprecated API.
-    @weak_lru_cache(20)
-    def _get_minute_count_for_transform(self, ending_minute, days_count):
-        # This function works in three steps.
-        # Step 1. Count the minutes from ``ending_minute`` to the start of its
-        #         session.
-        # Step 2. Count the minutes from the prior ``days_count - 1`` sessions.
-        # Step 3. Return the sum of the results from steps (1) and (2).
-
-        # Example (NYSE Calendar)
-        #     ending_minute = 2016-12-28 9:40 AM US/Eastern
-        #     days_count = 3
-        # Step 1. Calculate that there are 10 minutes in the ending session.
-        # Step 2. Calculate that there are 390 + 210 = 600 minutes in the prior
-        #         two sessions. (Prior sessions are 2015-12-23 and 2015-12-24.)
-        #         2015-12-24 is a half day.
-        # Step 3. Return 600 + 10 = 610.
-
-        cal = self.trading_calendar
-
-        ending_session = cal.minute_to_session_label(
-            ending_minute,
-            direction="none",  # It's an error to pass a non-trading minute.
-        )
-
-        # Assume that calendar days are always full of contiguous minutes,
-        # which means we can just take 1 + (number of minutes between the last
-        # minute and the start of the session). We add one so that we include
-        # the ending minute in the total.
-        ending_session_minute_count = (
-            timedelta_to_integral_minutes(
-                ending_minute - cal.open_and_close_for_session(ending_session)[0]
-            )
-            + 1
-        )
-
-        if days_count == 1:
-            # We just need sessions for the active day.
-            return ending_session_minute_count
-
-        # XXX: We're subtracting 2 here to account for two offsets:
-        # 1. We only want ``days_count - 1`` sessions, since we've already
-        #    accounted for the ending session above.
-        # 2. The API of ``sessions_window`` is to return one more session than
-        #    the requested number.  I don't think any consumers actually want
-        #    that behavior, but it's the tested and documented behavior right
-        #    now, so we have to request one less session than we actually want.
-        completed_sessions = cal.sessions_window(
-            cal.previous_session_label(ending_session),
-            2 - days_count,
-        )
-
-        completed_sessions_minute_count = (
-            self.trading_calendar.minutes_count_for_sessions_in_range(
-                completed_sessions[0], completed_sessions[-1]
-            )
-        )
-        return ending_session_minute_count + completed_sessions_minute_count
-
-    def get_simple_transform(
-        self, asset, transform_name, dt, data_frequency, bars=None
-    ):
-        if transform_name == "returns":
-            # returns is always calculated over the last 2 days, regardless
-            # of the simulation's data frequency.
-            hst = self.get_history_window(
-                [asset],
-                dt,
-                2,
-                "1d",
-                "price",
-                data_frequency,
-                ffill=True,
-            )[asset]
-
-            return (hst.iloc[-1] - hst.iloc[0]) / hst.iloc[0]
-
-        if bars is None:
-            raise ValueError("bars cannot be None!")
-
-        if data_frequency == "minute":
-            freq_str = "1m"
-            calculated_bar_count = int(self._get_minute_count_for_transform(dt, bars))
-        else:
-            freq_str = "1d"
-            calculated_bar_count = bars
-
-        price_arr = self.get_history_window(
-            [asset],
-            dt,
-            calculated_bar_count,
-            freq_str,
-            "price",
-            data_frequency,
-            ffill=True,
-        )[asset]
-
-        if transform_name == "mavg":
-            return nanmean(price_arr)
-        elif transform_name == "stddev":
-            return nanstd(price_arr, ddof=1)
-        elif transform_name == "vwap":
-            volume_arr = self.get_history_window(
-                [asset],
-                dt,
-                calculated_bar_count,
-                freq_str,
-                "volume",
-                data_frequency,
-                ffill=True,
-            )[asset]
-
-            vol_sum = nansum(volume_arr)
-
-            try:
-                ret = nansum(price_arr * volume_arr) / vol_sum
-            except ZeroDivisionError:
-                ret = np.nan
-
-            return ret
 
     def get_current_future_chain(self, continuous_future, dt):
         """

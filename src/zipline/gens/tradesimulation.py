@@ -41,7 +41,6 @@ class AlgorithmSimulator(object):
         clock,
         benchmark_source,
         restrictions,
-        universe_func,
     ):
 
         # ==============
@@ -63,7 +62,7 @@ class AlgorithmSimulator(object):
 
         # This object is the way that user algorithms interact with OHLCV data,
         # fetcher data, and some API methods like `data.can_trade`.
-        self.current_data = self._create_bar_data(universe_func)
+        self.current_data = self._create_bar_data()
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -88,14 +87,13 @@ class AlgorithmSimulator(object):
     def get_simulation_dt(self):
         return self.simulation_dt
 
-    def _create_bar_data(self, universe_func):
+    def _create_bar_data(self):
         return BarData(
             data_portal=self.data_portal,
             simulation_dt_func=self.get_simulation_dt,
             data_frequency=self.sim_params.data_frequency,
             trading_calendar=self.algo.trading_calendar,
             restrictions=self.restrictions,
-            universe_func=universe_func,
         )
 
     # TODO: simplify
@@ -176,14 +174,11 @@ class AlgorithmSimulator(object):
 
             # handle any splits that impact any positions or any open orders.
             assets_we_care_about = (
-                metrics_tracker.positions.keys()
-                | algo.blotter.open_orders.keys()
+                metrics_tracker.positions.keys() | algo.blotter.open_orders.keys()
             )
 
             if assets_we_care_about:
-                splits = data_portal.get_splits(
-                    assets_we_care_about, midnight_dt
-                )
+                splits = data_portal.get_splits(assets_we_care_about, midnight_dt)
                 if splits:
                     algo.blotter.process_splits(splits)
                     metrics_tracker.handle_splits(splits)
@@ -296,9 +291,7 @@ class AlgorithmSimulator(object):
         # would not be processed until the first bar of the next day.
         blotter = algo.blotter
         assets_to_cancel = [
-            asset
-            for asset in blotter.open_orders
-            if past_auto_close_date(asset)
+            asset for asset in blotter.open_orders if past_auto_close_date(asset)
         ]
         for asset in assets_to_cancel:
             blotter.cancel_all_orders_for_asset(asset)

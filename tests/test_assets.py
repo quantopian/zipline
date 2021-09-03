@@ -25,7 +25,6 @@ import string
 import sys
 from types import GetSetDescriptorType
 import uuid
-import warnings
 
 from parameterized import parameterized
 import numpy as np
@@ -1006,29 +1005,6 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         )
         assert [matches] == [self.asset_finder.retrieve_asset(1)]
         assert missing == []
-
-    def test_security_dates_warning(self):
-
-        # Build an asset with an end_date
-        eq_end = pd.Timestamp("2012-01-01", tz="UTC")
-        equity_asset = Equity(
-            1,
-            symbol="TESTEQ",
-            end_date=eq_end,
-            exchange_info=ExchangeInfo("TEST", "TEST", "??"),
-        )
-
-        # Catch all warnings
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered
-            warnings.simplefilter("always")
-            equity_asset.security_start_date
-            equity_asset.security_end_date
-            equity_asset.security_name
-            # Verify the warning
-            assert 3 == len(w)
-            for warning in w:
-                assert issubclass(warning.category, DeprecationWarning)
 
     def test_compute_lifetimes(self):
         assets_per_exchange = 4

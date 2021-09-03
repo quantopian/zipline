@@ -17,7 +17,6 @@ from collections import OrderedDict
 from numpy import array, append, nan, full
 from numpy.testing import assert_almost_equal
 import pandas as pd
-from pandas import Timedelta
 
 from zipline.assets import Equity, Future
 from zipline.data.data_portal import HISTORY_FREQUENCIES, OHLCV_FIELDS
@@ -452,48 +451,6 @@ class DataPortalTestBase(WithDataPortal, WithTradingSessions):
                 expected,
                 err_msg="at dt={} perspective={}".format(dt, perspective_dt),
             )
-
-    def test_bar_count_for_simple_transforms(self):
-        # July 2015
-        # Su Mo Tu We Th Fr Sa
-        #           1  2  3  4
-        #  5  6  7  8  9 10 11
-        # 12 13 14 15 16 17 18
-        # 19 20 21 22 23 24 25
-        # 26 27 28 29 30 31
-
-        # half an hour into july 9, getting a 4-"day" window should get us
-        # all the minutes of 7/6, 7/7, 7/8, and 31 minutes of 7/9
-
-        july_9_dt = self.trading_calendar.open_and_close_for_session(
-            pd.Timestamp("2015-07-09", tz="UTC")
-        )[0] + Timedelta("30 minutes")
-
-        assert (3 * 390) + 31 == self.data_portal._get_minute_count_for_transform(
-            july_9_dt, 4
-        )
-
-        #    November 2015
-        # Su Mo Tu We Th Fr Sa
-        #  1  2  3  4  5  6  7
-        #  8  9 10 11 12 13 14
-        # 15 16 17 18 19 20 21
-        # 22 23 24 25 26 27 28
-        # 29 30
-
-        # nov 26th closed
-        # nov 27th was an early close
-
-        # half an hour into nov 30, getting a 4-"day" window should get us
-        # all the minutes of 11/24, 11/25, 11/27 (half day!), and 31 minutes
-        # of 11/30
-        nov_30_dt = self.trading_calendar.open_and_close_for_session(
-            pd.Timestamp("2015-11-30", tz="UTC")
-        )[0] + Timedelta("30 minutes")
-
-        assert 390 + 390 + 210 + 31 == self.data_portal._get_minute_count_for_transform(
-            nov_30_dt, 4
-        )
 
     def test_get_last_traded_dt_minute(self):
         minutes = self.nyse_calendar.minutes_for_session(self.trading_days[2])

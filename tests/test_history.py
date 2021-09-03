@@ -22,7 +22,6 @@ import pandas as pd
 from zipline._protocol import handle_non_market_minutes, BarData
 from zipline.assets import Asset, Equity
 from zipline.errors import (
-    HistoryInInitialize,
     HistoryWindowStartsBeforeData,
 )
 from zipline.finance.asset_restrictions import NoRestrictions
@@ -203,34 +202,22 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
             [
                 {
                     # only care about ex date, the other dates don't matter here
-                    "ex_date": pd.Timestamp(
-                        "2015-01-06", tz="UTC"
-                    ).to_datetime64(),
-                    "record_date": pd.Timestamp(
-                        "2015-01-06", tz="UTC"
-                    ).to_datetime64(),
+                    "ex_date": pd.Timestamp("2015-01-06", tz="UTC").to_datetime64(),
+                    "record_date": pd.Timestamp("2015-01-06", tz="UTC").to_datetime64(),
                     "declared_date": pd.Timestamp(
                         "2015-01-06", tz="UTC"
                     ).to_datetime64(),
-                    "pay_date": pd.Timestamp(
-                        "2015-01-06", tz="UTC"
-                    ).to_datetime64(),
+                    "pay_date": pd.Timestamp("2015-01-06", tz="UTC").to_datetime64(),
                     "amount": 2.0,
                     "sid": cls.DIVIDEND_ASSET_SID,
                 },
                 {
-                    "ex_date": pd.Timestamp(
-                        "2015-01-07", tz="UTC"
-                    ).to_datetime64(),
-                    "record_date": pd.Timestamp(
-                        "2015-01-07", tz="UTC"
-                    ).to_datetime64(),
+                    "ex_date": pd.Timestamp("2015-01-07", tz="UTC").to_datetime64(),
+                    "record_date": pd.Timestamp("2015-01-07", tz="UTC").to_datetime64(),
                     "declared_date": pd.Timestamp(
                         "2015-01-07", tz="UTC"
                     ).to_datetime64(),
-                    "pay_date": pd.Timestamp(
-                        "2015-01-07", tz="UTC"
-                    ).to_datetime64(),
+                    "pay_date": pd.Timestamp("2015-01-07", tz="UTC").to_datetime64(),
                     "amount": 4.0,
                     "sid": cls.DIVIDEND_ASSET_SID,
                 },
@@ -255,9 +242,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
         )
 
     # TODO: simplify (flake8)
-    def verify_regular_dt(
-        self, idx, dt, mode, fields=None, assets=None
-    ):  # noqa: C901
+    def verify_regular_dt(self, idx, dt, mode, fields=None, assets=None):  # noqa: C901
         if mode == "daily":
             freq = "1d"
         else:
@@ -344,16 +329,13 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
 
                             # and some real values
                             np.testing.assert_array_equal(
-                                np.array(range(base, base + present_count + 1))
-                                * 100,
+                                np.array(range(base, base + present_count + 1)) * 100,
                                 asset_series[(9 - present_count) :],
                             )
 
                         if asset == self.ASSET3:
                             # asset3 is all zeros, no volume yet
-                            np.testing.assert_array_equal(
-                                np.zeros(10), asset_series
-                            )
+                            np.testing.assert_array_equal(np.zeros(10), asset_series)
                 else:
                     # asset3 should have data every 10 minutes
                     # construct an array full of nans, put something in the
@@ -380,9 +362,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                         if asset == self.ASSET2:
                             np.testing.assert_array_equal(
                                 reindex_to_primary_calendar(
-                                    np.array(
-                                        range(base + idx - 9, base + idx + 1)
-                                    ),
+                                    np.array(range(base + idx - 9, base + idx + 1)),
                                     field,
                                 ),
                                 asset_series,
@@ -394,9 +374,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                             )
                     elif field == "volume":
                         asset3_answer_key = np.zeros(10)
-                        asset3_answer_key[-position_from_end] = (
-                            value_for_asset3 * 100
-                        )
+                        asset3_answer_key[-position_from_end] = value_for_asset3 * 100
                         asset3_answer_key = reindex_to_primary_calendar(
                             asset3_answer_key,
                             field,
@@ -405,9 +383,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                         if asset == self.ASSET2:
                             np.testing.assert_array_equal(
                                 reindex_to_primary_calendar(
-                                    np.array(
-                                        range(base + idx - 9, base + idx + 1)
-                                    )
+                                    np.array(range(base + idx - 9, base + idx + 1))
                                     * 100,
                                     field,
                                 ),
@@ -436,9 +412,7 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                         if asset == self.ASSET3:
                             # Second part begins on the session after
                             # `position_from_end` on the NYSE calendar.
-                            second_begin = dt - equity_cal.day * (
-                                position_from_end - 1
-                            )
+                            second_begin = dt - equity_cal.day * (position_from_end - 1)
 
                             # First part goes up until the start of the
                             # second part, because we forward-fill.
@@ -467,17 +441,13 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                                 )
                             else:
                                 np.testing.assert_array_equal(
-                                    np.array(
-                                        [decile_count * 10 - 9]
-                                        * len(first_part)
-                                    ),
+                                    np.array([decile_count * 10 - 9] * len(first_part)),
                                     first_part,
                                 )
 
                                 np.testing.assert_array_equal(
                                     np.array(
-                                        [decile_count * 10 + 1]
-                                        * len(second_part)
+                                        [decile_count * 10 + 1] * len(second_part)
                                     ),
                                     second_part,
                                 )
@@ -500,8 +470,7 @@ def check_internal_consistency(bar_data, assets, fields, bar_count, freq):
     }
 
     multi_asset_dict = {
-        field: bar_data.history(asset_list, field, bar_count, freq)
-        for field in fields
+        field: bar_data.history(asset_list, field, bar_count, freq) for field in fields
     }
 
     df = bar_data.history(asset_list, field_list, bar_count, freq)
@@ -512,13 +481,9 @@ def check_internal_consistency(bar_data, assets, fields, bar_count, freq):
         for asset in asset_list:
             series = bar_data.history(asset, field, bar_count, freq)
 
-            np.testing.assert_array_equal(
-                series, multi_asset_dict[field][asset]
-            )
+            np.testing.assert_array_equal(series, multi_asset_dict[field][asset])
 
-            np.testing.assert_array_equal(
-                series, multi_field_dict[asset][field]
-            )
+            np.testing.assert_array_equal(series, multi_field_dict[asset][field])
 
             np.testing.assert_array_equal(
                 series, df.loc[pd.IndexSlice[:, asset], field]
@@ -538,9 +503,7 @@ MINUTE_FIELD_INFO = {
 }
 
 
-class MinuteEquityHistoryTestCase(
-    WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCase
-):
+class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCase):
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
     DATA_PORTAL_FIRST_TRADING_DAY = zf.alias("TRADING_START_DT")
 
@@ -621,29 +584,27 @@ class MinuteEquityHistoryTestCase(
         )
         return data.items()
 
-    def test_history_in_initialize(self):
-        algo_text = dedent(
-            """\
-            from zipline.api import history
+    # def test_history_in_initialize(self):
+    #     algo_text = dedent(
+    #         """\
+    #         from zipline.api import history
 
-            def initialize(context):
-                history([1], 10, '1d', 'price')
+    #         def initialize(context):
+    #             history([1], 10, '1d', 'price')
 
-            def handle_data(context, data):
-                pass
-            """
-        )
-        algo = self.make_algo(script=algo_text)
-        with pytest.raises(HistoryInInitialize):
-            algo.run()
+    #         def handle_data(context, data):
+    #             pass
+    #         """
+    #     )
+    #     algo = self.make_algo(script=algo_text)
+    #     with pytest.raises(HistoryInInitialize):
+    #         algo.run()
 
     def test_negative_bar_count(self):
         """
         Negative bar counts leak future information.
         """
-        with pytest.raises(
-            ValueError, match="bar_count must be >= 1, but got -1"
-        ):
+        with pytest.raises(ValueError, match="bar_count must be >= 1, but got -1"):
             self.data_portal.get_history_window(
                 [self.ASSET1],
                 pd.Timestamp("2015-01-07 14:35", tz="UTC"),
@@ -814,13 +775,9 @@ class MinuteEquityHistoryTestCase(
                     np.testing.assert_array_equal(np.zeros(10), asset2_series)
                     np.testing.assert_array_equal(np.zeros(10), asset3_series)
                 else:
-                    np.testing.assert_array_equal(
-                        np.full(10, np.nan), asset2_series
-                    )
+                    np.testing.assert_array_equal(np.full(10, np.nan), asset2_series)
 
-                    np.testing.assert_array_equal(
-                        np.full(10, np.nan), asset3_series
-                    )
+                    np.testing.assert_array_equal(np.full(10, np.nan), asset3_series)
 
     @parameterized.expand(
         [
@@ -887,9 +844,7 @@ class MinuteEquityHistoryTestCase(
 
         for idx, minute in enumerate(minutes):
             bar_data = self.create_bardata(lambda: minute)
-            check_internal_consistency(
-                bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, "1m"
-            )
+            check_internal_consistency(bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, "1m")
 
         # Reset data portal because it has advanced past next test date.
         data_portal = self.make_data_portal()
@@ -954,17 +909,13 @@ class MinuteEquityHistoryTestCase(
                 np.testing.assert_array_equal(
                     range(76800, 78101, 100), window["volume"][0:14]
                 )
-                np.testing.assert_array_equal(
-                    np.zeros(16), window["volume"][-16:]
-                )
+                np.testing.assert_array_equal(np.zeros(16), window["volume"][-16:])
             else:
                 np.testing.assert_array_equal(
                     np.array(range(768, 782)) + MINUTE_FIELD_INFO[field],
                     window[field][0:14],
                 )
-                np.testing.assert_array_equal(
-                    np.full(16, np.nan), window[field][-16:]
-                )
+                np.testing.assert_array_equal(np.full(16, np.nan), window[field][-16:])
 
         # now do a smaller window that is entirely contained after the asset
         # ends
@@ -1179,9 +1130,7 @@ class MinuteEquityHistoryTestCase(
         )
 
         with handle_non_market_minutes(bar_data):
-            bar_data.history(
-                pd.Index([self.ASSET1, self.ASSET2]), "high", 5, "1m"
-            )
+            bar_data.history(pd.Index([self.ASSET1, self.ASSET2]), "high", 5, "1m")
 
     # for some obscure reason at best 2 of 3 cases of can pass depending on */ order
     # in last two assert_array_equal
@@ -1240,9 +1189,7 @@ class MinuteEquityHistoryTestCase(
             values = bar_data.history(
                 self.SPLIT_ASSET, ["open", "volume"], window_length, "1m"
             )
-            np.testing.assert_array_equal(
-                values.open.values[:10], adj_expected["open"]
-            )
+            np.testing.assert_array_equal(values.open.values[:10], adj_expected["open"])
             np.testing.assert_array_equal(
                 values.volume.values[:10], adj_expected["volume"]
             )
@@ -1266,15 +1213,11 @@ class MinuteEquityHistoryTestCase(
                 "1m",
             )
             np.testing.assert_array_equal(
-                values.loc[pd.IndexSlice[:, self.SPLIT_ASSET], "open"].values[
-                    :10
-                ],
+                values.loc[pd.IndexSlice[:, self.SPLIT_ASSET], "open"].values[:10],
                 adj_expected["open"],
             )
             np.testing.assert_array_equal(
-                values.loc[pd.IndexSlice[:, self.SPLIT_ASSET], "volume"].values[
-                    :10
-                ],
+                values.loc[pd.IndexSlice[:, self.SPLIT_ASSET], "volume"].values[:10],
                 adj_expected["volume"],
             )
             np.testing.assert_array_equal(
@@ -1722,9 +1665,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             )
 
     @classmethod
-    def create_df_for_asset(
-        cls, start_day, end_day, interval=1, force_zeroes=False
-    ):
+    def create_df_for_asset(cls, start_day, end_day, interval=1, force_zeroes=False):
         sessions = cls.trading_calendars[Equity].sessions_in_range(
             start_day,
             end_day,
@@ -1780,13 +1721,9 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
                     np.testing.assert_array_equal(np.zeros(10), asset2_series)
                     np.testing.assert_array_equal(np.zeros(10), asset3_series)
                 else:
-                    np.testing.assert_array_equal(
-                        np.full(10, np.nan), asset2_series
-                    )
+                    np.testing.assert_array_equal(np.full(10, np.nan), asset2_series)
 
-                    np.testing.assert_array_equal(
-                        np.full(10, np.nan), asset3_series
-                    )
+                    np.testing.assert_array_equal(np.full(10, np.nan), asset3_series)
 
     def test_daily_regular(self):
         # asset2 and asset3 both started on 1/5/2015, but asset3 trades every
@@ -1811,26 +1748,18 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         )
 
         for field in OHLCP:
-            window = bar_data.history(
-                [self.ASSET1, self.ASSET2], field, 15, "1d"
-            )
+            window = bar_data.history([self.ASSET1, self.ASSET2], field, 15, "1d")
 
             # last 2 values for asset2 should be NaN (# of days since asset2
             # delisted)
-            np.testing.assert_array_equal(
-                np.full(2, np.nan), window[self.ASSET2][-2:]
-            )
+            np.testing.assert_array_equal(np.full(2, np.nan), window[self.ASSET2][-2:])
 
             # third from last value should not be NaN
             assert not np.isnan(window[self.ASSET2][-3])
 
-        volume_window = bar_data.history(
-            [self.ASSET1, self.ASSET2], "volume", 15, "1d"
-        )
+        volume_window = bar_data.history([self.ASSET1, self.ASSET2], "volume", 15, "1d")
 
-        np.testing.assert_array_equal(
-            np.zeros(2), volume_window[self.ASSET2][-2:]
-        )
+        np.testing.assert_array_equal(np.zeros(2), volume_window[self.ASSET2][-2:])
 
         assert 0 != volume_window[self.ASSET2][-3]
 
@@ -1845,21 +1774,15 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # days has 1/7, 1/8
         for idx, day in enumerate(days):
             bar_data = self.create_bardata(simulation_dt_func=lambda: day)
-            check_internal_consistency(
-                bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, "1d"
-            )
+            check_internal_consistency(bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, "1d")
 
             for field in ALL_FIELDS:
-                asset_series = bar_data.history(
-                    self.SHORT_ASSET, field, 2, "1d"
-                )
+                asset_series = bar_data.history(self.SHORT_ASSET, field, 2, "1d")
 
                 if idx == 0:
                     # one value, then one NaN.  base value for 1/6 is 3.
                     if field in OHLCP:
-                        assert (
-                            3 + MINUTE_FIELD_INFO[field] == asset_series.iloc[0]
-                        )
+                        assert 3 + MINUTE_FIELD_INFO[field] == asset_series.iloc[0]
 
                         assert np.isnan(asset_series.iloc[1])
                     elif field == "volume":
@@ -2005,40 +1928,28 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # asset2 ends on 2016-01-04
 
         bar_data = self.create_bardata(
-            simulation_dt_func=lambda: pd.Timestamp(
-                "2016-01-06 16:00", tz="UTC"
-            ),
+            simulation_dt_func=lambda: pd.Timestamp("2016-01-06 16:00", tz="UTC"),
         )
 
         for field in OHLCP:
-            window = bar_data.history(
-                [self.ASSET1, self.ASSET2], field, 15, "1d"
-            )
+            window = bar_data.history([self.ASSET1, self.ASSET2], field, 15, "1d")
 
             # last 2 values for asset2 should be NaN
-            np.testing.assert_array_equal(
-                np.full(2, np.nan), window[self.ASSET2][-2:]
-            )
+            np.testing.assert_array_equal(np.full(2, np.nan), window[self.ASSET2][-2:])
 
             # third from last value should not be NaN
             assert not np.isnan(window[self.ASSET2][-3])
 
-        volume_window = bar_data.history(
-            [self.ASSET1, self.ASSET2], "volume", 15, "1d"
-        )
+        volume_window = bar_data.history([self.ASSET1, self.ASSET2], "volume", 15, "1d")
 
-        np.testing.assert_array_equal(
-            np.zeros(2), volume_window[self.ASSET2][-2:]
-        )
+        np.testing.assert_array_equal(np.zeros(2), volume_window[self.ASSET2][-2:])
 
         assert 0 != volume_window[self.ASSET2][-3]
 
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-        second_day = self.trading_calendar.next_session_label(
-            self.TRADING_START_DT
-        )
+        second_day = self.trading_calendar.next_session_label(self.TRADING_START_DT)
 
         exp_msg = (
             "History window extends before 2014-01-03. To use this history "
@@ -2066,9 +1977,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             )[self.ASSET1]
 
         # Use a minute to force minute mode.
-        first_minute = self.trading_calendar.schedule.market_open[
-            self.TRADING_START_DT
-        ]
+        first_minute = self.trading_calendar.schedule.market_open[self.TRADING_START_DT]
 
         with pytest.raises(HistoryWindowStartsBeforeData, match=exp_msg):
             self.data_portal.get_history_window(
