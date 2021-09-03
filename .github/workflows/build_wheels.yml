@@ -21,7 +21,9 @@ jobs:
         make &&
         make install &&
         ldconfig &&
-        yum install -y libjpeg8-dev zlib1g-dev
+        yum install -y libtiff-devel libjpeg-devel openjpeg2-devel zlib-devel \
+                           freetype-devel lcms2-devel libwebp-devel tcl-devel tk-devel \
+                           harfbuzz-devel fribidi-devel libraqm-devel libimagequant-devel libxcb-devel
       CIBW_BEFORE_TEST_MACOS: >
         brew install freetype pkg-config gcc openssl c-blosc hdf5 ta-lib
       CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"
