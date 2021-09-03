@@ -2,6 +2,7 @@ name: PyPI
 
 on:
   push:
+    workflow_dispatch:
     branches:
       - main
     tags:
@@ -19,7 +20,8 @@ jobs:
         ./configure &&
         make &&
         make install &&
-        ldconfig
+        ldconfig &&
+        sudo apt install libjpeg8-dev zlib1g-dev
       CIBW_BEFORE_TEST_MACOS: >
         brew install freetype pkg-config gcc openssl c-blosc hdf5 ta-lib
       CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"
