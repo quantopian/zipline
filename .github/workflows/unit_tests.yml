@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        python-version: [ 3.8 ]
+        python-version: [ 3.7, 3.8, 3.9 ]
 
     steps:
       - name: Checkout Zipline
@@ -72,14 +72,15 @@ jobs:
 
       - name: Install Zipline
         run: |
+          set -xe
+          python -VV
+          python -m site
           python -m pip install --upgrade pip
-          pip install tox tox-gh-actions
-          pip install -e .[test]
+          python -m pip install --upgrade tox tox-gh-actions
+          python -m pip install -e .[test]
 
       - name: Lint with flake8
-        run: |
-          flake8
+        run: "python -m flake8"
 
       - name: Unittests with tox & pytest
-        run: |
-          tox
+        run: "python -m tox"
