@@ -90,6 +90,6 @@ revision
 condag
 archive
 
-conda/ta-lib
-conda/logbook
+conda
 .pytest_cache
+admin

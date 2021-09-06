@@ -77,15 +77,15 @@ jobs:
 
       - name: Install Zipline
         run: |
-          set -xe
           python -VV
-          python -m site
-          pip install -U pip setuptools wheel tox tox-gh-actions
+          python -m pip install --upgrade pip
+          pip install tox tox-gh-actions
           pip install -e .[test]
-        shell: bash
 
       - name: Lint with flake8
-        run: "python -m flake8"
+        run: |
+          flake8
 
       - name: Unittests with tox & pytest
-        run: "python -m tox"
+        run: |
+          tox
