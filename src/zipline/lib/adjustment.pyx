@@ -122,15 +122,15 @@ cdef type _choose_adjustment_type(AdjustmentKind adjustment_kind,
     if adjustment_kind in (ADD, MULTIPLY):
         if column_type is np.float64_t:
             return _float_adjustment_types[adjustment_kind]
-
-        raise TypeError(
-            "Can't construct %s Adjustment with value of type %r.\n"
-            "ADD and MULTIPLY adjustments are only supported for "
-            "floating point data." % (
-                ADJUSTMENT_KIND_NAMES[adjustment_kind],
-                type(value),
+        else:
+            raise TypeError(
+                "Can't construct %s Adjustment with value of type %r.\n"
+                "ADD and MULTIPLY adjustments are only supported for "
+                "floating point data." % (
+                    ADJUSTMENT_KIND_NAMES[adjustment_kind],
+                    type(value),
+                )
             )
-        )
 
     elif adjustment_kind == OVERWRITE:
         if column_type is np.float64_t:

@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+cimport cython
 cimport numpy as np
 import numpy as np
 import pandas as pd
-cimport cython
 from cpython cimport bool
 
 cdef np.int64_t _nanos_in_minute = 60000000000
@@ -62,8 +62,8 @@ cdef class MinuteSimulationClock:
         for session_idx, session_nano in enumerate(self.sessions_nanos):
             minutes_nanos = np.arange(
                 self.market_opens_nanos[session_idx],
-                self.market_closes_nanos[session_idx] + _nanos_in_minute,
-                _nanos_in_minute
+                self.market_closes_nanos[session_idx] + NANOS_IN_MINUTE,
+                NANOS_IN_MINUTE
             )
             minutes_by_session[session_nano] = pd.to_datetime(
                 minutes_nanos, utc=True
@@ -72,6 +72,8 @@ cdef class MinuteSimulationClock:
 
     def __iter__(self):
         minute_emission = self.minute_emission
+
+        cdef Py_ssize_t idx
 
         for idx, session_nano in enumerate(self.sessions_nanos):
             yield pd.Timestamp(session_nano, tz='UTC'), SESSION_START
