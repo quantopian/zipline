@@ -79,7 +79,7 @@ jobs:
         run: |
           python -VV
           python -m pip install --upgrade pip
-          pip install tox tox-gh-actions
+          pip install tox tox-gh-actions coveralls
           pip install -e .[test]
 
       - name: Lint with flake8
