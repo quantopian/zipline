@@ -1,5 +1,5 @@
 {% set name = "zipline-reloaded" %}
-{% set version = "2.0.0.post1" %}
+{% set version = "2.1.0" %}
 
 
 package:
@@ -34,7 +34,7 @@ requirements:
     - bcolz-zipline >=1.2.3
     - bottleneck >=1.0.0
     - click >=4.0.0
-    - empyrical-reloaded >=0.5.7
+    - empyrical-reloaded >=0.5.8
     - greenlet
     - h5py >=2.7.1
     - intervaltree >=2.1.0

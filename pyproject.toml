@@ -10,6 +10,17 @@ requires = [
 ]
 build-backend = 'setuptools.build_meta'
 
+[tool.cibuildwheel]
+test-extras = "test"
+test-command = 'python -c "import zipline; print(zipline.__version__)"'
+build-verbosity = 3
+
+# Optional: support Universal2 for Apple Silicon with these two lines:
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64", "universal2"]
+test-skip = ["*universal2:arm64"]
+
+
 [tool.black]
 line-length = 88
 target-version = ['py37', 'py38']

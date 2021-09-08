@@ -2,49 +2,25 @@ name: PyPI
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    tags:
-      - '**'           # Push events to every tag including hierarchical tags like v1.0/beta
+    inputs:
+      target:
+        description: 'Package Index'
+        required: true
+        default: 'TESTPYPI'
+  release:
+    types:
+    - published
 
 jobs:
-  build_wheels:
-    name: py${{ matrix.python }} on ${{ matrix.os }} using ${{ matrix.platform_id }}-${{ matrix.manylinux_image }}
+  build_linux:
+    name: Wheels for py${{ matrix.python }} on ${{ matrix.os }} using ${{ matrix.manylinux_image }}
     runs-on: ${{ matrix.os }}
-    env:
-      CIBW_BEFORE_TEST_LINUX: >
-        curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
-        tar xvfz ta-lib-0.4.0-src.tar.gz &&
-        cd ta-lib &&
-        ./configure &&
-        make &&
-        make install &&
-        ldconfig &&
-        yum install -y libtiff-devel libjpeg-devel openjpeg2-devel zlib-devel \
-                           freetype-devel lcms2-devel libwebp-devel tcl-devel tk-devel \
-                           harfbuzz-devel fribidi-devel libraqm-devel libimagequant-devel libxcb-devel
-      CIBW_BEFORE_TEST_MACOS: >
-        brew install freetype pkg-config gcc openssl c-blosc hdf5 ta-lib
-      CIBW_TEST_COMMAND: python -c "import zipline; print(zipline.__version__)"
-      CIBW_TEST_EXTRAS: test
-      CIBW_BUILD_VERBOSITY: 1
-
     strategy:
-      # Ensure that a wheel builders continue even if another fails
       fail-fast: false
       matrix:
-        os: [ macos-latest, ubuntu-latest ]
+        os: [ ubuntu-latest ]
         python: [ 37, 38, 39 ]
         manylinux_image: [ manylinux2010, manylinux2014 ]
-        include:
-          - os: macos-latest
-            platform_id: macosx_x86_64
-          - os: ubuntu-latest
-            platform_id: manylinux_x86_64
-        exclude:
-          - os: macos-latest
-            manylinux_image: manylinux2010
 
     steps:
       - name: Checkout zipline
@@ -56,15 +32,53 @@ jobs:
         uses: actions/setup-python@v2
 
       - name: Build and test wheels
-        uses: joerick/cibuildwheel@v2.1.1
+        uses: pypa/cibuildwheel@v2.1.1
         env:
-          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.14
-          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_ARCHS_LINUX: x86_64
+          CIBW_BUILD: "cp${{ matrix.python }}-*"
+          CIBW_BEFORE_TEST_LINUX: >
+            curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
+            tar xvfz ta-lib-0.4.0-src.tar.gz &&
+            cd ta-lib &&
+            ./configure &&
+            make &&
+            make install &&
+            ldconfig &&
+            yum install -y libtiff-devel libjpeg-devel openjpeg2-devel zlib-devel \
+                               freetype-devel lcms2-devel libwebp-devel tcl-devel tk-devel \
+                               harfbuzz-devel fribidi-devel libraqm-devel libimagequant-devel libxcb-devel
 
       - name: Store artifacts
         uses: actions/upload-artifact@v2
         with:
           path: wheelhouse/*.whl
+
+  build_macos:
+    name: Wheels for py${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest ]
+        python: [ 37, 38, 39 ]
+
+    steps:
+      - name: Checkout zipline
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.1.1
+        env:
+          CIBW_BUILD: "cp${{ matrix.python }}-*"
+          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.14
+          CIBW_BEFORE_TEST_MACOS: >
+            brew install freetype pkg-config gcc openssl c-blosc hdf5 ta-lib
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
 
   build_sdist:
     name: Build source distribution
@@ -89,10 +103,8 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-    needs: [ build_wheels, build_sdist ]
+    needs: [ build_linux, build_macos, build_sdist ]
     runs-on: ubuntu-latest
-    # upload to (Test)-PyPI on push with tag
-    if: startsWith(github.ref, 'refs/tags')
     steps:
       - uses: actions/download-artifact@v2
         with:
@@ -101,14 +113,15 @@ jobs:
 
       - name: publish to testpypi
         uses: pypa/gh-action-pypi-publish@master
-        if: startsWith(github.event.head_commit.message, 'TEST')
+        if: ${{ github.event.inputs.target }} == 'TESTPYPI'
         with:
           user: __token__
           password: ${{ secrets.TESTPYPI_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
+
       - name: publish to pypi
         uses: pypa/gh-action-pypi-publish@master
-        if: startsWith(github.event.head_commit.message, 'PYPI')
+        if: ${{ github.event.inputs.target }} == 'PYPI' || (github.event_name == 'release' && github.event.action == 'published')
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
