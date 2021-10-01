@@ -22,7 +22,7 @@ from zipline.assets import Asset
 from zipline.utils.input_validation import expect_types
 
 ORDER_STATUS = IntEnum(
-    "ORDER STATUS",
+    "ORDER_STATUS",
     [
         "OPEN",
         "FILLED",
