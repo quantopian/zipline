@@ -7,7 +7,7 @@ from os.path import (
     realpath,
 )
 
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 from zipline.data.bundles import ingest, load, bundles
 from zipline.data.bundles.quandl import format_metadata_url, load_data_table
 from zipline.lib.adjustment import Float64Multiply
@@ -48,9 +48,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
 
         # Load raw data from quandl test resources.
         data = load_data_table(
-            file=join(
-                TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"
-            ),
+            file=join(TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"),
             index_col="date",
         )
         data["sid"] = pd.factorize(data.symbol)[0]
@@ -71,9 +69,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
                 yield vs
 
         # the first index our written data will appear in the files on disk
-        start_idx = (
-            self.calendar.all_sessions.get_loc(self.start_date, "ffill") + 1
-        )
+        start_idx = self.calendar.all_sessions.get_loc(self.start_date, "ffill") + 1
 
         # convert an index into the raw dataframe into an index into the
         # final data
@@ -83,8 +79,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
             sid = sids[symbol]
             return (
                 1
-                - all_.iloc[idx]["ex_dividend", sid]
-                / all_.iloc[idx - 1]["close", sid]
+                - all_.iloc[idx]["ex_dividend", sid] / all_.iloc[idx - 1]["close", sid]
             )
 
         adjustments = [
@@ -232,9 +227,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
         expected_pricing, expected_adjustments = self._expected_data(
             bundle.asset_finder,
         )
-        np.testing.assert_array_almost_equal(
-            actual, expected_pricing, decimal=2
-        )
+        np.testing.assert_array_almost_equal(actual, expected_pricing, decimal=2)
 
         adjs_for_cols = bundle.adjustment_reader.load_pricing_adjustments(
             self.columns,

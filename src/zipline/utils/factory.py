@@ -20,7 +20,7 @@ Factory functions to prepare useful data.
 import pandas as pd
 import numpy as np
 from datetime import timedelta, datetime
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import SimulationParameters

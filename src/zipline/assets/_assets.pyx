@@ -34,7 +34,7 @@ from numpy cimport int64_t
 import warnings
 cimport numpy as np
 
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 
 # Users don't construct instances of this object, and embedding the signature

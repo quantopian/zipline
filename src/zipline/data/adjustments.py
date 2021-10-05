@@ -549,6 +549,8 @@ class SQLiteAdjustmentWriter(object):
             dividend_payouts = None
         else:
             dividend_payouts = dividends.copy()
+            # TODO: Check if that's the right place for this fix for pandas > 1.2.5
+            dividend_payouts.fillna(np.datetime64("NaT"), inplace=True)
             dividend_payouts["ex_date"] = (
                 dividend_payouts["ex_date"]
                 .values.astype("datetime64[s]")

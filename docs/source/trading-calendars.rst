@@ -144,7 +144,7 @@ First we'll start off by importing some modules that will be useful to us.
   from pytz import timezone
 
   # for creating and registering our calendar
-  from trading_calendars import register_calendar, TradingCalendar
+  from zipline.utils.calendar_utils import register_calendar, TradingCalendar
   from zipline.utils.memoize import lazyval
 
 

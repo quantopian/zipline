@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 from pandas import HDFStore
 from toolz import keymap, valmap
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data._minute_bar_internal import (
     minute_value,

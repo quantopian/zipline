@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import pytz
 
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.country import CountryCode
 from zipline.utils.formatting import bulleted_list

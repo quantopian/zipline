@@ -23,7 +23,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
@@ -129,9 +129,7 @@ def assert_single_position(test, zipline):
             test.zipline_test_config["expected_transactions"], transaction_count
         )
     else:
-        test.assertEqual(
-            test.zipline_test_config["order_count"], transaction_count
-        )
+        test.assertEqual(test.zipline_test_config["order_count"], transaction_count)
 
     # the final message is the risk report, the second to
     # last is the final day's results. Positions is a list of
@@ -151,9 +149,7 @@ def assert_single_position(test, zipline):
     for order in orders_by_id.value():
         test.assertEqual(order["status"], ORDER_STATUS.FILLED, "")
 
-    test.assertEqual(
-        len(closing_positions), 1, "Portfolio should have one position."
-    )
+    test.assertEqual(len(closing_positions), 1, "Portfolio should have one position.")
 
     sid = test.zipline_test_config["sid"]
     test.assertEqual(
@@ -185,8 +181,7 @@ def security_list_copy():
 def add_security_data(adds, deletes):
     if not hasattr(security_list, "using_copy"):
         raise Exception(
-            "add_security_data must be used within "
-            "security_list_copy context"
+            "add_security_data must be used within " "security_list_copy context"
         )
     directory = os.path.join(
         security_list.SECURITY_LISTS_DIR, "leveraged_etf_list/20150127/20150125"
@@ -275,9 +270,7 @@ def make_trade_data_for_asset_info(
     sids = asset_info.index
 
     price_sid_deltas = np.arange(len(sids), dtype=float64) * price_step_by_sid
-    price_date_deltas = (
-        np.arange(len(dates), dtype=float64) * price_step_by_date
-    )
+    price_date_deltas = np.arange(len(dates), dtype=float64) * price_step_by_date
     prices = (price_sid_deltas + as_column(price_date_deltas)) + price_start
 
     volume_sid_deltas = np.arange(len(sids)) * volume_step_by_sid
@@ -308,9 +301,7 @@ def make_trade_data_for_asset_info(
     return trade_data
 
 
-def check_allclose(
-    actual, desired, rtol=1e-07, atol=0, err_msg="", verbose=True
-):
+def check_allclose(actual, desired, rtol=1e-07, atol=0, err_msg="", verbose=True):
     """
     Wrapper around np.testing.assert_allclose that also verifies that inputs
     are ndarrays.
@@ -456,9 +447,7 @@ def create_data_portal(
     adjustment_reader=None,
 ):
     if sim_params.data_frequency == "daily":
-        daily_path = write_daily_data(
-            tempdir, sim_params, sids, trading_calendar
-        )
+        daily_path = write_daily_data(tempdir, sim_params, sids, trading_calendar)
 
         equity_daily_reader = BcolzDailyBarReader(daily_path)
 
@@ -474,9 +463,7 @@ def create_data_portal(
             sim_params.first_open, sim_params.last_close
         )
 
-        minute_path = write_minute_data(
-            trading_calendar, tempdir, minutes, sids
-        )
+        minute_path = write_minute_data(trading_calendar, tempdir, minutes, sids)
 
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
 
@@ -503,9 +490,7 @@ def create_minute_df_for_asset(
     start_val=1,
     minute_blacklist=None,
 ):
-    asset_minutes = trading_calendar.minutes_for_sessions_in_range(
-        start_dt, end_dt
-    )
+    asset_minutes = trading_calendar.minutes_for_sessions_in_range(start_dt, end_dt)
     minutes_count = len(asset_minutes)
 
     if interval > 1:
@@ -672,9 +657,7 @@ def create_data_portal_from_trade_history(
 
 
 class FakeDataPortal(DataPortal):
-    def __init__(
-        self, asset_finder, trading_calendar=None, first_trading_day=None
-    ):
+    def __init__(self, asset_finder, trading_calendar=None, first_trading_day=None):
         if trading_calendar is None:
             trading_calendar = get_calendar("NYSE")
 
@@ -749,9 +732,7 @@ class FetcherDataPortal(DataPortal):
     # XXX: These aren't actually the methods that are used by the superclasses,
     # so these don't do anything, and this class will likely produce unexpected
     # results for history().
-    def _get_daily_window_for_sid(
-        self, asset, field, days_in_window, extra_slot=True
-    ):
+    def _get_daily_window_for_sid(self, asset, field, days_in_window, extra_slot=True):
         return np.arange(days_in_window, dtype=np.float64)
 
     def _get_minute_window_for_asset(self, asset, field, minutes_for_window):
@@ -779,9 +760,7 @@ class tmp_assets_db(object):
 
     _default_equities = sentinel("_default_equities")
 
-    def __init__(
-        self, url="sqlite:///:memory:", equities=_default_equities, **frames
-    ):
+    def __init__(self, url="sqlite:///:memory:", equities=_default_equities, **frames):
         self._url = url
         self._eng = None
         if equities is self._default_equities:
@@ -1374,9 +1353,7 @@ zipline_reloaded_git_root = abspath(
 
 # @nottest
 def test_resource_path(*path_parts):
-    return os.path.join(
-        zipline_reloaded_git_root, "tests", "resources", *path_parts
-    )
+    return os.path.join(zipline_reloaded_git_root, "tests", "resources", *path_parts)
 
 
 @contextmanager
@@ -1715,9 +1692,7 @@ def simulate_minutes_for_day(
 
     min_ = min(close, open_)
     where = values < min_
-    values[where] = (values[where] - min_) * (low - min_) / (
-        values.min() - min_
-    ) + min_
+    values[where] = (values[where] - min_) * (low - min_) / (values.min() - min_) + min_
 
     if not (np.allclose(values.max(), high) and np.allclose(values.min(), low)):
         return simulate_minutes_for_day(

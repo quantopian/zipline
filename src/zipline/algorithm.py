@@ -24,8 +24,7 @@ import numpy as np
 
 from itertools import chain, repeat
 
-from trading_calendars.utils.pandas_utils import days_at_time
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar, days_at_time
 
 from zipline._protocol import handle_non_market_minutes
 from zipline.errors import (

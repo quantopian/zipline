@@ -29,7 +29,7 @@ from testfixtures import TempDirectory
 import numpy as np
 import pandas as pd
 import pytz
-from trading_calendars import get_calendar, register_calendar
+from zipline.utils.calendar_utils import get_calendar, register_calendar
 
 import zipline.api
 from zipline.api import FixedSlippage
@@ -472,7 +472,7 @@ def log_nyse_close(context, data):
         erroring_algotext = dedent(
             """
             from zipline.api import schedule_function
-            from trading_calendars import get_calendar
+            from zipline.utils.calendar_utils import get_calendar
 
             def initialize(context):
                 schedule_function(func=my_func, calendar=get_calendar('XNYS'))

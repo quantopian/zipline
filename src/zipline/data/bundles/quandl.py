@@ -10,7 +10,7 @@ from logbook import Logger
 import pandas as pd
 import requests
 from urllib.parse import urlencode
-from trading_calendars import register_calendar_alias
+from zipline.utils.calendar_utils import register_calendar_alias
 
 from . import core as bundles
 import numpy as np

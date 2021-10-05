@@ -14,7 +14,7 @@ except ImportError:
 import logbook
 import pandas as pd
 from toolz import concatv
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data import bundles
 from zipline.data.benchmarks import get_benchmark_returns_from_file

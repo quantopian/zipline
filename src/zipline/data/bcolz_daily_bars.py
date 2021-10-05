@@ -35,7 +35,7 @@ from pandas import (
     Timestamp,
 )
 from toolz import compose
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data.session_bars import CurrencyAwareSessionBarReader
 from zipline.data.bar_reader import (

@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from distutils.version import StrictVersion
-from trading_calendars.utils.pandas_utils import days_at_time  # noqa: reexport
+from zipline.utils.calendar_utils import days_at_time
 from pandas.errors import PerformanceWarning
 
 pandas_version = StrictVersion(pd.__version__)
@@ -337,7 +337,5 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
             bad_loc = np.flatnonzero(~same)[0]
             raise ValueError(
                 "{}\nFirst difference is at index {}: "
-                "{} != {}".format(
-                    message, bad_loc, first[bad_loc], other[bad_loc]
-                ),
+                "{} != {}".format(message, bad_loc, first[bad_loc], other[bad_loc]),
             )

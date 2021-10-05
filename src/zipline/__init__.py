@@ -18,7 +18,7 @@ import numpy as np
 
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from . import data
 from . import finance
@@ -37,7 +37,7 @@ from zipline.finance.blotter import Blotter
 # PERF: Fire a warning if calendars were instantiated during zipline import.
 # Having calendars doesn't break anything per-se, but it makes zipline imports
 # noticeably slower, which becomes particularly noticeable in the Zipline CLI.
-from trading_calendars.calendar_utils import global_calendar_dispatcher
+from zipline.utils.calendar_utils import global_calendar_dispatcher
 
 if global_calendar_dispatcher._calendars:
     import warnings

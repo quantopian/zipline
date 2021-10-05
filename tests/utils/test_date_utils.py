@@ -1,5 +1,5 @@
 import pandas as pd
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 from pandas.testing import assert_index_equal
 
 from zipline.utils.date_utils import compute_date_range_chunks, make_utc_aware

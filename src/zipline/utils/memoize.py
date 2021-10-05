@@ -8,7 +8,7 @@ from weakref import WeakKeyDictionary, ref
 
 from _thread import allocate_lock as Lock
 from toolz.sandbox import unzip
-from trading_calendars.utils.memoize import lazyval
+from zipline.utils.calendar_utils import lazyval
 
 from zipline.utils.compat import wraps
 

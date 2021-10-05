@@ -7,7 +7,7 @@ from os.path import (
     realpath,
 )
 
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data.bundles import ingest, load, bundles
 from zipline.utils.functional import apply

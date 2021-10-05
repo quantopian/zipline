@@ -10,7 +10,7 @@ import pandas as pd
 from pandas.errors import PerformanceWarning
 import responses
 from toolz import flip, groupby, merge
-from trading_calendars import (
+from zipline.utils.calendar_utils import (
     get_calendar,
     register_calendar_alias,
 )

@@ -2,7 +2,7 @@ from importlib import import_module
 import os
 
 from toolz import merge
-from trading_calendars import register_calendar, get_calendar
+from zipline.utils.calendar_utils import register_calendar, get_calendar
 
 from zipline import run_algorithm
 

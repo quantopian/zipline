@@ -21,8 +21,7 @@ from numpy import nan
 from numpy.testing import assert_almost_equal
 import pandas as pd
 from toolz import concat
-from trading_calendars import get_calendar
-from trading_calendars.utils.pandas_utils import days_at_time
+from zipline.utils.calendar_utils import get_calendar, days_at_time
 
 from zipline._protocol import handle_non_market_minutes
 

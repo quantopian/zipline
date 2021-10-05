@@ -11,7 +11,7 @@ from parameterized import parameterized
 import numpy as np
 from numpy.testing import assert_almost_equal
 import pandas as pd
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.api import (
     attach_pipeline,

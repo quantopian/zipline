@@ -70,6 +70,62 @@ from zipline.utils.pandas_utils import days_at_time
 import pytest
 import re
 
+EXPECTED_CUTOFF_TIMES = {
+    AR_EQUITIES: datetime.time(10, 15),
+    AT_EQUITIES: datetime.time(8, 15),
+    AU_EQUITIES: datetime.time(9, 15),
+    BE_EQUITIES: datetime.time(8, 15),
+    BR_EQUITIES: datetime.time(9, 15),
+    CA_EQUITIES: datetime.time(8, 45),
+    CH_EQUITIES: datetime.time(8, 15),
+    CL_EQUITIES: datetime.time(8, 45),
+    CN_EQUITIES: datetime.time(8, 45),
+    CO_EQUITIES: datetime.time(8, 45),
+    CZ_EQUITIES: datetime.time(8, 15),
+    DE_EQUITIES: datetime.time(8, 15),
+    DK_EQUITIES: datetime.time(8, 15),
+    ES_EQUITIES: datetime.time(8, 15),
+    FI_EQUITIES: datetime.time(9, 15),
+    FR_EQUITIES: datetime.time(8, 15),
+    GB_EQUITIES: datetime.time(7, 15),
+    GR_EQUITIES: datetime.time(9, 15),
+    HK_EQUITIES: datetime.time(9, 15),
+    HU_EQUITIES: datetime.time(8, 15),
+    ID_EQUITIES: datetime.time(8, 15),
+    IE_EQUITIES: datetime.time(7, 15),
+    IN_EQUITIES: datetime.time(8, 30),
+    IT_EQUITIES: datetime.time(8, 15),
+    JP_EQUITIES: datetime.time(8, 15),
+    KR_EQUITIES: datetime.time(8, 15),
+    MX_EQUITIES: datetime.time(7, 45),
+    MY_EQUITIES: datetime.time(8, 15),
+    NL_EQUITIES: datetime.time(8, 15),
+    NO_EQUITIES: datetime.time(8, 15),
+    NZ_EQUITIES: datetime.time(9, 15),
+    PE_EQUITIES: datetime.time(8, 15),
+    PH_EQUITIES: datetime.time(8, 45),
+    PK_EQUITIES: datetime.time(8, 47),
+    PL_EQUITIES: datetime.time(8, 15),
+    PT_EQUITIES: datetime.time(7, 15),
+    RU_EQUITIES: datetime.time(9, 15),
+    SE_EQUITIES: datetime.time(8, 15),
+    SG_EQUITIES: datetime.time(8, 15),
+    TH_EQUITIES: datetime.time(9, 15),
+    TR_EQUITIES: datetime.time(9, 15),
+    TW_EQUITIES: datetime.time(8, 15),
+    US_EQUITIES: datetime.time(8, 45),
+    ZA_EQUITIES: datetime.time(8, 15),
+}
+
+LIST_EXPECTED_CUTOFF_TIMES = list(EXPECTED_CUTOFF_TIMES.items())
+# KR is expected to fail
+LIST_EXPECTED_CUTOFF_TIMES[25] = pytest.param(
+    *LIST_EXPECTED_CUTOFF_TIMES[25],
+    marks=pytest.mark.xfail(
+        reason="The KR calendar is expected to fail TOFIX or remove"
+    ),
+)
+
 
 class Sum(CustomFactor):
     def compute(self, today, assets, out, data):
@@ -89,7 +145,6 @@ class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCas
     def test_mixed_generics(self):
         """
         Test that we can run pipelines with mixed generic/non-generic terms.
-
         This test is a regression test for failures encountered during
         development where having a mix of generic and non-generic columns in
         the term graph caused bugs in our extra row accounting.
@@ -350,63 +405,27 @@ class TestDataQueryCutoffForSession:
             expected_cutoff_date_offset,
         )
         actual = domain.data_query_cutoff_for_sessions(sessions)
-
         assert_equal(actual, expected, check_names=False)
 
-    def test_built_in_equity_calendar_domain_defaults(self):
-        # test the defaults
-        expected_cutoff_times = {
-            AR_EQUITIES: datetime.time(10, 15),
-            AT_EQUITIES: datetime.time(8, 15),
-            AU_EQUITIES: datetime.time(9, 15),
-            BE_EQUITIES: datetime.time(8, 15),
-            BR_EQUITIES: datetime.time(9, 15),
-            CA_EQUITIES: datetime.time(8, 45),
-            CH_EQUITIES: datetime.time(8, 15),
-            CL_EQUITIES: datetime.time(8, 45),
-            CN_EQUITIES: datetime.time(8, 45),
-            CO_EQUITIES: datetime.time(8, 45),
-            CZ_EQUITIES: datetime.time(8, 15),
-            DE_EQUITIES: datetime.time(8, 15),
-            DK_EQUITIES: datetime.time(8, 15),
-            ES_EQUITIES: datetime.time(8, 15),
-            FI_EQUITIES: datetime.time(9, 15),
-            FR_EQUITIES: datetime.time(8, 15),
-            GB_EQUITIES: datetime.time(7, 15),
-            GR_EQUITIES: datetime.time(9, 15),
-            HK_EQUITIES: datetime.time(9, 15),
-            HU_EQUITIES: datetime.time(8, 15),
-            ID_EQUITIES: datetime.time(8, 15),
-            IE_EQUITIES: datetime.time(7, 15),
-            IN_EQUITIES: datetime.time(8, 30),
-            IT_EQUITIES: datetime.time(8, 15),
-            JP_EQUITIES: datetime.time(8, 15),
-            KR_EQUITIES: datetime.time(8, 15),
-            MX_EQUITIES: datetime.time(7, 45),
-            MY_EQUITIES: datetime.time(8, 15),
-            NL_EQUITIES: datetime.time(8, 15),
-            NO_EQUITIES: datetime.time(8, 15),
-            NZ_EQUITIES: datetime.time(9, 15),
-            PE_EQUITIES: datetime.time(8, 15),
-            PH_EQUITIES: datetime.time(8, 45),
-            PK_EQUITIES: datetime.time(8, 47),
-            PL_EQUITIES: datetime.time(8, 15),
-            PT_EQUITIES: datetime.time(7, 15),
-            RU_EQUITIES: datetime.time(9, 15),
-            SE_EQUITIES: datetime.time(8, 15),
-            SG_EQUITIES: datetime.time(8, 15),
-            TH_EQUITIES: datetime.time(9, 15),
-            TR_EQUITIES: datetime.time(9, 15),
-            TW_EQUITIES: datetime.time(8, 15),
-            US_EQUITIES: datetime.time(8, 45),
-            ZA_EQUITIES: datetime.time(8, 15),
-        }
-
+    def test_assert_no_missing_domains(self):
         # make sure we are not missing any domains in this test
-        assert set(expected_cutoff_times) == set(BUILT_IN_DOMAINS)
+        assert set(EXPECTED_CUTOFF_TIMES) == set(BUILT_IN_DOMAINS)
 
-        for domain, expected_cutoff_time in expected_cutoff_times.items():
-            self._test_equity_calendar_domain(domain, expected_cutoff_time)
+    def idfn(val):
+        if isinstance(val, str):
+            return val
+
+    @pytest.mark.parametrize(
+        "domain, expected_cutoff_time",
+        LIST_EXPECTED_CUTOFF_TIMES,
+        ids=[
+            f"{x[0].calendar_name} {x[1]}" for x in list(EXPECTED_CUTOFF_TIMES.items())
+        ],
+    )
+    def test_built_in_equity_calendar_domain_defaults(
+        self, domain, expected_cutoff_time
+    ):
+        self._test_equity_calendar_domain(domain, expected_cutoff_time)
 
     def test_equity_calendar_domain(self):
         # test non-default time

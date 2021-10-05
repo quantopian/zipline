@@ -19,7 +19,7 @@ import warnings
 
 from parameterized import parameterized
 import pandas as pd
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 import zipline.utils.events
 from zipline.utils.events import (
@@ -247,9 +247,10 @@ class RuleTestCase:
             and not isabstract(v)
         }
         ds = {k[5:] for k in dir(self) if k.startswith("test") and k[5:] in dem}
-        assert dem <= ds, (
-            "This suite is missing tests for the following classes:\n"
-            + "\n".join(map(repr, dem - ds))
+        assert (
+            dem <= ds
+        ), "This suite is missing tests for the following classes:\n" + "\n".join(
+            map(repr, dem - ds)
         )
 
 
@@ -343,9 +344,7 @@ class StatelessRulesTests(RuleTestCase):
         """
         rule = NthTradingDayOfWeek(0)
         rule.cal = self.cal
-        first_open = self.cal.open_and_close_for_session(
-            self.cal.all_sessions[0]
-        )
+        first_open = self.cal.open_and_close_for_session(self.cal.all_sessions[0])
         assert first_open
 
     def test_NthTradingDayOfWeek(self):
@@ -375,9 +374,7 @@ class StatelessRulesTests(RuleTestCase):
             for minute in self.sept_week:
                 if should_trigger(minute):
                     n_tdays = 0
-                    session = self.cal.minute_to_session_label(
-                        minute, direction="none"
-                    )
+                    session = self.cal.minute_to_session_label(minute, direction="none")
                     next_session = self.cal.next_session_label(session)
                     while next_session.dayofweek > session.dayofweek:
                         session = next_session

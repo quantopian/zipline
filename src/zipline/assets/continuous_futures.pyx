@@ -34,7 +34,7 @@ from functools import partial
 from numpy import array, empty, iinfo
 from numpy cimport long_t, int64_t
 from pandas import Timestamp
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 import warnings
 
 

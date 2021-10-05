@@ -20,7 +20,7 @@ from parameterized import parameterized
 import numpy as np
 import pandas as pd
 from toolz import merge
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data.bar_reader import (
     NoDataAfterDate,

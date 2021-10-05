@@ -5,7 +5,7 @@ from mock import patch
 import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.lib.adjustment import (
     ADD,
