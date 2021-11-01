@@ -1,0 +1,27 @@
+Release 2.2.0
+-----------
+
+:Release: 2.2.0
+:Date: Nov 1, 2021
+
+Highlights
+~~~~~~~~~~
+
+This release updates Zipline to use the more actively maintained [ecxhange_calendars](https://github.com/gerrymanoim/exchange_calendars) instead of the no longer maintained [trading_calendars](https://github.com/quantopian/trading_calendars)!
+
+As a result, Zipline is now again compatible with the latest pandas versions.
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed unused Cython code
+
+Build
+~~~~~
+
+- MacOS Sillicon Wheels
+
+Documentation
+~~~~~~~~~~~~~
+
+- New development guidlines.

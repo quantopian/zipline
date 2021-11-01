@@ -1,3 +1,5 @@
+.. _developmen:
+
 Development Guidelines
 ======================
 This page is intended for developers of Zipline, people who want to contribute to the Zipline codebase or documentation, or people who want to install from source and make local changes to their copy of Zipline.
