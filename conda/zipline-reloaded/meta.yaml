@@ -1,5 +1,5 @@
 {% set name = "zipline-reloaded" %}
-{% set version = "2.1.1" %}
+{% set version = "2.2.0" %}
 
 
 package:
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  md5: 3fbee342384ec244b5362f5853c80b92
+  md5: 922ab8c5edeaae4a50523e5e40e1ee30
 
 build:
   number: 0
@@ -60,6 +60,7 @@ requirements:
     - ta-lib >=0.4.09
     - toolz >=0.8.2
     - trading-calendars >=1.6.1
+    - exchange-calendars <=3.3
     - {{ pin_compatible('numpy') }}
 
 test:
