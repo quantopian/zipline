@@ -96,7 +96,7 @@ $ zipline run -f dual_moving_average.py --start 2014-1-1 --end 2018-1-1 -o dma.p
 
 This will download asset pricing data sourced from [Quandl](https://www.quandl.com/databases/WIKIP/documentation?anchor=companies), and stream it through the algorithm over the specified time range. Then, the resulting performance DataFrame is saved as `dma.pickle`, which you can load and analyze from Python.
 
-You can find other examples in the [zipline/examples](https://github.com/stefan-jansen/zipline-reloaded/tree/main/zipline/examples) directory.
+You can find other examples in the [zipline/examples](https://github.com/stefan-jansen/zipline-reloaded/tree/main/src/zipline/examples) directory.
 
 ## Questions, suggestions, bugs?
 
