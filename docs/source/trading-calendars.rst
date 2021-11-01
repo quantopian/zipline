@@ -1,7 +1,7 @@
 .. _calendars:
 
-Trading Calendars
------------------
+Calendars
+---------
 
 What is a Trading Calendar?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
