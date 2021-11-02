@@ -49,8 +49,8 @@ Python`_ provides an `excellent tutorial on virtualenv
 GNU/Linux
 ~~~~~~~~~
 
-Development Libraries
-'''''''''''''''''''''
+Dependencies
+''''''''''''
 
 On `Debian-derived`_ Linux distributions, you can acquire all the necessary
 binary dependencies from ``apt`` by running:

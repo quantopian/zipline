@@ -17,13 +17,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-#        os: [ macos-latest, windows-latest, ubuntu-latest ]
-        os: [ macos-latest ]
-#        python: [ '3.7', '3.8', '3.9' ]
-        python: [ '3.9' ]
-#        exclude:
-#          - os: macos-latest
-#            python: '3.9'
+        os: [ macos-latest, windows-latest, ubuntu-latest ]
+        python: [ '3.7', '3.8', '3.9' ]
+        exclude:
+          - os: macos-latest
+            python: '3.9'
 
     steps:
       - name: set Xcode version
@@ -40,7 +38,7 @@ jobs:
         with:
           miniconda-version: "latest"
           auto-update-conda: true
-          channel-priority: true
+          channel-priority: strict
           mamba-version: "*"
           python-version: ${{ matrix.python }}
           activate-environment: recipe

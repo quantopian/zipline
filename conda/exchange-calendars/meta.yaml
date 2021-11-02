@@ -1,0 +1,39 @@
+{% set name = "exchange-calendars" %}
+{% set version = "3.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/exchange_calendars-{{ version }}.tar.gz
+  md5: cde61c2c11e5167d2faa48defdb364f4
+
+build:
+  number: 0
+  skip: true # [py<37 or not x86_64]
+  include_recipe: False
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - python
+    - cython
+    - numpy
+  run:
+    - python
+    - numpy
+    - pandas>=1.1
+    - pyluach
+    - python-dateutil
+    - pytz
+    - toolz
+    - korean_lunar_calendar
+
+test:
+  imports:
+    - exchange_calendars
+
+about:
+  home: https://github.com/gerrymanoim/exchange_calendars
+  license: BSD License

@@ -1,0 +1,32 @@
+{% set name = "TA-Lib" %}
+{% set version = "0.4.21" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  md5: 092178339ff1b62c867c569e750363f2
+
+build:
+  number: 0
+  skip: true # [py<37 or not x86_64]
+  include_recipe: False
+
+requirements:
+  build:
+    - python
+    - cython
+    - numpy
+  run:
+    - python
+    - numpy
+
+test:
+  imports:
+    - talib
+
+about:
+  home: http://github.com/mrjbq7/ta-lib
+  license: BSD License
