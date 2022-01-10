@@ -40,7 +40,7 @@ A simple example
 ~~~~~~~~~~~~~~~~
 
 Let's take a look at a very simple algorithm from the
-`zipline/examples <https://github.com/stefan-jansen/zipline-reloaded/tree/main/zipline/examples>`_ directory,
+`zipline/examples <https://github.com/stefan-jansen/zipline-reloaded/tree/main/src/zipline/examples>`_ directory,
 ``buyapple.py``. Each period, which is a trading day, it orders 10 shares of the Apple stock and records the price.
 
 .. code-block:: python
@@ -956,7 +956,7 @@ Conclusions
 We hope that this tutorial gave you a little insight into the
 architecture, API, and features of ``zipline``. For next steps, check
 out some of the
-`examples <https://github.com/stefan-jansen/zipline-reloaded/tree/main/zipline/examples>`__.
+`examples <https://github.com/stefan-jansen/zipline-reloaded/tree/main/src/zipline/examples>`__.
 
 Feel free to ask questions on `our mailing
 list <https://groups.google.com/forum/#!forum/zipline>`__, report
