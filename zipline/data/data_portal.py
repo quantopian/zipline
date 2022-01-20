@@ -1223,17 +1223,15 @@ class DataPortal(object):
             fetchall()
 
         dividend_info = []
-        for dividend_tuple in dividends:
-            dividend_info.append({
-                "declared_date": dividend_tuple[1],
-                "ex_date": pd.Timestamp(dividend_tuple[2], unit="s"),
-                "pay_date": pd.Timestamp(dividend_tuple[3], unit="s"),
-                "payment_sid": dividend_tuple[4],
-                "ratio": dividend_tuple[5],
-                "record_date": pd.Timestamp(dividend_tuple[6], unit="s"),
-                "sid": dividend_tuple[7]
-            })
-
+        for (dividend_tuple_0, dividend_tuple_1, dividend_tuple_2, dividend_tuple_3, 
+             dividend_tuple_4, dividend_tuple_5, dividend_tuple_6, dividend_tuple_7, *dividend_tuple_len) in dividends:
+            dividend_info.append({'declared_date': dividend_tuple_1, 
+                                  'ex_date': pd.Timestamp(dividend_tuple_2, unit='s'), 
+                                  'pay_date': pd.Timestamp(dividend_tuple_3, unit='s'), 
+                                  'payment_sid': dividend_tuple_4, 
+                                  'ratio': dividend_tuple_5, 
+                                  'record_date': pd.Timestamp(dividend_tuple_6, unit='s'), 
+                                  'sid': dividend_tuple_7})
         return dividend_info
 
     def contains(self, asset, field):
