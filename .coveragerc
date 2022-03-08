@@ -1,5 +1,7 @@
 [report]
 omit =
+    .venv/*
+    */tests/*
     */python?.?/*
 exclude_lines =
     raise NotImplementedError

@@ -1,9 +1,12 @@
-name: CI Full Tests
+name: CI Tests
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 9 * * 6"
+  push:
+  pull_request:
+    branches:
+      - main
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -11,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.8]
         exclude:
           - os: windows-latest
             python-version: 3.9
@@ -84,4 +87,12 @@ jobs:
 
       - name: Unittests with tox & pytest
         run: |
-          tox -e ci_full_tests
+          tox -e ci_tests
+
+      - name: Upload coverage data to Codecov
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+          name: codecov-umbrella
+          verbose: true
