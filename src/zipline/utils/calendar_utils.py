@@ -28,7 +28,6 @@ try:
         _default_calendar_aliases,
     )
     from exchange_calendars.errors import InvalidCalendarName
-    from exchange_calendars.utils.memoize import lazyval
     from exchange_calendars.utils.pandas_utils import days_at_time  # noqa: reexport
 
     def _fabricate(self, name: str, **kwargs):
@@ -82,5 +81,4 @@ except ImportError:
             register_calendar_alias,
         )
         from trading_calendars.calendar_utils import global_calendar_dispatcher
-        from trading_calendars.utils.memoize import lazyval
         from trading_calendars.utils.pandas_utils import days_at_time  # noqa: reexport

@@ -15,6 +15,7 @@ from numpy import (
     sqrt,
     sum as np_sum,
     unique,
+    errstate as np_errstate,
 )
 
 from zipline.pipeline.data import EquityPricing
@@ -84,7 +85,8 @@ class PercentChange(SingleInputMixin, CustomFactor):
             )
 
     def compute(self, today, assets, out, values):
-        out[:] = (values[-1] - values[0]) / abs(values[0])
+        with np_errstate(divide="ignore", invalid="ignore"):
+            out[:] = (values[-1] - values[0]) / abs(values[0])
 
 
 class DailyReturns(Returns):
@@ -433,9 +435,7 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
         variance = average((data - mean) ** 2, axis=0, weights=weights)
 
         squared_weight_sum = np_sum(weights) ** 2
-        bias_correction = squared_weight_sum / (
-            squared_weight_sum - np_sum(weights ** 2)
-        )
+        bias_correction = squared_weight_sum / (squared_weight_sum - np_sum(weights**2))
         out[:] = sqrt(variance * bias_correction)
 
 
@@ -489,7 +489,7 @@ class AnnualizedVolatility(CustomFactor):
     window_length = 252
 
     def compute(self, today, assets, out, returns, annualization_factor):
-        out[:] = nanstd(returns, axis=0) * (annualization_factor ** 0.5)
+        out[:] = nanstd(returns, axis=0) * (annualization_factor**0.5)
 
 
 class PeerCount(SingleInputMixin, CustomFactor):

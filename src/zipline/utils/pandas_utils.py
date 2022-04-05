@@ -9,12 +9,12 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from distutils.version import StrictVersion
+from packaging.version import Version
 from zipline.utils.calendar_utils import days_at_time
 from pandas.errors import PerformanceWarning
 
-pandas_version = StrictVersion(pd.__version__)
-new_pandas = pandas_version >= StrictVersion("0.19")
+pandas_version = Version(pd.__version__)
+new_pandas = pandas_version >= Version("0.19")
 skip_pipeline_new_pandas = (
     "Pipeline categoricals are not yet compatible with pandas >=0.19"
 )
@@ -337,5 +337,7 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
             bad_loc = np.flatnonzero(~same)[0]
             raise ValueError(
                 "{}\nFirst difference is at index {}: "
-                "{} != {}".format(message, bad_loc, first[bad_loc], other[bad_loc]),
+                "{} != {}".format(
+                    message, bad_loc, first[bad_loc], other[bad_loc]
+                ),
             )

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from distutils.version import StrictVersion
+from packaging.version import Version
 import os
 import numpy as np
 
@@ -99,12 +99,12 @@ def setup(
     self,
     np=np,
     numpy_version=numpy_version,
-    StrictVersion=StrictVersion,
+    Version=Version,
     new_pandas=new_pandas,
 ):
     """Lives in zipline.__init__ for doctests."""
 
-    if numpy_version >= StrictVersion("1.14"):
+    if numpy_version >= Version("1.14"):
         self.old_opts = np.get_printoptions()
         np.set_printoptions(legacy="1.13")
     else:
@@ -131,5 +131,5 @@ def teardown(self, np=np):
 del os
 del np
 del numpy_version
-del StrictVersion
+del Version
 del new_pandas

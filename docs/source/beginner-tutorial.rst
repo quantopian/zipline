@@ -536,7 +536,7 @@ magic.
 
    def handle_data(context, data):
        order(symbol('AAPL'), 10)
-       record(AAPL=data[symbol('AAPL')].price)
+       record(AAPL=data.current(symbol('AAPL'), "price")
 
 Note that we did not have to specify an input file as above since the
 magic will use the contents of the cell and look for your algorithm

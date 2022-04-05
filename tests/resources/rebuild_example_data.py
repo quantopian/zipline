@@ -1,16 +1,13 @@
 #!/usr/bin/env python
-from code import InteractiveConsole
 import readline  # noqa
 import shutil
 import tarfile
+from code import InteractiveConsole
 
 import click
 import matplotlib
 import numpy as np
-
 import pandas as pd
-
-from tests.test_examples import EXAMPLE_MODULES
 from zipline import examples
 from zipline.data.bundles import register
 from zipline.testing import test_resource_path, tmp_dir
@@ -18,6 +15,7 @@ from zipline.testing.fixtures import read_checked_in_benchmark_data
 from zipline.testing.predicates import assert_frame_equal
 from zipline.utils.cache import dataframe_cache
 
+EXAMPLE_MODULES = examples.load_example_modules()
 
 matplotlib.use("Agg")
 
@@ -131,8 +129,7 @@ def main(ctx, rebuild_input):
                 _exit()
 
             expected_perf_path = d.getpath(
-                "example_data/expected_perf/%s"
-                % pd.__version__.replace(".", "-"),
+                "example_data/expected_perf/%s" % pd.__version__.replace(".", "-"),
             )
 
             # allow users to run some analysis to make sure that the new

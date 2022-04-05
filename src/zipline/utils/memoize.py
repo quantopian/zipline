@@ -2,15 +2,69 @@
 Tools for memoization of function results.
 """
 from collections.abc import Sequence
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from itertools import compress
 from weakref import WeakKeyDictionary, ref
 
 from _thread import allocate_lock as Lock
 from toolz.sandbox import unzip
-from zipline.utils.calendar_utils import lazyval
 
 from zipline.utils.compat import wraps
+
+
+class lazyval(property):
+    """Decorator that marks that an attribute of an instance should not be
+    computed until needed, and that the value should be memoized.
+
+    Example
+    -------
+
+    >>> from zipline.utils.memoize import lazyval
+    >>> class C(object):
+    ...     def __init__(self):
+    ...         self.count = 0
+    ...     @lazyval
+    ...     def val(self):
+    ...         self.count += 1
+    ...         return "val"
+    ...
+    >>> c = C()
+    >>> c.count
+    0
+    >>> c.val, c.count
+    ('val', 1)
+    >>> c.val, c.count
+    ('val', 1)
+    >>> c.val = 'not_val'
+    Traceback (most recent call last):
+    ...
+    AttributeError: Can't set read-only attribute.
+    >>> c.val
+    'val'
+    """
+
+    __slots__ = ["func", "_cache"]
+
+    def __init__(self, func):
+        self.func = func
+        self._cache = WeakKeyDictionary()
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        try:
+            return self._cache[instance]
+        except KeyError:
+            self._cache[instance] = val = self.func(instance)
+            return val
+
+    def __set__(self, instance, value):
+        raise AttributeError(
+            f"Can't set read-only attribute: {instance.__class__.__name__}.{self.func.__name__} "
+        )
+
+    def __delitem__(self, instance):
+        del self._cache[instance]
 
 
 class classlazyval(lazyval):
@@ -43,6 +97,9 @@ class classlazyval(lazyval):
         return super(classlazyval, self).__get__(owner, owner)
 
 
+_CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
+
+
 def _weak_lru_cache(maxsize=100):
     """
     Users should only access the lru_cache through its public API:
@@ -51,11 +108,9 @@ def _weak_lru_cache(maxsize=100):
     to allow the implementation to change.
     """
 
-    def decorating_function(
-        user_function, tuple=tuple, sorted=sorted, len=len, KeyError=KeyError
-    ):
+    def decorating_function(user_function, tuple=tuple, sorted=sorted, KeyError=KeyError):
 
-        hits, misses = [0], [0]
+        hits = misses = 0
         kwd_mark = (object(),)  # separates positional and keyword args
         lock = Lock()  # needed because OrderedDict isn't threadsafe
 
@@ -64,18 +119,19 @@ def _weak_lru_cache(maxsize=100):
 
             @wraps(user_function)
             def wrapper(*args, **kwds):
+                nonlocal hits, misses
                 key = args
                 if kwds:
                     key += kwd_mark + tuple(sorted(kwds.items()))
                 try:
                     result = cache[key]
-                    hits[0] += 1
+                    hits += 1
                     return result
                 except KeyError:
                     pass
                 result = user_function(*args, **kwds)
                 cache[key] = result
-                misses[0] += 1
+                misses += 1
                 return result
 
         else:
@@ -86,6 +142,7 @@ def _weak_lru_cache(maxsize=100):
 
             @wraps(user_function)
             def wrapper(*args, **kwds):
+                nonlocal hits, misses
                 key = args
                 if kwds:
                     key += kwd_mark + tuple(sorted(kwds.items()))
@@ -93,23 +150,26 @@ def _weak_lru_cache(maxsize=100):
                     try:
                         result = cache[key]
                         cache_renew(key)  # record recent use of this key
-                        hits[0] += 1
+                        hits += 1
                         return result
                     except KeyError:
+                        misses += 1
                         pass
                 result = user_function(*args, **kwds)
                 with lock:
                     cache[key] = result  # record recent use of this key
-                    misses[0] += 1
-                    if len(cache) > maxsize:
+                    misses += 1
+                    if cache_len() > maxsize:
                         # purge least recently used cache entry
-                        cache_popitem(False)
+                        cache_popitem(last=False)
                 return result
+
+        cache_len = cache.__len__
 
         def cache_info():
             """Report cache statistics"""
             with lock:
-                return hits[0], misses[0], maxsize, len(cache)
+                return _CacheInfo(hits, misses, maxsize, cache_len())
 
         def cache_clear():
             """Clear the cache and cache statistics"""
@@ -157,9 +217,7 @@ class _WeakArgs(Sequence):
 
     @property
     def alive(self):
-        return all(
-            item() is not None for item in compress(self._items, self._selectors)
-        )
+        return all(item() is not None for item in compress(self._items, self._selectors))
 
     def __eq__(self, other):
         return self._items == other._items
@@ -242,16 +300,16 @@ def weak_lru_cache(maxsize=100):
                 inst = ref(instance)
 
                 @_weak_lru_cache(maxsize)
-                @wraps(self._get)
+                @wraps(self.func)
                 def wrapper(*args, **kwargs):
-                    return self._get(inst(), *args, **kwargs)
+                    return self.func(inst(), *args, **kwargs)
 
                 self._cache[instance] = wrapper
                 return wrapper
 
         @_weak_lru_cache(maxsize)
         def __call__(self, *args, **kwargs):
-            return self._get(*args, **kwargs)
+            return self.func(*args, **kwargs)
 
     return desc
 

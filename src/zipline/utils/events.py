@@ -186,9 +186,7 @@ class EventManager(object):
     def __init__(self, create_context=None):
         self._events = []
         self._create_context = (
-            create_context
-            if create_context is not None
-            else lambda *_: nop_context
+            create_context if create_context is not None else lambda *_: nop_context
         )
 
     def add_event(self, event, prepend=False):
@@ -286,10 +284,7 @@ class ComposedRule(StatelessRule):
     """
 
     def __init__(self, first, second, composer):
-        if not (
-            isinstance(first, StatelessRule)
-            and isinstance(second, StatelessRule)
-        ):
+        if not (isinstance(first, StatelessRule) and isinstance(second, StatelessRule)):
             raise ValueError("Only two StatelessRules can be composed")
 
         self.first = first
@@ -300,9 +295,7 @@ class ComposedRule(StatelessRule):
         """
         Composes the two rules with a lazy composer.
         """
-        return self.composer(
-            self.first.should_trigger, self.second.should_trigger, dt
-        )
+        return self.composer(self.first.should_trigger, self.second.should_trigger, dt)
 
     @staticmethod
     def lazy_and(first_should_trigger, second_should_trigger, dt):
@@ -491,7 +484,7 @@ class TradingDayOfWeekRule(StatelessRule, metaclass=ABCMeta):
             # Group by ISO year (0) and week (1)
             .groupby(sessions.map(lambda x: x.isocalendar()[0:2]))
             .nth(self.td_delta)
-            .astype(np.int64)
+            .view(np.int64)
         )
 
 

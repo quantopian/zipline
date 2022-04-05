@@ -1767,7 +1767,7 @@ def handle_data(context, data):
             stats.transactions = stats.transactions.apply(
                 lambda txns: [toolz.dissoc(txn, "order_id") for txn in txns]
             )
-        assert_equal(multi_stats.sort_index(1), batch_stats.sort_index(1))
+        assert_equal(multi_stats.sort_index(axis=1), batch_stats.sort_index(axis=1))
 
     def test_batch_market_order_filters_null_orders(self):
         share_counts = [50, 0]
@@ -3586,7 +3586,7 @@ class TestFuturesAlgo(zf.WithMakeAlgo, zf.ZiplineTestCase):
             # Add 1 to the order price because the order does not fill until
             # the bar after the price is recorded.
             order_price = algo.order_price + i + 1
-            expected_impact = order_price * 0.1 * (0.05 ** 2)
+            expected_impact = order_price * 0.1 * (0.05**2)
             expected_price = order_price + expected_impact
             assert txn["price"] == expected_price
 

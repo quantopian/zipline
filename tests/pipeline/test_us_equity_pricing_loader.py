@@ -504,7 +504,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                     expected_df[colname] = (
                         expected_df[colname]
                         .astype("datetime64[s]")
-                        .astype(int)
+                        .view(int)
                         .div(1000000000)
                         .astype(int)
                     )
