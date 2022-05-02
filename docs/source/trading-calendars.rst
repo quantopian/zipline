@@ -27,7 +27,7 @@ until some other number of days past Saturday. Since you wouldn't be able to pla
 the trade in reality, it would also be unreasonable for your backtest to place a trade on Saturday.
 
 In order for you to backtest your strategy, the dates in that are accounted for in your
-`data bundle <https://www.zipline.io/bundles.html>`__ and the dates in your ``TradingCalendar``
+`data bundle <https://zipline.ml4trading.io/bundles.html>`__ and the dates in your ``TradingCalendar``
 should match up; if the dates don't match up, then you you're going to see some errors along the way.
 This holds for both minutely and daily data.
 
