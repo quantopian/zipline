@@ -62,7 +62,7 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
         restraint given the information in `portfolio`, this method should
         return None and have no externally-visible side-effects.
 
-        If the desired order violates this TradingControl's contraint, this
+        If the desired order violates this TradingControl's constraint, this
         method should call self.fail(asset, amount).
         """
         raise NotImplementedError
@@ -381,7 +381,7 @@ class AccountControl(with_metaclass(abc.ABCMeta)):
         the information in `portfolio` and `account`, this method should
         return None and have no externally-visible side-effects.
 
-        If the desired order violates this AccountControl's contraint, this
+        If the desired order violates this AccountControl's constraint, this
         method should call self.fail().
         """
         raise NotImplementedError

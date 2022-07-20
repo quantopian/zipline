@@ -2108,7 +2108,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
         self.assertIsNone(sa.select((version_table.c.version,)).scalar())
 
         # This should fail because the table has no version info and is,
-        # therefore, consdered v0
+        # therefore, considered v0
         with self.assertRaises(AssetDBVersionError):
             check_version_info(self.engine, version_table, -2)
 
