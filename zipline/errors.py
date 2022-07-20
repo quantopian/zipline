@@ -73,7 +73,7 @@ class WrongDataForTransform(ZiplineError):
 class UnsupportedSlippageModel(ZiplineError):
     """
     Raised if a user script calls the set_slippage magic
-    with a slipage object that isn't a VolumeShareSlippage or
+    with a slippage object that isn't a VolumeShareSlippage or
     FixedSlipapge
     """
     msg = """

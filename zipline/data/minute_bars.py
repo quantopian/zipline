@@ -707,7 +707,7 @@ class BcolzMinuteBarWriter(object):
         Parameters
         ----------
         sid : int
-            The asset identifer for the data being written.
+            The asset identifier for the data being written.
         df : pd.DataFrame
             DataFrame of market data with the following characteristics.
             columns : ('open', 'high', 'low', 'close', 'volume')
