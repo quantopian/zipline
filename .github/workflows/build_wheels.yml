@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-python@v4
 
       - name: Build and test wheels
-        uses: pypa/cibuildwheel@v2.8.1
+        uses: pypa/cibuildwheel@v2.11.1
         env:
           CIBW_BUILD: "cp${{ matrix.python }}-*"
           CIBW_BEFORE_TEST_LINUX: >
@@ -68,7 +68,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.8.1
+        uses: pypa/cibuildwheel@v2.11.1
         env:
           CIBW_BUILD: "cp${{ matrix.python }}-*"
           CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.14
