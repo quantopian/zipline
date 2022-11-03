@@ -104,7 +104,7 @@ def make_simple_equity_info(
             "asset_name": list(names),
             "exchange": exchange,
         },
-        index=sids,
+        index=list(sids),
         columns=(
             "start_date",
             "end_date",

@@ -254,6 +254,9 @@ def _generate_output_dataframe(data_subset, defaults):
 
 
 def _check_asset_group(group):
+    # workaround until fixed: https://github.com/pandas-dev/pandas/issues/47985
+    if group.empty:
+        return group
     row = group.sort_values("end_date").iloc[-1]
     row.start_date = group.start_date.min()
     row.end_date = group.end_date.max()

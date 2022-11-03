@@ -769,7 +769,8 @@ class SimplePipelineEngine(PipelineEngine):
                 data={name: array([], dtype=arr.dtype) for name, arr in data.items()},
                 index=MultiIndex.from_arrays([empty_dates, empty_assets]),
             )
-
+        if "open_instance" in data.keys():
+            data["open_instance"].tofile("../../open_instance.dat")
         final_columns = {}
         for name in data:
             # Each term that computed an output has its postprocess method
@@ -782,7 +783,14 @@ class SimplePipelineEngine(PipelineEngine):
         resolved_assets = array(self._finder.retrieve_all(assets))
         index = _pipeline_output_index(dates, resolved_assets, mask)
 
-        return DataFrame(data=final_columns, index=index)
+        df = DataFrame(data=final_columns, index=index)
+
+        # import numpy as np
+        #
+        # for col, dtype in df.dtypes.items():
+        #     if dtype.type == np.record:
+        #         df[col] = df[col].apply(tuple)
+        return df
 
     def _validate_compute_chunk_params(self, graph, dates, sids, initial_workspace):
         """

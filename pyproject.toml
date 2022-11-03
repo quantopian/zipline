@@ -1,5 +1,5 @@
 [project]
-requires-python = '>=3.7'
+requires-python = '>=3.7, <3.11'
 
 [build-system]
 requires = [
@@ -25,7 +25,7 @@ archs = ["auto64"]
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38']
+target-version = ['py37', 'py38', 'py39', 'py310']
 exclude = '''
 (
     asv_bench/env

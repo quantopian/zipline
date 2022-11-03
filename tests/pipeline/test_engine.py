@@ -1259,7 +1259,7 @@ class ParameterizedFactorTestCase(
         expected_1 = (self.raw_data[5:] ** 2) * 2
         assert_frame_equal(results["dv1"].unstack(), expected_1)
 
-        expected_5 = ((self.raw_data ** 2) * 2).rolling(5).mean()[5:]
+        expected_5 = ((self.raw_data**2) * 2).rolling(5).mean()[5:]
         assert_frame_equal(results["dv5"].unstack(), expected_5)
 
         # The following two use EquityPricing.open and .volume as inputs.

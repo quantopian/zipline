@@ -1,3 +1,5 @@
+default_language_version:
+    python: python3.9
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 'v3.4.0'
@@ -7,10 +9,11 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/ambv/black
-    rev: 21.4b2
+    rev: 22.3.0
     hooks:
       - id: black
-        language_version: python3.8
+        additional_dependencies: ['click==8.0.4']
+        language_version: python3.9
   - repo: https://gitlab.com/pycqa/flake8
     rev: '3.9.1'
     hooks:
