@@ -7,9 +7,9 @@ on:
         description: 'Package Index'
         required: true
         default: 'TESTPYPI'
-  release:
-    types:
-    - published
+#  release:
+#    types:
+#    - published
 
 jobs:
   build_linux:
@@ -19,12 +19,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        python: [ 37, 38, 39 ]
+        python: [ 37, 38, 39, '310']
         manylinux_image: [ manylinux2010, manylinux2014 ]
 
     steps:
       - name: Checkout zipline
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -48,7 +48,7 @@ jobs:
                                harfbuzz-devel fribidi-devel libraqm-devel libimagequant-devel libxcb-devel
 
       - name: Store artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: wheelhouse/*.whl
 
@@ -59,11 +59,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest ]
-        python: [ 37, 38, 39 ]
+        python: [ 37, 38, 39, '310']
 
     steps:
       - name: Checkout zipline
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -75,7 +75,7 @@ jobs:
           CIBW_BEFORE_TEST_MACOS: >
             brew install freetype pkg-config gcc openssl c-blosc hdf5 ta-lib
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
 
@@ -83,21 +83,21 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.9'
 
       - name: Build sdist
         run: |
           pip install -U pip setuptools build
           python -m build --sdist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: dist/*.tar.gz
 
@@ -111,7 +111,7 @@ jobs:
           path: dist
 
       - name: publish to testpypi
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         if: ${{ github.event.inputs.target }} == 'TESTPYPI'
         with:
           user: __token__
@@ -119,7 +119,7 @@ jobs:
           repository_url: https://test.pypi.org/legacy/
 
       - name: publish to pypi
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         if: ${{ github.event.inputs.target }} == 'PYPI' || (github.event_name == 'release' && github.event.action == 'published')
         with:
           user: __token__

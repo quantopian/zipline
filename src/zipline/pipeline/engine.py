@@ -62,24 +62,22 @@ from numpy import array, arange
 from pandas import DataFrame, MultiIndex
 from toolz import groupby
 
-from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
 from zipline.errors import NoFurtherDataError
+from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
+from zipline.utils.date_utils import compute_date_range_chunks
 from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
     as_column,
     repeat_first_axis,
     repeat_last_axis,
 )
+from zipline.utils.pandas_utils import categorical_df_concat
 from zipline.utils.pandas_utils import explode
 from zipline.utils.string_formatting import bulleted_list
-
 from .domain import Domain, GENERIC
 from .graph import maybe_specialize
 from .hooks import DelegatingHooks
 from .term import AssetExists, InputDates, LoadableTerm
-
-from zipline.utils.date_utils import compute_date_range_chunks
-from zipline.utils.pandas_utils import categorical_df_concat
 
 
 class PipelineEngine(metaclass=ABCMeta):
@@ -424,7 +422,6 @@ class SimplePipelineEngine(PipelineEngine):
         execution_order = plan.execution_order(workspace, refcounts)
 
         with hooks.computing_chunk(execution_order, start_date, end_date):
-
             results = self.compute_chunk(
                 graph=plan,
                 dates=dates,
@@ -776,21 +773,12 @@ class SimplePipelineEngine(PipelineEngine):
             # Each term that computed an output has its postprocess method
             # called on the filtered result.
             #
-            # As of Mon May 2 15:38:47 2016, we only use this to convert
-            # LabelArrays into categoricals.
+            # Using this to convert np.records to tuples
             final_columns[name] = terms[name].postprocess(data[name][mask])
 
         resolved_assets = array(self._finder.retrieve_all(assets))
         index = _pipeline_output_index(dates, resolved_assets, mask)
-
-        df = DataFrame(data=final_columns, index=index)
-
-        # import numpy as np
-        #
-        # for col, dtype in df.dtypes.items():
-        #     if dtype.type == np.record:
-        #         df[col] = df[col].apply(tuple)
-        return df
+        return DataFrame(data=final_columns, index=index)
 
     def _validate_compute_chunk_params(self, graph, dates, sids, initial_workspace):
         """
