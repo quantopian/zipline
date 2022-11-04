@@ -16,20 +16,23 @@
 """
 Tests for the zipline.assets package
 """
+import os
+import pickle
+import re
+import string
+import sys
+import uuid
 from collections import namedtuple
 from datetime import timedelta
 from functools import partial
-import os
-import pickle
-import string
-import sys
 from types import GetSetDescriptorType
-import uuid
 
-from parameterized import parameterized
 import numpy as np
 import pandas as pd
+import pytest
 import sqlalchemy as sa
+from parameterized import parameterized
+from toolz import valmap, concat
 
 from zipline.assets import (
     Asset,
@@ -39,22 +42,20 @@ from zipline.assets import (
     AssetDBWriter,
     AssetFinder,
 )
-from zipline.assets.assets import OwnershipPeriod
-from zipline.assets.synthetic import (
-    make_commodity_future_info,
-    make_rotating_equity_info,
-    make_simple_equity_info,
-)
-from toolz import valmap, concat
-
+from zipline.assets.asset_db_migrations import downgrade
+from zipline.assets.asset_db_schema import ASSET_DB_VERSION
 from zipline.assets.asset_writer import (
     check_version_info,
     write_version_info,
     _futures_defaults,
     SQLITE_MAX_VARIABLE_NUMBER,
 )
-from zipline.assets.asset_db_schema import ASSET_DB_VERSION
-from zipline.assets.asset_db_migrations import downgrade
+from zipline.assets.assets import OwnershipPeriod
+from zipline.assets.synthetic import (
+    make_commodity_future_info,
+    make_rotating_equity_info,
+    make_simple_equity_info,
+)
 from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
@@ -78,15 +79,12 @@ from zipline.testing import (
     tmp_assets_db,
     tmp_asset_finder,
 )
-
-from zipline.testing.predicates import assert_index_equal, assert_frame_equal
 from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
     WithTradingCalendars,
 )
-import pytest
-import re
+from zipline.testing.predicates import assert_index_equal, assert_frame_equal
 
 Case = namedtuple("Case", "finder inputs as_of country_code expected")
 
@@ -1086,13 +1084,14 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                             expected_no_start_raw[i, j] = True
 
             for country_codes in powerset(exchanges.country_code.unique()):
-                expected_sids = pd.Int64Index(
+                expected_sids = pd.Index(
                     sorted(
                         concat(
                             sids_by_country[country_code]
                             for country_code in country_codes
                         )
-                    )
+                    ),
+                    dtype="int64",
                 )
                 permuted_sids = [sid for sid in sorted(expected_sids, key=permute_sid)]
                 tile_count = len(country_codes) + ("US" in country_codes)
@@ -1102,7 +1101,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                         tile_count,
                     ),
                     index=dates,
-                    columns=pd.Int64Index(permuted_sids),
+                    columns=pd.Index(permuted_sids, dtype="int64"),
                 )
                 result = finder.lifetimes(
                     dates,
@@ -1119,7 +1118,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                         tile_count,
                     ),
                     index=dates,
-                    columns=pd.Int64Index(permuted_sids),
+                    columns=pd.Index(permuted_sids, dtype="int64"),
                 )
                 result = finder.lifetimes(
                     dates,

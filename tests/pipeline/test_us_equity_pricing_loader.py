@@ -636,7 +636,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
             domain=US_EQUITIES,
             columns=columns,
             dates=query_days,
-            sids=pd.Int64Index(np.arange(1, 7)),
+            sids=pd.Index(np.arange(1, 7), dtype="int64"),
             mask=np.ones((len(query_days), 6), dtype=bool),
         )
         highs, volumes = map(getitem(results), columns)

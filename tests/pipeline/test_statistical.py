@@ -52,7 +52,7 @@ import re
 class StatisticalBuiltInsTestCase(
     zf.WithAssetFinder, zf.WithTradingCalendars, zf.ZiplineTestCase
 ):
-    sids = ASSET_FINDER_EQUITY_SIDS = pd.Int64Index([1, 2, 3])
+    sids = ASSET_FINDER_EQUITY_SIDS = pd.Index([1, 2, 3], dtype="int64")
     START_DATE = pd.Timestamp("2015-01-31", tz="UTC")
     END_DATE = pd.Timestamp("2015-03-01", tz="UTC")
     ASSET_FINDER_EQUITY_SYMBOLS = ("A", "B", "C")
@@ -493,7 +493,7 @@ class StatisticalBuiltInsTestCase(
 
 
 class StatisticalMethodsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCase):
-    sids = ASSET_FINDER_EQUITY_SIDS = pd.Int64Index([1, 2, 3])
+    sids = ASSET_FINDER_EQUITY_SIDS = pd.Index([1, 2, 3], dtype="int64")
     START_DATE = pd.Timestamp("2015-01-31", tz="UTC")
     END_DATE = pd.Timestamp("2015-03-01", tz="UTC")
     ASSET_FINDER_COUNTRY_CODE = "US"

@@ -60,7 +60,7 @@ class DateFactor(Factor):
 @pytest.fixture(scope="function")
 def set_num_expression(request):
     request.cls.dates = pd.date_range("2014-01-01", periods=5, freq="D")
-    request.cls.assets = pd.Int64Index(range(5))
+    request.cls.assets = pd.Index(range(5), dtype="int64")
     request.cls.f = F()
     request.cls.g = G()
     request.cls.h = H()
@@ -394,20 +394,20 @@ class TestNumericalExpression:
     def test_pow(self):
         f, g = self.f, self.g
 
-        self.check_constant_output(f ** g, 3.0 ** 2)
-        self.check_constant_output(2 ** f, 2.0 ** 3)
-        self.check_constant_output(f ** 2, 3.0 ** 2)
+        self.check_constant_output(f**g, 3.0**2)
+        self.check_constant_output(2**f, 2.0**3)
+        self.check_constant_output(f**2, 3.0**2)
 
         self.check_constant_output((f + g) ** 2, (3.0 + 2.0) ** 2)
         self.check_constant_output(2 ** (f + g), 2 ** (3.0 + 2.0))
 
-        self.check_constant_output(f ** (f ** g), 3.0 ** (3.0 ** 2.0))
-        self.check_constant_output((f ** f) ** g, (3.0 ** 3.0) ** 2.0)
+        self.check_constant_output(f ** (f**g), 3.0 ** (3.0**2.0))
+        self.check_constant_output((f**f) ** g, (3.0**3.0) ** 2.0)
 
-        self.check_constant_output((f ** g) ** (f ** g), 9.0 ** 9.0)
-        self.check_constant_output((f ** g) ** (g ** f), 9.0 ** 8.0)
-        self.check_constant_output((g ** f) ** (f ** g), 8.0 ** 9.0)
-        self.check_constant_output((g ** f) ** (g ** f), 8.0 ** 8.0)
+        self.check_constant_output((f**g) ** (f**g), 9.0**9.0)
+        self.check_constant_output((f**g) ** (g**f), 9.0**8.0)
+        self.check_constant_output((g**f) ** (f**g), 8.0**9.0)
+        self.check_constant_output((g**f) ** (g**f), 8.0**8.0)
 
     def test_mod(self):
         f, g = self.f, self.g
@@ -487,7 +487,7 @@ class TestNumericalExpression:
             (f + 1, g, f_data + 1, g_data),
             (f, g + 1, f_data, g_data + 1),
             (f + 1, g + 1, f_data + 1, g_data + 1),
-            ((f + g) / 2, f ** 2, (f_data + g_data) / 2, f_data ** 2),
+            ((f + g) / 2, f**2, (f_data + g_data) / 2, f_data**2),
         ]
         for op in (gt, ge, lt, le, ne):
             for expr_lhs, expr_rhs, expected_lhs, expected_rhs in cases:

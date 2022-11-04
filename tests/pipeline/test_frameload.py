@@ -27,7 +27,7 @@ def frame_loader(request):
     request.cls.trading_day = get_calendar("NYSE").day
     request.cls.nsids = 5
     request.cls.ndates = 20
-    request.cls.sids = pd.Int64Index(range(request.cls.nsids))
+    request.cls.sids = pd.Index(range(request.cls.nsids), dtype="int64")
     request.cls.dates = pd.date_range(
         start="2014-01-02",
         freq=request.cls.trading_day,
