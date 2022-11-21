@@ -93,3 +93,4 @@ archive
 conda
 .pytest_cache
 admin
+*.html

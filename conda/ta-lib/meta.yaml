@@ -1,5 +1,5 @@
 {% set name = "TA-Lib" %}
-{% set version = "0.4.21" %}
+{% set version = "0.4.25" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  md5: 092178339ff1b62c867c569e750363f2
+  md5: 948001ca61672b4eeef12a8cc9e8c59b
 
 build:
   number: 0
@@ -16,9 +16,14 @@ build:
 
 requirements:
   build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
     - python
+    - setuptools_scm
     - cython
     - numpy
+
   run:
     - python
     - numpy
@@ -29,4 +34,4 @@ test:
 
 about:
   home: http://github.com/mrjbq7/ta-lib
-  license: BSD License
+  license: BSD

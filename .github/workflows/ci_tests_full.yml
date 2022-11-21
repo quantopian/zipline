@@ -1,4 +1,4 @@
-name: CI Full Tests
+name: CI Tests
 
 on:
   workflow_dispatch:
@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.7, 3.8, 3.9, '3.10']
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
         exclude:
           - os: windows-latest
             python-version: 3.9
@@ -29,18 +29,12 @@ jobs:
       - name: Install TA-Lib Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          curl -L -o ta-lib-0.4.0-src.tar.gz  http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz &&
-          tar xvfz ta-lib-0.4.0-src.tar.gz &&
-          cd ta-lib &&
-          ./configure &&
-          sudo make &&
-          sudo make install &&
-          sudo ldconfig
+          sudo ./tools/install_talib.sh
 
       - name: Install TA-Lib macOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          brew install freetype pkg-config gcc openssl hdf5 ta-lib c-blosc
+          brew install ta-lib
 
       - name: Developer Command Prompt for Microsoft Visual C++
         uses: ilammy/msvc-dev-cmd@v1
@@ -48,43 +42,24 @@ jobs:
       - name: Install TA-Lib Windows
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          powershell -Command "(New-Object Net.WebClient).DownloadFile('http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-msvc.zip', 'ta-lib-0.4.0-msvc.zip')"
-          powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem;[System.IO.Compression.ZipFile]::ExtractToDirectory('ta-lib-0.4.0-msvc.zip', 'C:\')"
-          pushd C:\ta-lib\c\
-          pushd make\cdd\win32\msvc
-          nmake
-          popd
-          pushd make\cdr\win32\msvc
-          nmake
-          popd
-          pushd make\cmd\win32\msvc
-          nmake
-          popd
-          pushd make\cmr\win32\msvc
-          nmake
-          popd
-          pushd make\csd\win32\msvc
-          nmake
-          popd
-          pushd make\csr\win32\msvc
-          nmake
-          popd
-          popd
-          del ta-lib-0.4.0-msvc.zip
+          ./tools/install_talib.bat
 
       - name: Install Zipline
         run: |
           python -VV
           python -m pip install --upgrade pip setuptools wheel
-          pip install tox tox-gh-actions
-          pip install -e .[test]
-          pip uninstall -y ta-lib
-          python -m pip install --no-cache-dir git+https://github.com/mrjbq7/ta-lib.git
+          python -m pip install tox tox-gh-actions
+          python -m pip install .[test]
 
       - name: Lint with flake8
         run: |
           flake8
 
       - name: Unittests with tox & pytest
-        run: |
-          tox -e ci_full_tests
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 90
+          max_attempts: 3
+          retry_on: error
+          new_command_on_retry: python -m pip install tox tox-gh-actions .[test]
+          command: tox

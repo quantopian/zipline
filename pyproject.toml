@@ -1,19 +1,148 @@
 [project]
-requires-python = '>=3.7, <3.11'
+name = 'zipline-reloaded'
+version = '2.3'
+description = 'A Pythonic backtester for trading algorithms'
+readme = 'README.md'
+
+authors = [
+    { name = 'Quantopian Inc' },
+    { email = 'pm@ml4trading.io' }
+]
+maintainers = [
+    { name = 'Stefan Jansen' },
+    { email = 'pm@ml4trading.io' }
+]
+
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'License :: OSI Approved :: Apache Software License',
+    'Natural Language :: English',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Operating System :: OS Independent',
+    'Intended Audience :: Science/Research',
+    'Topic :: Office/Business :: Financial :: Investment',
+    'Topic :: Scientific/Engineering :: Information Analysis',
+    'Topic :: System :: Distributed Computing'
+
+]
+
+license = { file = "LICENSE" }
+
+requires-python = '>=3.7'
+dependencies = [
+    'alembic >=0.7.7',
+    'bcolz-zipline >=1.2.6',
+    'bottleneck >=1.0.0',
+    'click >=4.0.0',
+    'empyrical-reloaded >=0.5.7',
+    'h5py >=2.7.1',
+    'intervaltree >=2.1.0',
+    'iso3166 >=2.1.1',
+    'iso4217 >=1.6.20180829',
+    'logbook >=1.0',
+    'lru-dict >=1.1.4',
+    'multipledispatch >=0.6.0',
+    'networkx >=2.0',
+    'numexpr >=2.6.1',
+    'numpy >=1.14.5, <1.24',
+    'pandas >=1.1.0, <1.6',
+    'patsy >=0.4.0',
+    'python-dateutil >=2.4.2',
+    'python-interface >=1.5.3',
+    'pytz >=2018.5',
+    'requests >=2.9.1',
+    'scipy >=0.17.1',
+    'six >=1.10.0',
+    'sqlalchemy >=1.0.8A, <2',
+    'statsmodels >=0.6.1',
+    'ta-lib >=0.4.09',
+    'tables >=3.4.3',
+    'toolz >=0.8.2',
+    'trading-calendars >=1.6.1',
+    'exchange-calendars <=3.3'
+]
+
+[project.urls]
+homepage = 'https://ml4trading.io'
+repository = 'https://github.com/stefan-jansen/zipline-reloaded'
+documentation = 'https://zipline.ml4trading.io'
 
 [build-system]
 requires = [
     'setuptools>=42.0.0',
+    "setuptools_scm[toml]>=6.2",
     'wheel>=0.36.0',
     'Cython>=0.29.21,<3',
     'oldest-supported-numpy; python_version>="3.7"',
 ]
 build-backend = 'setuptools.build_meta'
 
+[project.optional-dependencies]
+test = [
+    'tox',
+    'pytest==6.2.5',
+    'pytest-cov >=3.0.0',
+    'pytest-xdist >=2.5.0',
+    'pytest-timeout >=1.4.2',
+    'parameterized >=0.6.1',
+    'mock >=2.0.0p',
+    'testfixtures >=4.1.2',
+    'flake8 >=3.9.1',
+    'matplotlib >=1.5.3',
+    'responses >=0.9.0',
+    'pandas-datareader >=0.2.1',
+    'click <8.1.0',
+    'coverage',
+    'pytest-rerunfailures'
+]
+dev = [
+    'flake8 >=3.9.1',
+    'black',
+    'pre-commit >=2.12.1'
+
+]
+docs = [
+    'Cython',
+    'Sphinx >=1.3.2',
+    'numpydoc >=0.5.0',
+    'sphinx-autobuild >=0.6.0',
+    'pydata-sphinx-theme',
+    'sphinx-markdown-tables',
+    'm2r2'
+
+]
+
+[project.scripts]
+zipline = 'zipline.__main__:main'
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ['src']
+exclude = ['tests*']
+
+[tool.setuptools_scm]
+write_to = "src/zipline/_version.py"
+version_scheme = 'guess-next-dev'
+local_scheme = 'dirty-tag'
+
+[tool.setuptools.package-data]
+"*" = ["*.pyi", "*.pyx", "*.pxi", "*.pxd"]
+
+[tool.pytest]
+testpaths = 'tests'
+addopts = '-v'
+
 [tool.cibuildwheel]
-skip = "*musllinux*"
+skip = ["cp37-macosx_arm64", "cp37-macosx_universal2"]
 test-extras = "test"
-test-command = 'python -c "import zipline; print(zipline.__version__)"'
+test-command = "pytest -n 8 --reruns 5 {package}/tests"
 build-verbosity = 3
 
 [tool.cibuildwheel.macos]
@@ -22,6 +151,7 @@ test-skip = ["*universal2:arm64"]
 
 [tool.cibuildwheel.linux]
 archs = ["auto64"]
+skip = "*musllinux*"
 
 [tool.black]
 line-length = 88
@@ -38,3 +168,36 @@ exclude = '''
   | setup.py
 )
 '''
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py{37,38,39,310}-pandas{11,12,13},py{38,39,310}-pandas{14,15}
+isolated_build = True
+skip_missing_interpreters = True
+minversion = 3.23.0
+
+[gh-actions]
+python =
+    3.7: py37
+    3.8: py38
+    3.9: py39
+    3.10: py310
+
+[testenv]
+usedevelop = True
+setenv =
+    MPLBACKEND = Agg
+
+changedir = tmp
+extras = test
+deps =
+    pandas11: pandas>=1.1.0,<1.2
+    pandas12: pandas>=1.2.0,<1.3
+    pandas13: pandas>=1.3.0,<1.4
+    pandas14: pandas>=1.4.0,<1.5
+    pandas15: pandas>=1.5.0,<1.6
+
+commands =
+    pytest -n 4 --reruns 5 --cov={toxinidir}/src --cov-report term  --cov-report=xml --cov-report=html:htmlcov {toxinidir}/tests
+"""

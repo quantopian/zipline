@@ -1,5 +1,5 @@
 prune *
-include LICENSE README.md pyproject.toml setup.py setup.cfg, versioneer.py
+include LICENSE README.md pyproject.toml setup.py
 
 graft src
 graft tests

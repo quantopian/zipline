@@ -766,8 +766,8 @@ class SimplePipelineEngine(PipelineEngine):
                 data={name: array([], dtype=arr.dtype) for name, arr in data.items()},
                 index=MultiIndex.from_arrays([empty_dates, empty_assets]),
             )
-        if "open_instance" in data.keys():
-            data["open_instance"].tofile("../../open_instance.dat")
+        # if "open_instance" in data.keys():
+        #     data["open_instance"].tofile("../../open_instance.dat")
         final_columns = {}
         for name in data:
             # Each term that computed an output has its postprocess method

@@ -49,10 +49,12 @@ if global_calendar_dispatcher._calendars:
     del warnings
 del global_calendar_dispatcher
 
-from ._version import get_versions  # noqa 402
-
-__version__ = get_versions()["version"]
-del get_versions
+try:
+    from ._version import version as __version__
+    from ._version import version_tuple
+except ImportError:
+    __version__ = "unknown version"
+    version_tuple = (0, 0, "unknown version")
 
 extension_args = ext.Namespace()
 
