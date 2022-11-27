@@ -1,0 +1,30 @@
+{
+  "name": "Python 3",
+  "build": { "dockerfile": "Dockerfile",
+      "context": "..",
+      "args": {"VARIANT": "3.10"}
+},
+  // Set *default* container specific settings.json values on container create.
+  "settings": {
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+    "python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
+    "python.linting.pylintPath": "/usr/local/py-utils/bin/pylint"
+  },
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // In order to speed up install, we used a requirements.txt  when building the Dockerfile
+  "postCreateCommand": "pip3 install --user -e .[dev,test]",
+  
+  // Configure tool-specific properties.
+  "customizations": {"vscode": {"extensions": ["ms-python.python","ms-python.vscode-pylance"]}}
+  
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+}
