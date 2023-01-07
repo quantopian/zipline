@@ -41,7 +41,7 @@ LIMIT = 1 << 3
 ORDER_FIELDS_TO_IGNORE = {"type", "direction", "_status", "asset"}
 
 
-class Order(object):
+class Order:
     # using __slots__ to save on memory usage.  Simulations can create many
     # Order objects and we keep them all in memory, so it's worthwhile trying
     # to cut down on the memory footprint of this object.
@@ -286,9 +286,3 @@ class Order(object):
         String representation for this object.
         """
         return "Order(%s)" % self.to_dict().__repr__()
-
-    def __unicode__(self):
-        """
-        Unicode representation for this object.
-        """
-        return str(repr(self))

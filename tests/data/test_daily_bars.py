@@ -120,16 +120,16 @@ EQUITY_INFO["symbol"] = [chr(ord("A") + x) for x in range(len(EQUITY_INFO))]
 
 TEST_QUERY_ASSETS = EQUITY_INFO.index
 
-TEST_CALENDAR_START = pd.Timestamp("2015-06-01", tz="UTC")
-TEST_CALENDAR_STOP = pd.Timestamp("2015-06-30", tz="UTC")
+TEST_CALENDAR_START = pd.Timestamp("2015-06-01")
+TEST_CALENDAR_STOP = pd.Timestamp("2015-06-30")
 
-TEST_QUERY_START = pd.Timestamp("2015-06-10", tz="UTC")
-TEST_QUERY_STOP = pd.Timestamp("2015-06-19", tz="UTC")
+TEST_QUERY_START = pd.Timestamp("2015-06-10")
+TEST_QUERY_STOP = pd.Timestamp("2015-06-19")
 
 
 HOLES = {
-    "US": {5: (pd.Timestamp("2015-06-17", tz="UTC"),)},
-    "CA": {17: (pd.Timestamp("2015-06-17", tz="UTC"),)},
+    "US": {5: (pd.Timestamp("2015-06-17"),)},
+    "CA": {17: (pd.Timestamp("2015-06-17"),)},
 }
 
 
@@ -152,8 +152,8 @@ class _DailyBarsTestCase(
         super(_DailyBarsTestCase, cls).init_class_fixtures()
 
         cls.sessions = cls.trading_calendar.sessions_in_range(
-            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_START),
-            cls.trading_calendar.minute_to_session_label(TEST_CALENDAR_STOP),
+            cls.trading_calendar.minute_to_session(TEST_CALENDAR_START),
+            cls.trading_calendar.minute_to_session(TEST_CALENDAR_STOP),
         )
 
     @classmethod
@@ -302,8 +302,8 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         assert result.attrs["last_row"] == expected_last_row
         assert result.attrs["calendar_offset"] == expected_calendar_offset
         cal = get_calendar(result.attrs["calendar_name"])
-        first_session = pd.Timestamp(result.attrs["start_session_ns"], tz="UTC")
-        end_session = pd.Timestamp(result.attrs["end_session_ns"], tz="UTC")
+        first_session = pd.Timestamp(result.attrs["start_session_ns"])
+        end_session = pd.Timestamp(result.attrs["end_session_ns"])
         sessions = cal.sessions_in_range(first_session, end_session)
 
         assert_equal(self.sessions, sessions)
@@ -343,8 +343,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             )
 
     def test_start_on_asset_start(self):
-        """
-        Test loading with queries that starts on the first day of each asset's
+        """Test loading with queries that starts on the first day of each asset's
         lifetime.
         """
         columns = ["high", "volume"]
@@ -357,8 +356,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             )
 
     def test_start_on_asset_end(self):
-        """
-        Test loading with queries that start on the last day of each asset's
+        """Test loading with queries that start on the last day of each asset's
         lifetime.
         """
         columns = ["close", "volume"]
@@ -371,8 +369,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             )
 
     def test_end_on_asset_start(self):
-        """
-        Test loading with queries that end on the first day of each asset's
+        """Test loading with queries that end on the first day of each asset's
         lifetime.
         """
         columns = ["close", "volume"]
@@ -385,8 +382,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             )
 
     def test_end_on_asset_end(self):
-        """
-        Test loading with queries that end on the last day of each asset's
+        """Test loading with queries that end on the last day of each asset's
         lifetime.
         """
         columns = [CLOSE, VOLUME]
@@ -399,9 +395,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             )
 
     def test_read_known_and_unknown_sids(self):
-        """
-        Test a query with some known sids mixed in with unknown sids.
-        """
+        """Test a query with some known sids mixed in with unknown sids."""
 
         # Construct a list of alternating valid and invalid query sids,
         # bookended by invalid sids.
@@ -515,10 +509,10 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         reader = self.daily_bar_reader
 
         for asset in self.assets:
-            before_start = self.trading_calendar.previous_session_label(
+            before_start = self.trading_calendar.previous_session(
                 self.asset_start(asset)
             )
-            after_end = self.trading_calendar.next_session_label(self.asset_end(asset))
+            after_end = self.trading_calendar.next_session(self.asset_end(asset))
 
             # Attempting to get data for an asset before its start date
             # should raise NoDataBeforeDate.
@@ -568,7 +562,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             # is either the end date for the asset, or ``mid_date`` if
             # the asset is *still* alive at that point. Otherwise, it
             # is pd.NaT.
-            mid_date = pd.Timestamp("2015-06-15", tz="UTC")
+            mid_date = pd.Timestamp("2015-06-15")
             if self.asset_start(sid) <= mid_date:
                 expected = min(self.asset_end(sid), mid_date)
             else:
@@ -587,7 +581,7 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             assert_equal(
                 self.daily_bar_reader.get_last_traded_dt(
                     self.asset_finder.retrieve_asset(sid),
-                    pd.Timestamp(0, tz="UTC"),
+                    pd.Timestamp(0),
                 ),
                 pd.NaT,
             )
@@ -662,7 +656,7 @@ class BcolzDailyBarWriterMissingDataTestCase(
     # Sid 5 is active from 2015-06-02 to 2015-06-30.
     MISSING_DATA_SID = 5
     # Leave out data for a day in the middle of the query range.
-    MISSING_DATA_DAY = pd.Timestamp("2015-06-15", tz="UTC")
+    MISSING_DATA_DAY = pd.Timestamp("2015-06-15")
 
     @classmethod
     def make_equity_info(cls):
@@ -690,7 +684,7 @@ class BcolzDailyBarWriterMissingDataTestCase(
             "Got 20 rows for daily bars table with first day=2015-06-02, last "
             "day=2015-06-30, expected 21 rows.\n"
             "Missing sessions: "
-            "[Timestamp('2015-06-15 00:00:00+0000', tz='UTC')]\n"
+            "[Timestamp('2015-06-15 00:00:00')]\n"
             "Extra sessions: []"
         )
         with pytest.raises(AssertionError, match=expected_msg):
@@ -745,11 +739,11 @@ class _HDF5DailyBarTestCase(
     def test_invalid_date(self):
         INVALID_DATES = (
             # Before the start of the daily bars.
-            self.trading_calendar.previous_session_label(TEST_CALENDAR_START),
+            self.trading_calendar.previous_session(TEST_CALENDAR_START),
             # A Sunday.
             pd.Timestamp("2015-06-07", tz="UTC"),
             # After the end of the daily bars.
-            self.trading_calendar.next_session_label(TEST_CALENDAR_STOP),
+            self.trading_calendar.next_session(TEST_CALENDAR_STOP),
         )
 
         for invalid_date in INVALID_DATES:
@@ -969,10 +963,10 @@ class _HDF5DailyBarTestCase(
         reader = self.daily_bar_reader
 
         for asset in self.assets:
-            before_start = self.trading_calendar.previous_session_label(
+            before_start = self.trading_calendar.previous_session(
                 self.asset_start(asset)
             )
-            after_end = self.trading_calendar.next_session_label(self.asset_end(asset))
+            after_end = self.trading_calendar.next_session(self.asset_end(asset))
 
             # Attempting to get data for an asset before its start date
             # should raise NoDataBeforeDate.
@@ -1022,7 +1016,7 @@ class _HDF5DailyBarTestCase(
             # is either the end date for the asset, or ``mid_date`` if
             # the asset is *still* alive at that point. Otherwise, it
             # is pd.NaT.
-            mid_date = pd.Timestamp("2015-06-15", tz="UTC")
+            mid_date = pd.Timestamp("2015-06-15")
             if self.asset_start(sid) <= mid_date:
                 expected = min(self.asset_end(sid), mid_date)
             else:

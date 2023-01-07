@@ -1,17 +1,8 @@
-"""
-Synthetic data loaders for testing.
-"""
+"""Synthetic data loaders for testing."""
+
 from interface import implements
-from numpy import (
-    arange,
-    array,
-    eye,
-    float64,
-    full,
-    iinfo,
-    nan,
-    uint32,
-)
+import numpy as np
+
 from numpy.random import RandomState
 from pandas import DataFrame, Timestamp
 from sqlite3 import connect as sqlite3_connect
@@ -33,7 +24,7 @@ from zipline.utils.numpy_utils import (
 )
 
 
-UINT_32_MAX = iinfo(uint32).max
+UINT_32_MAX = np.iinfo(np.uint32).max
 
 
 def nanos_to_seconds(nanos):
@@ -41,8 +32,7 @@ def nanos_to_seconds(nanos):
 
 
 class PrecomputedLoader(implements(PipelineLoader)):
-    """
-    Synthetic PipelineLoader that uses a pre-computed array for each column.
+    """Synthetic PipelineLoader that uses a pre-computed array for each column.
 
     Parameters
     ----------
@@ -80,24 +70,21 @@ class PrecomputedLoader(implements(PipelineLoader)):
         self._loaders = loaders
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
-        """
-        Load by delegating to sub-loaders.
-        """
+        """Load by delegating to sub-loaders."""
         out = {}
         for col in columns:
             try:
                 loader = self._loaders.get(col)
                 if loader is None:
                     loader = self._loaders[col.unspecialize()]
-            except KeyError:
-                raise ValueError("Couldn't find loader for %s" % col)
+            except KeyError as exc:
+                raise ValueError("Couldn't find loader for %s" % col) from exc
             out.update(loader.load_adjusted_array(domain, [col], dates, sids, mask))
         return out
 
 
 class EyeLoader(PrecomputedLoader):
-    """
-    A PrecomputedLoader that emits arrays containing 1s on the diagonal and 0s
+    """A PrecomputedLoader that emits arrays containing 1s on the diagonal and 0s
     elsewhere.
 
     Parameters
@@ -113,15 +100,14 @@ class EyeLoader(PrecomputedLoader):
     def __init__(self, columns, dates, sids):
         shape = (len(dates), len(sids))
         super(EyeLoader, self).__init__(
-            {column: eye(shape, dtype=column.dtype) for column in columns},
+            {column: np.eye(shape, dtype=column.dtype) for column in columns},
             dates,
             sids,
         )
 
 
 class SeededRandomLoader(PrecomputedLoader):
-    """
-    A PrecomputedLoader that emits arrays randomly-generated with a given seed.
+    """A PrecomputedLoader that emits arrays randomly-generated with a given seed.
 
     Parameters
     ----------
@@ -144,9 +130,7 @@ class SeededRandomLoader(PrecomputedLoader):
         )
 
     def values(self, dtype, dates, sids):
-        """
-        Make a random array of shape (len(dates), len(sids)) with ``dtype``.
-        """
+        """Make a random array of shape (len(dates), len(sids)) with ``dtype``."""
         shape = (len(dates), len(sids))
         return {
             datetime64ns_dtype: self._datetime_values,
@@ -158,8 +142,7 @@ class SeededRandomLoader(PrecomputedLoader):
 
     @property
     def state(self):
-        """
-        Make a new RandomState from our seed.
+        """Make a new RandomState from our seed.
 
         This ensures that every call to _*_values produces the same output
         every time for a given SeededRandomLoader instance.
@@ -167,9 +150,7 @@ class SeededRandomLoader(PrecomputedLoader):
         return RandomState(self._seed)
 
     def _float_values(self, shape):
-        """
-        Return uniformly-distributed floats between -0.0 and 100.0.
-        """
+        """Return uniformly-distributed floats between -0.0 and 100.0."""
         return self.state.uniform(low=0.0, high=100.0, size=shape)
 
     def _int_values(self, shape):
@@ -181,9 +162,7 @@ class SeededRandomLoader(PrecomputedLoader):
         )  # default is system int
 
     def _datetime_values(self, shape):
-        """
-        Return uniformly-distributed dates in 2014.
-        """
+        """Return uniformly-distributed dates in 2014."""
         start = Timestamp("2014", tz="UTC").asm8
         offsets = self.state.randint(
             low=0,
@@ -193,9 +172,7 @@ class SeededRandomLoader(PrecomputedLoader):
         return start + offsets
 
     def _bool_values(self, shape):
-        """
-        Return uniformly-distributed True/False values.
-        """
+        """Return uniformly-distributed True/False values."""
         return self.state.randn(*shape) < 0
 
     def _object_values(self, shape):
@@ -205,29 +182,31 @@ class SeededRandomLoader(PrecomputedLoader):
 
 OHLCV = ("open", "high", "low", "close", "volume")
 OHLC = ("open", "high", "low", "close")
-PSEUDO_EPOCH = Timestamp("2000-01-01", tz="UTC")
+
+PSEUDO_EPOCH_UTC = Timestamp("2000-01-01", tz="UTC")
+PSEUDO_EPOCH_NAIVE = Timestamp("2000-01-01")
+
+# TODO FIX TZ MESS
 
 
 def asset_start(asset_info, asset):
     ret = asset_info.loc[asset]["start_date"]
-    if ret.tz is None:
-        ret = ret.tz_localize("UTC")
-    assert ret.tzname() == "UTC", "Unexpected non-UTC timestamp"
+    # if ret.tz is None:
+    #     ret = ret.tz_localize("UTC")
+    # assert ret.tzname() == "UTC", "Unexpected non-UTC timestamp"
     return ret
 
 
 def asset_end(asset_info, asset):
     ret = asset_info.loc[asset]["end_date"]
-    if ret.tz is None:
-        ret = ret.tz_localize("UTC")
-    assert ret.tzname() == "UTC", "Unexpected non-UTC timestamp"
+    # if ret.tz is None:
+    #     ret = ret.tz_localize("UTC")
+    # assert ret.tzname() == "UTC", "Unexpected non-UTC timestamp"
     return ret
 
 
 def make_bar_data(asset_info, calendar, holes=None):
-    """
-
-    For a given asset/date/column combination, we generate a corresponding raw
+    """For a given asset/date/column combination, we generate a corresponding raw
     value using the following formula for OHLCV columns:
 
     data(asset, date, column) = (100,000 * asset_id)
@@ -262,7 +241,7 @@ def make_bar_data(asset_info, calendar, holes=None):
     """
     assert (
         # Using .value here to avoid having to care about UTC-aware dates.
-        PSEUDO_EPOCH.value
+        PSEUDO_EPOCH_UTC.value
         < calendar.normalize().min().value
         <= asset_info["start_date"].min().value
     ), "calendar.min(): %s\nasset_info['start_date'].min(): %s" % (
@@ -273,8 +252,7 @@ def make_bar_data(asset_info, calendar, holes=None):
     assert (asset_info["start_date"] < asset_info["end_date"]).all()
 
     def _raw_data_for_asset(asset_id):
-        """
-        Generate 'raw' data that encodes information about the asset.
+        """Generate 'raw' data that encodes information about the asset.
 
         See docstring for a description of the data format.
         """
@@ -287,17 +265,26 @@ def make_bar_data(asset_info, calendar, holes=None):
             )
         ]
 
-        data = full(
+        data = np.full(
             (len(datetimes), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
             asset_id * 100 * 1000,
-            dtype=uint32,
+            dtype=np.uint32,
         )
 
         # Add 10,000 * column-index to OHLCV columns
-        data[:, :5] += arange(5, dtype=uint32) * 1000
+        data[:, :5] += np.arange(5, dtype=np.uint32) * 1000
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += array((datetimes - PSEUDO_EPOCH).days)[:, None].astype(uint32)
+        # TODO FIXME TZ MESS
+
+        if datetimes.tzinfo is None:
+            data[:, :5] += np.array(
+                (datetimes.tz_localize("UTC") - PSEUDO_EPOCH_UTC).days
+            )[:, None].astype(np.uint32)
+        else:
+            data[:, :5] += np.array((datetimes - PSEUDO_EPOCH_UTC).days)[
+                :, None
+            ].astype(np.uint32)
 
         frame = DataFrame(
             data,
@@ -307,7 +294,7 @@ def make_bar_data(asset_info, calendar, holes=None):
 
         if holes is not None and asset_id in holes:
             for dt in holes[asset_id]:
-                frame.loc[dt, OHLC] = nan
+                frame.loc[dt, OHLC] = np.nan
                 frame.loc[dt, ["volume"]] = 0
 
         frame["day"] = nanos_to_seconds(datetimes.asi8)
@@ -319,15 +306,14 @@ def make_bar_data(asset_info, calendar, holes=None):
 
 
 def expected_bar_value(asset_id, date, colname):
-    """
-    Check that the raw value for an asset/date/column triple is as
+    """Check that the raw value for an asset/date/column triple is as
     expected.
 
     Used by tests to verify data written by a writer.
     """
     from_asset = asset_id * 100000
     from_colname = OHLCV.index(colname) * 1000
-    from_date = (date - PSEUDO_EPOCH).days
+    from_date = (date - PSEUDO_EPOCH_NAIVE.tz_localize(date.tzinfo)).days
     return from_asset + from_colname + from_date
 
 
@@ -340,8 +326,7 @@ def expected_bar_value_with_holes(asset_id, date, colname, holes, missing_value)
 
 
 def expected_bar_values_2d(dates, assets, asset_info, colname, holes=None):
-    """
-    Return an 2D array containing cls.expected_value(asset_id, date,
+    """Return an 2D array containing cls.expected_value(asset_id, date,
     colname) for each date/asset pair in the inputs.
 
     Missing locs are filled with 0 for volume and NaN for price columns:
@@ -351,13 +336,13 @@ def expected_bar_values_2d(dates, assets, asset_info, colname, holes=None):
         - Locs defined in `holes`.
     """
     if colname == "volume":
-        dtype = uint32
+        dtype = np.uint32
         missing = 0
     else:
-        dtype = float64
+        dtype = np.float64
         missing = float("nan")
 
-    data = full((len(dates), len(assets)), missing, dtype=dtype)
+    data = np.full((len(dates), len(assets)), missing, dtype=dtype)
     for j, asset in enumerate(assets):
         # Use missing values when asset_id is not contained in asset_info.
         if asset not in asset_info.index:
@@ -368,7 +353,10 @@ def expected_bar_values_2d(dates, assets, asset_info, colname, holes=None):
         for i, date in enumerate(dates):
             # No value expected for dates outside the asset's start/end
             # date.
-            if not (start <= date <= end):
+            # TODO FIXME TZ MESS
+            if not (
+                start.tz_localize(date.tzinfo) <= date <= end.tz_localize(date.tzinfo)
+            ):
                 continue
 
             if holes is not None:
@@ -387,8 +375,7 @@ def expected_bar_values_2d(dates, assets, asset_info, colname, holes=None):
 
 
 class NullAdjustmentReader(SQLiteAdjustmentReader):
-    """
-    A SQLiteAdjustmentReader that stores no adjustments and uses in-memory
+    """A SQLiteAdjustmentReader that stores no adjustments and uses in-memory
     SQLite.
     """
 
@@ -397,19 +384,19 @@ class NullAdjustmentReader(SQLiteAdjustmentReader):
         writer = SQLiteAdjustmentWriter(conn, None, None)
         empty = DataFrame(
             {
-                "sid": array([], dtype=uint32),
-                "effective_date": array([], dtype=uint32),
-                "ratio": array([], dtype=float),
+                "sid": np.array([], dtype=np.uint32),
+                "effective_date": np.array([], dtype=np.uint32),
+                "ratio": np.array([], dtype=float),
             }
         )
         empty_dividends = DataFrame(
             {
-                "sid": array([], dtype=uint32),
-                "amount": array([], dtype=float64),
-                "record_date": array([], dtype="datetime64[ns]"),
-                "ex_date": array([], dtype="datetime64[ns]"),
-                "declared_date": array([], dtype="datetime64[ns]"),
-                "pay_date": array([], dtype="datetime64[ns]"),
+                "sid": np.array([], dtype=np.uint32),
+                "amount": np.array([], dtype=np.float64),
+                "record_date": np.array([], dtype="datetime64[ns]"),
+                "ex_date": np.array([], dtype="datetime64[ns]"),
+                "declared_date": np.array([], dtype="datetime64[ns]"),
+                "pay_date": np.array([], dtype="datetime64[ns]"),
             }
         )
         writer.write(splits=empty, mergers=empty, dividends=empty_dividends)

@@ -11,10 +11,6 @@ import zipline.test_algorithms as zta
 import pytest
 
 
-def T(s):
-    return pd.Timestamp(s, tz="UTC")
-
-
 class TestOrderMethods(
     zf.WithConstantEquityMinuteBarData,
     zf.WithConstantFutureMinuteBarData,
@@ -28,9 +24,9 @@ class TestOrderMethods(
     # 15 16 17 18 19 20 21
     # 22 23 24 25 26 27 28
     # 29 30 31
-    START_DATE = T("2006-01-03")
-    END_DATE = T("2006-01-06")
-    SIM_PARAMS_START_DATE = T("2006-01-04")
+    START_DATE = pd.Timestamp("2006-01-03")
+    END_DATE = pd.Timestamp("2006-01-06")
+    SIM_PARAMS_START_DATE = pd.Timestamp("2006-01-04")
 
     ASSET_FINDER_EQUITY_SIDS = (1,)
 
@@ -322,9 +318,9 @@ class TestOrderMethodsDailyFrequency(zf.WithMakeAlgo, zf.ZiplineTestCase):
     # 15 16 17 18 19 20 21
     # 22 23 24 25 26 27 28
     # 29 30 31
-    START_DATE = T("2006-01-03")
-    END_DATE = T("2006-01-06")
-    SIM_PARAMS_START_DATE = T("2006-01-04")
+    START_DATE = pd.Timestamp("2006-01-03")
+    END_DATE = pd.Timestamp("2006-01-06")
+    SIM_PARAMS_START_DATE = pd.Timestamp("2006-01-04")
     ASSET_FINDER_EQUITY_SIDS = (1,)
 
     SIM_PARAMS_DATA_FREQUENCY = "daily"

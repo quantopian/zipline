@@ -2,7 +2,7 @@
 Tests for slicing pipeline terms.
 """
 from numpy import where
-from pandas import Int64Index, Timestamp
+import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from zipline.assets import Asset, ExchangeInfo
@@ -39,9 +39,9 @@ import pytest
 
 
 class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
-    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
-    START_DATE = Timestamp("2015-01-31", tz="UTC")
-    END_DATE = Timestamp("2015-03-01", tz="UTC")
+    sids = ASSET_FINDER_EQUITY_SIDS = pd.Index([1, 2, 3], dtype="int64")
+    START_DATE = pd.Timestamp("2015-01-31")
+    END_DATE = pd.Timestamp("2015-03-01")
     ASSET_FINDER_COUNTRY_CODE = "US"
     SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN = US_EQUITIES
 
@@ -62,8 +62,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
     @parameter_space(my_asset_column=[0, 1, 2], window_length_=[1, 2, 3])
     def test_slice(self, my_asset_column, window_length_):
-        """
-        Test that slices can be created by indexing into a term, and that they
+        """Test that slices can be created by indexing into a term, and that they
         have the correct shape when used as inputs.
         """
         sids = self.sids
@@ -94,8 +93,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
     @parameter_space(unmasked_column=[0, 1, 2], slice_column=[0, 1, 2])
     def test_slice_with_masking(self, unmasked_column, slice_column):
-        """
-        Test that masking a factor that uses slices as inputs does not mask the
+        """Test that masking a factor that uses slices as inputs does not mask the
         slice data.
         """
         sids = self.sids
@@ -142,9 +140,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         self.run_pipeline(Pipeline(columns=columns), start_date, end_date)
 
     def test_adding_slice_column(self):
-        """
-        Test that slices cannot be added as a pipeline column.
-        """
+        """Test that slices cannot be added as a pipeline column."""
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
         open_slice = OpenPrice()[my_asset]
 
@@ -156,17 +152,14 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             pipe.add(open_slice, "open_slice")
 
     def test_loadable_term_slices(self):
-        """
-        Test that slicing loadable terms raises the proper error.
-        """
+        """Test that slicing loadable terms raises the proper error."""
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
         with pytest.raises(NonSliceableTerm):
             USEquityPricing.close[my_asset]
 
     def test_non_existent_asset(self):
-        """
-        Test that indexing into a term with a non-existent asset raises the
+        """Test that indexing into a term with a non-existent asset raises the
         proper exception.
         """
         my_asset = Asset(
@@ -191,8 +184,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             )
 
     def test_window_safety_of_slices(self):
-        """
-        Test that slices correctly inherit the `window_safe` property of the
+        """Test that slices correctly inherit the `window_safe` property of the
         term from which they are derived.
         """
         col = self.col
@@ -268,9 +260,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             )
 
     def test_single_column_output(self):
-        """
-        Tests for custom factors that compute a 1D out.
-        """
+        """Tests for custom factors that compute a 1D out."""
         start_date = self.pipeline_start_date
         end_date = self.pipeline_end_date
 

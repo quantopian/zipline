@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 # Consistent error to be thrown in various cases regarding overriding
 # `final` attributes.
@@ -32,8 +32,8 @@ class FinalMeta(type):
     overriding some methods or attributes.
     """
 
-    def __new__(mcls, name, bases, dict_):
-        for k, v in dict_.items():
+    def __new__(metacls, name, bases, dict_):
+        for k, _ in dict_.items():
             if is_final(k, bases):
                 raise _type_error
 
@@ -49,19 +49,19 @@ class FinalMeta(type):
             # users cannot just avoid the descriptor protocol.
             dict_["__setattr__"] = final(setattr_)
 
-        return super(FinalMeta, mcls).__new__(mcls, name, bases, dict_)
+        return super(FinalMeta, metacls).__new__(metacls, name, bases, dict_)
 
-    def __setattr__(self, name, value):
+    def __setattr__(metacls, name, value):
         """This stops the `final` attributes from being reassigned on the
         class object.
         """
-        if is_final(name, self.__mro__):
+        if is_final(name, metacls.__mro__):
             raise _type_error
 
-        super(FinalMeta, self).__setattr__(name, value)
+        super(FinalMeta, metacls).__setattr__(name, value)
 
 
-class final(object, metaclass=ABCMeta):
+class final(ABC):
     """
     An attribute that cannot be overridden.
     This is like the final modifier in Java.
@@ -116,9 +116,7 @@ class finalvalue(final):
 
 
 class finaldescriptor(final):
-    """
-    A final wrapper around a descriptor.
-    """
+    """A final wrapper around a descriptor."""
 
     def __get__(self, instance, owner):
         return self._attr.__get__(instance, owner)

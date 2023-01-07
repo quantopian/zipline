@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, ABC, abstractmethod
 from collections import namedtuple
 import inspect
 import warnings
@@ -58,9 +58,7 @@ MAX_WEEK_RANGE = 5
 
 
 def ensure_utc(time, tz="UTC"):
-    """
-    Normalize a time. If the time is tz-naive, assume it is UTC.
-    """
+    """Normalize a time. If the time is tz-naive, assume it is UTC."""
     if not time.tzinfo:
         time = time.replace(tzinfo=pytz.timezone(tz))
     return time.replace(tzinfo=pytz.utc)
@@ -130,10 +128,9 @@ def _build_date(date, kwargs):
 
 
 # TODO: only used in tests
+# TODO FIX TZ
 def _build_time(time, kwargs):
-    """
-    Builds the time argument for event rules.
-    """
+    """Builds the time argument for event rules."""
     tz = kwargs.pop("tz", "UTC")
     if time:
         if kwargs:
@@ -171,7 +168,7 @@ def lossless_float_to_int(funcname, func, argname, arg):
     raise TypeError(arg)
 
 
-class EventManager(object):
+class EventManager:
     """Manages a list of Event objects.
     This manages the logic for checking the rules and dispatching to the
     handle_data function of the Events.
@@ -227,7 +224,7 @@ class Event(namedtuple("Event", ["rule", "callback"])):
             self.callback(context, data)
 
 
-class EventRule(metaclass=ABCMeta):
+class EventRule(ABC):
     """A rule defining when a scheduled function should execute."""
 
     # Instances of EventRule are assigned a calendar instance when scheduling
@@ -368,18 +365,20 @@ class AfterOpen(StatelessRule):
         self._one_minute = datetime.timedelta(minutes=1)
 
     def calculate_dates(self, dt):
-        """
-        Given a date, find that day's open and period end (open + offset).
-        """
-        period_start, period_close = self.cal.open_and_close_for_session(
-            self.cal.minute_to_session_label(dt),
-        )
+        """Given a date, find that day's open and period end (open + offset)."""
+
+        period_start = self.cal.session_first_minute(self.cal.minute_to_session(dt))
+        period_close = self.cal.session_close(self.cal.minute_to_session(dt))
 
         # Align the market open and close times here with the execution times
         # used by the simulation clock. This ensures that scheduled functions
         # trigger at the correct times.
-        self._period_start = self.cal.execution_time_from_open(period_start)
-        self._period_close = self.cal.execution_time_from_close(period_close)
+        if self.cal.name == "us_futures":
+            self._period_start = self.cal.execution_time_from_open(period_start)
+            self._period_close = self.cal.execution_time_from_close(period_close)
+        else:
+            self._period_start = period_start
+            self._period_close = period_close
 
         self._period_end = self._period_start + self.offset - self._one_minute
 
@@ -400,8 +399,7 @@ class AfterOpen(StatelessRule):
 
 
 class BeforeClose(StatelessRule):
-    """
-    A rule that triggers for some offset time before the market closes.
+    """A rule that triggers for some offset time before the market closes.
     Example that triggers for the last 30 minutes every day:
 
     >>> BeforeClose(minutes=30)  # doctest: +ELLIPSIS
@@ -425,14 +423,15 @@ class BeforeClose(StatelessRule):
         """
         Given a dt, find that day's close and period start (close - offset).
         """
-        period_end = self.cal.open_and_close_for_session(
-            self.cal.minute_to_session_label(dt),
-        )[1]
+        period_end = self.cal.session_close(self.cal.minute_to_session(dt))
 
         # Align the market close time here with the execution time used by the
         # simulation clock. This ensures that scheduled functions trigger at
         # the correct times.
-        self._period_end = self.cal.execution_time_from_close(period_end)
+        if self.cal == "us_futures":
+            self._period_end = self.cal.execution_time_from_close(period_end)
+        else:
+            self._period_end = period_end
 
         self._period_start = self._period_end - self.offset
         self._period_close = self._period_end
@@ -459,7 +458,7 @@ class NotHalfDay(StatelessRule):
     """
 
     def should_trigger(self, dt):
-        return self.cal.minute_to_session_label(dt) not in self.cal.early_closes
+        return self.cal.minute_to_session(dt) not in self.cal.early_closes
 
 
 class TradingDayOfWeekRule(StatelessRule, metaclass=ABCMeta):
@@ -472,13 +471,13 @@ class TradingDayOfWeekRule(StatelessRule, metaclass=ABCMeta):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        val = self.cal.minute_to_session_label(dt, direction="none").value
+        val = self.cal.minute_to_session(dt, direction="none").value
         return val in self.execution_period_values
 
     @lazyval
     def execution_period_values(self):
         # calculate the list of periods that match the given criteria
-        sessions = self.cal.all_sessions
+        sessions = self.cal.sessions
         return set(
             pd.Series(data=sessions)
             # Group by ISO year (0) and week (1)
@@ -519,13 +518,13 @@ class TradingDayOfMonthRule(StatelessRule, metaclass=ABCMeta):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        value = self.cal.minute_to_session_label(dt, direction="none").value
+        value = self.cal.minute_to_session(dt, direction="none").value
         return value in self.execution_period_values
 
     @lazyval
     def execution_period_values(self):
         # calculate the list of periods that match the given criteria
-        sessions = self.cal.all_sessions
+        sessions = self.cal.sessions
         return set(
             pd.Series(data=sessions)
             .groupby([sessions.year, sessions.month])
@@ -604,9 +603,8 @@ class OncePerDay(StatefulRule):
 # Factory API
 
 
-class date_rules(object):
-    """
-    Factories for date-based :func:`~zipline.api.schedule_function` rules.
+class date_rules:
+    """Factories for date-based :func:`~zipline.api.schedule_function` rules.
 
     See Also
     --------
@@ -689,7 +687,7 @@ class date_rules(object):
         return NDaysBeforeLastTradingDayOfWeek(n=days_offset)
 
 
-class time_rules(object):
+class time_rules:
     """Factories for time-based :func:`~zipline.api.schedule_function` rules.
 
     See Also
@@ -766,7 +764,7 @@ class time_rules(object):
     every_minute = Always
 
 
-class calendars(object):
+class calendars:
     US_EQUITIES = sentinel("US_EQUITIES")
     US_FUTURES = sentinel("US_FUTURES")
 

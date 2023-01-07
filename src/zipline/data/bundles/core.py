@@ -5,14 +5,14 @@ import shutil
 import warnings
 
 import click
-from logbook import Logger
+import logging
 import pandas as pd
 from zipline.utils.calendar_utils import get_calendar
 from toolz import curry, complement, take
 
 from ..adjustments import SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from ..bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
-from ..minute_bars import (
+from ..bcolz_minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
 )
@@ -28,7 +28,7 @@ from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
 
-log = Logger(__name__)
+log = logging.getLogger(__name__)
 
 
 def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
@@ -441,7 +441,7 @@ def _make_bundle_core():
                         "writers in order to downgrade the assets"
                         " db."
                     )
-            log.info("Ingesting {}.", name)
+            log.info("Ingesting %s", name)
             bundle.ingest(
                 environ,
                 asset_db_writer,
@@ -620,7 +620,7 @@ def _make_bundle_core():
         cleaned = set()
         for run in all_runs:
             if should_clean(run):
-                log.info("Cleaning {}.", run)
+                log.info("Cleaning %s.", run)
                 path = pth.data_path([name, run], environ=environ)
                 shutil.rmtree(path)
                 cleaned.add(path)

@@ -1,4 +1,4 @@
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 
 from interface import implements
 import numpy as np
@@ -64,8 +64,7 @@ metadata_columns = frozenset(
 
 
 def required_estimates_fields(columns):
-    """
-    Compute the set of resource columns required to serve
+    """Compute the set of resource columns required to serve
     `columns`.
     """
     # We also expect any of the field names that our loadable columns
@@ -74,8 +73,7 @@ def required_estimates_fields(columns):
 
 
 def validate_column_specs(events, columns):
-    """
-    Verify that the columns of ``events`` can be used by a
+    """Verify that the columns of ``events`` can be used by a
     EarningsEstimatesLoader to serve the BoundColumns described by
     `columns`.
     """
@@ -102,8 +100,7 @@ def add_new_adjustments(adjustments_dict, adjustments, column_name, ts):
 
 
 class EarningsEstimatesLoader(implements(PipelineLoader)):
-    """
-    An abstract pipeline loader for estimates data that can load data a
+    """An abstract pipeline loader for estimates data that can load data a
     variable number of quarters forwards/backwards from calendar dates
     depending on the `num_announcements` attribute of the columns' dataset.
     If split adjustments are to be applied, a loader, split-adjusted columns,
@@ -182,7 +179,8 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
     ):
         raise NotImplementedError("create_overwrite_for_estimate")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def searchsorted_side(self):
         return NotImplementedError("searchsorted_side")
 
@@ -194,8 +192,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         num_announcements,
         dates,
     ):
-        """
-        Selects the requested data for each date.
+        """Selects the requested data for each date.
 
         Parameters
         ----------
@@ -254,8 +251,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         return requested_qtr_data.unstack(SID_FIELD_NAME).reindex(dates)
 
     def get_split_adjusted_asof_idx(self, dates):
-        """
-        Compute the index in `dates` where the split-adjusted-asof-date
+        """Compute the index in `dates` where the split-adjusted-asof-date
         falls. This is the date up to which, and including which, we will
         need to unapply all adjustments for and then re-apply them as they
         come in. After this date, adjustments are applied as normal.
@@ -270,10 +266,8 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         split_adjusted_asof_idx : int
             The index in `dates` at which the data should be split.
         """
-        split_adjusted_asof_idx = dates.searchsorted(
-            pd.to_datetime(self._split_adjusted_asof, utc=True)
-            # make_utc_aware(pd.DatetimeIndex(self._split_adjusted_asof))
-        )
+        split_adjusted_asof_idx = dates.searchsorted(self._split_adjusted_asof)
+        # make_utc_aware(pd.DatetimeIndex(self._split_adjusted_asof))
         # The split-asof date is after the date index.
         if split_adjusted_asof_idx == len(dates):
             split_adjusted_asof_idx = len(dates) - 1
@@ -281,7 +275,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             if self._split_adjusted_asof < dates[0]:
                 split_adjusted_asof_idx = -1
         else:
-            if self._split_adjusted_asof < dates[0].tz_localize(None):
+            if self._split_adjusted_asof < dates[0]:
                 split_adjusted_asof_idx = -1
         return split_adjusted_asof_idx
 
@@ -296,8 +290,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         all_adjustments_for_sid,
         sid,
     ):
-        """
-        Given a sid, collect all overwrites that should be applied for this
+        """Given a sid, collect all overwrites that should be applied for this
         sid at each quarter boundary.
 
         Parameters
@@ -331,8 +324,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             return
 
         next_qtr_start_indices = dates.searchsorted(
-            # pd.to_datetime(group[EVENT_DATE_FIELD_NAME], utc=True),
-            make_utc_aware(pd.DatetimeIndex(group[EVENT_DATE_FIELD_NAME])),
+            pd.DatetimeIndex(group[EVENT_DATE_FIELD_NAME]),
             side=self.searchsorted_side,
         )
 
@@ -418,8 +410,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
     def merge_into_adjustments_for_all_sids(
         self, all_adjustments_for_sid, col_to_all_adjustments
     ):
-        """
-        Merge adjustments for a particular sid into a dictionary containing
+        """Merge adjustments for a particular sid into a dictionary containing
         adjustments for all sids.
 
         Parameters
@@ -447,8 +438,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         columns,
         **kwargs,
     ):
-        """
-        Creates an AdjustedArray from the given estimates data for the given
+        """Creates an AdjustedArray from the given estimates data for the given
         dates.
 
         Parameters
@@ -511,8 +501,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
         sid_idx,
         columns,
     ):
-        """
-        Add entries to the dictionary of columns to adjustments for the given
+        """Add entries to the dictionary of columns to adjustments for the given
         sid and the given quarter.
 
         Parameters
@@ -584,14 +573,14 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             groups = groupby(
                 lambda col: col_to_datasets[col].num_announcements, col_to_datasets
             )
-        except AttributeError:
+        except AttributeError as exc:
             raise AttributeError(
                 "Datasets loaded via the "
                 "EarningsEstimatesLoader must define a "
                 "`num_announcements` attribute that defines "
                 "how many quarters out the loader should load"
                 " the data relative to `dates`."
-            )
+            ) from exc
         if any(num_qtr < 0 for num_qtr in groups):
             raise ValueError(
                 INVALID_NUM_QTRS_MESSAGE
@@ -676,8 +665,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
     def get_last_data_per_qtr(
         self, assets_with_data, columns, dates, data_query_cutoff_times
     ):
-        """
-        Determine the last piece of information we know for each column on each
+        """Determine the last piece of information we know for each column on each
         date in the index for each sid and quarter.
 
         Parameters
@@ -724,7 +712,7 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
             inplace=True,
         )
         stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
-            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME], utc=True
+            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
         )
         stacked_last_per_qtr = stacked_last_per_qtr.sort_values(EVENT_DATE_FIELD_NAME)
         return last_per_qtr, stacked_last_per_qtr
@@ -763,8 +751,7 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
         return zero_qtrs + (num_announcements - 1)
 
     def get_zeroth_quarter_idx(self, stacked_last_per_qtr):
-        """
-        Filters for releases that are on or after each simulation date and
+        """Filters for releases that are on or after each simulation date and
         determines the next quarter by picking out the upcoming release for
         each date in the index.
 
@@ -825,8 +812,7 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
         return zero_qtrs - (num_announcements - 1)
 
     def get_zeroth_quarter_idx(self, stacked_last_per_qtr):
-        """
-        Filters for releases that are on or after each simulation date and
+        """Filters for releases that are on or after each simulation date and
         determines the previous quarter by picking out the most recent
         release relative to each date in the index.
 
@@ -877,8 +863,7 @@ def validate_split_adjusted_column_specs(name_map, columns):
 
 
 class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
-    """
-    Estimates loader that loads data that needs to be split-adjusted.
+    """Estimates loader that loads data that needs to be split-adjusted.
 
     Parameters
     ----------
@@ -938,8 +923,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         split_adjusted_asof_idx=None,
         split_adjusted_cols_for_group=None,
     ):
-        """
-        Collects both overwrites and adjustments for a particular sid.
+        """Collects both overwrites and adjustments for a particular sid.
 
         Parameters
         ----------
@@ -1000,9 +984,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         columns,
         **kwargs,
     ):
-        """
-        Calculates both split adjustments and overwrites for all sids.
-        """
+        """Calculates both split adjustments and overwrites for all sids."""
         split_adjusted_cols_for_group = [
             self.name_map[col.name]
             for col in columns
@@ -1024,8 +1006,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
     def determine_end_idx_for_adjustment(
         self, adjustment_ts, dates, upper_bound, requested_quarter, sid_estimates
     ):
-        """
-        Determines the date until which the adjustment at the given date
+        """Determines the date until which the adjustment at the given date
         index should be applied for the given quarter.
 
         Parameters
@@ -1057,13 +1038,11 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         # the date of this adjustment
         newest_kd_for_qtr = sid_estimates[
             (sid_estimates[NORMALIZED_QUARTERS] == requested_quarter)
-            & (pd.to_datetime(sid_estimates[TS_FIELD_NAME], utc=True) >= adjustment_ts)
+            & (sid_estimates[TS_FIELD_NAME] >= adjustment_ts)
         ][TS_FIELD_NAME].min()
         if pd.notnull(newest_kd_for_qtr):
-            newest_kd_idx = dates.searchsorted(
-                pd.to_datetime(newest_kd_for_qtr, utc=True)
-                # make_utc_aware(pd.DatetimeIndex(newest_kd_for_qtr))
-            )
+            newest_kd_idx = dates.searchsorted(newest_kd_for_qtr)
+            # make_utc_aware(pd.DatetimeIndex(newest_kd_for_qtr))
             # We have fresh information that comes in
             # before the end of the overwrite and
             # presumably is already split-adjusted to the
@@ -1081,8 +1060,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         pre_adjustments,
         requested_split_adjusted_columns,
     ):
-        """
-        Collect split adjustments that occur before the
+        """Collect split adjustments that occur before the
         split-adjusted-asof-date. All those adjustments must first be
         UN-applied at the first date index and then re-applied on the
         appropriate dates in order to match point in time share pricing data.
@@ -1144,8 +1122,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         sid_estimates,
         requested_split_adjusted_columns,
     ):
-        """
-        Collect split adjustments that occur after the
+        """Collect split adjustments that occur after the
         split-adjusted-asof-date. Each adjustment needs to be applied to all
         dates on which knowledge for the requested quarter was older than the
         date of the adjustment.
@@ -1237,6 +1214,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         self, dates, sid, split_adjusted_asof_idx
     ):
         """
+
         dates : pd.DatetimeIndex
             The calendar dates.
         sid : int
@@ -1309,8 +1287,7 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
     def merge_split_adjustments_with_overwrites(
         self, pre, post, overwrites, requested_split_adjusted_columns
     ):
-        """
-        Merge split adjustments with the dict containing overwrites.
+        """Merge split adjustments with the dict containing overwrites.
 
         Parameters
         ----------
@@ -1357,8 +1334,7 @@ class PreviousSplitAdjustedEarningsEstimatesLoader(
         post_adjustments,
         requested_split_adjusted_columns,
     ):
-        """
-        Collect split adjustments for previous quarters and apply them to the
+        """Collect split adjustments for previous quarters and apply them to the
         given dictionary of splits for the given sid. Since overwrites just
         replace all estimates before the new quarter with NaN, we don't need to
         worry about re-applying split adjustments.
@@ -1423,8 +1399,7 @@ class NextSplitAdjustedEarningsEstimatesLoader(
         post_adjustments,
         requested_split_adjusted_columns,
     ):
-        """
-        Collect split adjustments for future quarters. Re-apply adjustments
+        """Collect split adjustments for future quarters. Re-apply adjustments
         that would be overwritten by overwrites. Merge split adjustments with
         overwrites into the given dictionary of splits for the given sid.
 

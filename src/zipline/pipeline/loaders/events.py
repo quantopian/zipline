@@ -97,7 +97,7 @@ class EventsLoader(implements(PipelineLoader)):
         # so we coerce from a frame to a dict of arrays here.
         self.events = {
             name: np.asarray(series)
-            for name, series in (events.sort_values(EVENT_DATE_FIELD_NAME).iteritems())
+            for name, series in (events.sort_values(EVENT_DATE_FIELD_NAME).items())
         }
 
         # Columns to load with self.load_next_events.

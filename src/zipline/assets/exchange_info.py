@@ -1,7 +1,7 @@
 from zipline.utils.calendar_utils import get_calendar
 
 
-class ExchangeInfo(object):
+class ExchangeInfo:
     """An exchange where assets are traded.
 
     Parameters

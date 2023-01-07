@@ -13,7 +13,7 @@ from zipline.utils.final import (
 
 class FinalMetaTestCase(TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         class ClassWithFinal(object, metaclass=FinalMeta):
             a = final("ClassWithFinal: a")
             b = "ClassWithFinal: b"
@@ -169,7 +169,7 @@ class FinalMetaTestCase(TestCase):
 
 class FinalABCMetaTestCase(FinalMetaTestCase):
     # @classmethod
-    # def setUpClass(cls):
+    # def setup_class(cls):
     #     FinalABCMeta = compose_types(FinalMeta, ABCMeta)
     #
     #     class ABCWithFinal(with_metaclass(FinalABCMeta, object)):
@@ -227,9 +227,7 @@ class FinalABCMetaTestCase(FinalMetaTestCase):
     #         s.__setattr__ = lambda a, b: None
 
     def test_subclass_setattr(self):
-        """
-        Tests that subclasses don't destroy the __setattr__.
-        """
+        """Tests that subclasses don't destroy the __setattr__."""
 
         class ClassWithFinal(object, metaclass=FinalMeta):
             @final

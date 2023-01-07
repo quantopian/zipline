@@ -11,7 +11,7 @@ try:
     PYGMENTS = True
 except ImportError:
     PYGMENTS = False
-import logbook
+import logging
 import pandas as pd
 from toolz import concatv
 from zipline.utils.calendar_utils import get_calendar
@@ -30,7 +30,7 @@ from zipline.errors import SymbolNotFound
 from zipline.algorithm import TradingAlgorithm, NoBenchmark
 from zipline.finance.blotter import Blotter
 
-log = logbook.Logger(__name__)
+log = logging.getLogger(__name__)
 
 
 class _RunAlgoError(click.ClickException, ValueError):
@@ -100,7 +100,7 @@ def _run(
         trading_calendar = get_calendar("XNYS")
 
     # date parameter validation
-    if trading_calendar.session_distance(start, end) < 1:
+    if trading_calendar.sessions_distance(start, end) < 1:
         raise _RunAlgoError(
             "There are no trading days between %s and %s"
             % (
@@ -420,7 +420,7 @@ def run_algorithm(
     )
 
 
-class BenchmarkSpec(object):
+class BenchmarkSpec:
     """
     Helper for different ways we can get benchmark data for the Zipline CLI and
     zipline.utils.run_algo.run_algorithm.
@@ -535,14 +535,14 @@ class BenchmarkSpec(object):
                 end_date=end_date,
             )
         else:
-            log.warn(
+            log.warning(
                 "No benchmark configured. " "Assuming algorithm calls set_benchmark."
             )
-            log.warn(
+            log.warning(
                 "Pass --benchmark-sid, --benchmark-symbol, or"
                 " --benchmark-file to set a source of benchmark returns."
             )
-            log.warn(
+            log.warning(
                 "Pass --no-benchmark to use a dummy benchmark " "of zero returns.",
             )
             benchmark_sid = None

@@ -9,7 +9,7 @@ that runs on Windows, macOS, and Linux. In case you are installing `zipline-relo
 encounter [conflict errors](https://github.com/conda/conda/issues/9707), consider using
 [mamba](https://github.com/mamba-org/mamba) instead.
 
-Zipline runs on Python 3.7, 3.8 and 3.9. To install and use different Python versions in parallel as well as create
+Zipline runs on Python 3.8, 3.9 and 3.10. To install and use different Python versions in parallel as well as create
 a virtual environment, you may want to use `pyenv <https://github.com/pyenv/pyenv>`_.
 
 Installing with ``pip``

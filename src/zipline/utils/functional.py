@@ -277,7 +277,7 @@ def getattrs(value, attrs, default=_no_default):
 
     Examples
     --------
-    >>> class EmptyObject(object):
+    >>> class EmptyObject:
     ...     pass
     ...
     >>> obj = EmptyObject()

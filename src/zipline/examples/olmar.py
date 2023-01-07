@@ -1,17 +1,17 @@
+import logging
 import sys
-import logbook
+
 import numpy as np
 
 from zipline.finance import commission, slippage
 
-zipline_logging = logbook.NestedSetup(
-    [
-        logbook.NullHandler(),
-        logbook.StreamHandler(sys.stdout, level=logbook.INFO),
-        logbook.StreamHandler(sys.stderr, level=logbook.ERROR),
-    ]
-)
-zipline_logging.push_application()
+# zipline_logging = logging.getLogger("zipline_logging")
+# zipline_logging.addHandler(logging.NullHandler())
+# zipline_logging.addHandler(
+#     logging.StreamHandler(sys.stdout).setLevel(logging.INFO),
+# )
+# zipline_logging.addHandler(logging.StreamHandler(sys.stderr).setLevel(logging.ERROR))
+
 
 STOCKS = ["AMD", "CERN", "COST", "DELL", "GPS", "INTC", "MMM"]
 
@@ -161,7 +161,4 @@ def _test_args():
     """Extra arguments to use when zipline's automated tests run this example."""
     import pandas as pd
 
-    return {
-        "start": pd.Timestamp("2004", tz="utc"),
-        "end": pd.Timestamp("2008", tz="utc"),
-    }
+    return {"start": pd.Timestamp("2004"), "end": pd.Timestamp("2008")}

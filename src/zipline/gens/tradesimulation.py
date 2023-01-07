@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
-from logbook import Logger, Processor
+import logging
 from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
@@ -27,10 +27,10 @@ from zipline.gens.sim_engine import (
     BEFORE_TRADING_START_BAR,
 )
 
-log = Logger("Trade Simulation")
+log = logging.getLogger("Trade Simulation")
 
 
-class AlgorithmSimulator(object):
+class AlgorithmSimulator:
     EMISSION_TO_PERF_KEY_MAP = {"minute": "minute_perf", "daily": "daily_perf"}
 
     def __init__(
@@ -78,11 +78,9 @@ class AlgorithmSimulator(object):
 
         # Processor function for injecting the algo_dt into
         # user prints/logs.
-        def inject_algo_dt(record):
-            if "algo_dt" not in record.extra:
-                record.extra["algo_dt"] = self.simulation_dt
 
-        self.processor = Processor(inject_algo_dt)
+        # TODO CHECK: Disabled the old logbook mechanism,
+        # didn't replace with an equivalent `logging` approach.
 
     def get_simulation_dt(self):
         return self.simulation_dt
@@ -192,7 +190,6 @@ class AlgorithmSimulator(object):
 
         with ExitStack() as stack:
             stack.callback(on_exit)
-            stack.enter_context(self.processor)
             stack.enter_context(ZiplineAPI(self.algo))
 
             if algo.data_frequency == "minute":
@@ -275,6 +272,8 @@ class AlgorithmSimulator(object):
 
         def past_auto_close_date(asset):
             acd = asset.auto_close_date
+            if acd is not None:
+                acd = acd.tz_localize(dt.tzinfo)
             return acd is not None and acd <= dt
 
         # Remove positions in any sids that have reached their auto_close date.

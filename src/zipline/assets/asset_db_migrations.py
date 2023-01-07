@@ -1,11 +1,11 @@
+import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-import sqlalchemy as sa
 from toolz.curried import do, operator
 
 from zipline.assets.asset_writer import write_version_info
-from zipline.utils.compat import wraps
 from zipline.errors import AssetDBImpossibleDowngrade
+from zipline.utils.compat import wraps
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import coerce_string_to_eng
 
@@ -44,22 +44,22 @@ def alter_columns(op, name, *columns, **kwargs):
         # fail to create the table because the indices will already be present.
         # When we create the table below, the indices that we want to preserve
         # will just get recreated.
-        for table in name, tmp_name:
+        for table in (name, tmp_name):
             try:
-                op.drop_index("ix_%s_%s" % (table, column.name))
+                op.execute(f"DROP INDEX IF EXISTS ix_{table}_{column.name}")
             except sa.exc.OperationalError:
                 pass
 
     op.create_table(name, *columns)
     op.execute(
-        "insert into %s select %s from %s"
-        % (
-            name,
-            selection_string,
-            tmp_name,
-        ),
+        f"INSERT INTO {name} SELECT {selection_string} FROM {tmp_name}",
     )
-    op.drop_table(tmp_name)
+
+    if op.impl.dialect.name == "postgresql":
+        op.execute(f"ALTER TABLE {tmp_name} DISABLE TRIGGER ALL;")
+        op.execute(f"DROP TABLE {tmp_name} CASCADE;")
+    else:
+        op.drop_table(tmp_name)
 
 
 @preprocess(engine=coerce_string_to_eng(require_exists=True))
@@ -123,7 +123,12 @@ def _pragma_foreign_keys(connection, on):
         If true, PRAGMA foreign_keys will be set to ON. Otherwise, the PRAGMA
         foreign_keys will be set to OFF.
     """
-    connection.execute("PRAGMA foreign_keys=%s" % ("ON" if on else "OFF"))
+    if connection.engine.name == "sqlite":
+        connection.execute(sa.text(f"PRAGMA foreign_keys={'ON' if on else 'OFF'}"))
+    # elif connection.engine.name == "postgresql":
+    #     connection.execute(
+    #         f"SET session_replication_role  = {'origin' if on else 'replica'};"
+    #     )
 
 
 # This dict contains references to downgrade methods that can be applied to an
@@ -231,7 +236,7 @@ def _downgrade_v3(op):
         "_new_equities",
         sa.Column(
             "sid",
-            sa.Integer,
+            sa.BigInteger,
             unique=True,
             nullable=False,
             primary_key=True,
@@ -241,10 +246,10 @@ def _downgrade_v3(op):
         sa.Column("share_class_symbol", sa.Text),
         sa.Column("fuzzy_symbol", sa.Text),
         sa.Column("asset_name", sa.Text),
-        sa.Column("start_date", sa.Integer, default=0, nullable=False),
-        sa.Column("end_date", sa.Integer, nullable=False),
-        sa.Column("first_traded", sa.Integer, nullable=False),
-        sa.Column("auto_close_date", sa.Integer),
+        sa.Column("start_date", sa.BigInteger, default=0, nullable=False),
+        sa.Column("end_date", sa.BigInteger, nullable=False),
+        sa.Column("first_traded", sa.BigInteger, nullable=False),
+        sa.Column("auto_close_date", sa.BigInteger),
         sa.Column("exchange", sa.Text),
     )
     op.execute(
@@ -297,7 +302,7 @@ def _downgrade_v5(op):
         "_new_equities",
         sa.Column(
             "sid",
-            sa.Integer,
+            sa.BigInteger,
             unique=True,
             nullable=False,
             primary_key=True,
@@ -307,18 +312,18 @@ def _downgrade_v5(op):
         sa.Column("share_class_symbol", sa.Text),
         sa.Column("fuzzy_symbol", sa.Text),
         sa.Column("asset_name", sa.Text),
-        sa.Column("start_date", sa.Integer, default=0, nullable=False),
-        sa.Column("end_date", sa.Integer, nullable=False),
-        sa.Column("first_traded", sa.Integer),
-        sa.Column("auto_close_date", sa.Integer),
+        sa.Column("start_date", sa.BigInteger, default=0, nullable=False),
+        sa.Column("end_date", sa.BigInteger, nullable=False),
+        sa.Column("first_traded", sa.BigInteger),
+        sa.Column("auto_close_date", sa.BigInteger),
         sa.Column("exchange", sa.Text),
         sa.Column("exchange_full", sa.Text),
     )
 
     op.execute(
         """
-        insert into _new_equities
-        select
+        INSERT INTO _new_equities
+        SELECT
             equities.sid as sid,
             sym.symbol as symbol,
             sym.company_symbol as company_symbol,
@@ -331,26 +336,23 @@ def _downgrade_v5(op):
             equities.auto_close_date as auto_close_date,
             equities.exchange as exchange,
             equities.exchange_full as exchange_full
-        from
+        FROM
             equities
-        inner join
-            -- Select the last held symbol for each equity sid from the
-            -- symbol_mappings table. Selecting max(end_date) causes
-            -- SQLite to take the other values from the same row that contained
-            -- the max end_date. See https://www.sqlite.org/lang_select.html#resultset.  # noqa
-            (select
-                 sid, symbol, company_symbol, share_class_symbol, max(end_date)
-             from
-                 equity_symbol_mappings
-             group by sid) as 'sym'
+        INNER JOIN
+            -- Select the last held symbol (end_date) for each equity sid from the
+            (SELECT
+                sid, symbol, company_symbol, share_class_symbol, end_date
+                FROM (SELECT *, RANK() OVER (PARTITION BY sid ORDER BY end_date DESC) max_end_date
+                FROM equity_symbol_mappings) ranked WHERE max_end_date=1
+            ) as sym
         on
-            equities.sid == sym.sid
+            equities.sid = sym.sid
         """,
     )
     op.drop_table("equity_symbol_mappings")
     op.drop_table("equities")
     op.rename_table("_new_equities", "equities")
-    # we need to make sure the indicies have the proper names after the rename
+    # we need to make sure the indices have the proper names after the rename
     op.create_index(
         "ix_equities_company_symbol",
         "equities",
@@ -375,25 +377,25 @@ def _downgrade_v7(op):
         tmp_name,
         sa.Column(
             "sid",
-            sa.Integer,
+            sa.BigInteger,
             unique=True,
             nullable=False,
             primary_key=True,
         ),
         sa.Column("asset_name", sa.Text),
-        sa.Column("start_date", sa.Integer, default=0, nullable=False),
-        sa.Column("end_date", sa.Integer, nullable=False),
-        sa.Column("first_traded", sa.Integer),
-        sa.Column("auto_close_date", sa.Integer),
+        sa.Column("start_date", sa.BigInteger, default=0, nullable=False),
+        sa.Column("end_date", sa.BigInteger, nullable=False),
+        sa.Column("first_traded", sa.BigInteger),
+        sa.Column("auto_close_date", sa.BigInteger),
         # remove foreign key to exchange
         sa.Column("exchange", sa.Text),
         # add back exchange full column
         sa.Column("exchange_full", sa.Text),
     )
     op.execute(
-        """
+        f"""
         insert into
-            _new_equities
+            {tmp_name}
         select
             eq.sid,
             eq.asset_name,
@@ -408,12 +410,27 @@ def _downgrade_v7(op):
         inner join
             exchanges ex
         on
-            eq.exchange == ex.exchange
+            eq.exchange = ex.exchange
         where
             ex.country_code in ('US', '??')
         """,
     )
-    op.drop_table("equities")
+    # if op.impl.dialect.name == "postgresql":
+    #     for table_name, col_name in [
+    #         ("equities", "exchange"),
+    #         ("equity_symbol_mappings", "sid"),
+    #         ("equity_supplementary_mappings", "sid"),
+    #     ]:
+    #         op.drop_constraint(
+    #             f"{table_name}_{col_name}_fkey",
+    #             f"{table_name}",
+    #             type_="foreignkey",
+    #         )
+    if op.impl.dialect.name == "postgresql":
+        op.execute("ALTER TABLE equities DISABLE TRIGGER ALL;")
+        op.execute("DROP TABLE equities CASCADE;")
+    else:
+        op.drop_table("equities")
     op.rename_table(tmp_name, "equities")
 
     # rebuild all tables without a foreign key to ``exchanges``
@@ -427,7 +444,7 @@ def _downgrade_v7(op):
             nullable=False,
             primary_key=True,
         ),
-        sa.Column("root_symbol_id", sa.Integer),
+        sa.Column("root_symbol_id", sa.BigInteger),
         sa.Column("sector", sa.Text),
         sa.Column("description", sa.Text),
         sa.Column("exchange", sa.Text),
@@ -437,7 +454,7 @@ def _downgrade_v7(op):
         "futures_contracts",
         sa.Column(
             "sid",
-            sa.Integer,
+            sa.BigInteger,
             unique=True,
             nullable=False,
             primary_key=True,
@@ -445,13 +462,13 @@ def _downgrade_v7(op):
         sa.Column("symbol", sa.Text, unique=True, index=True),
         sa.Column("root_symbol", sa.Text, index=True),
         sa.Column("asset_name", sa.Text),
-        sa.Column("start_date", sa.Integer, default=0, nullable=False),
-        sa.Column("end_date", sa.Integer, nullable=False),
-        sa.Column("first_traded", sa.Integer),
+        sa.Column("start_date", sa.BigInteger, default=0, nullable=False),
+        sa.Column("end_date", sa.BigInteger, nullable=False),
+        sa.Column("first_traded", sa.BigInteger),
         sa.Column("exchange", sa.Text),
-        sa.Column("notice_date", sa.Integer, nullable=False),
-        sa.Column("expiration_date", sa.Integer, nullable=False),
-        sa.Column("auto_close_date", sa.Integer, nullable=False),
+        sa.Column("notice_date", sa.BigInteger, nullable=False),
+        sa.Column("expiration_date", sa.BigInteger, nullable=False),
+        sa.Column("auto_close_date", sa.BigInteger, nullable=False),
         sa.Column("multiplier", sa.Float),
         sa.Column("tick_size", sa.Float),
     )
@@ -485,7 +502,7 @@ def _downgrade_v7(op):
             nullable=False,
             primary_key=True,
         ),
-        sa.Column("root_symbol_id", sa.Integer),
+        sa.Column("root_symbol_id", sa.BigInteger),
         sa.Column("sector", sa.Text),
         sa.Column("description", sa.Text),
         sa.Column(
@@ -499,7 +516,7 @@ def _downgrade_v7(op):
         "futures_contracts",
         sa.Column(
             "sid",
-            sa.Integer,
+            sa.BigInteger,
             unique=True,
             nullable=False,
             primary_key=True,
@@ -512,17 +529,17 @@ def _downgrade_v7(op):
             index=True,
         ),
         sa.Column("asset_name", sa.Text),
-        sa.Column("start_date", sa.Integer, default=0, nullable=False),
-        sa.Column("end_date", sa.Integer, nullable=False),
-        sa.Column("first_traded", sa.Integer),
+        sa.Column("start_date", sa.BigInteger, default=0, nullable=False),
+        sa.Column("end_date", sa.BigInteger, nullable=False),
+        sa.Column("first_traded", sa.BigInteger),
         sa.Column(
             "exchange",
             sa.Text,
             sa.ForeignKey("futures_exchanges.exchange"),
         ),
-        sa.Column("notice_date", sa.Integer, nullable=False),
-        sa.Column("expiration_date", sa.Integer, nullable=False),
-        sa.Column("auto_close_date", sa.Integer, nullable=False),
+        sa.Column("notice_date", sa.BigInteger, nullable=False),
+        sa.Column("expiration_date", sa.BigInteger, nullable=False),
+        sa.Column("auto_close_date", sa.BigInteger, nullable=False),
         sa.Column("multiplier", sa.Float),
         sa.Column("tick_size", sa.Float),
     )

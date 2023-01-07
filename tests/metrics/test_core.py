@@ -1,6 +1,8 @@
 import re
-import pytest
 from collections import namedtuple
+
+import pytest
+
 from zipline.finance.metrics.core import _make_metrics_set_core
 from zipline.testing.predicates import assert_equal
 from zipline.utils.compat import mappingproxy

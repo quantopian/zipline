@@ -12,8 +12,7 @@ from zipline.testing.predicates import assert_equal
 
 class H5WriterTestCase(zp_fixtures.WithTmpDir, zp_fixtures.ZiplineTestCase):
     def test_write_empty_country(self):
-        """
-        Test that we can write an empty country to an HDF5 daily bar writer.
+        """Test that we can write an empty country to an HDF5 daily bar writer.
 
         This is useful functionality for some tests, but it requires a bunch of
         special cased logic in the writer.
@@ -70,7 +69,6 @@ class H5WriterTestCase(zp_fixtures.WithTmpDir, zp_fixtures.ZiplineTestCase):
                     "2014-01-04",
                     "2014-01-06",
                     "2014-01-07",
-                ],
-                utc=True,
+                ]
             ),
         )

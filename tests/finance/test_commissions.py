@@ -1,7 +1,8 @@
 from textwrap import dedent
 
+import pandas as pd
+import pytest
 from parameterized import parameterized
-from pandas import DataFrame
 
 from zipline.assets import Equity, Future
 from zipline.errors import IncompatibleCommissionModel
@@ -18,29 +19,64 @@ from zipline.finance.commission import (
 from zipline.finance.order import Order
 from zipline.finance.transaction import Transaction
 from zipline.testing import ZiplineTestCase
-from zipline.testing.fixtures import WithAssetFinder, WithMakeAlgo
-import pytest
+from zipline.testing.fixtures import WithMakeAlgo
 
 
-class CommissionUnitTests(WithAssetFinder, ZiplineTestCase):
-    ASSET_FINDER_EQUITY_SIDS = 1, 2
+@pytest.fixture(scope="class")
+def set_test_commission_unit(request, with_asset_finder):
+    ASSET_FINDER_COUNTRY_CODE = "??"
 
-    @classmethod
-    def make_futures_info(cls):
-        return DataFrame(
+    START_DATE = pd.Timestamp("2006-01-03")
+    END_DATE = pd.Timestamp("2006-12-29")
+
+    equities = pd.DataFrame.from_dict(
+        {
+            1: {
+                "symbol": "A",
+                "start_date": START_DATE,
+                "end_date": END_DATE + pd.Timedelta(days=1),
+                "exchange": "TEST",
+            },
+            2: {
+                "symbol": "B",
+                "start_date": START_DATE,
+                "end_date": END_DATE + pd.Timedelta(days=1),
+                "exchange": "TEST",
+            },
+        },
+        orient="index",
+    )
+
+    futures = pd.DataFrame(
+        {
+            "sid": [1000, 1001],
+            "root_symbol": ["CL", "FV"],
+            "symbol": ["CLF07", "FVF07"],
+            "start_date": [START_DATE, START_DATE],
+            "end_date": [END_DATE, END_DATE],
+            "notice_date": [END_DATE, END_DATE],
+            "expiration_date": [END_DATE, END_DATE],
+            "multiplier": [500, 500],
+            "exchange": ["CMES", "CMES"],
+        }
+    )
+
+    exchange_names = [df["exchange"] for df in (futures, equities) if df is not None]
+    if exchange_names:
+        exchanges = pd.DataFrame(
             {
-                "sid": [1000, 1001],
-                "root_symbol": ["CL", "FV"],
-                "symbol": ["CLF07", "FVF07"],
-                "start_date": [cls.START_DATE, cls.START_DATE],
-                "end_date": [cls.END_DATE, cls.END_DATE],
-                "notice_date": [cls.END_DATE, cls.END_DATE],
-                "expiration_date": [cls.END_DATE, cls.END_DATE],
-                "multiplier": [500, 500],
-                "exchange": ["CMES", "CMES"],
+                "exchange": pd.concat(exchange_names).unique(),
+                "country_code": ASSET_FINDER_COUNTRY_CODE,
             }
         )
 
+    request.cls.asset_finder = with_asset_finder(
+        **dict(equities=equities, futures=futures, exchanges=exchanges)
+    )
+
+
+@pytest.mark.usefixtures("set_test_commission_unit")
+class TestCommissionUnit:
     def generate_order_and_txns(self, sid, order_amount, fill_amounts):
         asset1 = self.asset_finder.retrieve_asset(sid)
 
@@ -341,7 +377,7 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
 
     @classmethod
     def make_futures_info(cls):
-        return DataFrame(
+        return pd.DataFrame(
             {
                 "sid": [1000, 1001],
                 "root_symbol": ["CL", "FV"],
@@ -362,7 +398,7 @@ class CommissionAlgorithmTests(WithMakeAlgo, ZiplineTestCase):
             cls.END_DATE,
         )
         for sid in sids:
-            yield sid, DataFrame(
+            yield sid, pd.DataFrame(
                 index=sessions,
                 data={
                     "open": 10.0,

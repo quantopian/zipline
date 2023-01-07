@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logbook
+import logging
 
 from ..ledger import Ledger
 from zipline.utils.exploding_object import NamedExplodingObject
 
 
-log = logbook.Logger(__name__)
+log = logging.getLogger(__name__)
 
 
-class MetricsTracker(object):
+class MetricsTracker:
     """The algorithm's interface to the registered risk and performance
     metrics.
 
@@ -55,9 +55,14 @@ class MetricsTracker(object):
 
     @staticmethod
     def _execution_open_and_close(calendar, session):
-        open_, close = calendar.open_and_close_for_session(session)
-        execution_open = calendar.execution_time_from_open(open_)
-        execution_close = calendar.execution_time_from_close(close)
+        if session.tzinfo is not None:
+            session = session.tz_localize(None)
+
+        open_ = calendar.session_first_minute(session)
+        close = calendar.session_close(session)
+
+        execution_open = open_
+        execution_close = close
 
         return execution_open, execution_close
 
@@ -203,8 +208,7 @@ class MetricsTracker(object):
         )
 
     def handle_minute_close(self, dt, data_portal):
-        """
-        Handles the close of the given minute in minute emission.
+        """Handles the close of the given minute in minute emission.
 
         Parameters
         ----------
@@ -329,15 +333,16 @@ class MetricsTracker(object):
         return packet
 
     def handle_simulation_end(self, data_portal):
-        """
-        When the simulation is complete, run the full period risk report
+        """When the simulation is complete, run the full period risk report
         and send it out on the results socket.
         """
         log.info(
-            "Simulated {} trading days\n" "first open: {}\n" "last close: {}",
-            self._session_count,
-            self._trading_calendar.session_open(self._first_session),
-            self._trading_calendar.session_close(self._last_session),
+            "Simulated %(days)s trading days\n first open: %(first)s\n last close: %(last)s",
+            dict(
+                days=self._session_count,
+                first=self._trading_calendar.session_open(self._first_session),
+                last=self._trading_calendar.session_close(self._last_session),
+            ),
         )
 
         packet = {}

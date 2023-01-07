@@ -124,12 +124,12 @@ def _render(g, out, format_, include_asset_exists=False):
     cmd = ["dot", "-T", format_]
     try:
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    except OSError as e:
-        if e.errno == errno.ENOENT:
+    except OSError as exc:
+        if exc.errno == errno.ENOENT:
             raise RuntimeError(
                 "Couldn't find `dot` graph layout program. "
                 "Make sure Graphviz is installed and `dot` is on your path."
-            )
+            ) from exc
         else:
             raise
 
@@ -149,8 +149,8 @@ def display_graph(g, format="svg", include_asset_exists=False):
     """
     try:
         import IPython.display as display
-    except ImportError:
-        raise NoIPython("IPython is not installed.  Can't display graph.")
+    except ImportError as exc:
+        raise NoIPython("IPython is not installed.  Can't display graph.") from exc
 
     if format == "svg":
         display_cls = display.SVG

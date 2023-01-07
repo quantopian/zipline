@@ -169,7 +169,7 @@ class TestPreprocess:
 
         for decorator in decorators:
 
-            class Foo(object):
+            class Foo:
                 @decorator
                 def method(self, a, b, c=3):
                     return a, b, c
@@ -210,7 +210,7 @@ class TestPreprocess:
                 foo(not_int(1), not_int(2), 3)
 
     def test_expect_types_custom_funcname(self):
-        class Foo(object):
+        class Foo:
             @expect_types(__funcname="ArgleBargle", a=int)
             def __init__(self, a):
                 self.a = a
@@ -287,7 +287,7 @@ class TestPreprocess:
 
         set_ = {"a", "b"}
 
-        class Foo(object):
+        class Foo:
             @expect_element(__funcname="ArgleBargle", a=set_)
             def __init__(self, a):
                 self.a = a
@@ -356,7 +356,7 @@ class TestPreprocess:
 
         allowed_dtypes = (np.dtype("datetime64[ns]"), np.dtype("float"))
 
-        class Foo(object):
+        class Foo:
             @expect_dtypes(__funcname="Foo", a=allowed_dtypes)
             def __init__(self, a):
                 self.a = a

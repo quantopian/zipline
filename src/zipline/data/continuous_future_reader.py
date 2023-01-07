@@ -10,6 +10,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         """
+
         Parameters
         ----------
         fields : list of str
@@ -95,6 +96,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
     @property
     def last_available_dt(self):
         """
+
         Returns
         -------
         dt : pd.Timestamp
@@ -104,8 +106,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
 
     @property
     def trading_calendar(self):
-        """
-        Returns the zipline.utils.calendar.trading_calendar used to read
+        """Returns the zipline.utils.calendar.trading_calendar used to read
         the data.  Can be None (if the writer didn't specify it).
         """
         return self._bar_reader.trading_calendar
@@ -113,6 +114,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
     @property
     def first_trading_day(self):
         """
+
         Returns
         -------
         dt : pd.Timestamp
@@ -122,8 +124,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         return self._bar_reader.first_trading_day
 
     def get_value(self, continuous_future, dt, field):
-        """
-        Retrieve the value at the given coordinates.
+        """Retrieve the value at the given coordinates.
 
         Parameters
         ----------
@@ -153,8 +154,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
         return self._bar_reader.get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):
-        """
-        Get the latest minute on or before ``dt`` in which ``asset`` traded.
+        """Get the latest minute on or before ``dt`` in which ``asset`` traded.
 
         If there are no trades on or before ``dt``, returns ``pd.NaT``.
 
@@ -181,6 +181,7 @@ class ContinuousFutureSessionBarReader(SessionBarReader):
     @property
     def sessions(self):
         """
+
         Returns
         -------
         sessions : DatetimeIndex
@@ -218,8 +219,8 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
         rolls_by_asset = {}
 
         tc = self.trading_calendar
-        start_session = tc.minute_to_session_label(start_date)
-        end_session = tc.minute_to_session_label(end_date)
+        start_session = tc.minute_to_session(start_date)
+        end_session = tc.minute_to_session(end_date)
 
         for asset in assets:
             rf = self._roll_finders[asset.roll_style]
@@ -227,7 +228,10 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
                 asset.root_symbol, start_session, end_session, asset.offset
             )
 
-        sessions = tc.sessions_in_range(start_date, end_date)
+        sessions = tc.sessions_in_range(
+            start_date.normalize().tz_localize(None),
+            end_date.normalize().tz_localize(None),
+        )
 
         minutes = tc.minutes_in_range(start_date, end_date)
         num_minutes = len(minutes)
@@ -246,15 +250,15 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
                 sid, roll_date = roll
                 start_loc = minutes.searchsorted(start)
                 if roll_date is not None:
-                    _, end = tc.open_and_close_for_session(roll_date - sessions.freq)
+                    end = tc.session_close(roll_date - sessions.freq)
                     end_loc = minutes.searchsorted(end)
                 else:
                     end = end_date
                     end_loc = len(minutes) - 1
                 partitions.append((sid, start, end, start_loc, end_loc))
                 if roll[-1] is not None:
-                    start, _ = tc.open_and_close_for_session(
-                        tc.minute_to_session_label(minutes[end_loc + 1])
+                    start = tc.session_first_minute(
+                        tc.minute_to_session(minutes[end_loc + 1])
                     )
 
         for column in columns:

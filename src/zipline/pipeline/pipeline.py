@@ -11,7 +11,7 @@ from .filters import Filter
 from .term import AssetExists, ComputableTerm, Term
 
 
-class Pipeline(object):
+class Pipeline:
     """
     A Pipeline object represents a collection of named expressions to be
     compiled and executed by a PipelineEngine.

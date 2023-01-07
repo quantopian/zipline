@@ -34,7 +34,7 @@ def singleton(cls):
 
 
 @singleton
-class Ignore(object):
+class Ignore:
     def __str__(self):
         return "Argument.ignore"
 
@@ -42,7 +42,7 @@ class Ignore(object):
 
 
 @singleton
-class NoDefault(object):
+class NoDefault:
     def __str__(self):
         return "Argument.no_default"
 
@@ -50,7 +50,7 @@ class NoDefault(object):
 
 
 @singleton
-class AnyDefault(object):
+class AnyDefault:
     def __str__(self):
         return "Argument.any_default"
 

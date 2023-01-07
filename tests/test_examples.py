@@ -15,6 +15,7 @@
 import pytest
 import warnings
 from functools import partial
+from itertools import combinations
 from operator import itemgetter
 import tarfile
 from os import listdir
@@ -49,7 +50,7 @@ def _no_benchmark_expectations_applied(expected_perf):
     return expected_perf
 
 
-def _stored_pd_data(skip_vers=["0-18-1", "0-19-2"]):
+def _stored_pd_data(skip_vers=["0-18-1", "0-19-2", "0-22-0", "1-1-3", "1-2-3"]):
     with tarfile.open(join(TEST_RESOURCE_PATH, "example_data.tar.gz")) as tar:
         pd_versions = {
             n.split("/")[2]
@@ -61,6 +62,7 @@ def _stored_pd_data(skip_vers=["0-18-1", "0-19-2"]):
 
 
 STORED_DATA_VERSIONS = _stored_pd_data()
+COMBINED_DATA_VERSIONS = list(combinations(STORED_DATA_VERSIONS, 2))
 
 
 @pytest.fixture(scope="class")
@@ -151,4 +153,57 @@ class TestsExamplesTests:
         assert_equal(
             expected_perf["positions"].apply(sorted, key=itemgetter("sid")),
             actual_perf["positions"].apply(sorted, key=itemgetter("sid")),
+        )
+
+
+@pytest.mark.usefixtures("_setup_class")
+class TestsStoredDataCheck:
+    def expected_perf(self, pd_version):
+        return dataframe_cache(
+            join(
+                str(self.tmp_path),
+                "example_data",
+                f"expected_perf/{pd_version}",
+            ),
+            serialization="pickle",
+        )
+
+    @pytest.mark.parametrize(
+        "benchmark_returns", [read_checked_in_benchmark_data(), None]
+    )
+    @pytest.mark.parametrize("example_name", sorted(EXAMPLE_MODULES))
+    @pytest.mark.parametrize("pd_versions", COMBINED_DATA_VERSIONS, ids=str)
+    def test_compare_stored_data(self, example_name, benchmark_returns, pd_versions):
+
+        if benchmark_returns is not None:
+            expected_perf_a = self.expected_perf(pd_versions[0])[example_name]
+            expected_perf_b = self.expected_perf(pd_versions[1])[example_name]
+        else:
+            expected_perf_a = {
+                example_name: _no_benchmark_expectations_applied(expected_perf.copy())
+                for example_name, expected_perf in self.expected_perf(
+                    pd_versions[0]
+                ).items()
+            }[example_name]
+            expected_perf_b = {
+                example_name: _no_benchmark_expectations_applied(expected_perf.copy())
+                for example_name, expected_perf in self.expected_perf(
+                    pd_versions[1]
+                ).items()
+            }[example_name]
+
+        # Exclude positions column as the positions do not always have the
+        # same order
+        columns = [
+            column for column in examples._cols_to_check if column != "positions"
+        ]
+
+        assert_equal(
+            expected_perf_a[columns],
+            expected_perf_b[columns],
+        )
+        # Sort positions by SID before comparing
+        assert_equal(
+            expected_perf_a["positions"].apply(sorted, key=itemgetter("sid")),
+            expected_perf_b["positions"].apply(sorted, key=itemgetter("sid")),
         )

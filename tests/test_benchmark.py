@@ -12,9 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logbook
+import logging
+import re
+
 import numpy as np
 import pandas as pd
+import pytest
 from pandas.testing import assert_series_equal
 
 from zipline.data.data_portal import DataPortal
@@ -23,35 +26,76 @@ from zipline.errors import (
     BenchmarkAssetNotAvailableTooLate,
     InvalidBenchmarkAsset,
 )
-
 from zipline.sources.benchmark_source import BenchmarkSource
-from zipline.utils.run_algo import BenchmarkSpec
-
 from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
-    parameter_space,
     tmp_bcolz_equity_minute_bar_reader,
 )
-from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
-    WithAssetFinder,
     WithDataPortal,
     WithSimParams,
-    WithTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
 )
-from zipline.testing.core import make_test_handler
-import pytest
-import re
+from zipline.testing.predicates import assert_equal
+from zipline.utils.run_algo import BenchmarkSpec
+
+
+@pytest.fixture(scope="class")
+def set_test_benchmark_spec(request, with_asset_finder):
+    ASSET_FINDER_COUNTRY_CODE = "??"
+    START_DATE = pd.Timestamp("2006-01-03")
+    END_DATE = pd.Timestamp("2006-12-29")
+    request.cls.START_DATE = START_DATE
+    request.cls.END_DATE = END_DATE
+
+    zero_returns_index = pd.date_range(
+        request.cls.START_DATE,
+        request.cls.END_DATE,
+        freq="D",
+        tz="utc",
+    )
+    request.cls.zero_returns = pd.Series(index=zero_returns_index, data=0.0)
+
+    equities = pd.DataFrame.from_dict(
+        {
+            1: {
+                "symbol": "A",
+                "start_date": START_DATE,
+                "end_date": END_DATE + pd.Timedelta(days=1),
+                "exchange": "TEST",
+            },
+            2: {
+                "symbol": "B",
+                "start_date": START_DATE,
+                "end_date": END_DATE + pd.Timedelta(days=1),
+                "exchange": "TEST",
+            },
+        },
+        orient="index",
+    )
+
+    equities = equities
+    exchange_names = [df["exchange"] for df in (equities,) if df is not None]
+    if exchange_names:
+        exchanges = pd.DataFrame(
+            {
+                "exchange": pd.concat(exchange_names).unique(),
+                "country_code": ASSET_FINDER_COUNTRY_CODE,
+            }
+        )
+
+    request.cls.asset_finder = with_asset_finder(
+        **dict(equities=equities, exchanges=exchanges)
+    )
 
 
 class TestBenchmark(
     WithDataPortal, WithSimParams, WithTradingCalendars, ZiplineTestCase
 ):
-    START_DATE = pd.Timestamp("2006-01-03", tz="utc")
-    END_DATE = pd.Timestamp("2006-12-29", tz="utc")
+    START_DATE = pd.Timestamp("2006-01-03")
+    END_DATE = pd.Timestamp("2006-12-29")
 
     @classmethod
     def make_equity_info(cls):
@@ -71,8 +115,8 @@ class TestBenchmark(
                 },
                 3: {
                     "symbol": "C",
-                    "start_date": pd.Timestamp("2006-05-26", tz="utc"),
-                    "end_date": pd.Timestamp("2006-08-09", tz="utc"),
+                    "start_date": pd.Timestamp("2006-05-26"),
+                    "end_date": pd.Timestamp("2006-08-09"),
                     "exchange": "TEST",
                 },
                 4: {
@@ -178,13 +222,13 @@ class TestBenchmark(
     def test_asset_IPOed_same_day(self):
         # gotta get some minute data up in here.
         # add sid 4 for a couple of days
-        minutes = self.trading_calendar.minutes_for_sessions_in_range(
+        minutes = self.trading_calendar.sessions_minutes(
             self.sim_params.sessions[0], self.sim_params.sessions[5]
         )
 
         tmp_reader = tmp_bcolz_equity_minute_bar_reader(
             self.trading_calendar,
-            self.trading_calendar.all_sessions,
+            self.trading_calendar.sessions,
             create_minute_bar_data(minutes, [2]),
         )
         with tmp_reader as reader:
@@ -241,50 +285,12 @@ class TestBenchmark(
             )
 
 
-class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
-    @classmethod
-    def init_class_fixtures(cls):
-        super(BenchmarkSpecTestCase, cls).init_class_fixtures()
-
-        zero_returns_index = pd.date_range(
-            cls.START_DATE,
-            cls.END_DATE,
-            freq="D",
-            tz="utc",
-        )
-        cls.zero_returns = pd.Series(index=zero_returns_index, data=0.0)
-
-    def init_instance_fixtures(self):
-        super(BenchmarkSpecTestCase, self).init_instance_fixtures()
-        self.log_handler = self.enter_instance_context(make_test_handler(self))
-
-    @classmethod
-    def make_equity_info(cls):
-        return pd.DataFrame.from_dict(
-            {
-                1: {
-                    "symbol": "A",
-                    "start_date": cls.START_DATE,
-                    "end_date": cls.END_DATE + pd.Timedelta(days=1),
-                    "exchange": "TEST",
-                },
-                2: {
-                    "symbol": "B",
-                    "start_date": cls.START_DATE,
-                    "end_date": cls.END_DATE + pd.Timedelta(days=1),
-                    "exchange": "TEST",
-                },
-            },
-            orient="index",
-        )
-
-    def logs_at_level(self, level):
-        return [r.message for r in self.log_handler.records if r.level == level]
-
+@pytest.mark.usefixtures("set_test_benchmark_spec")
+class TestBenchmarkSpec:
     def resolve_spec(self, spec):
         return spec.resolve(self.asset_finder, self.START_DATE, self.END_DATE)
 
-    def test_no_benchmark(self):
+    def test_no_benchmark(self, caplog):
         """Test running with no benchmark provided.
 
         We should have no benchmark sid and have a returns series of all zeros.
@@ -301,15 +307,16 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         assert sid is None
         assert returns is None
 
-        warnings = self.logs_at_level(logbook.WARNING)
         expected = [
             "No benchmark configured. Assuming algorithm calls set_benchmark.",
             "Pass --benchmark-sid, --benchmark-symbol, or --benchmark-file to set a source of benchmark returns.",  # noqa
             "Pass --no-benchmark to use a dummy benchmark of zero returns.",
         ]
-        assert_equal(warnings, expected)
 
-    def test_no_benchmark_explicitly_disabled(self):
+        with caplog.at_level(logging.WARNING):
+            assert_equal(caplog.messages, expected)
+
+    def test_no_benchmark_explicitly_disabled(self, caplog):
         """Test running with no benchmark provided, with no_benchmark flag."""
         spec = BenchmarkSpec.from_cli_params(
             no_benchmark=True,
@@ -323,12 +330,12 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         assert sid is None
         assert_series_equal(returns, self.zero_returns)
 
-        warnings = self.logs_at_level(logbook.WARNING)
         expected = []
-        assert_equal(warnings, expected)
+        with caplog.at_level(logging.WARNING):
+            assert_equal(caplog.messages, expected)
 
-    @parameter_space(case=[("A", 1), ("B", 2)])
-    def test_benchmark_symbol(self, case):
+    @pytest.mark.parametrize("case", [("A", 1), ("B", 2)])
+    def test_benchmark_symbol(self, case, caplog):
         """Test running with no benchmark provided, with no_benchmark flag."""
         symbol, expected_sid = case
 
@@ -344,12 +351,12 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         assert_equal(sid, expected_sid)
         assert returns is None
 
-        warnings = self.logs_at_level(logbook.WARNING)
         expected = []
-        assert_equal(warnings, expected)
+        with caplog.at_level(logging.WARNING):
+            assert_equal(caplog.messages, expected)
 
-    @parameter_space(input_sid=[1, 2])
-    def test_benchmark_sid(self, input_sid):
+    @pytest.mark.parametrize("input_sid", [1, 2])
+    def test_benchmark_sid(self, input_sid, caplog):
         """Test running with no benchmark provided, with no_benchmark flag."""
         spec = BenchmarkSpec.from_cli_params(
             no_benchmark=False,
@@ -363,13 +370,14 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
         assert_equal(sid, input_sid)
         assert returns is None
 
-        warnings = self.logs_at_level(logbook.WARNING)
         expected = []
-        assert_equal(warnings, expected)
+        with caplog.at_level(logging.WARNING):
+            assert_equal(caplog.messages, expected)
 
-    def test_benchmark_file(self):
+    def test_benchmark_file(self, tmp_path, caplog):
         """Test running with a benchmark file."""
-        csv_file_path = self.tmpdir.getpath("b.csv")
+
+        csv_file_path = tmp_path / "b.csv"
         with open(csv_file_path, "w") as csv_file:
             csv_file.write(
                 "date,return\n"
@@ -391,15 +399,18 @@ class BenchmarkSpecTestCase(WithTmpDir, WithAssetFinder, ZiplineTestCase):
 
         assert sid is None
 
-        expected_dates = pd.to_datetime(
-            ["2020-01-03", "2020-01-06", "2020-01-07", "2020-01-08", "2020-01-09"],
-            utc=True,
+        expected_returns = pd.Series(
+            {
+                pd.Timestamp("2020-01-03"): -0.1,
+                pd.Timestamp("2020-01-06"): 0.333,
+                pd.Timestamp("2020-01-07"): 0.167,
+                pd.Timestamp("2020-01-08"): 0.143,
+                pd.Timestamp("2020-01-09"): 6.375,
+            }
         )
-        expected_values = [-0.1, 0.333, 0.167, 0.143, 6.375]
-        expected_returns = pd.Series(index=expected_dates, data=expected_values)
 
         assert_series_equal(returns, expected_returns, check_names=False)
 
-        warnings = self.logs_at_level(logbook.WARNING)
         expected = []
-        assert_equal(warnings, expected)
+        with caplog.at_level(logging.WARNING):
+            assert_equal(caplog.messages, expected)

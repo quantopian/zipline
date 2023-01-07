@@ -256,11 +256,14 @@ class PerContract(FutureCommissionModel):
         else:
             exchange_fee = "<varies>"
 
-        return "{class_name}(cost_per_contract={cost_per_contract}, " "exchange_fee={exchange_fee}, min_trade_cost={min_trade_cost})".format(
-            class_name=self.__class__.__name__,
-            cost_per_contract=cost_per_contract,
-            exchange_fee=exchange_fee,
-            min_trade_cost=self.min_trade_cost,
+        return (
+            "{class_name}(cost_per_contract={cost_per_contract}, "
+            "exchange_fee={exchange_fee}, min_trade_cost={min_trade_cost})".format(
+                class_name=self.__class__.__name__,
+                cost_per_contract=cost_per_contract,
+                exchange_fee=exchange_fee,
+                min_trade_cost=self.min_trade_cost,
+            )
         )
 
     def calculate(self, order, transaction):

@@ -264,12 +264,12 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         """
         try:
             choices = frozenset(choices)
-        except Exception as e:
+        except Exception as exc:
             raise TypeError(
                 "Expected `choices` to be an iterable of hashable values,"
                 " but got {} instead.\n"
-                "This caused the following error: {!r}.".format(choices, e)
-            )
+                "This caused the following error: {!r}.".format(choices, exc)
+            ) from exc
 
         if self.missing_value in choices:
             raise ValueError(
@@ -319,7 +319,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                         choices=choices,
                     )
                 )
-        assert False, "Unknown dtype in Classifier.element_of %s." % self.dtype
+        raise AssertionError(f"Unknown dtype in Classifier.element_of {self.dtype}.")
 
     def postprocess(self, data):
         if self.dtype == int64_dtype:
@@ -525,19 +525,19 @@ class CustomClassifier(
     def _validate(self):
         try:
             super(CustomClassifier, self)._validate()
-        except UnsupportedDataType:
+        except UnsupportedDataType as exc:
             if self.dtype in FACTOR_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomFactor?",
-                )
+                ) from exc
             elif self.dtype in FILTER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomFilter?",
-                )
+                ) from exc
             raise
 
     def _allocate_output(self, windows, shape):

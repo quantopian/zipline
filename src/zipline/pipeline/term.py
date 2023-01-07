@@ -1,7 +1,7 @@
 """
 Base class for Filters, Factors and Classifiers
 """
-from abc import ABCMeta, abstractproperty, abstractmethod
+from abc import ABC, abstractmethod
 from bisect import insort
 from collections.abc import Mapping
 from weakref import WeakValueDictionary
@@ -47,7 +47,7 @@ from .downsample_helpers import expect_downsample_frequency
 from .sentinels import NotSpecified
 
 
-class Term(object, metaclass=ABCMeta):
+class Term(ABC):
     """
     Base class for objects that can appear in the compute graph of a
     :class:`zipline.pipeline.Pipeline`.
@@ -204,13 +204,13 @@ class Term(object, metaclass=ABCMeta):
                 # Check here that the value is hashable so that we fail here
                 # instead of trying to hash the param values tuple later.
                 hash(value)
-            except KeyError:
+            except KeyError as exc:
                 raise TypeError(
                     "{typename} expected a keyword parameter {name!r}.".format(
                         typename=cls.__name__, name=key
                     )
-                )
-            except TypeError:
+                ) from exc
+            except TypeError as exc:
                 # Value wasn't hashable.
                 raise TypeError(
                     "{typename} expected a hashable value for parameter "
@@ -219,7 +219,7 @@ class Term(object, metaclass=ABCMeta):
                         name=key,
                         value=value,
                     )
-                )
+                ) from exc
 
             param_values.append((key, value))
         return tuple(param_values)
@@ -286,7 +286,7 @@ class Term(object, metaclass=ABCMeta):
         self.window_safe = window_safe
         self.ndim = ndim
 
-        for name, value in params:
+        for name, _ in params:
             if hasattr(self, name):
                 raise TypeError(
                     "Parameter {name!r} conflicts with already-present"
@@ -353,21 +353,24 @@ class Term(object, metaclass=ABCMeta):
         """
         return min_extra_rows
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def inputs(self):
         """
         A tuple of other Terms needed as inputs for ``self``.
         """
         raise NotImplementedError("inputs")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def windowed(self):
         """
         Boolean indicating whether this term is a trailing-window computation.
         """
         raise NotImplementedError("windowed")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def mask(self):
         """
         A :class:`~zipline.pipeline.Filter` representing asset/date pairs to
@@ -375,7 +378,8 @@ class Term(object, metaclass=ABCMeta):
         """
         raise NotImplementedError("mask")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def dependencies(self):
         """
         A dictionary mapping terms that must be computed before `self` to the
@@ -858,7 +862,7 @@ class ComputableTerm(Term):
             # dtype.
             try:
                 fill_value = _coerce_to_dtype(fill_value, self.dtype)
-            except TypeError as e:
+            except TypeError as exc:
                 raise TypeError(
                     "Fill value {value!r} is not a valid choice "
                     "for term {termname} with dtype {dtype}.\n\n"
@@ -866,9 +870,9 @@ class ComputableTerm(Term):
                         termname=type(self).__name__,
                         value=fill_value,
                         dtype=self.dtype,
-                        error=e,
+                        error=exc,
                     )
-                )
+                ) from exc
 
             if_false = self._constant_type(
                 const=fill_value,
@@ -936,8 +940,8 @@ def validate_dtype(termname, dtype, missing_value):
 
     try:
         dtype = dtype_class(dtype)
-    except TypeError:
-        raise NotDType(dtype=dtype, termname=termname)
+    except TypeError as exc:
+        raise NotDType(dtype=dtype, termname=termname) from exc
 
     if not can_represent_dtype(dtype):
         raise UnsupportedDType(dtype=dtype, termname=termname)
@@ -947,7 +951,7 @@ def validate_dtype(termname, dtype, missing_value):
 
     try:
         _coerce_to_dtype(missing_value, dtype)
-    except TypeError as e:
+    except TypeError as exc:
         raise TypeError(
             "Missing value {value!r} is not a valid choice "
             "for term {termname} with dtype {dtype}.\n\n"
@@ -955,9 +959,9 @@ def validate_dtype(termname, dtype, missing_value):
                 termname=termname,
                 value=missing_value,
                 dtype=dtype,
-                error=e,
+                error=exc,
             )
-        )
+        ) from exc
 
     return dtype, missing_value
 

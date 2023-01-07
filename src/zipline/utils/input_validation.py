@@ -141,7 +141,7 @@ def ensure_dtype(func, argname, arg):
     """
     try:
         return dtype(arg)
-    except TypeError:
+    except TypeError as exc:
         raise TypeError(
             "{func}() couldn't convert argument "
             "{argname}={arg!r} to a numpy dtype.".format(
@@ -149,7 +149,7 @@ def ensure_dtype(func, argname, arg):
                 argname=argname,
                 arg=arg,
             ),
-        )
+        ) from exc
 
 
 def ensure_timezone(func, argname, arg):
@@ -194,7 +194,7 @@ def ensure_timestamp(func, argname, arg):
     """
     try:
         return pd.Timestamp(arg)
-    except ValueError as e:
+    except ValueError as exc:
         raise TypeError(
             "{func}() couldn't convert argument "
             "{argname}={arg!r} to a pandas Timestamp.\n"
@@ -202,10 +202,10 @@ def ensure_timestamp(func, argname, arg):
                 func=_qualified_name(func),
                 argname=argname,
                 arg=arg,
-                t=_qualified_name(type(e)),
-                e=e,
+                t=_qualified_name(type(exc)),
+                e=exc,
             ),
-        )
+        ) from exc
 
 
 def expect_dtypes(__funcname=_qualified_name, **named):
@@ -840,7 +840,7 @@ def coerce_types(**kwargs):
     return preprocess(**valmap(_coerce, kwargs))
 
 
-class error_keywords(object):
+class error_keywords:
     def __init__(self, *args, **kwargs):
         self.messages = kwargs
 

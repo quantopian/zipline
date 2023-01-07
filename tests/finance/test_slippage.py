@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Unit tests for finance.slippage
-"""
+"""Unit tests for finance.slippage"""
+
 from collections import namedtuple
 import datetime
 from math import sqrt
@@ -52,7 +51,6 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.classproperty import classproperty
-from zipline.utils.pandas_utils import normalize_date
 import pytest
 import re
 
@@ -69,8 +67,8 @@ class SlippageTestCase(
     SIM_PARAMS_EMISSION_RATE = "daily"
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp("2006-01-05", tz="utc")
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp("2006-01-07", tz="utc")
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp("2006-01-05")
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp("2006-01-07")
     minutes = pd.date_range(
         start=START_DATE, end=END_DATE - pd.Timedelta("1 minute"), freq="1min"
     )
@@ -639,8 +637,8 @@ class VolumeShareSlippageTestCase(
     SIM_PARAMS_EMISSION_RATE = "daily"
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
-    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp("2006-01-05", tz="utc")
-    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp("2006-01-07", tz="utc")
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp("2006-01-05")
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp("2006-01-07")
     minutes = pd.date_range(
         start=START_DATE, end=END_DATE - pd.Timedelta("1 minute"), freq="1min"
     )
@@ -807,7 +805,7 @@ class VolumeShareSlippageTestCase(
 class VolatilityVolumeShareTestCase(
     WithCreateBarData, WithSimParams, WithDataPortal, ZiplineTestCase
 ):
-    ASSET_START_DATE = pd.Timestamp("2006-02-10", tz="utc")
+    ASSET_START_DATE = pd.Timestamp("2006-02-10")
 
     TRADING_CALENDAR_STRS = ("NYSE", "us_futures")
     TRADING_CALENDAR_PRIMARY_CAL = "us_futures"
@@ -841,7 +839,8 @@ class VolatilityVolumeShareTestCase(
         )
         # Make the first month's worth of data NaN to simulate cases where a
         # futures contract does not exist yet.
-        data[0][1].loc[: cls.ASSET_START_DATE] = np.NaN
+        asset_start_date = cls.ASSET_START_DATE.tz_localize(data[0][1].index.tzinfo)
+        data[0][1].loc[:asset_start_date] = np.NaN
         return data
 
     def test_calculate_impact_buy(self):
@@ -964,7 +963,7 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
     def make_equity_minute_bar_data(cls):
         trading_calendar = cls.trading_calendars[Equity]
         return create_minute_bar_data(
-            trading_calendar.minutes_for_sessions_in_range(
+            trading_calendar.sessions_minutes(
                 cls.equity_minute_bar_days[0],
                 cls.equity_minute_bar_days[-1],
             ),
@@ -973,7 +972,7 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
 
     def test_window_data(self):
         session = pd.Timestamp("2006-03-01")
-        minute = self.trading_calendar.minutes_for_session(session)[1]
+        minute = self.trading_calendar.session_minutes(session)[1]
         data = self.create_bardata(simulation_dt_func=lambda: minute)
         asset = self.asset_finder.retrieve_asset(1)
 
@@ -1016,8 +1015,8 @@ class MarketImpactTestCase(WithCreateBarData, ZiplineTestCase):
 class OrdersStopTestCase(
     WithSimParams, WithAssetFinder, WithTradingCalendars, ZiplineTestCase
 ):
-    START_DATE = pd.Timestamp("2006-01-05 14:31", tz="utc")
-    END_DATE = pd.Timestamp("2006-01-05 14:36", tz="utc")
+    START_DATE = pd.Timestamp("2006-01-05 14:31")
+    END_DATE = pd.Timestamp("2006-01-05 14:36")
     SIM_PARAMS_CAPITAL_BASE = 1.0e5
     SIM_PARAMS_DATA_FREQUENCY = "minute"
     SIM_PARAMS_EMISSION_RATE = "daily"
@@ -1173,7 +1172,7 @@ class OrdersStopTestCase(
             ),
         )
         days = pd.date_range(
-            start=normalize_date(self.minutes[0]), end=normalize_date(self.minutes[-1])
+            start=self.minutes[0].normalize(), end=self.minutes[-1].normalize()
         )
         with tmp_bcolz_equity_minute_bar_reader(
             self.trading_calendar, days, assets
@@ -1217,8 +1216,8 @@ class OrdersStopTestCase(
 
 
 class FixedBasisPointsSlippageTestCase(WithCreateBarData, ZiplineTestCase):
-    START_DATE = pd.Timestamp("2006-01-05", tz="utc")
-    END_DATE = pd.Timestamp("2006-01-05", tz="utc")
+    START_DATE = pd.Timestamp("2006-01-05")
+    END_DATE = pd.Timestamp("2006-01-05")
 
     ASSET_FINDER_EQUITY_SIDS = (133,)
 

@@ -404,7 +404,7 @@ class TestLabelArray:
         return [
             "".join(cs)
             for cs in take(
-                2 ** width + plus_one,
+                2**width + plus_one,
                 product([chr(c) for c in range(256)], repeat=length),
             )
         ]
@@ -486,7 +486,7 @@ class TestLabelArray:
         assert arr.itemsize == 2
 
     def test_narrow_condense_back_to_valid_size(self):
-        categories = ["a"] * (2 ** 8 + 1)
+        categories = ["a"] * (2**8 + 1)
         arr = LabelArray(categories, missing_value=categories[0])
         assert arr.itemsize == 1
         self.check_roundtrip(arr)

@@ -153,9 +153,7 @@ class TestDataSetFamily:
                 ("M8", np.dtype("M8[ns]"), Slice),
                 ("boolean", np.dtype("?"), Slice),
             }
-            actual_columns = {
-                (c.name, c.dtype, c.dataset) for c in Slice.columns
-            }
+            actual_columns = {(c.name, c.dtype, c.dataset) for c in Slice.columns}
             assert actual_columns == expected_columns
 
     # del spec
@@ -183,8 +181,7 @@ class TestDataSetFamily:
         expect_slice_fails(
             "a",
             expected_msg=(
-                "no coordinate provided to MD for the following dimension:"
-                " dim_1"
+                "no coordinate provided to MD for the following dimension:" " dim_1"
             ),
         )
 
@@ -248,31 +245,23 @@ class TestDataSetFamily:
         expect_slice_fails(
             "not-in-0",
             "c",
-            expected_msg=(
-                "'not-in-0' is not a value along the dim_0 dimension of MD"
-            ),
+            expected_msg=("'not-in-0' is not a value along the dim_0 dimension of MD"),
         )
         expect_slice_fails(
             dim_0="not-in-0",
             dim_1="c",
-            expected_msg=(
-                "'not-in-0' is not a value along the dim_0 dimension of MD"
-            ),
+            expected_msg=("'not-in-0' is not a value along the dim_0 dimension of MD"),
         )
 
         expect_slice_fails(
             "a",
             "not-in-1",
-            expected_msg=(
-                "'not-in-1' is not a value along the dim_1 dimension of MD"
-            ),
+            expected_msg=("'not-in-1' is not a value along the dim_1 dimension of MD"),
         )
         expect_slice_fails(
             dim_0="a",
             dim_1="not-in-1",
-            expected_msg=(
-                "'not-in-1' is not a value along the dim_1 dimension of MD"
-            ),
+            expected_msg=("'not-in-1' is not a value along the dim_1 dimension of MD"),
         )
 
     def test_inheritance(self):

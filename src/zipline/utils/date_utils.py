@@ -43,9 +43,7 @@ def compute_date_range_chunks(sessions, start_date, end_date, chunksize):
 
 
 def make_utc_aware(dti):
-    """
-    Normalizes a pd.DateTimeIndex. Assumes UTC if tz-naive.
-    """
+    """Normalizes a pd.DateTimeIndex. Assumes UTC if tz-naive."""
     try:
         # ensure tz-aware Timestamp has tz UTC
         return dti.tz_convert(tz="UTC")

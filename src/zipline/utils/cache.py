@@ -1,6 +1,4 @@
-"""
-Caching utilities for zipline
-"""
+"""Caching utilities for zipline"""
 from collections.abc import MutableMapping
 import errno
 from functools import partial
@@ -25,9 +23,8 @@ ExpiredCachedObject = sentinel("ExpiredCachedObject")
 AlwaysExpired = sentinel("AlwaysExpired")
 
 
-class CachedObject(object):
-    """
-    A simple struct for maintaining a cached object with an expiration date.
+class CachedObject:
+    """A simple struct for maintaining a cached object with an expiration date.
 
     Parameters
     ----------
@@ -86,9 +83,8 @@ class CachedObject(object):
         return self._value
 
 
-class ExpiringCache(object):
-    """
-    A cache of multiple CachedObjects, which returns the wrapped the value
+class ExpiringCache:
+    """A cache of multiple CachedObjects, which returns the wrapped the value
     or raises and deletes the CachedObject if the value has expired.
 
     Parameters
@@ -149,10 +145,10 @@ class ExpiringCache(object):
         """
         try:
             return self._cache[key].unwrap(dt)
-        except Expired:
+        except Expired as exc:
             self.cleanup(self._cache[key]._unsafe_get_value())
             del self._cache[key]
-            raise KeyError(key)
+            raise KeyError(key) from exc
 
     def set(self, key, value, expiration_dt):
         """Adds a new key value pair to the cache.
@@ -252,10 +248,10 @@ class dataframe_cache(MutableMapping):
             try:
                 with open(self._keypath(key), "rb") as f:
                     return self.deserialize(f)
-            except IOError as e:
-                if e.errno != errno.ENOENT:
+            except IOError as exc:
+                if exc.errno != errno.ENOENT:
                     raise
-                raise KeyError(key)
+                raise KeyError(key) from exc
 
     def __setitem__(self, key, value):
         with self.lock:
@@ -265,10 +261,10 @@ class dataframe_cache(MutableMapping):
         with self.lock:
             try:
                 os.remove(self._keypath(key))
-            except OSError as e:
-                if e.errno == errno.ENOENT:
+            except OSError as exc:
+                if exc.errno == errno.ENOENT:
                     # raise a keyerror if this directory did not exist
-                    raise KeyError(key)
+                    raise KeyError(key) from exc
                 # reraise the actual oserror otherwise
                 raise
 
@@ -285,7 +281,7 @@ class dataframe_cache(MutableMapping):
         )
 
 
-class working_file(object):
+class working_file:
     """A context manager for managing a temporary file that will be moved
     to a non-temporary location if no exceptions are raised in the context.
 
@@ -328,7 +324,7 @@ class working_file(object):
             self._commit()
 
 
-class working_dir(object):
+class working_dir:
     """A context manager for managing a temporary directory that will be moved
     to a non-temporary location if no exceptions are raised in the context.
 

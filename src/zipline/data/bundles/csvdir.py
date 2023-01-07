@@ -4,7 +4,7 @@ Module for building a complete dataset from local directory with csv files.
 import os
 import sys
 
-import logbook
+import logging
 import numpy as np
 import pandas as pd
 from zipline.utils.calendar_utils import register_calendar_alias
@@ -12,8 +12,9 @@ from zipline.utils.cli import maybe_show_progress
 
 from . import core as bundles
 
-handler = logbook.StreamHandler(sys.stdout, format_string=" | {record.message}")
-logger = logbook.Logger(__name__)
+handler = logging.StreamHandler()
+# handler = logging.StreamHandler(sys.stdout, format_string=" | {record.message}")
+logger = logging.getLogger(__name__)
 logger.handlers.append(handler)
 
 
@@ -235,7 +236,7 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
                     range(splits.shape[0], splits.shape[0] + split.shape[0])
                 )
                 split.set_index(index, inplace=True)
-                divs_splits["splits"] = splits.append(split)
+                divs_splits["splits"] = pd.concat([splits, split], axis=0)
 
             if "dividend" in dfr.columns:
                 # ex_date   amount  sid record_date declared_date pay_date
@@ -250,7 +251,7 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
                 divs = divs_splits["divs"]
                 ind = pd.Index(range(divs.shape[0], divs.shape[0] + div.shape[0]))
                 div.set_index(ind, inplace=True)
-                divs_splits["divs"] = divs.append(div)
+                divs_splits["divs"] = pd.concat([divs, div], axis=0)
 
             yield sid, dfr
 

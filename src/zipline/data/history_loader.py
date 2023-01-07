@@ -13,12 +13,11 @@
 # limitations under the License.
 
 from abc import (
-    ABCMeta,
+    ABC,
     abstractmethod,
-    abstractproperty,
 )
 
-from numpy import concatenate
+import numpy as np
 from lru import LRU
 from pandas import isnull
 from toolz import sliding_window
@@ -33,18 +32,19 @@ from zipline.utils.cache import ExpiringCache
 from zipline.utils.math_utils import number_of_decimal_places
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
-from zipline.utils.pandas_utils import find_in_sorted_index, normalize_date
+from zipline.utils.pandas_utils import find_in_sorted_index
 
 # Default number of decimal places used for rounding asset prices.
 DEFAULT_ASSET_PRICE_DECIMALS = 3
 
 
-class HistoryCompatibleUSEquityAdjustmentReader(object):
+class HistoryCompatibleUSEquityAdjustmentReader:
     def __init__(self, adjustment_reader):
         self._adjustments_reader = adjustment_reader
 
     def load_pricing_adjustments(self, columns, dts, assets):
         """
+
         Returns
         -------
         adjustments : list[dict[int -> Adjustment]]
@@ -60,8 +60,7 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
         return out
 
     def _get_adjustments_in_range(self, asset, dts, field):
-        """
-        Get the Float64Multiply objects to pass to an AdjustedArrayWindow.
+        """Get the Float64Multiply objects to pass to an AdjustedArrayWindow.
 
         For the use of AdjustedArrayWindow in the loader, which looks back
         from current simulation time back to a window of data the dictionary is
@@ -89,15 +88,13 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
             The adjustments as a dict of loc -> Float64Multiply
         """
         sid = int(asset)
-        start = normalize_date(dts[0])
-        end = normalize_date(dts[-1])
+        start = dts[0].normalize()
+        end = dts[-1].normalize()
         adjs = {}
         if field != "volume":
-            mergers = self._adjustments_reader.get_adjustments_for_sid(
-                "mergers", sid
-            )
+            mergers = self._adjustments_reader.get_adjustments_for_sid("mergers", sid)
             for m in mergers:
-                dt = m[0]
+                dt = m[0].tz_localize(dts.tzinfo)
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
@@ -106,11 +103,9 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
                         adjs[adj_loc].append(mult)
                     except KeyError:
                         adjs[adj_loc] = [mult]
-            divs = self._adjustments_reader.get_adjustments_for_sid(
-                "dividends", sid
-            )
+            divs = self._adjustments_reader.get_adjustments_for_sid("dividends", sid)
             for d in divs:
-                dt = d[0]
+                dt = d[0].tz_localize(dts.tzinfo)
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
@@ -121,7 +116,7 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
                         adjs[adj_loc] = [mult]
         splits = self._adjustments_reader.get_adjustments_for_sid("splits", sid)
         for s in splits:
-            dt = s[0]
+            dt = s[0].tz_localize(dts.tzinfo)
             if start < dt <= end:
                 if field == "volume":
                     ratio = 1.0 / s[1]
@@ -137,9 +132,8 @@ class HistoryCompatibleUSEquityAdjustmentReader(object):
         return adjs
 
 
-class ContinuousFutureAdjustmentReader(object):
-    """
-    Calculates adjustments for continuous futures, based on the
+class ContinuousFutureAdjustmentReader:
+    """Calculates adjustments for continuous futures, based on the
     close and open of the contracts on the either side of each roll.
     """
 
@@ -159,6 +153,7 @@ class ContinuousFutureAdjustmentReader(object):
 
     def load_pricing_adjustments(self, columns, dts, assets):
         """
+
         Returns
         -------
         adjustments : list[dict[int -> Adjustment]]
@@ -173,9 +168,7 @@ class ContinuousFutureAdjustmentReader(object):
             out[i] = adjs
         return out
 
-    def _make_adjustment(
-        self, adjustment_type, front_close, back_close, end_loc
-    ):
+    def _make_adjustment(self, adjustment_type, front_close, back_close, end_loc):
         adj_base = back_close - front_close
         if adjustment_type == "mul":
             adj_value = 1.0 + adj_base / front_close
@@ -202,10 +195,10 @@ class ContinuousFutureAdjustmentReader(object):
         for front, back in sliding_window(2, rolls):
             front_sid, roll_dt = front
             back_sid = back[0]
-            dt = tc.previous_session_label(roll_dt)
+            dt = tc.previous_session(roll_dt)
             if self._frequency == "minute":
-                dt = tc.open_and_close_for_session(dt)[1]
-                roll_dt = tc.open_and_close_for_session(roll_dt)[0]
+                dt = tc.session_close(dt)
+                roll_dt = tc.session_first_minute(roll_dt)
             partitions.append((front_sid, back_sid, dt, roll_dt))
         for partition in partitions:
             front_sid, back_sid, dt, roll_dt = partition
@@ -217,17 +210,11 @@ class ContinuousFutureAdjustmentReader(object):
             )
             if isnull(last_front_dt) or isnull(last_back_dt):
                 continue
-            front_close = self._bar_reader.get_value(
-                front_sid, last_front_dt, "close"
-            )
-            back_close = self._bar_reader.get_value(
-                back_sid, last_back_dt, "close"
-            )
+            front_close = self._bar_reader.get_value(front_sid, last_front_dt, "close")
+            back_close = self._bar_reader.get_value(back_sid, last_back_dt, "close")
             adj_loc = dts.searchsorted(roll_dt)
             end_loc = adj_loc - 1
-            adj = self._make_adjustment(
-                cf.adjustment, front_close, back_close, end_loc
-            )
+            adj = self._make_adjustment(cf.adjustment, front_close, back_close, end_loc)
             try:
                 adjs[adj_loc].append(adj)
             except KeyError:
@@ -235,9 +222,8 @@ class ContinuousFutureAdjustmentReader(object):
         return adjs
 
 
-class SlidingWindow(object):
-    """
-    Wrapper around an AdjustedArrayWindow which supports monotonically
+class SlidingWindow:
+    """Wrapper around an AdjustedArrayWindow which supports monotonically
     increasing (by datetime) requests for a sized window of data.
 
     Parameters
@@ -273,9 +259,8 @@ class SlidingWindow(object):
         return self.current
 
 
-class HistoryLoader(metaclass=ABCMeta):
-    """
-    Loader for sliding history windows, with support for adjustments.
+class HistoryLoader(ABC):
+    """Loader for sliding history windows, with support for adjustments.
 
     Parameters
     ----------
@@ -306,9 +291,7 @@ class HistoryLoader(metaclass=ABCMeta):
         if equity_adjustment_reader is not None:
             self._adjustment_readers[
                 Equity
-            ] = HistoryCompatibleUSEquityAdjustmentReader(
-                equity_adjustment_reader
-            )
+            ] = HistoryCompatibleUSEquityAdjustmentReader(equity_adjustment_reader)
         if roll_finders:
             self._adjustment_readers[
                 ContinuousFuture
@@ -324,11 +307,13 @@ class HistoryLoader(metaclass=ABCMeta):
         }
         self._prefetch_length = prefetch_length
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _frequency(self):
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _calendar(self):
         pass
 
@@ -352,8 +337,7 @@ class HistoryLoader(metaclass=ABCMeta):
         return DEFAULT_ASSET_PRICE_DECIMALS
 
     def _ensure_sliding_windows(self, assets, dts, field, is_perspective_after):
-        """
-        Ensure that there is a Float64Multiply window for each asset that can
+        """Ensure that there is a Float64Multiply window for each asset that can
         provide data for the given parameters.
         If the corresponding window for the (assets, len(dts), field) does not
         exist, then create a new one.
@@ -461,8 +445,7 @@ class HistoryLoader(metaclass=ABCMeta):
         return [asset_windows[asset] for asset in assets]
 
     def history(self, assets, dts, field, is_perspective_after):
-        """
-        A window of pricing data with adjustments applied assuming that the
+        """A window of pricing data with adjustments applied assuming that the
         end of the window is the day before the current simulation time.
 
         Parameters
@@ -535,12 +518,10 @@ class HistoryLoader(metaclass=ABCMeta):
         -------
         out : np.ndarray with shape(len(days between start, end), len(assets))
         """
-        block = self._ensure_sliding_windows(
-            assets, dts, field, is_perspective_after
-        )
+        block = self._ensure_sliding_windows(assets, dts, field, is_perspective_after)
         end_ix = self._calendar.searchsorted(dts[-1])
 
-        return concatenate(
+        return np.concatenate(
             [window.get(end_ix) for window in block],
             axis=1,
         )
@@ -571,9 +552,14 @@ class MinuteHistoryLoader(HistoryLoader):
 
     @lazyval
     def _calendar(self):
-        mm = self.trading_calendar.all_minutes
-        start = mm.searchsorted(self._reader.first_trading_day)
-        end = mm.searchsorted(self._reader.last_available_dt, side="right")
+        mm = self.trading_calendar.minutes
+        start = mm.searchsorted(self._reader.first_trading_day.tz_localize("UTC"))
+        if self._reader.last_available_dt.tzinfo is None:
+            end = mm.searchsorted(
+                self._reader.last_available_dt.tz_localize("UTC"), side="right"
+            )
+        else:
+            end = mm.searchsorted(self._reader.last_available_dt, side="right")
         return mm[start:end]
 
     def _array(self, dts, assets, field):

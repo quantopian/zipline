@@ -70,10 +70,10 @@ def _make_metrics_set_core():
         """
         try:
             del _metrics_sets[name]
-        except KeyError:
+        except KeyError as exc:
             raise ValueError(
                 "metrics set %r was not already registered" % name,
-            )
+            ) from exc
 
     def load(name):
         """Return an instance of the metrics set registered with the given name.
@@ -90,14 +90,14 @@ def _make_metrics_set_core():
         """
         try:
             function = _metrics_sets[name]
-        except KeyError:
+        except KeyError as exc:
             raise ValueError(
                 "no metrics set registered as %r, options are: %r"
                 % (
                     name,
                     sorted(_metrics_sets),
                 ),
-            )
+            ) from exc
 
         return function()
 

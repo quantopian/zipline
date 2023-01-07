@@ -64,8 +64,8 @@ benchmark_returns = sp500.pct_change()
 print(benchmark_returns.head())
 
 result = run_algorithm(
-    start=start.tz_localize("UTC"),
-    end=end.tz_localize("UTC"),
+    start=start,
+    end=end,
     initialize=initialize,
     handle_data=handle_data,
     capital_base=100000,

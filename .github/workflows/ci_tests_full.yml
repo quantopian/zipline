@@ -6,13 +6,35 @@ on:
     - cron: "0 9 * * 6"
 
 jobs:
+  black-format:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable
+        with:
+          options: "--check --diff"
+          src: "./src ./tests"
+
+  flake8-lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.0.0
+        with:
+          python-version: "3.10"
+
+      - name: flake8 Lint
+        uses: py-actions/flake8@v2
+
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
-        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10"]
         exclude:
           - os: windows-latest
             python-version: 3.9
@@ -50,10 +72,6 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install tox tox-gh-actions
           python -m pip install .[test]
-
-      - name: Lint with flake8
-        run: |
-          flake8
 
       - name: Unittests with tox & pytest
         uses: nick-fields/retry@v2

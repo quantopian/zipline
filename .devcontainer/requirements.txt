@@ -28,14 +28,12 @@ iso3166==2.1.1
 iso4217==1.11.20220401
 kiwisolver==1.4.4
 korean-lunar-calendar==0.3.1
-Logbook==1.5.3
 lru-dict==1.1.8
 lxml==4.9.1
 Mako==1.2.4
 MarkupSafe==2.1.1
 matplotlib==3.6.2
 mccabe==0.7.0
-mock==4.0.3
 multipledispatch==0.6.0
 multitasking==0.0.11
 mypy-extensions==0.4.3

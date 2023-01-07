@@ -31,7 +31,7 @@ from zipline.utils.string_formatting import bulleted_list
 IsSpecialization = sentinel("IsSpecialization")
 
 
-class Column(object):
+class Column:
     """
     An abstract column of data, not yet associated with a dataset.
     """
@@ -73,7 +73,7 @@ class Column(object):
         )
 
 
-class _BoundColumnDescr(object):
+class _BoundColumnDescr:
     """
     Intermediate class that sits on `DataSet` objects and returns memoized
     `BoundColumn` objects when requested.
@@ -82,9 +82,7 @@ class _BoundColumnDescr(object):
     parent classes.
     """
 
-    def __init__(
-        self, dtype, missing_value, name, doc, metadata, currency_aware
-    ):
+    def __init__(self, dtype, missing_value, name, doc, metadata, currency_aware):
         # Validating and calculating default missing values here guarantees
         # that we fail quickly if the user passes an unsupporte dtype or fails
         # to provide a missing value for a dtype that requires one
@@ -96,7 +94,7 @@ class _BoundColumnDescr(object):
                 dtype=dtype,
                 missing_value=missing_value,
             )
-        except NoDefaultMissingValue:
+        except NoDefaultMissingValue as exc:
             # Re-raise with a more specific message.
             raise NoDefaultMissingValue(
                 "Failed to create Column with name {name!r} and"
@@ -104,7 +102,7 @@ class _BoundColumnDescr(object):
                 "Columns with dtype {dtype} require a missing_value.\n"
                 "Please pass missing_value to Column() or use a different"
                 " dtype.".format(dtype=dtype, name=name)
-            )
+            ) from exc
         self.name = name
         self.doc = doc
         self.metadata = metadata
@@ -396,7 +394,7 @@ class DataSetMeta(type):
     families of specialized dataset.
     """
 
-    def __new__(mcls, name, bases, dict_):
+    def __new__(metacls, name, bases, dict_):
         if len(bases) != 1:
             # Disallowing multiple inheritance makes it easier for us to
             # determine whether a given dataset is the root for its family of
@@ -406,7 +404,7 @@ class DataSetMeta(type):
         # This marker is set in the class dictionary by `specialize` below.
         is_specialization = dict_.pop(IsSpecialization, False)
 
-        newtype = super(DataSetMeta, mcls).__new__(mcls, name, bases, dict_)
+        newtype = super(DataSetMeta, metacls).__new__(metacls, name, bases, dict_)
 
         if not isinstance(newtype.domain, Domain):
             raise TypeError(
@@ -443,7 +441,7 @@ class DataSetMeta(type):
         return newtype
 
     @expect_types(domain=Domain)
-    def specialize(self, domain):
+    def specialize(cls, domain):
         """
         Specialize a generic DataSet to a concrete domain.
 
@@ -459,99 +457,97 @@ class DataSetMeta(type):
             same columns as ``self``, but specialized to ``domain``.
         """
         # We're already the specialization to this domain, so just return self.
-        if domain == self.domain:
-            return self
+        if domain == cls.domain:
+            return cls
 
         try:
-            return self._domain_specializations[domain]
-        except KeyError:
-            if not self._can_create_new_specialization(domain):
+            return cls._domain_specializations[domain]
+        except KeyError as exc:
+            if not cls._can_create_new_specialization(domain):
                 # This either means we're already a specialization and trying
                 # to create a new specialization, or we're the generic version
                 # of a root-specialized dataset, which we don't want to create
                 # new specializations of.
                 raise ValueError(
                     "Can't specialize {dataset} from {current} to new domain {new}.".format(
-                        dataset=self.__name__,
-                        current=self.domain,
+                        dataset=cls.__name__,
+                        current=cls.domain,
                         new=domain,
                     )
-                )
-            new_type = self._create_specialization(domain)
-            self._domain_specializations[domain] = new_type
+                ) from exc
+            new_type = cls._create_specialization(domain)
+            cls._domain_specializations[domain] = new_type
             return new_type
 
-    def unspecialize(self):
+    def unspecialize(cls):
         """
         Unspecialize a dataset to its generic form.
 
         This is equivalent to ``dataset.specialize(GENERIC)``.
         """
-        return self.specialize(GENERIC)
+        return cls.specialize(GENERIC)
 
-    def _can_create_new_specialization(self, domain):
+    def _can_create_new_specialization(cls, domain):
         # Always allow specializing to a generic domain.
         if domain is GENERIC:
             return True
-        elif "_domain_specializations" in vars(self):
+        elif "_domain_specializations" in vars(cls):
             # This branch is True if we're the root of a family.
             # Allow specialization if we're generic.
-            return self.domain is GENERIC
+            return cls.domain is GENERIC
         else:
             # If we're not the root of a family, we can't create any new
             # specializations.
             return False
 
-    def _create_specialization(self, domain):
+    def _create_specialization(cls, domain):
         # These are all assertions because we should have handled these cases
         # already in specialize().
         assert isinstance(domain, Domain)
         assert (
-            domain not in self._domain_specializations
+            domain not in cls._domain_specializations
         ), "Domain specializations should be memoized!"
         if domain is not GENERIC:
             assert (
-                self.domain is GENERIC
+                cls.domain is GENERIC
             ), "Can't specialize dataset with domain {} to domain {}.".format(
-                self.domain,
+                cls.domain,
                 domain,
             )
 
         # Create a new subclass of ``self`` with the given domain.
         # Mark that it's a specialization so that we know not to create a new
         # family for it.
-        name = self.__name__
-        bases = (self,)
+        name = cls.__name__
+        bases = (cls,)
         dict_ = {"domain": domain, IsSpecialization: True}
         out = type(name, bases, dict_)
-        out.__module__ = self.__module__
+        out.__module__ = cls.__module__
         return out
 
     @property
-    def columns(self):
-        return frozenset(
-            getattr(self, colname) for colname in self._column_names
-        )
+    def columns(cls):
+        return frozenset(getattr(cls, colname) for colname in cls._column_names)
 
     @property
-    def qualname(self):
-        if self.domain is GENERIC:
+    def qualname(cls):
+        if cls.domain is GENERIC:
             specialization_key = ""
         else:
-            specialization_key = "<" + self.domain.country_code + ">"
+            specialization_key = "<" + cls.domain.country_code + ">"
 
-        return self.__name__ + specialization_key
+        return cls.__name__ + specialization_key
 
     # NOTE: We used to use `functools.total_ordering` to account for all of the
     #       other rich comparison methods, but it has issues in python 3 and
     #       this method is only used for test purposes, so for now we will just
     #       keep this in isolation. If we ever need any of the other comparison
     #       methods we will have to implement them individually.
-    def __lt__(self, other):
-        return id(self) < id(other)
+    def __lt__(cls, other):
+        return id(cls) < id(other)
 
-    def __repr__(self):
-        return "<DataSet: %r, domain=%s>" % (self.__name__, self.domain)
+    def __repr__(cls):
+        return "<DataSet: %r, domain=%s>" % (cls.__name__, cls.domain)
 
 
 class DataSet(object, metaclass=DataSetMeta):
@@ -659,7 +655,7 @@ class DataSet(object, metaclass=DataSetMeta):
             maybe_column = clsdict[name]
             if not isinstance(maybe_column, _BoundColumnDescr):
                 raise KeyError(name)
-        except KeyError:
+        except KeyError as exc:
             raise AttributeError(
                 "{dset} has no column {colname!r}:\n\n"
                 "Possible choices are:\n"
@@ -671,7 +667,7 @@ class DataSet(object, metaclass=DataSetMeta):
                         max_count=10,
                     ),
                 )
-            )
+            ) from exc
 
         # Resolve column descriptor into a BoundColumn.
         return maybe_column.__get__(None, cls)
@@ -716,7 +712,7 @@ class DataSetFamilyLookupError(AttributeError):
         )
 
 
-class _DataSetFamilyColumn(object):
+class _DataSetFamilyColumn:
     """Descriptor used to raise a helpful error when a column is accessed on a
     DataSetFamily instead of on the result of a slice.
 
@@ -759,10 +755,7 @@ class DataSetFamilyMeta(abc.ABCMeta):
 
         if not is_abstract:
             self.extra_dims = extra_dims = OrderedDict(
-                [
-                    (k, frozenset(v))
-                    for k, v in OrderedDict(self.extra_dims).items()
-                ]
+                [(k, frozenset(v)) for k, v in OrderedDict(self.extra_dims).items()]
             )
             if not extra_dims:
                 raise ValueError(
@@ -872,7 +865,7 @@ class DataSetFamily(metaclass=DataSetFamilyMeta):
     _SliceType = DataSetFamilySlice
 
     @type.__call__
-    class extra_dims(object):
+    class extra_dims:
         """OrderedDict[str, frozenset] of dimension name -> unique values
 
         May be defined on subclasses as an iterable of pairs: the

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 # Number of days over which to compute rolls when finding the current contract
 # for a volume-rolling contract chain. For more details on why this is needed,
@@ -20,9 +20,8 @@ from abc import ABCMeta, abstractmethod
 ROLL_DAYS_FOR_CURRENT_CONTRACT = 90
 
 
-class RollFinder(object, metaclass=ABCMeta):
-    """
-    Abstract base class for calculating when futures contracts are the active
+class RollFinder(ABC):
+    """Abstract base class for calculating when futures contracts are the active
     contract.
     """
 
@@ -31,12 +30,11 @@ class RollFinder(object, metaclass=ABCMeta):
         raise NotImplementedError
 
     def _get_active_contract_at_offset(self, root_symbol, dt, offset):
-        """
-        For the given root symbol, find the contract that is considered active
+        """For the given root symbol, find the contract that is considered active
         on a specific date at a specific offset.
         """
         oc = self.asset_finder.get_ordered_contracts(root_symbol)
-        session = self.trading_calendar.minute_to_session_label(dt)
+        session = self.trading_calendar.minute_to_session(dt)
         front = oc.contract_before_auto_close(session.value)
         back = oc.contract_at_offset(front, 1, dt.value)
         if back is None:
@@ -46,6 +44,7 @@ class RollFinder(object, metaclass=ABCMeta):
 
     def get_contract_center(self, root_symbol, dt, offset):
         """
+
         Parameters
         ----------
         root_symbol : str
@@ -64,8 +63,7 @@ class RollFinder(object, metaclass=ABCMeta):
         return self._get_active_contract_at_offset(root_symbol, dt, offset)
 
     def get_rolls(self, root_symbol, start, end, offset):
-        """
-        Get the rolls, i.e. the session at which to hop from contract to
+        """Get the rolls, i.e. the session at which to hop from contract to
         contract in the chain.
 
         Parameters
@@ -91,7 +89,7 @@ class RollFinder(object, metaclass=ABCMeta):
         front = self._get_active_contract_at_offset(root_symbol, end, 0)
         back = oc.contract_at_offset(front, 1, end.value)
         if back is not None:
-            end_session = self.trading_calendar.minute_to_session_label(end)
+            end_session = self.trading_calendar.minute_to_session(end)
             first = self._active_contract(oc, front, back, end_session)
         else:
             first = front
@@ -99,7 +97,7 @@ class RollFinder(object, metaclass=ABCMeta):
         rolls = [((first_contract >> offset).contract.sid, None)]
         tc = self.trading_calendar
         sessions = tc.sessions_in_range(
-            tc.minute_to_session_label(start), tc.minute_to_session_label(end)
+            tc.minute_to_session(start), tc.minute_to_session(end)
         )
         freq = sessions.freq
         if first == front:
@@ -115,12 +113,14 @@ class RollFinder(object, metaclass=ABCMeta):
             curr = first_contract << 2
         session = sessions[-1]
 
+        start = start.tz_localize(None)
+
         while session > start and curr is not None:
             front = curr.contract.sid
             back = rolls[0][0]
             prev_c = curr.prev
             while session > start:
-                prev = session - freq
+                prev = (session - freq).tz_localize(None)
                 if prev_c is not None:
                     if prev < prev_c.contract.auto_close_date:
                         break
@@ -139,8 +139,7 @@ class RollFinder(object, metaclass=ABCMeta):
 
 
 class CalendarRollFinder(RollFinder):
-    """
-    The CalendarRollFinder calculates contract rolls based purely on the
+    """The CalendarRollFinder calculates contract rolls based purely on the
     contract's auto close date.
     """
 
@@ -156,8 +155,7 @@ class CalendarRollFinder(RollFinder):
 
 
 class VolumeRollFinder(RollFinder):
-    """
-    The VolumeRollFinder calculates contract rolls based on when
+    """The VolumeRollFinder calculates contract rolls based on when
     volume activity transfers from one contract to another.
     """
 
@@ -231,8 +229,8 @@ class VolumeRollFinder(RollFinder):
         # date, and a volume flip happened during that period, return the back
         # contract as the active one.
         sessions = tc.sessions_in_range(
-            tc.minute_to_session_label(gap_start),
-            tc.minute_to_session_label(gap_end),
+            tc.minute_to_session(gap_start),
+            tc.minute_to_session(gap_end),
         )
         for session in sessions:
             front_vol = get_value(front, session, "volume")
@@ -243,6 +241,7 @@ class VolumeRollFinder(RollFinder):
 
     def get_contract_center(self, root_symbol, dt, offset):
         """
+
         Parameters
         ----------
         root_symbol : str
@@ -268,7 +267,7 @@ class VolumeRollFinder(RollFinder):
         day = self.trading_calendar.day
         end_date = min(
             dt + (ROLL_DAYS_FOR_CURRENT_CONTRACT * day),
-            self.session_reader.last_available_dt,
+            self.session_reader.last_available_dt.tz_localize(dt.tzinfo),
         )
         rolls = self.get_rolls(
             root_symbol=root_symbol,

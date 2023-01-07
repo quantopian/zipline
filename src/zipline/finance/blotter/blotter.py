@@ -12,13 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from zipline.extensions import extensible
 from zipline.finance.cancel_policy import NeverCancel
 
 
 @extensible
-class Blotter(metaclass=ABCMeta):
+class Blotter(ABC):
     def __init__(self, cancel_policy=None):
         self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
         self.current_dt = None

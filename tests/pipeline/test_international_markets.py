@@ -1,5 +1,5 @@
-"""Tests for pipelines on international markets.
-"""
+"""Tests for pipelines on international markets."""
+
 from itertools import cycle, islice
 
 from parameterized import parameterized
@@ -33,8 +33,7 @@ def T(s):
 
 
 class WithInternationalDailyBarData(zf.WithAssetFinder):
-    """
-    Fixture for generating international daily bars.
+    """Fixture for generating international daily bars.
 
     Eventually this should be moved into zipline.testing.fixtures and should
     replace most of the existing machinery
@@ -192,8 +191,8 @@ class WithInternationalPricingPipelineEngine(
 class InternationalEquityTestCase(
     WithInternationalPricingPipelineEngine, zf.ZiplineTestCase
 ):
-    START_DATE = T("2014-01-02")
-    END_DATE = T("2014-02-06")  # Chosen to match the asset setup data below.
+    START_DATE = pd.Timestamp("2014-01-02")
+    END_DATE = pd.Timestamp("2014-02-06")  # Chosen to match the asset setup data below.
 
     EXCHANGE_INFO = pd.DataFrame.from_records(
         [
@@ -476,8 +475,7 @@ class InternationalEquityTestCase(
 
 
 def alive_in_range(asset, start, end, include_asset_start_date=False):
-    """
-    Check if an asset was alive in the range from start to end.
+    """Check if an asset was alive in the range from start to end.
 
     Parameters
     ----------
@@ -504,8 +502,7 @@ def alive_in_range(asset, start, end, include_asset_start_date=False):
 
 
 def intervals_overlap(a, b):
-    """
-    Check whether a pair of datetime intervals overlap.
+    """Check whether a pair of datetime intervals overlap.
 
     Parameters
     ----------

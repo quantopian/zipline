@@ -20,7 +20,7 @@ class lazyval(property):
     -------
 
     >>> from zipline.utils.memoize import lazyval
-    >>> class C(object):
+    >>> class C:
     ...     def __init__(self):
     ...         self.count = 0
     ...     @lazyval
@@ -75,7 +75,7 @@ class classlazyval(lazyval):
     -------
 
     >>> from zipline.utils.memoize import classlazyval
-    >>> class C(object):
+    >>> class C:
     ...     count = 0
     ...     @classlazyval
     ...     def val(cls):
@@ -108,7 +108,9 @@ def _weak_lru_cache(maxsize=100):
     to allow the implementation to change.
     """
 
-    def decorating_function(user_function, tuple=tuple, sorted=sorted, KeyError=KeyError):
+    def decorating_function(
+        user_function, tuple=tuple, sorted=sorted, KeyError=KeyError
+    ):
 
         hits = misses = 0
         kwd_mark = (object(),)  # separates positional and keyword args
@@ -217,7 +219,9 @@ class _WeakArgs(Sequence):
 
     @property
     def alive(self):
-        return all(item() is not None for item in compress(self._items, self._selectors))
+        return all(
+            item() is not None for item in compress(self._items, self._selectors)
+        )
 
     def __eq__(self, other):
         return self._items == other._items

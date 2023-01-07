@@ -95,7 +95,7 @@ def generate_minute_test_data(
     minutes_count = len(full_minutes)
 
     cal = get_calendar("XNYS")
-    minutes = cal.minutes_for_sessions_in_range(first_day, last_day)
+    minutes = cal.sessions_minutes(first_day, last_day)
 
     o = np.zeros(minutes_count, dtype=np.uint32)
     h = np.zeros(minutes_count, dtype=np.uint32)

@@ -1,42 +1,32 @@
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 import gzip
-from itertools import (
-    combinations,
-    count,
-    product,
-)
 import json
 import operator
 import os
-from os.path import abspath, dirname, join, realpath
 import shutil
 import sys
 import tempfile
+from itertools import combinations, count, product
+from os.path import abspath, dirname, join, realpath
 from traceback import format_exception
 
-from logbook import TestHandler
-from mock import patch
-
-from numpy.testing import assert_allclose, assert_array_equal
+import numpy as np
 import pandas as pd
+from unittest import mock
+from numpy.testing import assert_allclose, assert_array_equal
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
 from toolz import concat, curry
-from zipline.utils.calendar_utils import get_calendar
 
-from zipline.assets import AssetFinder, AssetDBWriter
+from zipline.assets import AssetDBWriter, AssetFinder
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.utils.compat import getargspec, wraps
+from zipline.data.bcolz_daily_bars import BcolzDailyBarReader, BcolzDailyBarWriter
 from zipline.data.data_portal import DataPortal
-from zipline.data.minute_bars import (
+from zipline.data.bcolz_minute_bars import (
+    US_EQUITIES_MINUTES_PER_DAY,
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
-    US_EQUITIES_MINUTES_PER_DAY,
-)
-from zipline.data.bcolz_daily_bars import (
-    BcolzDailyBarReader,
-    BcolzDailyBarWriter,
 )
 from zipline.finance.blotter import SimulationBlotter
 from zipline.finance.order import ORDER_STATUS
@@ -47,19 +37,18 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
+from zipline.utils.calendar_utils import get_calendar
+from zipline.utils.compat import getargspec, wraps
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
 from zipline.utils.sentinel import sentinel
 
-import numpy as np
-from numpy import float64
-
 EPOCH = pd.Timestamp(0, tz="UTC")
 
 
 def seconds_to_timestamp(seconds):
-    return pd.Timestamp(seconds, unit="s", tz="UTC")
+    return pd.Timestamp(seconds, unit="s")
 
 
 def to_utc(time_str):
@@ -68,8 +57,7 @@ def to_utc(time_str):
 
 
 def str_to_seconds(s):
-    """
-    Convert a pandas-intelligible string to (integer) seconds since UTC.
+    """Convert a pandas-intelligible string to (integer) seconds since UTC.
 
     >>> from pandas import Timestamp
     >>> (Timestamp('2014-01-01') - Timestamp(0)).total_seconds()
@@ -170,9 +158,9 @@ def security_list_copy():
             shutil.copytree(
                 os.path.join(old_dir, subdir), os.path.join(new_dir, subdir)
             )
-            with patch.object(
+            with mock.patch.object(
                 security_list, "SECURITY_LISTS_DIR", new_dir
-            ), patch.object(security_list, "using_copy", True, create=True):
+            ), mock.patch.object(security_list, "using_copy", True, create=True):
                 yield
     finally:
         shutil.rmtree(new_dir, True)
@@ -201,8 +189,7 @@ def add_security_data(adds, deletes):
 
 
 def all_pairs_matching_predicate(values, pred):
-    """
-    Return an iterator of all pairs, (v0, v1) from values such that
+    """Return an iterator of all pairs, (v0, v1) from values such that
 
     `pred(v0, v1) == True`
 
@@ -229,8 +216,7 @@ def all_pairs_matching_predicate(values, pred):
 
 
 def product_upper_triangle(values, include_diagonal=False):
-    """
-    Return an iterator over pairs, (v0, v1), drawn from values.
+    """Return an iterator over pairs, (v0, v1), drawn from values.
 
     If `include_diagonal` is True, returns all pairs such that v0 <= v1.
     If `include_diagonal` is False, returns all pairs such that v0 < v1.
@@ -242,9 +228,7 @@ def product_upper_triangle(values, include_diagonal=False):
 
 
 def all_subindices(index):
-    """
-    Return all valid sub-indices of a pandas Index.
-    """
+    """Return all valid sub-indices of a pandas Index."""
     return (
         index[start:stop]
         for start, stop in product_upper_triangle(range(len(index) + 1))
@@ -261,16 +245,15 @@ def make_trade_data_for_asset_info(
     volume_step_by_date,
     volume_step_by_sid,
 ):
-    """
-    Convert the asset info dataframe into a dataframe of trade data for each
+    """Convert the asset info dataframe into a dataframe of trade data for each
     sid, and write to the writer if provided. Write NaNs for locations where
     assets did not exist. Return a dict of the dataframes, keyed by sid.
     """
     trade_data = {}
     sids = asset_info.index
 
-    price_sid_deltas = np.arange(len(sids), dtype=float64) * price_step_by_sid
-    price_date_deltas = np.arange(len(dates), dtype=float64) * price_step_by_date
+    price_sid_deltas = np.arange(len(sids), dtype=np.float64) * price_step_by_sid
+    price_date_deltas = np.arange(len(dates), dtype=np.float64) * price_step_by_date
     prices = (price_sid_deltas + as_column(price_date_deltas)) + price_start
 
     volume_sid_deltas = np.arange(len(sids)) * volume_step_by_sid
@@ -281,7 +264,8 @@ def make_trade_data_for_asset_info(
         start_date, end_date = asset_info.loc[sid, ["start_date", "end_date"]]
         # Normalize here so the we still generate non-NaN values on the minutes
         # for an asset's last trading day.
-        for i, date in enumerate(dates.normalize()):
+        # TODO FIXME TZ MESS
+        for i, date in enumerate(dates.normalize().tz_localize(None)):
             if not (start_date <= date <= end_date):
                 prices[i, j] = 0
                 volumes[i, j] = 0
@@ -302,8 +286,7 @@ def make_trade_data_for_asset_info(
 
 
 def check_allclose(actual, desired, rtol=1e-07, atol=0, err_msg="", verbose=True):
-    """
-    Wrapper around np.testing.assert_allclose that also verifies that inputs
+    """Wrapper around np.testing.assert_allclose that also verifies that inputs
     are ndarrays.
 
     See Also
@@ -323,8 +306,7 @@ def check_allclose(actual, desired, rtol=1e-07, atol=0, err_msg="", verbose=True
 
 
 def check_arrays(x, y, err_msg="", verbose=True, check_dtypes=True):
-    """
-    Wrapper around np.testing.assert_array_equal that also verifies that inputs
+    """Wrapper around np.testing.assert_array_equal that also verifies that inputs
     are ndarrays.
 
     See Also
@@ -365,9 +347,8 @@ class UnexpectedAttributeAccess(Exception):
     pass
 
 
-class ExplodingObject(object):
-    """
-    Object that will raise an exception on any attribute access.
+class ExplodingObject:
+    """Object that will raise an exception on any attribute access.
 
     Useful for verifying that an object is never touched during a
     function/method call.
@@ -378,12 +359,8 @@ class ExplodingObject(object):
 
 
 def write_minute_data(trading_calendar, tempdir, minutes, sids):
-    first_session = trading_calendar.minute_to_session_label(
-        minutes[0], direction="none"
-    )
-    last_session = trading_calendar.minute_to_session_label(
-        minutes[-1], direction="none"
-    )
+    first_session = trading_calendar.minute_to_session(minutes[0], direction="none")
+    last_session = trading_calendar.minute_to_session(minutes[-1], direction="none")
 
     sessions = trading_calendar.sessions_in_range(first_session, last_session)
 
@@ -490,7 +467,7 @@ def create_minute_df_for_asset(
     start_val=1,
     minute_blacklist=None,
 ):
-    asset_minutes = trading_calendar.minutes_for_sessions_in_range(start_dt, end_dt)
+    asset_minutes = trading_calendar.sessions_minutes(start_dt, end_dt)
     minutes_count = len(asset_minutes)
 
     if interval > 1:
@@ -687,10 +664,8 @@ class FakeDataPortal(DataPortal):
         data_frequency,
         ffill=True,
     ):
-        end_idx = self.trading_calendar.all_sessions.searchsorted(end_dt)
-        days = self.trading_calendar.all_sessions[
-            (end_idx - bar_count + 1) : (end_idx + 1)
-        ]
+        end_idx = self.trading_calendar.sessions.searchsorted(end_dt)
+        days = self.trading_calendar.sessions[(end_idx - bar_count + 1) : (end_idx + 1)]
 
         df = pd.DataFrame(
             np.full((bar_count, len(assets)), 100.0), index=days, columns=assets
@@ -698,7 +673,7 @@ class FakeDataPortal(DataPortal):
 
         if frequency == "1m" and not df.empty:
             df = df.reindex(
-                self.trading_calendar.minutes_for_sessions_in_range(
+                self.trading_calendar.sessions_minutes(
                     df.index[0],
                     df.index[-1],
                 ),
@@ -709,8 +684,7 @@ class FakeDataPortal(DataPortal):
 
 
 class FetcherDataPortal(DataPortal):
-    """
-    Mock dataportal that returns fake data for history and non-fetcher
+    """Mock dataportal that returns fake data for history and non-fetcher
     spot value.
     """
 
@@ -729,17 +703,8 @@ class FetcherDataPortal(DataPortal):
         # otherwise just return a fixed value
         return int(asset)
 
-    # XXX: These aren't actually the methods that are used by the superclasses,
-    # so these don't do anything, and this class will likely produce unexpected
-    # results for history().
-    def _get_daily_window_for_sid(self, asset, field, days_in_window, extra_slot=True):
-        return np.arange(days_in_window, dtype=np.float64)
 
-    def _get_minute_window_for_asset(self, asset, field, minutes_for_window):
-        return np.arange(minutes_for_window, dtype=np.float64)
-
-
-class tmp_assets_db(object):
+class tmp_assets_db:
     """Create a temporary assets sqlite database.
     This is meant to be used as a context manager.
 
@@ -776,7 +741,7 @@ class tmp_assets_db(object):
         self._eng = None  # set in enter and exit
 
     def __enter__(self):
-        self._eng = eng = create_engine(self._url)
+        self._eng = eng = create_engine(self._url, future=False)
         AssetDBWriter(eng).write(**self._frames)
         return eng
 
@@ -867,8 +832,7 @@ class SubTestFailures(AssertionError):
 
 # @nottest
 def subtest(iterator, *_names):
-    """
-    Construct a subtest in a unittest.
+    """Construct a subtest in a unittest.
 
     Consider using ``zipline.testing.parameter_space`` when subtests
     are constructed over a single input or over the cross-product of multiple
@@ -948,7 +912,7 @@ def subtest(iterator, *_names):
     return dec
 
 
-class MockDailyBarReader(object):
+class MockDailyBarReader:
     def __init__(self, dates):
         self.sessions = pd.DatetimeIndex(dates)
 
@@ -986,8 +950,7 @@ def create_mock_adjustment_data(splits=None, dividends=None, mergers=None):
 
 
 def assert_timestamp_equal(left, right, compare_nat_equal=True, msg=""):
-    """
-    Assert that two pandas Timestamp objects are the same.
+    """Assert that two pandas Timestamp objects are the same.
 
     Parameters
     ----------
@@ -1004,15 +967,12 @@ def assert_timestamp_equal(left, right, compare_nat_equal=True, msg=""):
 
 
 def powerset(values):
-    """
-    Return the power set (i.e., the set of all subsets) of entries in `values`.
-    """
+    """Return the power set (i.e., the set of all subsets) of entries in `values`."""
     return concat(combinations(values, i) for i in range(len(values) + 1))
 
 
 def to_series(knowledge_dates, earning_dates):
-    """
-    Helper for converting a dict of strings to a Series of datetimes.
+    """Helper for converting a dict of strings to a Series of datetimes.
 
     This is just for making the test cases more readable.
     """
@@ -1023,10 +983,8 @@ def to_series(knowledge_dates, earning_dates):
 
 
 def gen_calendars(start, stop, critical_dates):
-    """
-    Generate calendars to use as inputs.
-    """
-    all_dates = pd.date_range(start, stop, tz="utc")
+    """Generate calendars to use as inputs."""
+    all_dates = pd.date_range(start, stop)
     for to_drop in map(list, powerset(critical_dates)):
         # Have to yield tuples.
         yield (all_dates.drop(to_drop),)
@@ -1038,8 +996,7 @@ def gen_calendars(start, stop, critical_dates):
 
 @contextmanager
 def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
-    """
-    A contextManager that yields a SimplePipelineEngine holding a reference to
+    """A contextManager that yields a SimplePipelineEngine holding a reference to
     an AssetFinder generated via tmp_asset_finder.
 
     Parameters
@@ -1070,8 +1027,7 @@ def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
 
 
 def bool_from_envvar(name, default=False, env=None):
-    """
-    Get a boolean value from the environment, making a reasonable attempt to
+    """Get a boolean value from the environment, making a reasonable attempt to
     convert "truthy" values to True and "falsey" values to False.
 
     Strings are coerced to bools using ``json.loads(s.lower())``.
@@ -1115,8 +1071,7 @@ _FAIL_FAST_DEFAULT = bool_from_envvar("PARAMETER_SPACE_FAIL_FAST")
 
 
 def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
-    """
-    Wrapper around subtest that allows passing keywords mapping names to
+    """Wrapper around subtest that allows passing keywords mapping names to
     iterables of values.
 
     The decorated test function will be called with the cross-product of all
@@ -1226,8 +1181,7 @@ def create_empty_splits_mergers_frame():
 
 
 def make_alternating_boolean_array(shape, first_value=True):
-    """
-    Create a 2D numpy array with the given shape containing alternating values
+    """Create a 2D numpy array with the given shape containing alternating values
     of False, True, False, True,... along each row and each column.
 
     Examples
@@ -1256,8 +1210,7 @@ def make_alternating_boolean_array(shape, first_value=True):
 
 
 def make_cascading_boolean_array(shape, first_value=True):
-    """
-    Create a numpy array with the given shape containing cascading boolean
+    """Create a numpy array with the given shape containing cascading boolean
     values, with `first_value` being the top-left value.
 
     Examples
@@ -1293,8 +1246,7 @@ def make_cascading_boolean_array(shape, first_value=True):
 
 @expect_dimensions(array=2)
 def permute_rows(seed, array):
-    """
-    Shuffle each row in ``array`` based on permutations generated by ``seed``.
+    """Shuffle each row in ``array`` based on permutations generated by ``seed``.
 
     Parameters
     ----------
@@ -1307,41 +1259,14 @@ def permute_rows(seed, array):
     return np.apply_along_axis(rand.permutation, 1, array)
 
 
-# @nottest
-def make_test_handler(testcase, *args, **kwargs):
-    """
-    Returns a TestHandler which will be used by the given testcase. This
-    handler can be used to test log messages.
-
-    Parameters
-    ----------
-    testcase: unittest.TestCase
-        The test class in which the log handler will be used.
-    *args, **kwargs
-        Forwarded to the new TestHandler object.
-
-    Returns
-    -------
-    handler: logbook.TestHandler
-        The handler to use for the test case.
-    """
-    handler = TestHandler(*args, **kwargs)
-    testcase.addCleanup(handler.close)
-    return handler
-
-
 def write_compressed(path, content):
-    """
-    Write a compressed (gzipped) file to `path`.
-    """
+    """Write a compressed (gzipped) file to `path`."""
     with gzip.open(path, "wb") as f:
         f.write(content)
 
 
 def read_compressed(path):
-    """
-    Write a compressed (gzipped) file from `path`.
-    """
+    """Write a compressed (gzipped) file from `path`."""
     with gzip.open(path, "rb") as f:
         return f.read()
 
@@ -1358,9 +1283,7 @@ def test_resource_path(*path_parts):
 
 @contextmanager
 def patch_os_environment(remove=None, **values):
-    """
-    Context manager for patching the operating system environment.
-    """
+    """Context manager for patching the operating system environment."""
     old_values = {}
     remove = remove or []
     for key in remove:
@@ -1406,7 +1329,8 @@ class _TmpBarReader(tmp_dir, metaclass=ABCMeta):
         will be a unique name.
     """
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _reader_cls(self):
         raise NotImplementedError("_reader")
 
@@ -1516,7 +1440,7 @@ def patch_read_csv(url_map, module=pd, strict=False):
                 % filepath_or_buffer,
             )
 
-    with patch.object(module, "read_csv", patched_read_csv):
+    with mock.patch.object(module, "read_csv", patched_read_csv):
         yield
 
 
@@ -1557,8 +1481,7 @@ class RecordBatchBlotter(SimulationBlotter):
 
 
 class AssetID(CustomFactor):
-    """
-    CustomFactor that returns the AssetID of each asset.
+    """CustomFactor that returns the AssetID of each asset.
 
     Useful for providing a Factor that produces a different value for each
     asset.
@@ -1618,8 +1541,7 @@ def prices_generating_returns(returns, starting_price):
 def random_tick_prices(
     starting_price, count, tick_size=0.01, tick_range=(-5, 7), seed=42
 ):
-    """
-    Construct a time series of prices that ticks by a random multiple of
+    """Construct a time series of prices that ticks by a random multiple of
     ``tick_size`` every period.
 
     Parameters
@@ -1771,8 +1693,7 @@ def write_hdf5_daily_bars(
 
 
 def exchange_info_for_domains(domains):
-    """
-    Build an exchange_info suitable for passing to an AssetFinder from a list
+    """Build an exchange_info suitable for passing to an AssetFinder from a list
     of EquityCalendarDomain.
     """
     return pd.DataFrame.from_records(

@@ -33,15 +33,15 @@ Position Tracking
 
 from math import copysign
 import numpy as np
-import logbook
+import logging
 
 from zipline.assets import Future
 import zipline.protocol as zp
 
-log = logbook.Logger("Performance")
+log = logging.getLogger("Performance")
 
 
-class Position(object):
+class Position:
     __slots__ = "inner_position", "protocol_position"
 
     def __init__(

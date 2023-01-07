@@ -4,22 +4,15 @@ PipelineLoader accepting a DataFrame as input.
 from functools import partial
 
 from interface import implements
-from numpy import (
-    ix_,
-    zeros,
-)
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Int64Index,
-)
+import numpy as np
+import pandas as pd
+
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import make_adjustment_from_labels
 from zipline.utils.numpy_utils import as_column
 from .base import PipelineLoader
 
-ADJUSTMENT_COLUMNS = Index(
+ADJUSTMENT_COLUMNS = pd.Index(
     [
         "sid",
         "value",
@@ -32,8 +25,7 @@ ADJUSTMENT_COLUMNS = Index(
 
 
 class DataFrameLoader(implements(PipelineLoader)):
-    """
-    A PipelineLoader that reads its input from DataFrames.
+    """A PipelineLoader that reads its input from DataFrames.
 
     Mostly useful for testing, but can also be used for real work if your data
     fits in memory.
@@ -68,8 +60,8 @@ class DataFrameLoader(implements(PipelineLoader)):
         self.assets = baseline.columns
 
         if adjustments is None:
-            adjustments = DataFrame(
-                index=DatetimeIndex([]),
+            adjustments = pd.DataFrame(
+                index=pd.DatetimeIndex([]),
                 columns=ADJUSTMENT_COLUMNS,
             )
         else:
@@ -78,13 +70,12 @@ class DataFrameLoader(implements(PipelineLoader)):
             adjustments.sort_values(["apply_date", "sid"], inplace=True)
 
         self.adjustments = adjustments
-        self.adjustment_apply_dates = DatetimeIndex(adjustments.apply_date)
-        self.adjustment_end_dates = DatetimeIndex(adjustments.end_date)
-        self.adjustment_sids = Int64Index(adjustments.sid)
+        self.adjustment_apply_dates = pd.DatetimeIndex(adjustments.apply_date)
+        self.adjustment_end_dates = pd.DatetimeIndex(adjustments.end_date)
+        self.adjustment_sids = pd.Index(adjustments.sid, dtype="int64")
 
     def format_adjustments(self, dates, assets):
-        """
-        Build a dict of Adjustment objects in the format expected by
+        """Build a dict of Adjustment objects in the format expected by
         AdjustedArray.
 
         Returns a dict of the form:
@@ -112,7 +103,7 @@ class DataFrameLoader(implements(PipelineLoader)):
             min_date,
             max_date,
         )
-        dates_filter = zeros(len(self.adjustments), dtype="bool")
+        dates_filter = np.zeros(len(self.adjustments), dtype="bool")
         dates_filter[date_bounds] = True
         # Ignore adjustments whose apply_date is in range, but whose end_date
         # is out of range.
@@ -137,7 +128,7 @@ class DataFrameLoader(implements(PipelineLoader)):
             apply_date, sid, value, kind, start_date, end_date = row
             if apply_date != previous_apply_date:
                 # Get the next apply date if no exact match.
-                row_loc = dates.get_loc(apply_date, method="bfill")
+                row_loc = dates.get_indexer([apply_date], method="bfill")[0]
                 current_date_adjustments = out[row_loc] = []
                 previous_apply_date = apply_date
 
@@ -149,9 +140,8 @@ class DataFrameLoader(implements(PipelineLoader)):
         return out
 
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
-        """
-        Load data from our stored baseline.
-        """
+        """Load data from our stored baseline."""
+
         if len(columns) != 1:
             raise ValueError("Can't load multiple columns with DataFrameLoader")
 
@@ -165,7 +155,7 @@ class DataFrameLoader(implements(PipelineLoader)):
         good_dates = date_indexer != -1
         good_assets = assets_indexer != -1
 
-        data = self.baseline[ix_(date_indexer, assets_indexer)]
+        data = self.baseline[np.ix_(date_indexer, assets_indexer)]
         mask = (good_assets & as_column(good_dates)) & mask
 
         # Mask out requested columns/rows that didn't match.
@@ -182,5 +172,6 @@ class DataFrameLoader(implements(PipelineLoader)):
 
     def _validate_input_column(self, column):
         """Make sure a passed column is our column."""
+
         if column != self.column and column.unspecialize() != self.column:
-            raise ValueError("Can't load unknown column %s" % column)
+            raise ValueError(f"Can't load unknown column {column}")

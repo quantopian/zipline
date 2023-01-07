@@ -21,25 +21,12 @@ skip_pipeline_new_pandas = (
 skip_pipeline_blaze = "Blaze doesn't play nicely with Pandas >=1.0"
 
 
-def normalize_date(dt):
-    """
-    Normalize datetime.datetime value to midnight. Returns datetime.date as
-    a datetime.datetime at midnight
-
-    Returns
-    -------
-    normalized : datetime.datetime or Timestamp
-    """
-    return dt.normalize()
-
-
 def july_5th_holiday_observance(datetime_index):
     return datetime_index[datetime_index.year != 2013]
 
 
 def explode(df):
-    """
-    Take a DataFrame and return a triple of
+    """Take a DataFrame and return a triple of
 
     (df.index, df.columns, df.values)
     """
@@ -115,8 +102,7 @@ def mask_between_time(dts, start, end, include_start=True, include_end=True):
 
 
 def find_in_sorted_index(dts, dt):
-    """
-    Find the index of ``dt`` in ``dts``.
+    """Find the index of ``dt`` in ``dts``.
 
     This function should be used instead of `dts.get_loc(dt)` if the index is
     large enough that we don't want to initialize a hash table in ``dts``. In
@@ -146,8 +132,7 @@ def find_in_sorted_index(dts, dt):
 
 
 def nearest_unequal_elements(dts, dt):
-    """
-    Find values in ``dts`` closest but not equal to ``dt``.
+    """Find values in ``dts`` closest but not equal to ``dt``.
 
     Returns a pair of (last_before, first_after).
 
@@ -196,16 +181,12 @@ def nearest_unequal_elements(dts, dt):
 
 
 def timedelta_to_integral_seconds(delta):
-    """
-    Convert a pd.Timedelta to a number of seconds as an int.
-    """
+    """Convert a pd.Timedelta to a number of seconds as an int."""
     return int(delta.total_seconds())
 
 
 def timedelta_to_integral_minutes(delta):
-    """
-    Convert a pd.Timedelta to a number of minutes as an int.
-    """
+    """Convert a pd.Timedelta to a number of minutes as an int."""
     return timedelta_to_integral_seconds(delta) // 60
 
 
@@ -223,8 +204,7 @@ def ignore_pandas_nan_categorical_warning():
 
 
 def categorical_df_concat(df_list, inplace=False):
-    """
-    Prepare list of pandas DataFrames to be used as input to pd.concat.
+    """Prepare list of pandas DataFrames to be used as input to pd.concat.
     Ensure any columns of type 'category' have the same categories across each
     dataframe.
 
@@ -337,7 +317,5 @@ def check_indexes_all_same(indexes, message="Indexes are not equal."):
             bad_loc = np.flatnonzero(~same)[0]
             raise ValueError(
                 "{}\nFirst difference is at index {}: "
-                "{} != {}".format(
-                    message, bad_loc, first[bad_loc], other[bad_loc]
-                ),
+                "{} != {}".format(message, bad_loc, first[bad_loc], other[bad_loc]),
             )

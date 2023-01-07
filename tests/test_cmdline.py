@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 
 import zipline.__main__ as main
 import zipline

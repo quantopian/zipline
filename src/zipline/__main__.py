@@ -2,7 +2,7 @@ import errno
 import os
 
 import click
-import logbook
+import logging
 import pandas as pd
 
 import zipline
@@ -48,8 +48,14 @@ except NameError:
 @click.pass_context
 def main(ctx, extension, strict_extensions, default_extension, x):
     """Top level zipline entry point."""
-    # install a logbook handler before performing any other operations
-    logbook.StderrHandler().push_application()
+    # install a logging handler before performing any other operations
+
+    logging.basicConfig(
+        format="[%(asctime)s-%(levelname)s][%(name)s]\n %(message)s",
+        level=logging.INFO,
+        datefmt="%Y-%m-%dT%H:%M:%S%z",
+    )
+
     create_args(x, zipline.extension_args)
     load_extensions(
         default_extension,
@@ -194,13 +200,13 @@ DEFAULT_BUNDLE = "quandl"
 @click.option(
     "-s",
     "--start",
-    type=Date(tz="utc", as_timestamp=True),
+    type=Date(as_timestamp=True),
     help="The start date of the simulation.",
 )
 @click.option(
     "-e",
     "--end",
-    type=Date(tz="utc", as_timestamp=True),
+    type=Date(as_timestamp=True),
     help="The end date of the simulation.",
 )
 @click.option(
@@ -357,11 +363,13 @@ def zipline_magic(line, cell=None):
             # don't use system exit and propogate errors to the caller
             standalone_mode=False,
         )
-    except SystemExit as e:
+    except SystemExit as exc:
         # https://github.com/mitsuhiko/click/pull/533
         # even in standalone_mode=False `--help` really wants to kill us ;_;
-        if e.code:
-            raise ValueError("main returned non-zero status code: %d" % e.code)
+        if exc.code:
+            raise ValueError(
+                "main returned non-zero status code: %d" % exc.code
+            ) from exc
 
 
 @main.command()

@@ -58,11 +58,11 @@ import pytest
 # 15 16 17 18 19 20 21
 # 22 23 24 25 26 27 28
 # 29 30
-TEST_CALENDAR_START = pd.Timestamp("2015-06-01", tz="UTC")
-TEST_CALENDAR_STOP = pd.Timestamp("2015-06-30", tz="UTC")
+TEST_CALENDAR_START = pd.Timestamp("2015-06-01")
+TEST_CALENDAR_STOP = pd.Timestamp("2015-06-30")
 
-TEST_QUERY_START = pd.Timestamp("2015-06-10", tz="UTC")
-TEST_QUERY_STOP = pd.Timestamp("2015-06-19", tz="UTC")
+TEST_QUERY_START = pd.Timestamp("2015-06-10")
+TEST_QUERY_STOP = pd.Timestamp("2015-06-19")
 
 # One asset for each of the cases enumerated in load_raw_arrays_from_bcolz.
 EQUITY_INFO = pd.DataFrame(
@@ -374,7 +374,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
 
         for table in tables:
             for eff_date_secs, ratio, sid in table.itertuples(index=False):
-                eff_date = pd.Timestamp(eff_date_secs, unit="s", tz="UTC")
+                eff_date = pd.Timestamp(eff_date_secs, unit="s")
 
                 # Ignore adjustments outside the query bounds.
                 if not (start_date <= eff_date <= end_date):
@@ -487,11 +487,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
 
             if convert_dts:
                 for colname in reader._datetime_int_cols[name]:
-                    expected_df[colname] = (
-                        expected_df[colname]
-                        .astype("datetime64[s]")
-                        .dt.tz_localize("UTC")
-                    )
+                    expected_df[colname] = expected_df[colname].astype("datetime64[s]")
 
             return expected_df
 
@@ -509,11 +505,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                         .astype(int)
                     )
                 else:
-                    expected_df[colname] = (
-                        expected_df[colname]
-                        .astype("datetime64[s]")
-                        .dt.tz_localize("UTC")
-                    )
+                    expected_df[colname] = expected_df[colname].astype("datetime64[s]")
 
             return expected_df
 

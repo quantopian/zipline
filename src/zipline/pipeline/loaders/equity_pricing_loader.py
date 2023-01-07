@@ -77,7 +77,7 @@ class EquityPricingLoader(implements(PipelineLoader)):
         # be known at the **start** of each date. We assume that the latest
         # data known on day N is the data from day (N - 1), so we shift all
         # query dates back by a trading session.
-        sessions = domain.all_sessions()
+        sessions = domain.sessions()
         shifted_dates = shift_dates(sessions, dates[0], dates[-1], shift=1)
 
         ohlcv_cols, currency_cols = self._split_column_types(columns)

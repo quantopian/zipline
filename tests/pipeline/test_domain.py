@@ -137,8 +137,8 @@ class Sum(CustomFactor):
 
 
 class MixedGenericsTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCase):
-    START_DATE = pd.Timestamp("2014-01-02", tz="utc")
-    END_DATE = pd.Timestamp("2014-01-31", tz="utc")
+    START_DATE = pd.Timestamp("2014-01-02")
+    END_DATE = pd.Timestamp("2014-01-31")
     ASSET_FINDER_EQUITY_SIDS = (1, 2, 3, 4, 5)
     ASSET_FINDER_COUNTRY_CODE = "US"
 
@@ -396,7 +396,7 @@ class TestDataQueryCutoffForSession:
     def _test_equity_calendar_domain(
         self, domain, expected_cutoff_time, expected_cutoff_date_offset=0
     ):
-        sessions = pd.DatetimeIndex(domain.calendar.all_sessions[:50])
+        sessions = domain.calendar.sessions[:50]
 
         expected = days_at_time(
             sessions,
@@ -462,48 +462,49 @@ class TestDataQueryCutoffForSession:
 
     @pytest.mark.parametrize("domain", BUILT_IN_DOMAINS)
     def test_equity_calendar_not_aligned(self, domain):
-        valid_sessions = domain.all_sessions()[:50]
+        valid_sessions = domain.sessions()[:50]
         sessions = pd.date_range(valid_sessions[0], valid_sessions[-1])
         invalid_sessions = sessions[~sessions.isin(valid_sessions)]
         assert len(invalid_sessions) > 1, "There must be at least one invalid session."
 
         expected_msg = (
             "cannot resolve data query time for sessions that are not on the"
-            " %s calendar:\n%s"
-        ) % (domain.calendar.name, invalid_sessions)
+            f" {domain.calendar.name} calendar:\n{invalid_sessions}"
+        )
+
         with pytest.raises(ValueError, match=re.escape(expected_msg)):
             domain.data_query_cutoff_for_sessions(sessions)
 
-    Case = namedtuple("Case", "time date_offset expected_timedelta")
+    CASE = namedtuple("Case", "time date_offset expected_timedelta")
 
     @pytest.mark.parametrize(
         "parameters",
         (
-            Case(
+            CASE(
                 time=datetime.time(8, 45, tzinfo=pytz.utc),
                 date_offset=0,
                 expected_timedelta=datetime.timedelta(hours=8, minutes=45),
             ),
-            Case(
+            CASE(
                 time=datetime.time(5, 0, tzinfo=pytz.utc),
                 date_offset=0,
                 expected_timedelta=datetime.timedelta(hours=5),
             ),
-            Case(
+            CASE(
                 time=datetime.time(8, 45, tzinfo=pytz.timezone("Asia/Tokyo")),
                 date_offset=0,
                 # We should get 11:45 UTC, which is 8:45 in Tokyo time,
                 # because Tokyo is 9 hours ahead of UTC.
                 expected_timedelta=-datetime.timedelta(minutes=15),
             ),
-            Case(
+            CASE(
                 time=datetime.time(23, 30, tzinfo=pytz.utc),
                 date_offset=-1,
                 # 23:30 on the previous day should be equivalent to rolling back by
                 # 30 minutes.
                 expected_timedelta=-datetime.timedelta(minutes=30),
             ),
-            Case(
+            CASE(
                 time=datetime.time(23, 30, tzinfo=pytz.timezone("US/Eastern")),
                 date_offset=-1,
                 # 23:30 on the previous day in US/Eastern is equivalent to rolling
@@ -521,10 +522,9 @@ class TestDataQueryCutoffForSession:
     def test_equity_session_domain(self, parameters):
         time, date_offset, expected_timedelta = parameters
         naive_sessions = pd.date_range("2000-01-01", "2000-06-01")
-        utc_sessions = naive_sessions.tz_localize("UTC")
 
         domain = EquitySessionDomain(
-            utc_sessions,
+            naive_sessions,
             CountryCode.UNITED_STATES,
             data_query_time=time,
             data_query_date_offset=date_offset,
@@ -534,7 +534,7 @@ class TestDataQueryCutoffForSession:
         # crashes when adding a tz-aware DatetimeIndex and a
         # TimedeltaIndex. :sadpanda:.
         expected = (naive_sessions + expected_timedelta).tz_localize("utc")
-        actual = domain.data_query_cutoff_for_sessions(utc_sessions)
+        actual = domain.data_query_cutoff_for_sessions(naive_sessions)
 
         assert_equal(expected, actual)
 
@@ -547,19 +547,13 @@ class TestRollForward:
 
         # the first three days of the year are holidays on the Tokyo exchange,
         # so the first trading day should be the fourth
-        assert JP_EQUITIES.roll_forward("2017-01-01") == pd.Timestamp(
-            "2017-01-04", tz="UTC"
-        )
+        assert JP_EQUITIES.roll_forward("2017-01-01") == pd.Timestamp("2017-01-04")
 
         # in US exchanges, the first trading day after 1/1 is the 3rd
-        assert US_EQUITIES.roll_forward("2017-01-01") == pd.Timestamp(
-            "2017-01-03", tz="UTC"
-        )
+        assert US_EQUITIES.roll_forward("2017-01-01") == pd.Timestamp("2017-01-03")
 
         # passing a valid trading day to roll_forward should return that day
-        assert JP_EQUITIES.roll_forward("2017-01-04") == pd.Timestamp(
-            "2017-01-04", tz="UTC"
-        )
+        assert JP_EQUITIES.roll_forward("2017-01-04") == pd.Timestamp("2017-01-04")
 
         # passing a date before the first session should return the
         # first session
@@ -586,18 +580,13 @@ class TestRollForward:
         # test that a roll_forward works with an EquitySessionDomain,
         # not just calendar domains
         sessions = pd.DatetimeIndex(
-            ["2000-01-01", "2000-02-01", "2000-04-01", "2000-06-01"], tz="UTC"
+            ["2000-01-01", "2000-02-01", "2000-04-01", "2000-06-01"]
         )
 
         session_domain = EquitySessionDomain(sessions, CountryCode.UNITED_STATES)
 
-        assert session_domain.roll_forward("2000-02-01") == pd.Timestamp(
-            "2000-02-01", tz="UTC"
-        )
-
-        assert session_domain.roll_forward("2000-02-02") == pd.Timestamp(
-            "2000-04-01", tz="UTC"
-        )
+        assert session_domain.roll_forward("2000-02-01") == pd.Timestamp("2000-02-01")
+        assert session_domain.roll_forward("2000-02-02") == pd.Timestamp("2000-04-01")
 
 
 class TestRepr:

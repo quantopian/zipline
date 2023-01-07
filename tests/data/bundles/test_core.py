@@ -48,8 +48,8 @@ _1_ns = pd.Timedelta(1, unit="ns")
 
 class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestCase):
 
-    START_DATE = pd.Timestamp("2014-01-06", tz="utc")
-    END_DATE = pd.Timestamp("2014-01-10", tz="utc")
+    START_DATE = pd.Timestamp("2014-01-06")
+    END_DATE = pd.Timestamp("2014-01-10")
 
     def init_instance_fixtures(self):
         super(BundleCoreTestCase, self).init_instance_fixtures()
@@ -129,10 +129,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
     def test_ingest(self):
         calendar = get_calendar("XNYS")
         sessions = calendar.sessions_in_range(self.START_DATE, self.END_DATE)
-        minutes = calendar.minutes_for_sessions_in_range(
-            self.START_DATE,
-            self.END_DATE,
-        )
+        minutes = calendar.sessions_minutes(self.START_DATE, self.END_DATE)
 
         sids = tuple(range(3))
         equities = make_simple_equity_info(
@@ -337,7 +334,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
                     to_bundle_ingest_dirname(ingestions[0]),  # most recent
                     self.environ,
                     version,
-                )
+                ),
+                future=False,
             )
             metadata = sa.MetaData()
             metadata.reflect(eng)
@@ -381,8 +379,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             @self.register(
                 "bundle",
                 calendar_name="NYSE",
-                start_session=pd.Timestamp("2014", tz="UTC"),
-                end_session=pd.Timestamp("2014", tz="UTC"),
+                start_session=pd.Timestamp("2014"),
+                end_session=pd.Timestamp("2014"),
             )
             def _(
                 environ,
@@ -489,25 +487,19 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             first
         }, "directory should not have changed (after)"
 
-        assert (
-            self.clean(
-                "bundle",
-                before=self._ts_of_run(first) + _1_ns,
-                environ=self.environ,
-            )
-            == {first}
-        )
+        assert self.clean(
+            "bundle",
+            before=self._ts_of_run(first) + _1_ns,
+            environ=self.environ,
+        ) == {first}
         assert self._list_bundle() == set(), "directory now be empty (before)"
 
         second = self._empty_ingest()
-        assert (
-            self.clean(
-                "bundle",
-                after=self._ts_of_run(second) - _1_ns,
-                environ=self.environ,
-            )
-            == {second}
-        )
+        assert self.clean(
+            "bundle",
+            after=self._ts_of_run(second) - _1_ns,
+            environ=self.environ,
+        ) == {second}
 
         assert self._list_bundle() == set(), "directory now be empty (after)"
 
@@ -523,15 +515,12 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
             sixth,
         }, "larger set of ingestions did no happen correctly"
 
-        assert (
-            self.clean(
-                "bundle",
-                before=self._ts_of_run(fourth),
-                after=self._ts_of_run(fifth),
-                environ=self.environ,
-            )
-            == {third, sixth}
-        )
+        assert self.clean(
+            "bundle",
+            before=self._ts_of_run(fourth),
+            after=self._ts_of_run(fifth),
+            environ=self.environ,
+        ) == {third, sixth}
 
         assert self._list_bundle() == {
             fourth,

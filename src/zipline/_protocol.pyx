@@ -26,13 +26,12 @@ from zipline.assets import (
 )
 from zipline.assets._assets cimport Asset
 from zipline.assets.continuous_futures import ContinuousFuture
-from zipline.utils.pandas_utils import normalize_date
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 cdef bool _is_iterable(obj):
     return isinstance(obj, Iterable) and not isinstance(obj, str)
 
-cdef class check_parameters(object):
+cdef class check_parameters:
     """
     Asserts that the keywords passed into the wrapped function are included
     in those passed into this decorator. If not, raise a TypeError with a
@@ -115,8 +114,7 @@ def handle_non_market_minutes(bar_data):
         bar_data._handle_non_market_minutes = False
 
 cdef class BarData:
-    """
-    Provides methods for accessing minutely and daily price/volume data from
+    """Provides methods for accessing minutely and daily price/volume data from
     Algorithm API functions.
 
     Also provides utility methods to determine if an asset is alive, and if it
@@ -166,8 +164,7 @@ cdef class BarData:
         self._is_restricted = restrictions.is_restricted
 
     cdef _get_current_minute(self):
-        """
-        Internal utility method to get the current simulation time.
+        """Internal utility method to get the current simulation time.
 
         Possible answers are:
         - whatever the algorithm's get_datetime() method returns (this is what
@@ -180,21 +177,19 @@ cdef class BarData:
         dt = self.simulation_dt_func()
 
         if self._adjust_minutes:
-            dt = \
-                self.data_portal.trading_calendar.previous_minute(dt)
+            dt = self.data_portal.trading_calendar.previous_minute(dt)
 
         if self._daily_mode:
             # if we're in daily mode, take the given dt (which is the last
             # minute of the session) and get the session label for it.
-            dt = self.data_portal.trading_calendar.minute_to_session_label(dt)
+            dt = self.data_portal.trading_calendar.minute_to_session(dt)
 
         return dt
 
     @check_parameters(('assets', 'fields'),
                       ((Asset, ContinuousFuture, str), (str,)))
     def current(self, assets, fields):
-        """
-        Returns the "current" value of the given fields for the given assets
+        """Returns the "current" value of the given fields for the given assets
         at the current simulation time.
 
         Parameters
@@ -380,8 +375,7 @@ cdef class BarData:
 
     @check_parameters(('assets',), (Asset,))
     def can_trade(self, assets):
-        """
-        For the given asset or iterable of assets, returns True if all of the
+        """For the given asset or iterable of assets, returns True if all of the
         following are true:
 
         1. The asset is alive for the session of the current simulation time
@@ -444,7 +438,7 @@ cdef class BarData:
         if self._is_restricted(asset, adjusted_dt):
             return False
 
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         if not asset.is_alive_for_session(session_label):
             # asset isn't alive
@@ -459,8 +453,7 @@ cdef class BarData:
             if self._trading_calendar.is_open_on_minute(dt):
                 dt_to_use_for_exchange_check = dt
             else:
-                dt_to_use_for_exchange_check = \
-                    self._trading_calendar.next_open(dt)
+                dt_to_use_for_exchange_check = self._trading_calendar.next_open(dt)
 
             if not asset.is_exchange_open(dt_to_use_for_exchange_check):
                 return False
@@ -474,8 +467,7 @@ cdef class BarData:
 
     @check_parameters(('assets',), (Asset,))
     def is_stale(self, assets):
-        """
-        For the given asset or iterable of assets, returns True if the asset
+        """For the given asset or iterable of assets, returns True if the asset
         is alive and there is no trade data for the current simulation time.
 
         If the asset has never traded, returns False.
@@ -516,7 +508,7 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = normalize_date(dt)  # FIXME
+        session_label = dt.normalize() # FIXME
 
         if not asset.is_alive_for_session(session_label):
             return False
@@ -543,8 +535,7 @@ cdef class BarData:
                        int,
                        (str,)))
     def history(self, assets, fields, bar_count, frequency):
-        """
-        Returns a trailing window of length ``bar_count`` with data for
+        """Returns a trailing window of length ``bar_count`` with data for
         the given assets, fields, and frequency, adjusted for splits, dividends,
         and mergers as of the current simulation time.
 
@@ -685,14 +676,14 @@ cdef class BarData:
 
     property current_session:
         def __get__(self):
-            return self._trading_calendar.minute_to_session_label(
+            return self._trading_calendar.minute_to_session(
                 self.simulation_dt_func(),
                 direction="next"
             )
 
     property current_session_minutes:
         def __get__(self):
-            return self._trading_calendar.minutes_for_session(
+            return self._trading_calendar.session_minutes(
                 self.current_session
             )
 

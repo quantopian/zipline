@@ -15,13 +15,12 @@
 from datetime import timedelta
 import os
 import numpy as np
-from numpy import nan
 import pandas as pd
 from numpy.testing import assert_almost_equal, assert_array_equal
 from unittest import skip
 
 from zipline.data.bar_reader import NoDataForSid, NoDataOnDate
-from zipline.data.minute_bars import (
+from zipline.data.bcolz_minute_bars import (
     BcolzMinuteBarMetadata,
     BcolzMinuteBarWriter,
     BcolzMinuteBarReader,
@@ -43,8 +42,8 @@ import pytest
 # Calendar is set to cover several half days, to check a case where half
 # days would be read out of order in cases of windows which spanned over
 # multiple half days.
-TEST_CALENDAR_START = pd.Timestamp("2014-06-02", tz="UTC")
-TEST_CALENDAR_STOP = pd.Timestamp("2015-12-31", tz="UTC")
+TEST_CALENDAR_START = pd.Timestamp("2014-06-02")
+TEST_CALENDAR_STOP = pd.Timestamp("2015-12-31")
 
 
 class BcolzMinuteBarTestCase(
@@ -58,8 +57,10 @@ class BcolzMinuteBarTestCase(
 
         cal = cls.trading_calendar.schedule.loc[TEST_CALENDAR_START:TEST_CALENDAR_STOP]
 
-        cls.market_opens = cal.market_open.dt.tz_localize("UTC")
-        cls.market_closes = cal.market_close.dt.tz_localize("UTC")
+        cls.market_opens = cls.trading_calendar.first_minutes[
+            TEST_CALENDAR_START:TEST_CALENDAR_STOP
+        ]
+        cls.market_closes = cal.close
 
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
@@ -208,43 +209,33 @@ class BcolzMinuteBarTestCase(
         self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute_0, "open")
-
         assert 10.0 == open_price
 
         high_price = self.reader.get_value(sid, minute_0, "high")
-
         assert 20.0 == high_price
 
         low_price = self.reader.get_value(sid, minute_0, "low")
-
         assert 30.0 == low_price
 
         close_price = self.reader.get_value(sid, minute_0, "close")
-
         assert 40.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute_0, "volume")
-
         assert 50.0 == volume_price
 
         open_price = self.reader.get_value(sid, minute_1, "open")
-
         assert 11.0 == open_price
 
         high_price = self.reader.get_value(sid, minute_1, "high")
-
         assert 21.0 == high_price
 
         low_price = self.reader.get_value(sid, minute_1, "low")
-
         assert 31.0 == low_price
 
         close_price = self.reader.get_value(sid, minute_1, "close")
-
         assert 41.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute_1, "volume")
-
         assert 51.0 == volume_price
 
     def test_write_on_second_day(self):
@@ -264,23 +255,18 @@ class BcolzMinuteBarTestCase(
         self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 10.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 20.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 30.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 40.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 50.0 == volume_price
 
     def test_write_empty(self):
@@ -293,23 +279,18 @@ class BcolzMinuteBarTestCase(
         self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, "open")
-
-        assert_almost_equal(nan, open_price)
+        assert_almost_equal(np.nan, open_price)
 
         high_price = self.reader.get_value(sid, minute, "high")
-
-        assert_almost_equal(nan, high_price)
+        assert_almost_equal(np.nan, high_price)
 
         low_price = self.reader.get_value(sid, minute, "low")
-
-        assert_almost_equal(nan, low_price)
+        assert_almost_equal(np.nan, low_price)
 
         close_price = self.reader.get_value(sid, minute, "close")
-
-        assert_almost_equal(nan, close_price)
+        assert_almost_equal(np.nan, close_price)
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert_almost_equal(0, volume_price)
 
     def test_write_on_multiple_days(self):
@@ -343,45 +324,34 @@ class BcolzMinuteBarTestCase(
         minute = minutes[0]
 
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 10.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 20.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 30.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 40.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 50.0 == volume_price
 
         minute = minutes[1]
-
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 11.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 21.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 31.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 41.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 51.0 == volume_price
 
     def test_no_overwrite(self):
@@ -477,7 +447,7 @@ class BcolzMinuteBarTestCase(
 
         # The second minute should have been padded with zeros
         for col in ("open", "high", "low", "close"):
-            assert_almost_equal(nan, reader.get_value(sid, second_minute, col))
+            assert_almost_equal(np.nan, reader.get_value(sid, second_minute, col))
         assert 0 == reader.get_value(sid, second_minute, "volume")
 
         # The next day minute should have data.
@@ -485,8 +455,7 @@ class BcolzMinuteBarTestCase(
             assert_almost_equal(ohlcv[col], reader.get_value(sid, next_day_minute, col))
 
     def test_write_multiple_sids(self):
-        """
-        Test writing multiple sids.
+        """Test writing multiple sids.
 
         Tests both that the data is written to the correct sid, as well as
         ensuring that the logic for creating the subdirectory path to each sid
@@ -533,51 +502,38 @@ class BcolzMinuteBarTestCase(
         sid = sids[0]
 
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 15.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 17.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 11.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 15.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 100.0 == volume_price
 
         sid = sids[1]
-
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 25.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 27.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 21.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 25.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 200.0 == volume_price
 
     def test_pad_data(self):
-        """
-        Test writing empty data.
-        """
+        """Test writing empty data."""
         sid = 1
         last_date = self.writer.last_date_in_output_for_sid(sid)
         assert last_date is pd.NaT
@@ -604,35 +560,27 @@ class BcolzMinuteBarTestCase(
         self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 15.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 17.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 11.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 15.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 100.0 == volume_price
 
         # Check that if we then pad the rest of this day, we end up with
         # 2 days worth of minutes.
         self.writer.pad(sid, day)
-
         assert len(self.writer._ensure_ctable(sid)) == self.writer._minutes_per_day * 2
 
     def test_nans(self):
-        """
-        Test writing empty data.
-        """
+        """Test writing empty data."""
         sid = 1
         last_date = self.writer.last_date_in_output_for_sid(sid)
         assert last_date is pd.NaT
@@ -647,10 +595,10 @@ class BcolzMinuteBarTestCase(
         minutes = pd.date_range(minute, periods=9, freq="min")
         data = pd.DataFrame(
             data={
-                "open": np.full(9, nan),
-                "high": np.full(9, nan),
-                "low": np.full(9, nan),
-                "close": np.full(9, nan),
+                "open": np.full(9, np.nan),
+                "high": np.full(9, np.nan),
+                "low": np.full(9, np.nan),
+                "close": np.full(9, np.nan),
                 "volume": np.full(9, 0.0),
             },
             index=minutes,
@@ -673,14 +621,12 @@ class BcolzMinuteBarTestCase(
 
         for i, field in enumerate(fields):
             if field != "volume":
-                assert_array_equal(np.full(9, nan), ohlcv_window[i][0])
+                assert_array_equal(np.full(9, np.nan), ohlcv_window[i][0])
             else:
                 assert_array_equal(np.zeros(9), ohlcv_window[i][0])
 
     def test_differing_nans(self):
-        """
-        Also test nans of differing values/construction.
-        """
+        """Also test nans of differing values/construction."""
         sid = 1
         last_date = self.writer.last_date_in_output_for_sid(sid)
         assert last_date is pd.NaT
@@ -729,7 +675,7 @@ class BcolzMinuteBarTestCase(
 
         for i, field in enumerate(fields):
             if field != "volume":
-                assert_array_equal(np.full(9, nan), ohlcv_window[i][0])
+                assert_array_equal(np.full(9, np.nan), ohlcv_window[i][0])
             else:
                 assert_array_equal(np.zeros(9), ohlcv_window[i][0])
 
@@ -748,43 +694,33 @@ class BcolzMinuteBarTestCase(
         self.writer.write_cols(sid, dts, cols)
 
         open_price = self.reader.get_value(sid, minute_0, "open")
-
         assert 10.0 == open_price
 
         high_price = self.reader.get_value(sid, minute_0, "high")
-
         assert 20.0 == high_price
 
         low_price = self.reader.get_value(sid, minute_0, "low")
-
         assert 30.0 == low_price
 
         close_price = self.reader.get_value(sid, minute_0, "close")
-
         assert 40.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute_0, "volume")
-
         assert 50.0 == volume_price
 
         open_price = self.reader.get_value(sid, minute_1, "open")
-
         assert 11.0 == open_price
 
         high_price = self.reader.get_value(sid, minute_1, "high")
-
         assert 21.0 == high_price
 
         low_price = self.reader.get_value(sid, minute_1, "low")
-
         assert 31.0 == low_price
 
         close_price = self.reader.get_value(sid, minute_1, "close")
-
         assert 41.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute_1, "volume")
-
         assert 51.0 == volume_price
 
     def test_write_cols_mismatch_length(self):
@@ -805,9 +741,7 @@ class BcolzMinuteBarTestCase(
             self.writer.write_cols(sid, dts, cols)
 
     def test_unadjusted_minutes(self):
-        """
-        Test unadjusted minutes.
-        """
+        """Test unadjusted minutes."""
         start_minute = self.market_opens[TEST_CALENDAR_START]
         minutes = [
             start_minute,
@@ -817,10 +751,10 @@ class BcolzMinuteBarTestCase(
         sids = [1, 2]
         data_1 = pd.DataFrame(
             data={
-                "open": [15.0, nan, 15.1],
-                "high": [17.0, nan, 17.1],
-                "low": [11.0, nan, 11.1],
-                "close": [14.0, nan, 14.1],
+                "open": [15.0, np.nan, 15.1],
+                "high": [17.0, np.nan, 17.1],
+                "low": [11.0, np.nan, 11.1],
+                "close": [14.0, np.nan, 14.1],
                 "volume": [1000, 0, 1001],
             },
             index=minutes,
@@ -829,10 +763,10 @@ class BcolzMinuteBarTestCase(
 
         data_2 = pd.DataFrame(
             data={
-                "open": [25.0, nan, 25.1],
-                "high": [27.0, nan, 27.1],
-                "low": [21.0, nan, 21.1],
-                "close": [24.0, nan, 24.1],
+                "open": [25.0, np.nan, 25.1],
+                "high": [27.0, np.nan, 27.1],
+                "low": [21.0, np.nan, 21.1],
+                "close": [24.0, np.nan, 24.1],
                 "volume": [2000, 0, 2001],
             },
             index=minutes,
@@ -862,13 +796,12 @@ class BcolzMinuteBarTestCase(
                 assert_almost_equal(data[sid][col], arrays[i][j])
 
     def test_unadjusted_minutes_early_close(self):
-        """
-        Test unadjusted minute window, ensuring that early closes are filtered
+        """Test unadjusted minute window, ensuring that early closes are filtered
         out.
         """
-        day_before_thanksgiving = pd.Timestamp("2015-11-25", tz="UTC")
-        xmas_eve = pd.Timestamp("2015-12-24", tz="UTC")
-        market_day_after_xmas = pd.Timestamp("2015-12-28", tz="UTC")
+        day_before_thanksgiving = pd.Timestamp("2015-11-25")
+        xmas_eve = pd.Timestamp("2015-12-24")
+        market_day_after_xmas = pd.Timestamp("2015-12-28")
 
         minutes = [
             self.market_closes[day_before_thanksgiving] - pd.Timedelta("2 min"),
@@ -918,9 +851,9 @@ class BcolzMinuteBarTestCase(
 
         data = {sids[0]: data_1, sids[1]: data_2}
 
-        start_minute_loc = self.trading_calendar.all_minutes.get_loc(minutes[0])
+        start_minute_loc = self.trading_calendar.minutes.get_loc(minutes[0])
         minute_locs = [
-            self.trading_calendar.all_minutes.get_loc(minute) - start_minute_loc
+            self.trading_calendar.minutes.get_loc(minute) - start_minute_loc
             for minute in minutes
         ]
 
@@ -931,8 +864,8 @@ class BcolzMinuteBarTestCase(
                 )
 
     def test_adjust_non_trading_minutes(self):
-        start_day = pd.Timestamp("2015-06-01", tz="UTC")
-        end_day = pd.Timestamp("2015-06-02", tz="UTC")
+        start_day = pd.Timestamp("2015-06-01")
+        end_day = pd.Timestamp("2015-06-02")
 
         sid = 1
         cols = {
@@ -942,12 +875,7 @@ class BcolzMinuteBarTestCase(
             "close": np.arange(1, 781),
             "volume": np.arange(1, 781),
         }
-        dts = np.array(
-            self.trading_calendar.minutes_for_sessions_in_range(
-                self.trading_calendar.minute_to_session_label(start_day),
-                self.trading_calendar.minute_to_session_label(end_day),
-            )
-        )
+        dts = np.array(self.trading_calendar.sessions_minutes(start_day, end_day))
 
         self.writer.write_cols(sid, dts, cols)
 
@@ -974,8 +902,8 @@ class BcolzMinuteBarTestCase(
 
     def test_adjust_non_trading_minutes_half_days(self):
         # half day
-        start_day = pd.Timestamp("2015-11-27", tz="UTC")
-        end_day = pd.Timestamp("2015-11-30", tz="UTC")
+        start_day = pd.Timestamp("2015-11-27")
+        end_day = pd.Timestamp("2015-11-30")
 
         sid = 1
         cols = {
@@ -985,12 +913,7 @@ class BcolzMinuteBarTestCase(
             "close": np.arange(1, 601),
             "volume": np.arange(1, 601),
         }
-        dts = np.array(
-            self.trading_calendar.minutes_for_sessions_in_range(
-                self.trading_calendar.minute_to_session_label(start_day),
-                self.trading_calendar.minute_to_session_label(end_day),
-            )
-        )
+        dts = np.array(self.trading_calendar.sessions_minutes(start_day, end_day))
 
         self.writer.write_cols(sid, dts, cols)
 
@@ -1026,8 +949,8 @@ class BcolzMinuteBarTestCase(
         """Confirm that we can set the attributes of a sid's file correctly."""
 
         sid = 1
-        start_day = pd.Timestamp("2015-11-27", tz="UTC")
-        end_day = pd.Timestamp("2015-06-02", tz="UTC")
+        start_day = pd.Timestamp("2015-11-27")
+        end_day = pd.Timestamp("2015-06-02")
         attrs = {
             "start_day": start_day.value / int(1e9),
             "end_day": end_day.value / int(1e9),
@@ -1077,33 +1000,27 @@ class BcolzMinuteBarTestCase(
 
         # Refresh the reader since truncate update the metadata.
         self.reader = BcolzMinuteBarReader(self.dest)
-
         assert self.writer.last_date_in_output_for_sid(sid) == days[0]
 
         cal = self.trading_calendar
-        _, last_close = cal.open_and_close_for_session(days[0])
+        last_close = cal.session_close(days[0])
         assert self.reader.last_available_dt == last_close
 
         minute = minutes[0]
 
         open_price = self.reader.get_value(sid, minute, "open")
-
         assert 10.0 == open_price
 
         high_price = self.reader.get_value(sid, minute, "high")
-
         assert 20.0 == high_price
 
         low_price = self.reader.get_value(sid, minute, "low")
-
         assert 30.0 == low_price
 
         close_price = self.reader.get_value(sid, minute, "close")
-
         assert 40.0 == close_price
 
         volume_price = self.reader.get_value(sid, minute, "volume")
-
         assert 50.0 == volume_price
 
     def test_truncate_all_data_points(self):
@@ -1144,19 +1061,19 @@ class BcolzMinuteBarTestCase(
         assert self.writer.last_date_in_output_for_sid(sid) == self.test_calendar_start
 
         cal = self.trading_calendar
-        _, last_close = cal.open_and_close_for_session(self.test_calendar_start)
+        last_close = cal.session_close(self.test_calendar_start)
         assert self.reader.last_available_dt == last_close
 
     def test_early_market_close(self):
         # Date to test is 2015-11-30 9:31
         # Early close is 2015-11-27 18:00
-        friday_after_tday = pd.Timestamp("2015-11-27", tz="UTC")
+        friday_after_tday = pd.Timestamp("2015-11-27")
         friday_after_tday_close = self.market_closes[friday_after_tday]
 
         before_early_close = friday_after_tday_close - timedelta(minutes=8)
         after_early_close = friday_after_tday_close + timedelta(minutes=8)
 
-        monday_after_tday = pd.Timestamp("2015-11-30", tz="UTC")
+        monday_after_tday = pd.Timestamp("2015-11-30")
         minute = self.market_opens[monday_after_tday]
 
         # Test condition where there is data written after the market
@@ -1167,10 +1084,10 @@ class BcolzMinuteBarTestCase(
         sid = 1
         data = pd.DataFrame(
             data={
-                "open": [10.0, 11.0, nan],
-                "high": [20.0, 21.0, nan],
-                "low": [30.0, 31.0, nan],
-                "close": [40.0, 41.0, nan],
+                "open": [10.0, 11.0, np.nan],
+                "high": [20.0, 21.0, np.nan],
+                "low": [30.0, 31.0, np.nan],
+                "close": [40.0, 41.0, np.nan],
                 "volume": [50, 51, 0],
             },
             index=minutes,
@@ -1178,23 +1095,18 @@ class BcolzMinuteBarTestCase(
         self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, "open")
-
-        assert_almost_equal(nan, open_price)
+        assert_almost_equal(np.nan, open_price)
 
         high_price = self.reader.get_value(sid, minute, "high")
-
-        assert_almost_equal(nan, high_price)
+        assert_almost_equal(np.nan, high_price)
 
         low_price = self.reader.get_value(sid, minute, "low")
-
-        assert_almost_equal(nan, low_price)
+        assert_almost_equal(np.nan, low_price)
 
         close_price = self.reader.get_value(sid, minute, "close")
-
-        assert_almost_equal(nan, close_price)
+        assert_almost_equal(np.nan, close_price)
 
         volume = self.reader.get_value(sid, minute, "volume")
-
         assert 0 == volume
 
         asset = self.asset_finder.retrieve_asset(sid)
@@ -1208,9 +1120,7 @@ class BcolzMinuteBarTestCase(
 
     @skip("not requiring tables for now")
     def test_minute_updates(self):
-        """
-        Test minute updates.
-        """
+        """Test minute updates."""
         start_minute = self.market_opens[TEST_CALENDAR_START]
         minutes = [
             start_minute,
@@ -1220,10 +1130,10 @@ class BcolzMinuteBarTestCase(
         sids = [1, 2]
         data_1 = pd.DataFrame(
             data={
-                "open": [15.0, nan, 15.1],
-                "high": [17.0, nan, 17.1],
-                "low": [11.0, nan, 11.1],
-                "close": [14.0, nan, 14.1],
+                "open": [15.0, np.nan, 15.1],
+                "high": [17.0, np.nan, 17.1],
+                "low": [11.0, np.nan, 11.1],
+                "close": [14.0, np.nan, 14.1],
                 "volume": [1000, 0, 1001],
             },
             index=minutes,
@@ -1231,10 +1141,10 @@ class BcolzMinuteBarTestCase(
 
         data_2 = pd.DataFrame(
             data={
-                "open": [25.0, nan, 25.1],
-                "high": [27.0, nan, 27.1],
-                "low": [21.0, nan, 21.1],
-                "close": [24.0, nan, 24.1],
+                "open": [25.0, np.nan, 25.1],
+                "high": [27.0, np.nan, 27.1],
+                "low": [21.0, np.nan, 21.1],
+                "close": [24.0, np.nan, 24.1],
                 "volume": [2000, 0, 2001],
             },
             index=minutes,

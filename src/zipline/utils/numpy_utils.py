@@ -113,17 +113,17 @@ UNSIGNED_INT_DTYPES_BY_SIZE_BYTES = OrderedDict(
 def int_dtype_with_size_in_bytes(size):
     try:
         return INT_DTYPES_BY_SIZE_BYTES[size]
-    except KeyError:
-        raise ValueError("No integral dtype whose size is %d bytes." % size)
+    except KeyError as exc:
+        raise ValueError("No integral dtype whose size is %d bytes." % size) from exc
 
 
 def unsigned_int_dtype_with_size_in_bytes(size):
     try:
         return UNSIGNED_INT_DTYPES_BY_SIZE_BYTES[size]
-    except KeyError:
+    except KeyError as exc:
         raise ValueError(
             "No unsigned integral dtype whose size is %d bytes." % size
-        )
+        ) from exc
 
 
 class NoDefaultMissingValue(Exception):
@@ -163,9 +163,7 @@ def coerce_to_dtype(dtype, value):
         elif name == "datetime64[ns]":
             return make_datetime64ns(value)
         else:
-            raise TypeError(
-                "Don't know how to coerce values of dtype %s" % dtype
-            )
+            raise TypeError("Don't know how to coerce values of dtype %s" % dtype)
     return dtype.type(value)
 
 
@@ -175,10 +173,10 @@ def default_missing_value_for_dtype(dtype):
     """
     try:
         return _FILLVALUE_DEFAULTS[dtype]
-    except KeyError:
+    except KeyError as exc:
         raise NoDefaultMissingValue(
             "No default value registered for dtype %s." % dtype
-        )
+        ) from exc
 
 
 def repeat_first_axis(array, count):
@@ -411,7 +409,7 @@ def busday_count_mask_NaT(begindates, enddates, out=None):
     return out
 
 
-class WarningContext(object):
+class WarningContext:
     """
     Re-usable contextmanager for contextually managing warnings.
     """

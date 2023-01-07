@@ -17,7 +17,7 @@ from collections import namedtuple
 from copy import copy
 import warnings
 from datetime import tzinfo, time
-import logbook
+import logging
 import pytz
 import pandas as pd
 import numpy as np
@@ -100,7 +100,6 @@ from zipline.utils.input_validation import (
     optionally,
 )
 from zipline.utils.numpy_utils import int64_dtype
-from zipline.utils.pandas_utils import normalize_date
 from zipline.utils.cache import ExpiringCache
 
 import zipline.utils.events
@@ -127,7 +126,7 @@ from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-log = logbook.Logger("ZiplineLog")
+log = logging.getLogger("ZiplineLog")
 
 # For creating and storing pipeline instances
 AttachedPipeline = namedtuple("AttachedPipeline", "pipe chunks eager")
@@ -140,7 +139,7 @@ class NoBenchmark(ValueError):
         )
 
 
-class TradingAlgorithm(object):
+class TradingAlgorithm:
     """A class that represents a trading strategy and parameters to execute
     the strategy.
 
@@ -404,8 +403,7 @@ class TradingAlgorithm(object):
         self.restrictions = NoRestrictions()
 
     def init_engine(self, get_loader):
-        """
-        Construct and store a PipelineEngine from loader.
+        """Construct and store a PipelineEngine from loader.
 
         If get_loader is None, constructs an ExplodingPipelineEngine
         """
@@ -419,8 +417,7 @@ class TradingAlgorithm(object):
             self.engine = ExplodingPipelineEngine()
 
     def initialize(self, *args, **kwargs):
-        """
-        Call self._initialize with `self` made available to Zipline API
+        """Call self._initialize with `self` made available to Zipline API
         functions.
         """
         with ZiplineAPI(self):
@@ -453,8 +450,7 @@ class TradingAlgorithm(object):
             self._analyze(self, perf)
 
     def __repr__(self):
-        """
-        N.B. this does not yet represent a string that can be used
+        """N.B. this does not yet represent a string that can be used
         to instantiate an exact copy of an algorithm.
 
         However, it is getting close, and provides some value as something
@@ -481,15 +477,14 @@ class TradingAlgorithm(object):
         )
 
     def _create_clock(self):
-        """
-        If the clock property is not set, then create one based on frequency.
-        """
-        trading_o_and_c = self.trading_calendar.schedule.loc[self.sim_params.sessions]
-        market_closes = trading_o_and_c["market_close"]
+        """If the clock property is not set, then create one based on frequency."""
+        market_closes = self.trading_calendar.schedule.loc[
+            self.sim_params.sessions, "close"
+        ]
+        market_opens = self.trading_calendar.first_minutes.loc[self.sim_params.sessions]
         minutely_emission = False
 
         if self.sim_params.data_frequency == "minute":
-            market_opens = trading_o_and_c["market_open"]
             minutely_emission = self.sim_params.emission_rate == "minute"
 
             # The calendar's execution times are the minutes over which we
@@ -499,23 +494,34 @@ class TradingAlgorithm(object):
             # a subset of the full 24 hour calendar, so the execution times
             # dictate a market open time of 6:31am US/Eastern and a close of
             # 5:00pm US/Eastern.
-            execution_opens = self.trading_calendar.execution_time_from_open(
-                market_opens
-            )
-            execution_closes = self.trading_calendar.execution_time_from_close(
-                market_closes
-            )
+            if self.trading_calendar.name == "us_futures":
+                execution_opens = self.trading_calendar.execution_time_from_open(
+                    market_opens
+                )
+                execution_closes = self.trading_calendar.execution_time_from_close(
+                    market_closes
+                )
+            else:
+                execution_opens = market_opens
+                execution_closes = market_closes
         else:
             # in daily mode, we want to have one bar per session, timestamped
             # as the last minute of the session.
-            execution_closes = self.trading_calendar.execution_time_from_close(
-                market_closes
-            )
-            execution_opens = execution_closes
+            if self.trading_calendar.name == "us_futures":
+                execution_closes = self.trading_calendar.execution_time_from_close(
+                    market_closes
+                )
+                execution_opens = execution_closes
+            else:
+                execution_closes = market_closes
+                execution_opens = market_closes
 
         # FIXME generalize these values
         before_trading_start_minutes = days_at_time(
-            self.sim_params.sessions, time(8, 45), "US/Eastern"
+            self.sim_params.sessions,
+            time(8, 45),
+            "US/Eastern",
+            day_offset=0,
         )
 
         return MinuteSimulationClock(
@@ -583,16 +589,13 @@ class TradingAlgorithm(object):
         return self.trading_client.transform()
 
     def compute_eager_pipelines(self):
-        """
-        Compute any pipelines attached with eager=True.
-        """
+        """Compute any pipelines attached with eager=True."""
         for name, pipe in self._pipelines.items():
             if pipe.eager:
                 self.pipeline_output(name)
 
     def get_generator(self):
-        """
-        Override this method to add new logic to the construction
+        """Override this method to add new logic to the construction
         of the generator. Overrides can use the _create_generator
         method to get a standard construction generator.
         """
@@ -656,8 +659,7 @@ class TradingAlgorithm(object):
     def calculate_capital_changes(
         self, dt, emission_rate, is_interday, portfolio_value_adjustment=0.0
     ):
-        """
-        If there is a capital change for a given dt, this means the the change
+        """If there is a capital change for a given dt, this means the the change
         occurs before `handle_data` on the given dt. In the case of the
         change being a target value, the change will be computed on the
         portfolio value according to prices at the given dt
@@ -666,6 +668,9 @@ class TradingAlgorithm(object):
         portfolio_value of the cumulative performance when calculating deltas
         from target capital changes.
         """
+
+        # CHECK is try/catch faster than search?
+
         try:
             capital_change = self.capital_changes[dt]
         except KeyError:
@@ -760,10 +765,10 @@ class TradingAlgorithm(object):
         else:
             try:
                 return env[field]
-            except KeyError:
+            except KeyError as exc:
                 raise ValueError(
                     "%r is not a valid field for get_environment" % field,
-                )
+                ) from exc
 
     @api_method
     def fetch_csv(
@@ -879,8 +884,7 @@ class TradingAlgorithm(object):
         half_days=True,
         calendar=None,
     ):
-        """
-        Schedule a function to be called repeatedly in the future.
+        """Schedule a function to be called repeatedly in the future.
 
         Parameters
         ----------
@@ -1142,14 +1146,13 @@ class TradingAlgorithm(object):
         return self.asset_finder.lookup_future_symbol(symbol)
 
     def _calculate_order_value_amount(self, asset, value):
-        """
-        Calculates how many shares/contracts to order based on the type of
+        """Calculates how many shares/contracts to order based on the type of
         asset being ordered.
         """
         # Make sure the asset exists, and that there is a last price for it.
         # FIXME: we should use BarData's can_trade logic here, but I haven't
         # yet found a good way to do that.
-        normalized_date = normalize_date(self.datetime)
+        normalized_date = self.trading_calendar.minute_to_session(self.datetime)
 
         if normalized_date < asset.start_date:
             raise CannotOrderDelistedAsset(
@@ -1189,13 +1192,14 @@ class TradingAlgorithm(object):
             )
 
         if asset.auto_close_date:
-            day = normalize_date(self.get_datetime())
+            # TODO FIXME TZ MESS
+            day = self.trading_calendar.minute_to_session(self.get_datetime())
 
             if day > min(asset.end_date, asset.auto_close_date):
                 # If we are after the asset's end date or auto close date, warn
                 # the user that they can't place an order for this asset, and
                 # return None.
-                log.warn(
+                log.warning(
                     "Cannot place order for {0}, as it has de-listed. "
                     "Any existing positions for this asset will be "
                     "liquidated on "
@@ -1273,8 +1277,7 @@ class TradingAlgorithm(object):
 
     @staticmethod
     def round_order(amount):
-        """
-        Convert number of shares to an integer.
+        """Convert number of shares to an integer.
 
         By default, truncates to the integer share count that's either within
         .0001 of amount or closer to zero.
@@ -1317,8 +1320,7 @@ class TradingAlgorithm(object):
 
     @staticmethod
     def __convert_order_params_for_blotter(asset, limit_price, stop_price, style):
-        """
-        Helper method for converting deprecated limit_price and stop_price
+        """Helper method for converting deprecated limit_price and stop_price
         arguments into ExecutionStyle instances.
 
         This function assumes that either style == None or (limit_price,
@@ -1339,8 +1341,7 @@ class TradingAlgorithm(object):
     @api_method
     @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_value(self, asset, value, limit_price=None, stop_price=None, style=None):
-        """
-        Place an order for a fixed amount of money.
+        """Place an order for a fixed amount of money.
 
         Equivalent to ``order(asset, value / data.current(asset, 'price'))``.
 
@@ -1428,8 +1429,7 @@ class TradingAlgorithm(object):
         self.logger = logger
 
     def on_dt_changed(self, dt):
-        """
-        Callback triggered by the simulation loop whenever the current dt
+        """Callback triggered by the simulation loop whenever the current dt
         changes.
 
         Any logic that should happen exactly once at the start of each datetime
@@ -1442,8 +1442,7 @@ class TradingAlgorithm(object):
     @preprocess(tz=coerce_string(pytz.timezone))
     @expect_types(tz=optional(tzinfo))
     def get_datetime(self, tz=None):
-        """
-        Returns the current simulation datetime.
+        """Returns the current simulation datetime.
 
         Parameters
         ----------
@@ -1463,8 +1462,7 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_slippage(self, us_equities=None, us_futures=None):
-        """
-        Set the slippage models for the simulation.
+        """Set the slippage models for the simulation.
 
         Parameters
         ----------
@@ -1583,8 +1581,10 @@ class TradingAlgorithm(object):
             self._symbol_lookup_date = pd.Timestamp(dt).tz_localize("UTC")
         except TypeError:
             self._symbol_lookup_date = pd.Timestamp(dt).tz_convert("UTC")
-        except ValueError:
-            raise UnsupportedDatetimeFormat(input=dt, method="set_symbol_lookup_date")
+        except ValueError as exc:
+            raise UnsupportedDatetimeFormat(
+                input=dt, method="set_symbol_lookup_date"
+            ) from exc
 
     @property
     def data_frequency(self):
@@ -2202,8 +2202,7 @@ class TradingAlgorithm(object):
     @api_method
     @require_initialized(PipelineOutputDuringInitialize())
     def pipeline_output(self, name):
-        """
-        Get results of the pipeline attached by with name ``name``.
+        """Get results of the pipeline attached by with name ``name``.
 
         Parameters
         ----------
@@ -2228,18 +2227,17 @@ class TradingAlgorithm(object):
         """
         try:
             pipe, chunks, _ = self._pipelines[name]
-        except KeyError:
+        except KeyError as exc:
             raise NoSuchPipeline(
                 name=name,
                 valid=list(self._pipelines.keys()),
-            )
+            ) from exc
         return self._pipeline_output(pipe, chunks, name)
 
     def _pipeline_output(self, pipeline, chunks, name):
-        """
-        Internal implementation of `pipeline_output`.
-        """
-        today = normalize_date(self.get_datetime())
+        """Internal implementation of `pipeline_output`."""
+        # TODO FIXME TZ MESS
+        today = self.get_datetime().normalize().tz_localize(None)
         try:
             data = self._pipeline_cache.get(name, today)
         except KeyError:
@@ -2260,8 +2258,7 @@ class TradingAlgorithm(object):
             return pd.DataFrame(index=[], columns=data.columns)
 
     def run_pipeline(self, pipeline, start_session, chunksize):
-        """
-        Compute `pipeline`, providing values for at least `start_date`.
+        """Compute `pipeline`, providing values for at least `start_date`.
 
         Produces a DataFrame containing data for days between `start_date` and
         `end_date`, where `end_date` is defined by:
@@ -2277,7 +2274,7 @@ class TradingAlgorithm(object):
         --------
         PipelineEngine.run_pipeline
         """
-        sessions = self.trading_calendar.all_sessions
+        sessions = self.trading_calendar.sessions
 
         # Load data starting from the previous trading day...
         start_date_loc = sessions.get_loc(start_session)
@@ -2297,8 +2294,7 @@ class TradingAlgorithm(object):
 
     @staticmethod
     def default_pipeline_domain(calendar):
-        """
-        Get a default pipeline domain for algorithms running on ``calendar``.
+        """Get a default pipeline domain for algorithms running on ``calendar``.
 
         This will be used to infer a domain for pipelines that only use generic
         datasets when running in the context of a TradingAlgorithm.
@@ -2307,8 +2303,7 @@ class TradingAlgorithm(object):
 
     @staticmethod
     def default_fetch_csv_country_code(calendar):
-        """
-        Get a default country_code to use for fetch_csv symbol lookups.
+        """Get a default country_code to use for fetch_csv symbol lookups.
 
         This will be used to disambiguate symbol lookups for fetch_csv calls if
         our asset db contains entries with the same ticker spread across
@@ -2322,9 +2317,7 @@ class TradingAlgorithm(object):
 
     @classmethod
     def all_api_methods(cls):
-        """
-        Return a list of all the TradingAlgorithm API methods.
-        """
+        """Return a list of all the TradingAlgorithm API methods."""
         return [fn for fn in vars(cls).values() if getattr(fn, "is_api_method", False)]
 
 

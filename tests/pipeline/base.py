@@ -2,11 +2,9 @@
 Base class for Pipeline API unit tests.
 """
 import numpy as np
-from numpy import arange, prod
-from pandas import DataFrame, Timestamp
+import pandas as pd
 
 from zipline.lib.labelarray import LabelArray
-from zipline.utils.compat import wraps
 from zipline.pipeline import ExecutionPlan
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.engine import SimplePipelineEngine
@@ -18,7 +16,7 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-
+from zipline.utils.compat import wraps
 from zipline.utils.functional import dzip_exact
 from zipline.utils.pandas_utils import explode
 
@@ -56,8 +54,8 @@ with_default_shape = with_defaults(shape=lambda self: self.default_shape)
 class BaseUSEquityPipelineTestCase(
     WithTradingSessions, WithAssetFinder, ZiplineTestCase
 ):
-    START_DATE = Timestamp("2014", tz="UTC")
-    END_DATE = Timestamp("2014-12-31", tz="UTC")
+    START_DATE = pd.Timestamp("2014")
+    END_DATE = pd.Timestamp("2014-12-31")
     ASSET_FINDER_EQUITY_SIDS = list(range(20))
 
     @classmethod
@@ -155,7 +153,7 @@ class BaseUSEquityPipelineTestCase(
         array.
         """
         ndates, nassets = array.shape
-        return DataFrame(
+        return pd.DataFrame(
             array,
             # Use the **last** N dates rather than the first N so that we have
             # space for lookbacks.
@@ -169,7 +167,7 @@ class BaseUSEquityPipelineTestCase(
         """
         Build a block of testing data from numpy.arange.
         """
-        return arange(prod(shape), dtype=dtype).reshape(shape)
+        return np.arange(np.prod(shape), dtype=dtype).reshape(shape)
 
     @with_default_shape
     def randn_data(self, seed, shape):

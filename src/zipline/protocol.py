@@ -19,7 +19,7 @@ from enum import IntEnum
 from ._protocol import BarData, InnerPosition  # noqa
 
 
-class MutableView(object):
+class MutableView:
     """A mutable view over an "immutable" object.
 
     Parameters
@@ -87,7 +87,7 @@ DIVIDEND_PAYMENT_FIELDS = [
 ]
 
 
-class Event(object):
+class Event:
     def __init__(self, initial_values=None):
         if initial_values:
             self.__dict__.update(initial_values)
@@ -112,7 +112,7 @@ class Order(Event):
     pass
 
 
-class Portfolio(object):
+class Portfolio:
     """Object providing read-only access to current portfolio state.
 
     Parameters
@@ -181,7 +181,7 @@ class Portfolio(object):
         return position_values / self.portfolio_value
 
 
-class Account(object):
+class Account:
     """
     The account object tracks information about the trading account. The
     values are updated as the algorithm runs and its keys remain unchanged.
@@ -216,7 +216,7 @@ class Account(object):
         return "Account({0})".format(self.__dict__)
 
 
-class Position(object):
+class Position:
     """
     A position held by an algorithm.
 

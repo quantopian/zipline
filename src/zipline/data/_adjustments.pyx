@@ -59,8 +59,7 @@ cdef set _get_sids_from_table(object db,
                               str tablename,
                               int start_date,
                               int end_date):
-    """
-    Get the unique sids for all adjustments between start_date and end_date
+    """Get the unique sids for all adjustments between start_date and end_date
     from table `tablename`.
 
     Parameters
@@ -167,8 +166,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,
                                    bool should_include_mergers,
                                    bool should_include_dividends,
                                    str adjustment_type):
-    """
-    Load a dictionary of Adjustment objects from adjustments_db.
+    """Load a dictionary of Adjustment objects from adjustments_db.
 
     Parameters
     ----------

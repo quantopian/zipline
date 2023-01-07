@@ -151,8 +151,7 @@ cpdef _read_bcolz_data(ctable_t table,
                        intp_t[:] last_rows,
                        intp_t[:] offsets,
                        bool read_all):
-    """
-    Load raw bcolz data for the given columns and indices.
+    """Load raw bcolz data for the given columns and indices.
 
     Parameters
     ----------

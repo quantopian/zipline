@@ -23,15 +23,13 @@ RESTRICTION_STATES = IntEnum(
 
 
 class Restrictions(metaclass=abc.ABCMeta):
-    """
-    Abstract restricted list interface, representing a set of assets that an
+    """Abstract restricted list interface, representing a set of assets that an
     algorithm is restricted from trading.
     """
 
     @abc.abstractmethod
     def is_restricted(self, assets, dt):
-        """
-        Is the asset restricted (RestrictionStates.FROZEN) on the given dt?
+        """Is the asset restricted (RestrictionStates.FROZEN) on the given dt?
 
         Parameters
         ----------
@@ -59,8 +57,7 @@ class Restrictions(metaclass=abc.ABCMeta):
 
 
 class _UnionRestrictions(Restrictions):
-    """
-    A union of a number of sub restrictions.
+    """A union of a number of sub restrictions.
 
     Parameters
     ----------
@@ -89,8 +86,7 @@ class _UnionRestrictions(Restrictions):
         return new_instance
 
     def __or__(self, other_restriction):
-        """
-        Overrides the base implementation for combining two restrictions, of
+        """Overrides the base implementation for combining two restrictions, of
         which the left side is a _UnionRestrictions.
         """
         # Flatten the underlying sub restrictions of _UnionRestrictions
@@ -105,9 +101,7 @@ class _UnionRestrictions(Restrictions):
 
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
-            return any(
-                r.is_restricted(assets, dt) for r in self.sub_restrictions
-            )
+            return any(r.is_restricted(assets, dt) for r in self.sub_restrictions)
 
         return reduce(
             operator.or_,
@@ -116,9 +110,7 @@ class _UnionRestrictions(Restrictions):
 
 
 class NoRestrictions(Restrictions):
-    """
-    A no-op restrictions that contains no restrictions.
-    """
+    """A no-op restrictions that contains no restrictions."""
 
     def is_restricted(self, assets, dt):
         if isinstance(assets, Asset):
@@ -127,8 +119,7 @@ class NoRestrictions(Restrictions):
 
 
 class StaticRestrictions(Restrictions):
-    """
-    Static restrictions stored in memory that are constant regardless of dt
+    """Static restrictions stored in memory that are constant regardless of dt
     for each asset.
 
     Parameters
@@ -141,9 +132,7 @@ class StaticRestrictions(Restrictions):
         self._restricted_set = frozenset(restricted_list)
 
     def is_restricted(self, assets, dt):
-        """
-        An asset is restricted for all dts if it is in the static list.
-        """
+        """An asset is restricted for all dts if it is in the static list."""
         if isinstance(assets, Asset):
             return assets in self._restricted_set
         return pd.Series(
@@ -153,8 +142,7 @@ class StaticRestrictions(Restrictions):
 
 
 class HistoricalRestrictions(Restrictions):
-    """
-    Historical restrictions stored in memory with effective dates for each
+    """Historical restrictions stored in memory with effective dates for each
     asset.
 
     Parameters
@@ -167,17 +155,14 @@ class HistoricalRestrictions(Restrictions):
         # A dict mapping each asset to its restrictions, which are sorted by
         # ascending order of effective_date
         self._restrictions_by_asset = {
-            asset: sorted(
-                restrictions_for_asset, key=lambda x: x.effective_date
-            )
+            asset: sorted(restrictions_for_asset, key=lambda x: x.effective_date)
             for asset, restrictions_for_asset in groupby(
                 lambda x: x.asset, restrictions
             ).items()
         }
 
     def is_restricted(self, assets, dt):
-        """
-        Returns whether or not an asset or iterable of assets is restricted
+        """Returns whether or not an asset or iterable of assets is restricted
         on a dt.
         """
         if isinstance(assets, Asset):
@@ -192,15 +177,17 @@ class HistoricalRestrictions(Restrictions):
     def _is_restricted_for_asset(self, asset, dt):
         state = RESTRICTION_STATES.ALLOWED
         for r in self._restrictions_by_asset.get(asset, ()):
-            if r.effective_date > dt:
+            r_effective_date = r.effective_date
+            if r_effective_date.tzinfo is None:
+                r_effective_date = r_effective_date.tz_localize(dt.tzinfo)
+            if r_effective_date > dt:
                 break
             state = r.state
         return state == RESTRICTION_STATES.FROZEN
 
 
 class SecurityListRestrictions(Restrictions):
-    """
-    Restrictions based on a security list.
+    """Restrictions based on a security list.
 
     Parameters
     ----------

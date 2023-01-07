@@ -22,7 +22,7 @@ from zipline.errors import (
 )
 
 
-class BenchmarkSource(object):
+class BenchmarkSource:
     def __init__(
         self,
         benchmark_asset,
@@ -55,11 +55,10 @@ class BenchmarkSource(object):
             if self.emission_rate == "minute":
                 # we need to take the env's benchmark returns, which are daily,
                 # and resample them to minute
-                minutes = trading_calendar.minutes_for_sessions_in_range(
-                    sessions[0], sessions[-1]
+                minutes = trading_calendar.sessions_minutes(sessions[0], sessions[-1])
+                minute_series = daily_series.tz_localize(minutes.tzinfo).reindex(
+                    index=minutes, method="ffill"
                 )
-
-                minute_series = daily_series.reindex(index=minutes, method="ffill")
 
                 self._precalculated_series = minute_series
             else:
@@ -177,13 +176,10 @@ class BenchmarkSource(object):
 
     @classmethod
     def downsample_minute_return_series(cls, trading_calendar, minutely_returns):
-        sessions = trading_calendar.minute_index_to_session_labels(
+        sessions = trading_calendar.minutes_to_sessions(
             minutely_returns.index,
         )
-        closes = trading_calendar.session_closes_in_range(
-            sessions[0],
-            sessions[-1],
-        )
+        closes = trading_calendar.closes[sessions[0] : sessions[-1]]
         daily_returns = minutely_returns[closes].pct_change()
         daily_returns.index = closes.index
         return daily_returns.iloc[1:]
@@ -227,7 +223,7 @@ class BenchmarkSource(object):
             the partial daily returns for each minute
         """
         if self.emission_rate == "minute":
-            minutes = trading_calendar.minutes_for_sessions_in_range(
+            minutes = trading_calendar.sessions_minutes(
                 self.sessions[0], self.sessions[-1]
             )
             benchmark_series = data_portal.get_history_window(

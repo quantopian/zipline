@@ -185,9 +185,9 @@ def asymmetric_round_price(price, prefer_round_down, tick_size, diff=0.95):
     If not prefer_round_down: (<X-1>.0005, X.0105] -> round to X.01.
     """
     precision = zp_math.number_of_decimal_places(tick_size)
-    multiplier = int(tick_size * (10 ** precision))
+    multiplier = int(tick_size * (10**precision))
     diff -= 0.5  # shift the difference down
-    diff *= 10 ** -precision  # adjust diff to precision of tick size
+    diff *= 10**-precision  # adjust diff to precision of tick size
     diff *= multiplier  # adjust diff to value of tick_size
 
     # Subtracting an epsilon from diff to enforce the open-ness of the upper
@@ -217,11 +217,11 @@ def check_stoplimit_prices(price, label):
                 "of {}.".format(label, price)
             )
     # This catches arbitrary objects
-    except TypeError:
+    except TypeError as exc:
         raise BadOrderParameters(
             msg="Attempted to place an order with a {} price "
             "of {}.".format(label, type(price))
-        )
+        ) from exc
 
     if price < 0:
         raise BadOrderParameters(

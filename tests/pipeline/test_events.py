@@ -1,34 +1,24 @@
 """
 Tests for setting up an EventsLoader.
 """
+import re
 from datetime import time
 from itertools import product
 from unittest import skipIf
-import pytest
-import re
 
 import numpy as np
 import pandas as pd
+import pytest
 import pytz
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
-from zipline.pipeline.common import (
-    EVENT_DATE_FIELD_NAME,
-    TS_FIELD_NAME,
-    SID_FIELD_NAME,
-)
-from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.common import EVENT_DATE_FIELD_NAME, SID_FIELD_NAME, TS_FIELD_NAME
+from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.domain import US_EQUITIES, EquitySessionDomain
 from zipline.pipeline.loaders.events import EventsLoader
-from zipline.pipeline.loaders.utils import (
-    next_event_indexer,
-    previous_event_indexer,
-)
+from zipline.pipeline.loaders.utils import next_event_indexer, previous_event_indexer
 from zipline.testing import ZiplineTestCase
-from zipline.testing.fixtures import (
-    WithAssetFinder,
-    WithTradingSessions,
-)
+from zipline.testing.fixtures import WithAssetFinder, WithTradingSessions
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     categorical_dtype,
@@ -102,7 +92,7 @@ def make_null_event_date_events(all_sids, timestamp):
         {
             "sid": all_sids,
             "timestamp": timestamp,
-            "event_date": pd.Timestamp("NaT"),
+            "event_date": pd.NaT,
             "float": -9999.0,
             "int": -9999,
             "datetime": pd.Timestamp("1980"),
@@ -231,7 +221,7 @@ class TestEventIndexer:
         event_dates = events["event_date"].to_numpy()
         event_timestamps = events["timestamp"].to_numpy()
 
-        all_dates = pd.date_range("2014", "2014-01-31", tz="UTC")
+        all_dates = pd.date_range("2014", "2014-01-31")
         all_sids = np.unique(event_sids)
 
         domain = EquitySessionDomain(
@@ -263,8 +253,9 @@ class TestEventIndexer:
         assert len(relevant_events) == 2
 
         ix1, ix2 = relevant_events.index
-        e1, e2 = relevant_events["event_date"].dt.tz_localize("UTC")
-        t1, t2 = relevant_events["timestamp"].dt.tz_localize("UTC")
+
+        e1, e2 = relevant_events["event_date"]
+        t1, t2 = relevant_events["timestamp"]
 
         for date, computed_index in zip(all_dates, indexer):
             # An event is eligible to be the next event if it's between the
@@ -282,8 +273,8 @@ class TestEventIndexer:
 
 
 class EventsLoaderEmptyTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase):
-    START_DATE = pd.Timestamp("2014-01-01", tz="utc")
-    END_DATE = pd.Timestamp("2014-01-30", tz="utc")
+    START_DATE = pd.Timestamp("2014-01-01")
+    END_DATE = pd.Timestamp("2014-01-30")
     ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod
@@ -365,8 +356,8 @@ class EventsLoaderEmptyTestCase(WithAssetFinder, WithTradingSessions, ZiplineTes
 
 
 class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase):
-    START_DATE = pd.Timestamp("2014-01-01", tz="utc")
-    END_DATE = pd.Timestamp("2014-01-30", tz="utc")
+    START_DATE = pd.Timestamp("2014-01-01")
+    END_DATE = pd.Timestamp("2014-01-30")
     ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod

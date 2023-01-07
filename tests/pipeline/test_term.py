@@ -155,8 +155,8 @@ def to_dict(a_list):
 class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
 
     TRADING_CALENDAR_STRS = ("NYSE",)
-    START_DATE = pd.Timestamp("2014-01-02", tz="UTC")
-    END_DATE = pd.Timestamp("2014-12-31", tz="UTC")
+    START_DATE = pd.Timestamp("2014-01-02")
+    END_DATE = pd.Timestamp("2014-12-31")
 
     execution_plan_start = pd.Timestamp("2014-06-01", tz="UTC")
     execution_plan_end = pd.Timestamp("2014-06-30", tz="UTC")
@@ -393,7 +393,7 @@ class TestObjectIdentity:
             assert (lhs - rhs) is (lhs - rhs)
             assert (lhs * rhs) is (lhs * rhs)
             assert (lhs / rhs) is (lhs / rhs)
-            assert (lhs ** rhs) is (lhs ** rhs)
+            assert (lhs**rhs) is (lhs**rhs)
 
         assert (1 + rhs) is (1 + rhs)
         assert (rhs + 1) is (rhs + 1)
@@ -407,8 +407,8 @@ class TestObjectIdentity:
         assert (2 / rhs) is (2 / rhs)
         assert (rhs / 2) is (rhs / 2)
 
-        assert (2 ** rhs) is (2 ** rhs)
-        assert (rhs ** 2) is (rhs ** 2)
+        assert (2**rhs) is (2**rhs)
+        assert (rhs**2) is (rhs**2)
 
         assert (f + g) + (f + g) is (f + g) + (f + g)
 

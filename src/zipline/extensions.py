@@ -83,13 +83,13 @@ def update_namespace(namespace, path, name):
         update_namespace(getattr(namespace, path[0]), path[1:], name)
 
 
-class Namespace(object):
+class Namespace:
     """
     A placeholder object representing a namespace level
     """
 
 
-class Registry(object):
+class Registry:
     """
     Responsible for managing all instances of custom subclasses of a
     given abstract base class - only one instance needs to be created
@@ -118,11 +118,11 @@ class Registry(object):
         """
         try:
             return self._factories[name]()
-        except KeyError:
+        except KeyError as exc:
             raise ValueError(
                 "no %s factory registered under name %r, options are: %r"
                 % (self.interface.__name__, name, sorted(self._factories)),
-            )
+            ) from exc
 
     def is_registered(self, name):
         """Check whether we have a factory registered under ``name``."""
@@ -143,11 +143,11 @@ class Registry(object):
     def unregister(self, name):
         try:
             del self._factories[name]
-        except KeyError:
+        except KeyError as exc:
             raise ValueError(
                 "%s factory %r was not already registered"
                 % (self.interface.__name__, name)
-            )
+            ) from exc
 
     def clear(self):
         self._factories.clear()
@@ -173,8 +173,8 @@ def get_registry(interface):
     """
     try:
         return custom_types[interface]
-    except KeyError:
-        raise ValueError("class specified is not an extendable type")
+    except KeyError as exc:
+        raise ValueError("class specified is not an extendable type") from exc
 
 
 def load(interface, name):

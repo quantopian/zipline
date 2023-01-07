@@ -14,15 +14,14 @@
 # limitations under the License.
 
 import datetime
-import pandas as pd
+
 import numpy as np
-
-from zipline.utils import factory
-
-from zipline.finance.trading import SimulationParameters
-import zipline.testing.fixtures as zf
+import pandas as pd
+import pytest
 
 from zipline.finance.metrics import _ClassicRiskMetrics as ClassicRiskMetrics
+from zipline.finance.trading import SimulationParameters
+from zipline.utils import factory
 
 RETURNS_BASE = 0.01
 RETURNS = [RETURNS_BASE] * 251
@@ -39,39 +38,44 @@ PERIODS = [
 ]
 
 
-class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
-    def init_instance_fixtures(self):
-        super(TestRisk, self).init_instance_fixtures()
-        self.start_session = pd.Timestamp("2006-01-01", tz="UTC")
-        self.end_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2006-12-31", tz="UTC"), direction="previous"
-        )
-        self.sim_params = SimulationParameters(
-            start_session=self.start_session,
-            end_session=self.end_session,
-            trading_calendar=self.trading_calendar,
-        )
-        self.algo_returns = factory.create_returns_from_list(RETURNS, self.sim_params)
-        self.benchmark_returns = factory.create_returns_from_list(
-            BENCHMARK, self.sim_params
-        )
-        self.metrics = ClassicRiskMetrics.risk_report(
-            algorithm_returns=self.algo_returns,
-            benchmark_returns=self.benchmark_returns,
-            algorithm_leverages=pd.Series(0.0, index=self.algo_returns.index),
-        )
+@pytest.fixture(scope="class")
+def set_test_risk(request, set_trading_calendar):
+    request.cls.trading_calendar = set_trading_calendar
+    request.cls.start_session = pd.Timestamp("2006-01-01")
+    request.cls.end_session = request.cls.trading_calendar.minute_to_session(
+        pd.Timestamp("2006-12-31"), direction="previous"
+    )
+    request.cls.sim_params = SimulationParameters(
+        start_session=request.cls.start_session,
+        end_session=request.cls.end_session,
+        trading_calendar=request.cls.trading_calendar,
+    )
+    request.cls.algo_returns = factory.create_returns_from_list(
+        RETURNS, request.cls.sim_params
+    )
+    request.cls.benchmark_returns = factory.create_returns_from_list(
+        BENCHMARK, request.cls.sim_params
+    )
+    request.cls.metrics = ClassicRiskMetrics.risk_report(
+        algorithm_returns=request.cls.algo_returns,
+        benchmark_returns=request.cls.benchmark_returns,
+        algorithm_leverages=pd.Series(0.0, index=request.cls.algo_returns.index),
+    )
 
+
+@pytest.mark.usefixtures("set_test_risk", "with_benchmark_returns")
+class TestRisk:
     def test_factory(self):
         returns = [0.1] * 100
         r_objects = factory.create_returns_from_list(returns, self.sim_params)
-        assert r_objects.index[-1] <= pd.Timestamp("2006-12-31", tz="UTC")
+        assert r_objects.index[-1] <= pd.Timestamp("2006-12-31")
 
     def test_drawdown(self):
         for period in PERIODS:
             assert all(x["max_drawdown"] == 0 for x in self.metrics[period])
 
     def test_benchmark_returns_06(self):
-        for period, period_len in zip(PERIODS, [1, 3, 6, 12]):
+        for period, _period_len in zip(PERIODS, [1, 3, 6, 12]):
             np.testing.assert_almost_equal(
                 [x["benchmark_period_return"] for x in self.metrics[period]],
                 [
@@ -181,12 +185,10 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
             ] * len(metrics[period])
 
     def test_benchmarkrange(self):
-        start_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2008-01-01", tz="UTC")
-        )
+        start_session = pd.Timestamp("2008-01-01")
 
-        end_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2010-01-01", tz="UTC"), direction="previous"
+        end_session = self.trading_calendar.minute_to_session(
+            pd.Timestamp("2010-01-01"), direction="previous"
         )
 
         sim_params = SimulationParameters(
@@ -207,8 +209,8 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
 
     def test_partial_month(self):
 
-        start_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("1993-02-01", tz="UTC")
+        start_session = self.trading_calendar.minute_to_session(
+            pd.Timestamp("1993-02-01")
         )
 
         # 1992 and 1996 were leap years

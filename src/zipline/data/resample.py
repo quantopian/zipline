@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ from zipline.data._resample import (
     _minute_to_session_volume,
 )
 from zipline.data.bar_reader import NoDataOnDate
-from zipline.data.minute_bars import MinuteBarReader
+from zipline.data.bcolz_minute_bars import MinuteBarReader
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
 from zipline.utils.math_utils import nanmax, nanmin
@@ -42,8 +42,7 @@ _MINUTE_TO_SESSION_OHCLV_HOW = OrderedDict(
 
 
 def minute_frame_to_session_frame(minute_frame, calendar):
-    """
-    Resample a DataFrame with minute data into the frame expected by a
+    """Resample a DataFrame with minute data into the frame expected by a
     BcolzDailyBarWriter.
 
     Parameters
@@ -64,13 +63,12 @@ def minute_frame_to_session_frame(minute_frame, calendar):
     how = OrderedDict(
         (c, _MINUTE_TO_SESSION_OHCLV_HOW[c]) for c in minute_frame.columns
     )
-    labels = calendar.minute_index_to_session_labels(minute_frame.index)
+    labels = calendar.minutes_to_sessions(minute_frame.index)
     return minute_frame.groupby(labels).agg(how)
 
 
 def minute_to_session(column, close_locs, data, out):
-    """
-    Resample an array with minute data into an array with session data.
+    """Resample an array with minute data into an array with session data.
 
     This function assumes that the minute data is the exact length of all
     minutes in the sessions in the output.
@@ -102,9 +100,8 @@ def minute_to_session(column, close_locs, data, out):
     return out
 
 
-class DailyHistoryAggregator(object):
-    """
-    Converts minute pricing data into a daily summary, to be used for the
+class DailyHistoryAggregator:
+    """Converts minute pricing data into a daily summary, to be used for the
     last slot in a call to history with a frequency of `1d`.
 
     This summary is the same as a daily bar rollup of minute data, with the
@@ -151,7 +148,7 @@ class DailyHistoryAggregator(object):
         self._one_min = pd.Timedelta("1 min").value
 
     def _prelude(self, dt, field):
-        session = self._trading_calendar.minute_to_session_label(dt)
+        session = self._trading_calendar.minute_to_session(dt)
         dt_value = dt.value
         cache = self._caches[field]
         if cache is None or cache[0] != session:
@@ -159,7 +156,6 @@ class DailyHistoryAggregator(object):
             cache = self._caches[field] = (session, market_open, {})
 
         _, market_open, entries = cache
-        market_open = market_open.tz_localize("UTC")
         if dt != market_open:
             prev_dt = dt_value - self._one_min
         else:
@@ -167,8 +163,7 @@ class DailyHistoryAggregator(object):
         return market_open, prev_dt, dt_value, entries
 
     def opens(self, assets, dt):
-        """
-        The open field's aggregation returns the first value that occurs
+        """The open field's aggregation returns the first value that occurs
         for the day, if there has been no data on or before the `dt` the open
         is `nan`.
 
@@ -182,7 +177,7 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, "open")
 
         opens = []
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
@@ -240,8 +235,7 @@ class DailyHistoryAggregator(object):
         return np.array(opens)
 
     def highs(self, assets, dt):
-        """
-        The high field's aggregation returns the largest high seen between
+        """The high field's aggregation returns the largest high seen between
         the market open and the current dt.
         If there has been no data on or before the `dt` the high is `nan`.
 
@@ -252,7 +246,7 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, "high")
 
         highs = []
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
@@ -309,8 +303,7 @@ class DailyHistoryAggregator(object):
         return np.array(highs)
 
     def lows(self, assets, dt):
-        """
-        The low field's aggregation returns the smallest low seen between
+        """The low field's aggregation returns the smallest low seen between
         the market open and the current dt.
         If there has been no data on or before the `dt` the low is `nan`.
 
@@ -321,7 +314,7 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, "low")
 
         lows = []
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
@@ -373,8 +366,7 @@ class DailyHistoryAggregator(object):
         return np.array(lows)
 
     def closes(self, assets, dt):
-        """
-        The close field's aggregation returns the latest close at the given
+        """The close field's aggregation returns the latest close at the given
         dt.
         If the close for the given dt is `nan`, the most recent non-nan
         `close` is used.
@@ -387,7 +379,7 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, "close")
 
         closes = []
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         def _get_filled_close(asset):
             """
@@ -446,8 +438,7 @@ class DailyHistoryAggregator(object):
         return np.array(closes)
 
     def volumes(self, assets, dt):
-        """
-        The volume field's aggregation returns the sum of all volumes
+        """The volume field's aggregation returns the sum of all volumes
         between the market open and the `dt`
         If there has been no data on or before the `dt` the volume is 0.
 
@@ -458,7 +449,7 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, "volume")
 
         volumes = []
-        session_label = self._trading_calendar.minute_to_session_label(dt)
+        session_label = self._trading_calendar.minute_to_session(dt)
 
         for asset in assets:
             if not asset.is_alive_for_session(session_label):
@@ -516,7 +507,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         self._minute_bar_reader = minute_bar_reader
 
     def _get_resampled(self, columns, start_session, end_session, assets):
-        range_open = self._calendar.session_open(start_session)
+        range_open = self._calendar.session_first_minute(start_session)
         range_close = self._calendar.session_close(end_session)
 
         minute_data = self._minute_bar_reader.load_raw_arrays(
@@ -537,10 +528,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
                 range_open,
                 range_close,
             )
-            session_closes = self._calendar.session_closes_in_range(
-                start_session,
-                end_session,
-            )
+            session_closes = self._calendar.closes[start_session:end_session]
             close_ilocs = minutes.searchsorted(pd.DatetimeIndex(session_closes))
 
         results = []
@@ -578,12 +566,12 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def sessions(self):
         cal = self._calendar
         first = self._minute_bar_reader.first_trading_day
-        last = cal.minute_to_session_label(self._minute_bar_reader.last_available_dt)
+        last = cal.minute_to_session(self._minute_bar_reader.last_available_dt)
         return cal.sessions_in_range(first, last)
 
     @lazyval
     def last_available_dt(self):
-        return self.trading_calendar.minute_to_session_label(
+        return self.trading_calendar.minute_to_session(
             self._minute_bar_reader.last_available_dt
         )
 
@@ -595,13 +583,12 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         last_dt = self._minute_bar_reader.get_last_traded_dt(asset, dt)
         if pd.isnull(last_dt):
             # todo: this doesn't seem right
-            return self.trading_calendar.first_trading_session
-        return self.trading_calendar.minute_to_session_label(last_dt)
+            return self.trading_calendar.first_session
+        return self.trading_calendar.minute_to_session(last_dt)
 
 
-class ReindexBarReader(metaclass=ABCMeta):
-    """
-    A base class for readers which reindexes results, filling in the additional
+class ReindexBarReader(ABC):
+    """A base class for readers which reindexes results, filling in the additional
     indices with empty data.
 
     Used to align the reading assets which trade on different calendars.
@@ -712,9 +699,7 @@ class ReindexBarReader(metaclass=ABCMeta):
 
 
 class ReindexMinuteBarReader(ReindexBarReader, MinuteBarReader):
-    """
-    See: ``ReindexBarReader``
-    """
+    """See: ``ReindexBarReader``"""
 
     def _outer_dts(self, start_dt, end_dt):
         return self._trading_calendar.minutes_in_range(start_dt, end_dt)
@@ -724,9 +709,7 @@ class ReindexMinuteBarReader(ReindexBarReader, MinuteBarReader):
 
 
 class ReindexSessionBarReader(ReindexBarReader, SessionBarReader):
-    """
-    See: ``ReindexBarReader``
-    """
+    """See: ``ReindexBarReader``"""
 
     def _outer_dts(self, start_dt, end_dt):
         return self.trading_calendar.sessions_in_range(start_dt, end_dt)

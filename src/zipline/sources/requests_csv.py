@@ -1,10 +1,10 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from collections import namedtuple
 import hashlib
 from textwrap import dedent
 import warnings
 
-from logbook import Logger
+import logging
 import numpy
 import pandas as pd
 from pandas import read_csv
@@ -15,7 +15,7 @@ from zipline.errors import MultipleSymbolsFound, SymbolNotFound, ZiplineError
 from zipline.protocol import DATASOURCE_TYPE, Event
 from zipline.assets import Equity
 
-logger = Logger("Requests Source Logger")
+logger = logging.getLogger("Requests Source Logger")
 
 
 def roll_dts_to_midnight(dts, trading_day):
@@ -110,9 +110,7 @@ SHARED_REQUESTS_KWARGS = {
 
 def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     requests_kwargs = {
-        key: val
-        for (key, val) in kwargs.items()
-        if key in ALLOWED_REQUESTS_KWARGS
+        key: val for (key, val) in kwargs.items() if key in ALLOWED_REQUESTS_KWARGS
     }
     if params_checker is not None:
         url, s_params = params_checker(url)
@@ -133,7 +131,7 @@ def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     return request_pair(requests_kwargs, url)
 
 
-class PandasCSV(object, metaclass=ABCMeta):
+class PandasCSV(ABC):
     def __init__(
         self,
         pre_func,
@@ -210,7 +208,7 @@ class PandasCSV(object, metaclass=ABCMeta):
 
         # Explicitly ignoring this parameter.  See note above.
         if format_str is not None:
-            logger.warn(
+            logger.warning(
                 "The 'format_str' parameter to fetch_csv is deprecated. "
                 "Ignoring and defaulting to pandas default date parsing."
             )
@@ -241,9 +239,7 @@ class PandasCSV(object, metaclass=ABCMeta):
 
     def mask_pandas_args(self, kwargs):
         pandas_kwargs = {
-            key: val
-            for (key, val) in kwargs.items()
-            if key in ALLOWED_READ_CSV_KWARGS
+            key: val for (key, val) in kwargs.items() if key in ALLOWED_READ_CSV_KWARGS
         }
         if "usecols" in pandas_kwargs:
             usecols = pandas_kwargs["usecols"]
@@ -369,8 +365,8 @@ class PandasCSV(object, metaclass=ABCMeta):
             df = df[df["sid"].notnull()]
             no_sid_count = length_before_drop - len(df)
             if no_sid_count:
-                logger.warn(
-                    "Dropped {} rows from fetched csv.".format(no_sid_count),
+                logger.warning(
+                    "Dropped %s rows from fetched csv.",
                     no_sid_count,
                     extra={"syslog": True},
                 )
@@ -536,8 +532,8 @@ class PandasRequestsCSV(PandasCSV):
         # pandas logic for decoding content
         try:
             response = requests.get(url, **self.requests_kwargs)
-        except requests.exceptions.ConnectionError:
-            raise Exception("Could not connect to %s" % url)
+        except requests.exceptions.ConnectionError as exc:
+            raise Exception("Could not connect to %s" % url) from exc
 
         if not response.ok:
             raise Exception("Problem reaching %s" % url)
@@ -593,9 +589,9 @@ class PandasRequestsCSV(PandasCSV):
 
             frames_hash = hashlib.md5(str(fd.getvalue()).encode("utf-8"))
             self.fetch_hash = frames_hash.hexdigest()
-        except pd.parser.CParserError:
+        except pd.parser.CParserError as exc:
             # could not parse the data, raise exception
-            raise Exception("Error parsing remote CSV data.")
+            raise Exception("Error parsing remote CSV data.") from exc
         finally:
             fd.close()
 

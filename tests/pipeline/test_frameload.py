@@ -1,7 +1,7 @@
 """
 Tests for zipline.pipeline.loaders.frame.DataFrameLoader.
 """
-from mock import patch
+from unittest import mock
 import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
@@ -227,7 +227,7 @@ class TestDataFrameLoader:
         assert formatted_adjustments == expected_formatted_adjustments
 
         mask = self.mask[dates_slice, sids_slice]
-        with patch("zipline.pipeline.loaders.frame.AdjustedArray") as m:
+        with mock.patch("zipline.pipeline.loaders.frame.AdjustedArray") as m:
             loader.load_adjusted_array(
                 US_EQUITIES,
                 columns=[USEquityPricing.close],

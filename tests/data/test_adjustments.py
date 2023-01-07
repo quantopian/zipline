@@ -1,4 +1,5 @@
-import logbook
+import logging
+import pytest
 import numpy as np
 import pandas as pd
 
@@ -15,17 +16,16 @@ from zipline.testing.predicates import (
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
     WithTradingCalendars,
-    WithLogger,
     ZiplineTestCase,
 )
 
-nat = pd.Timestamp("nat")
-
 
 class TestSQLiteAdjustmentsWriter(
-    WithTradingCalendars, WithInstanceTmpDir, WithLogger, ZiplineTestCase
+    WithTradingCalendars, WithInstanceTmpDir, ZiplineTestCase
 ):
-    make_log_handler = logbook.TestHandler
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
 
     def init_instance_fixtures(self):
         super(TestSQLiteAdjustmentsWriter, self).init_instance_fixtures()
@@ -81,22 +81,20 @@ class TestSQLiteAdjustmentsWriter(
 
     def assert_all_empty(self, dfs):
         for k, v in dfs.items():
-            assert len(v) == 0, "%s dataframe should be empty" % k
+            assert len(v) == 0, f"{k} dataframe should be empty"
 
     def test_calculate_dividend_ratio(self):
         first_date_ix = 200
-        dates = self.trading_calendar.all_sessions[first_date_ix : first_date_ix + 3]
+        dates = self.trading_calendar.sessions[first_date_ix : first_date_ix + 3]
 
-        before_pricing_data = (dates[0] - self.trading_calendar.day).tz_convert("UTC")
-        one_day_past_pricing_data = (dates[-1] + self.trading_calendar.day).tz_convert(
-            "UTC"
-        )
-        ten_days_past_pricing_data = (
-            dates[-1] + self.trading_calendar.day * 10
-        ).tz_convert("UTC")
+        before_pricing_data = dates[0] - self.trading_calendar.day
+        one_day_past_pricing_data = dates[-1] + self.trading_calendar.day
+
+        ten_days_past_pricing_data = dates[-1] + self.trading_calendar.day * 10
 
         def T(n):
-            return dates[n].tz_convert("UTC")
+            # return dates[n].tz_localize("UTC")
+            return dates[n]
 
         close = pd.DataFrame(
             [
@@ -142,7 +140,7 @@ class TestSQLiteAdjustmentsWriter(
         # they appear unchanged in the dividends payouts
         ix = first_date_ix
         for col in "declared_date", "record_date", "pay_date":
-            extra_dates = self.trading_calendar.all_sessions[ix : ix + len(dividends)]
+            extra_dates = self.trading_calendar.sessions[ix : ix + len(dividends)]
             ix += len(dividends)
             dividends[col] = extra_dates
 
@@ -164,7 +162,10 @@ class TestSQLiteAdjustmentsWriter(
         assert_frame_equal(dividend_payouts, expected_dividend_payouts)
 
         expected_dividend_ratios = pd.DataFrame(
-            [[T(1), 0.95, 0], [T(2), 0.90, 1]],
+            [
+                [T(1), 0.95, 0],
+                [T(2), 0.90, 1],
+            ],
             columns=["effective_date", "ratio", "sid"],
         )
         dividend_ratios.sort_values(
@@ -174,32 +175,36 @@ class TestSQLiteAdjustmentsWriter(
         dividend_ratios.reset_index(drop=True, inplace=True)
         assert_frame_equal(dividend_ratios, expected_dividend_ratios)
 
-        assert self.log_handler.has_warning(
-            "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18,"
-            " amount=10.000",
-        )
-        assert self.log_handler.has_warning(
-            "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19,"
-            " amount=0.100",
-        )
-        assert self.log_handler.has_warning(
-            "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01,"
-            " amount=0.100",
-        )
-        assert self.log_handler.has_warning(
-            "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17,"
-            " amount=0.510",
-        )
-        assert self.log_handler.has_warning(
-            "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18,"
-            " amount=0.400",
-        )
+        with self._caplog.at_level(logging.WARNING):
+            assert (
+                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-18, amount=10.000"
+                in self._caplog.messages
+            )
+            assert (
+                "Couldn't compute ratio for dividend sid=2, ex_date=1990-10-19, amount=0.100"
+                in self._caplog.messages
+            )
+
+            assert (
+                "Couldn't compute ratio for dividend sid=2, ex_date=1990-11-01, amount=0.100"
+                in self._caplog.messages
+            )
+
+            assert (
+                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-17, amount=0.510"
+                in self._caplog.messages
+            )
+
+            assert (
+                "Dividend ratio <= 0 for dividend sid=1, ex_date=1990-10-18, amount=0.400"
+                in self._caplog.messages
+            )
 
     def _test_identity(self, name):
         sids = np.arange(5)
 
         # tx_convert makes tz-naive
-        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
+        dates = self.trading_calendar.sessions
 
         def T(n):
             return dates[n]
@@ -232,7 +237,7 @@ class TestSQLiteAdjustmentsWriter(
 
     def test_stock_dividends(self):
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
+        dates = self.trading_calendar.sessions
 
         def T(n):
             return dates[n]
@@ -269,8 +274,9 @@ class TestSQLiteAdjustmentsWriter(
     @parameter_space(convert_dates=[True, False])
     def test_empty_frame_dtypes(self, convert_dates):
         """Test that dataframe dtypes are preserved for empty tables."""
+
         sids = np.arange(5)
-        dates = self.trading_calendar.all_sessions.tz_convert("UTC")
+        dates = self.trading_calendar.sessions
 
         if convert_dates:
             date_dtype = np.dtype("M8[ns]")

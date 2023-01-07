@@ -351,8 +351,7 @@ class RollingSpearmanOfReturns(RollingSpearman):
 
 
 class RollingLinearRegressionOfReturns(RollingLinearRegression):
-    """
-    Perform an ordinary least-squares regression predicting the returns of all
+    """Perform an ordinary least-squares regression predicting the returns of all
     other assets on the given asset.
 
     Parameters
@@ -467,8 +466,7 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
 
 
 class SimpleBeta(CustomFactor, StandardOutputs):
-    """
-    Factor producing the slope of a regression line between each asset's daily
+    """Factor producing the slope of a regression line between each asset's daily
     returns to the daily returns of a single "target" asset.
 
     Parameters
@@ -545,8 +543,7 @@ class SimpleBeta(CustomFactor, StandardOutputs):
 
 
 def vectorized_beta(dependents, independent, allowed_missing, out=None):
-    """
-    Compute slopes of linear regressions between columns of ``dependents`` and
+    """Compute slopes of linear regressions between columns of ``dependents`` and
     ``independent``.
 
     Parameters
@@ -630,7 +627,7 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
     # column may have a different subset of the data dropped due to missing
     # data in the corresponding dependent column.
     # shape: (M,)
-    independent_variances = nanmean(ind_residual ** 2, axis=0)
+    independent_variances = nanmean(ind_residual**2, axis=0)
 
     # shape: (M,)
     np.divide(covariances, independent_variances, out=out)
@@ -644,8 +641,7 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
 
 
 def vectorized_pearson_r(dependents, independents, allowed_missing, out=None):
-    """
-    Compute Pearson's r between columns of ``dependents`` and ``independents``.
+    """Compute Pearson's r between columns of ``dependents`` and ``independents``.
 
     Parameters
     ----------
@@ -696,8 +692,8 @@ def vectorized_pearson_r(dependents, independents, allowed_missing, out=None):
     ind_residual = independents - mean(independents, axis=0)
     dep_residual = dependents - mean(dependents, axis=0)
 
-    ind_variance = mean(ind_residual ** 2, axis=0)
-    dep_variance = mean(dep_residual ** 2, axis=0)
+    ind_variance = mean(ind_residual**2, axis=0)
+    dep_variance = mean(dep_residual**2, axis=0)
 
     covariances = mean(ind_residual * dep_residual, axis=0)
 

@@ -1,4 +1,4 @@
-class NamedExplodingObject(object):
+class NamedExplodingObject:
     """An object which has no attributes but produces a more informative
     error message when accessed.
 

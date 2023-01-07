@@ -1,5 +1,5 @@
 @object.__new__
-class nop_context(object):
+class nop_context:
     """A nop context manager."""
 
     def __enter__(self):
@@ -13,7 +13,7 @@ def _nop(*args, **kwargs):
     pass
 
 
-class CallbackManager(object):
+class CallbackManager:
     """Create a context manager from a pre-execution callback and a
     post-execution callback.
 
@@ -68,7 +68,7 @@ class CallbackManager(object):
         self.post()
 
 
-class _ManagedCallbackContext(object):
+class _ManagedCallbackContext:
     def __init__(self, pre, post, args, kwargs):
         self._pre = pre
         self._post = post

@@ -16,7 +16,7 @@ from parameterized import parameterized
 
 import pandas as pd
 import numpy as np
-from mock import patch
+from unittest import mock
 from zipline.errors import UnsupportedOrderParameters
 from zipline.sources.requests_csv import mask_requests_args
 from zipline.utils import factory
@@ -45,8 +45,8 @@ import pytest
 
 # XXX: The algorithms in this suite do way more work than they should have to.
 class FetcherTestCase(WithResponses, WithMakeAlgo, ZiplineTestCase):
-    START_DATE = pd.Timestamp("2006-01-03", tz="utc")
-    END_DATE = pd.Timestamp("2006-12-29", tz="utc")
+    START_DATE = pd.Timestamp("2006-01-03")
+    END_DATE = pd.Timestamp("2006-12-29")
 
     SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
@@ -54,8 +54,8 @@ class FetcherTestCase(WithResponses, WithMakeAlgo, ZiplineTestCase):
 
     @classmethod
     def make_equity_info(cls):
-        start_date = pd.Timestamp("2006-01-01", tz="UTC")
-        end_date = pd.Timestamp("2007-01-01", tz="UTC")
+        start_date = pd.Timestamp("2006-01-01")
+        end_date = pd.Timestamp("2007-01-01")
         return pd.DataFrame.from_dict(
             {
                 24: {
@@ -90,7 +90,7 @@ class FetcherTestCase(WithResponses, WithMakeAlgo, ZiplineTestCase):
                 },
                 13: {
                     "start_date": start_date,
-                    "end_date": pd.Timestamp("2010-01-01", tz="UTC"),
+                    "end_date": pd.Timestamp("2010-01-01"),
                     "symbol": "NFLX",
                     "exchange": "nasdaq",
                 },
@@ -138,8 +138,8 @@ class FetcherTestCase(WithResponses, WithMakeAlgo, ZiplineTestCase):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2006-01-03", tz="UTC"),
-            end=pd.Timestamp("2006-01-10", tz="UTC"),
+            start=pd.Timestamp("2006-01-03"),
+            end=pd.Timestamp("2006-01-10"),
             emission_rate="minute",
             data_frequency="minute",
         )
@@ -365,7 +365,7 @@ def handle_data(context, data):
         # Patching fetch_url instead of using responses in this test so that we
         # can intercept the requests keyword arguments and confirm that they're
         # correct.
-        with patch(
+        with mock.patch(
             "zipline.sources.requests_csv.PandasRequestsCSV.fetch_url",
             new=capture_kwargs,
         ):
@@ -419,19 +419,18 @@ def handle_data(context, data):
         # easier given the parameterization, and (b) there are enough tests
         # using responses that the fetch_url code is getting a good workout so
         # we don't have to use it in every test.
-        with patch(
+        with mock.patch(
             "zipline.sources.requests_csv.PandasRequestsCSV.fetch_url",
             new=lambda *a, **k: data,
         ):
             sim_params = factory.create_simulation_parameters(
-                start=pd.Timestamp("2006-01-09", tz="UTC"),
-                end=pd.Timestamp("2006-01-11", tz="UTC"),
+                start=pd.Timestamp("2006-01-09"),
+                end=pd.Timestamp("2006-01-11"),
             )
 
             algocode = """
 from pandas import Timestamp
 from zipline.api import fetch_csv, record, sid, get_datetime
-from zipline.utils.pandas_utils import normalize_date
 
 def initialize(context):
     fetch_csv(
@@ -446,7 +445,7 @@ def initialize(context):
     context.bar_count = 0
 
 def handle_data(context, data):
-    expected = context.expected_sids[normalize_date(get_datetime())]
+    expected = context.expected_sids[get_datetime().normalize()]
     actual = data.fetcher_assets
     for stk in expected:
         if stk not in actual:
@@ -479,8 +478,8 @@ def handle_data(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2006-01-09", tz="UTC"),
-            end=pd.Timestamp("2006-01-10", tz="UTC"),
+            start=pd.Timestamp("2006-01-09"),
+            end=pd.Timestamp("2006-01-10"),
         )
 
         self.run_algo(
@@ -539,8 +538,8 @@ def handle_data(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2006-01-09", tz="UTC"),
-            end=pd.Timestamp("2006-01-11", tz="UTC"),
+            start=pd.Timestamp("2006-01-09"),
+            end=pd.Timestamp("2006-01-11"),
             data_frequency="minute",
         )
 
@@ -586,8 +585,8 @@ def handle_data(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2013-06-13", tz="UTC"),
-            end=pd.Timestamp("2013-11-15", tz="UTC"),
+            start=pd.Timestamp("2013-06-13"),
+            end=pd.Timestamp("2013-11-15"),
             data_frequency="minute",
         )
 
@@ -624,8 +623,8 @@ def before_trading_start(context, data):
         )
 
         sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2013-06-12", tz="UTC"),
-            end=pd.Timestamp("2013-06-14", tz="UTC"),
+            start=pd.Timestamp("2013-06-12"),
+            end=pd.Timestamp("2013-06-14"),
             data_frequency="minute",
         )
 

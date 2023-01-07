@@ -34,9 +34,8 @@ from zipline.utils.pandas_utils import days_at_time
 class IDomain(Interface):
     """Domain interface."""
 
-    def all_sessions(self):
-        """
-        Get all trading sessions for the calendar of this domain.
+    def sessions(self):
+        """Get all trading sessions for the calendar of this domain.
 
         This determines the row labels of Pipeline outputs for pipelines run on
         this domain.
@@ -75,8 +74,7 @@ class IDomain(Interface):
 
     @default
     def roll_forward(self, dt):
-        """
-        Given a date, align it to the calendar of the pipeline's domain.
+        """Given a date, align it to the calendar of the pipeline's domain.
 
         Parameters
         ----------
@@ -86,26 +84,19 @@ class IDomain(Interface):
         -------
         pd.Timestamp
         """
-        try:
-            dt = pd.Timestamp(dt).tz_convert("UTC")
-        except TypeError:
-            dt = pd.Timestamp(dt).tz_localize("UTC")
-
-        trading_days = self.all_sessions()
+        dt = pd.Timestamp(dt)
+        trading_days = self.sessions()
         try:
             return trading_days[trading_days.searchsorted(dt)]
-        except IndexError:
+        except IndexError as exc:
             raise ValueError(
-                "Date {} was past the last session for domain {}. "
-                "The last session for this domain is {}.".format(
-                    dt.date(), self, trading_days[-1].date()
-                )
-            )
+                f"Date {dt.date()} was past the last session for domain {self}. "
+                f"The last session for this domain is {trading_days[-1].date()}."
+            ) from exc
 
 
 Domain = implements(IDomain)
-Domain.__doc__ = """
-A domain represents a set of labels for the arrays computed by a Pipeline.
+Domain.__doc__ = """A domain represents a set of labels for the arrays computed by a Pipeline.
 
 A domain defines two things:
 
@@ -126,7 +117,7 @@ Domain.__qualname__ = "zipline.pipeline.domain.Domain"
 class GenericDomain(Domain):
     """Special singleton class used to represent generic DataSets and Columns."""
 
-    def all_sessions(self):
+    def sessions(self):
         raise NotImplementedError("Can't get sessions for generic domain.")
 
     @property
@@ -146,8 +137,7 @@ GENERIC = GenericDomain()
 
 
 class EquityCalendarDomain(Domain):
-    """
-    An equity domain whose sessions are defined by a named TradingCalendar.
+    """An equity domain whose sessions are defined by a named TradingCalendar.
 
     Parameters
     ----------
@@ -192,24 +182,20 @@ class EquityCalendarDomain(Domain):
     def calendar(self):
         return get_calendar(self.calendar_name)
 
-    def all_sessions(self):
-        return self.calendar.all_sessions
+    def sessions(self):
+        return self.calendar.sessions
 
     def data_query_cutoff_for_sessions(self, sessions):
-        opens = self.calendar.opens.reindex(sessions).values
+        opens = self.calendar.first_minutes.reindex(sessions)
         missing_mask = pd.isnull(opens)
         if missing_mask.any():
             missing_days = sessions[missing_mask]
             raise ValueError(
                 "cannot resolve data query time for sessions that are not on"
-                " the %s calendar:\n%s"
-                % (
-                    self.calendar.name,
-                    missing_days,
-                ),
+                f" the {self.calendar_name} calendar:\n{missing_days}"
             )
 
-        return pd.DatetimeIndex(opens + self._data_query_offset, tz="UTC")
+        return pd.DatetimeIndex(opens) + self._data_query_offset
 
     def __repr__(self):
         return "EquityCalendarDomain({!r}, {!r})".format(
@@ -312,8 +298,7 @@ BUILT_IN_DOMAINS = [
 
 
 def infer_domain(terms):
-    """
-    Infer the domain from a collection of terms.
+    """Infer the domain from a collection of terms.
 
     The algorithm for inferring domains is as follows:
 
@@ -357,9 +342,7 @@ def infer_domain(terms):
 # This would be better if we provided more context for which domains came from
 # which terms.
 class AmbiguousDomain(Exception):
-    """
-    Raised when we attempt to infer a domain from a collection of mixed terms.
-    """
+    """Raised when we attempt to infer a domain from a collection of mixed terms."""
 
     _TEMPLATE = dedent(
         """\
@@ -404,7 +387,11 @@ class EquitySessionDomain(Domain):
         __funcname="EquitySessionDomain",
     )
     def __init__(
-        self, sessions, country_code, data_query_time=None, data_query_date_offset=0
+        self,
+        sessions,
+        country_code,
+        data_query_time=None,
+        data_query_date_offset=0,
     ):
         self._country_code = country_code
         self._sessions = sessions
@@ -422,7 +409,7 @@ class EquitySessionDomain(Domain):
     def country_code(self):
         return self._country_code
 
-    def all_sessions(self):
+    def sessions(self):
         return self._sessions
 
     def data_query_cutoff_for_sessions(self, sessions):

@@ -15,8 +15,7 @@ def make_rotating_equity_info(
     asset_lifetime,
     exchange="TEST",
 ):
-    """
-    Create a DataFrame representing lifetimes of assets that are constantly
+    """Create a DataFrame representing lifetimes of assets that are constantly
     rotating in and out of existence.
 
     Parameters
@@ -63,8 +62,7 @@ def make_rotating_equity_info(
 def make_simple_equity_info(
     sids, start_date, end_date, symbols=None, names=None, exchange="TEST"
 ):
-    """
-    Create a DataFrame representing assets that exist for the full duration
+    """Create a DataFrame representing assets that exist for the full duration
     between `start_date` and `end_date`.
 
     Parameters
@@ -154,8 +152,7 @@ def make_simple_multi_country_equity_info(
 def make_jagged_equity_info(
     num_assets, start_date, first_end, frequency, periods_between_ends, auto_close_delta
 ):
-    """
-    Create a DataFrame representing assets that all begin at the same start
+    """Create a DataFrame representing assets that all begin at the same start
     date, but have cascading end dates.
 
     Parameters
@@ -193,6 +190,8 @@ def make_jagged_equity_info(
 
     # Explicitly pass None to disable setting the auto_close_date column.
     if auto_close_delta is not None:
+        # TODO CHECK PerformanceWarning: Non-vectorized DateOffset
+        # being applied to Series or DatetimeIndex
         frame["auto_close_date"] = frame["end_date"] + auto_close_delta
 
     return frame
@@ -208,8 +207,7 @@ def make_future_info(
     month_codes=None,
     multiplier=500,
 ):
-    """
-    Create a DataFrame representing futures for `root_symbols` during `year`.
+    """Create a DataFrame representing futures for `root_symbols` during `year`.
 
     Generates a contract per triple of (symbol, year, month) supplied to
     `root_symbols`, `years`, and `month_codes`.
@@ -282,8 +280,7 @@ def make_future_info(
 def make_commodity_future_info(
     first_sid, root_symbols, years, month_codes=None, multiplier=500
 ):
-    """
-    Make futures testing data that simulates the notice/expiration date
+    """Make futures testing data that simulates the notice/expiration date
     behavior of physical commodities like oil.
 
     Parameters

@@ -7,7 +7,7 @@ def code(name):
     return countries_by_name[name].alpha2
 
 
-class CountryCode(object):
+class CountryCode:
     """A simple namespace of iso3166 alpha2 country codes."""
 
     ARGENTINA = code("ARGENTINA")

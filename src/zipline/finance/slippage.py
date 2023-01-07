@@ -46,8 +46,7 @@ class LiquidityExceeded(Exception):
 
 
 def fill_price_worse_than_limit_price(fill_price, order):
-    """
-    Checks whether the fill price is worse than the order's limit price.
+    """Checks whether the fill price is worse than the order's limit price.
 
     Parameters
     ----------
@@ -80,8 +79,7 @@ def fill_price_worse_than_limit_price(fill_price, order):
 
 
 class SlippageModel(metaclass=FinancialModelMeta):
-    """
-    Abstract base class for slippage models.
+    """Abstract base class for slippage models.
 
     Slippage models are responsible for the rates and prices at which orders
     fill during a simulation.
@@ -122,8 +120,7 @@ class SlippageModel(metaclass=FinancialModelMeta):
 
     @abstractmethod
     def process_order(self, data, order):
-        """
-        Compute the number of shares and price to fill for ``order`` in the
+        """Compute the number of shares and price to fill for ``order`` in the
         current minute.
 
         Parameters
@@ -191,9 +188,7 @@ class SlippageModel(metaclass=FinancialModelMeta):
             txn = None
 
             try:
-                execution_price, execution_volume = self.process_order(
-                    data, order
-                )
+                execution_price, execution_volume = self.process_order(data, order)
 
                 if execution_price is not None:
                     txn = create_transaction(
@@ -232,24 +227,19 @@ class NoSlippage(SlippageModel):
 
 
 class EquitySlippageModel(SlippageModel, metaclass=AllowedAssetMarker):
-    """
-    Base class for slippage models which only support equities.
-    """
+    """Base class for slippage models which only support equities."""
 
     allowed_asset_types = (Equity,)
 
 
 class FutureSlippageModel(SlippageModel, metaclass=AllowedAssetMarker):
-    """
-    Base class for slippage models which only support futures.
-    """
+    """Base class for slippage models which only support futures."""
 
     allowed_asset_types = (Future,)
 
 
 class VolumeShareSlippage(SlippageModel):
-    """
-    Model slippage as a quadratic function of percentage of historical volume.
+    """Model slippage as a quadratic function of percentage of historical volume.
 
     Orders to buy will be filled at::
 
@@ -332,7 +322,7 @@ class VolumeShareSlippage(SlippageModel):
         # END
 
         simulated_impact = (
-            volume_share ** 2
+            volume_share**2
             * math.copysign(self.price_impact, order.direction)
             * price
         )
@@ -345,8 +335,7 @@ class VolumeShareSlippage(SlippageModel):
 
 
 class FixedSlippage(SlippageModel):
-    """
-    Simple model assuming a fixed-size spread for all assets.
+    """Simple model assuming a fixed-size spread for all assets.
 
     Parameters
     ----------
@@ -380,8 +369,7 @@ class FixedSlippage(SlippageModel):
 
 
 class MarketImpactBase(SlippageModel):
-    """
-    Base class for slippage models which compute a simulated price impact
+    """Base class for slippage models which compute a simulated price impact
     according to a history lookback.
     """
 
@@ -393,8 +381,7 @@ class MarketImpactBase(SlippageModel):
 
     @abstractmethod
     def get_txn_volume(self, data, order):
-        """
-        Return the number of shares we would like to order in this minute.
+        """Return the number of shares we would like to order in this minute.
 
         Parameters
         ----------
@@ -417,8 +404,7 @@ class MarketImpactBase(SlippageModel):
         mean_volume,
         volatility,
     ):
-        """
-        Calculate simulated price impact.
+        """Calculate simulated price impact.
 
         Parameters
         ----------
@@ -449,9 +435,7 @@ class MarketImpactBase(SlippageModel):
         if not volume:
             return None, None
 
-        txn_volume = int(
-            min(self.get_txn_volume(data, order), abs(order.open_amount))
-        )
+        txn_volume = int(min(self.get_txn_volume(data, order), abs(order.open_amount)))
 
         # If the computed transaction volume is zero or a decimal value, 'int'
         # will round it down to zero. In that case just bail.
@@ -472,9 +456,7 @@ class MarketImpactBase(SlippageModel):
                 volatility=volatility,
             )
 
-        impacted_price = price + math.copysign(
-            simulated_impact, order.direction
-        )
+        impacted_price = price + math.copysign(simulated_impact, order.direction)
 
         if fill_price_worse_than_limit_price(impacted_price, order):
             return None, None
@@ -482,8 +464,7 @@ class MarketImpactBase(SlippageModel):
         return impacted_price, math.copysign(txn_volume, order.direction)
 
     def _get_window_data(self, data, asset, window_length):
-        """
-        Internal utility method to return the trailing mean volume over the
+        """Internal utility method to return the trailing mean volume over the
         past 'window_length' days, and volatility of close prices for a
         specific asset.
 
@@ -540,8 +521,7 @@ class MarketImpactBase(SlippageModel):
 
 
 class VolatilityVolumeShare(MarketImpactBase):
-    """
-    Model slippage for futures contracts according to the following formula:
+    """Model slippage for futures contracts according to the following formula:
 
         new_price = price + (price * MI / 10000),
 
@@ -688,9 +668,7 @@ class FixedBasisPointsSlippage(SlippageModel):
         max_volume = int(self.volume_limit * volume)
 
         price = data.current(order.asset, "close")
-        shares_to_fill = min(
-            abs(order.open_amount), max_volume - self.volume_for_bar
-        )
+        shares_to_fill = min(abs(order.open_amount), max_volume - self.volume_for_bar)
 
         if shares_to_fill == 0:
             raise LiquidityExceeded()

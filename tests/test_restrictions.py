@@ -72,8 +72,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         __fail_fast=True,
     )
     def test_historical_restrictions(self, date_offset, restriction_order):
-        """
-        Test historical restrictions for both interday and intraday
+        """Test historical restrictions for both interday and intraday
         restrictions, as well as restrictions defined in/not in order, for both
         single- and multi-asset queries
         """
@@ -158,9 +157,8 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         assert_all_restrictions([True, True, False], d3 + (MINUTE * 10000000))
 
     def test_historical_restrictions_consecutive_states(self):
-        """
-        Test that defining redundant consecutive restrictions still works
-        """
+        """Test that defining redundant consecutive restrictions still works"""
+
         rl = HistoricalRestrictions(
             [
                 Restriction(self.ASSET1, str_to_ts("2011-01-04"), ALLOWED),
@@ -194,9 +192,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         assert_is_restricted(self.ASSET1, str_to_ts("2011-01-07") + MINUTE)
 
     def test_static_restrictions(self):
-        """
-        Test single- and multi-asset queries on static restrictions
-        """
+        """Test single- and multi-asset queries on static restrictions"""
 
         restricted_a1 = self.ASSET1
         restricted_a2 = self.ASSET2
@@ -218,13 +214,12 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
             assert_all_restrictions([True, True, False], dt)
 
     def test_security_list_restrictions(self):
-        """
-        Test single- and multi-asset queries on restrictions defined by
+        """Test single- and multi-asset queries on restrictions defined by
         zipline.utils.security_list.SecurityList
         """
 
         # A mock SecurityList object filled with fake data
-        class SecurityList(object):
+        class SecurityList:
             def __init__(self, assets_by_dt):
                 self.assets_by_dt = assets_by_dt
 
@@ -259,9 +254,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
         assert_all_restrictions([True, True, True], str_to_ts("2011-01-05"))
 
     def test_noop_restrictions(self):
-        """
-        Test single- and multi-asset queries on no-op restrictions
-        """
+        """Test single- and multi-asset queries on no-op restrictions"""
 
         rl = NoRestrictions()
         assert_not_restricted = partial(self.assert_not_restricted, rl)
@@ -276,8 +269,7 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
             assert_all_restrictions([False, False, False], dt)
 
     def test_union_restrictions(self):
-        """
-        Test that we appropriately union restrictions together, including
+        """Test that we appropriately union restrictions together, including
         eliminating redundancy (ignoring NoRestrictions) and flattening out
         the underlying sub-restrictions of _UnionRestrictions
         """

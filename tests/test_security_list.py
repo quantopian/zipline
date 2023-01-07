@@ -78,16 +78,17 @@ class IterateRLAlgo(TradingAlgorithm):
 
 class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
     # XXX: This suite uses way more than it probably needs.
-    START_DATE = pd.Timestamp("2002-01-03", tz="UTC")
+    START_DATE = pd.Timestamp("2002-01-03")
     assert (
         START_DATE == sorted(list(LEVERAGED_ETFS.keys()))[0]
     ), "START_DATE should match start of LEVERAGED_ETF data."
-    END_DATE = pd.Timestamp("2015-02-17", tz="utc")
 
-    extra_knowledge_date = pd.Timestamp("2015-01-27", tz="utc")
-    trading_day_before_first_kd = pd.Timestamp("2015-01-23", tz="utc")
+    END_DATE = pd.Timestamp("2015-02-17")
 
-    SIM_PARAMS_END = pd.Timestamp("2002-01-08", tz="UTC")
+    extra_knowledge_date = pd.Timestamp("2015-01-27")
+    trading_day_before_first_kd = pd.Timestamp("2015-01-23")
+
+    SIM_PARAMS_END = pd.Timestamp("2002-01-08")
 
     SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
@@ -138,7 +139,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
 
     def test_security_add(self):
         def get_datetime():
-            return pd.Timestamp("2015-01-27", tz="UTC")
+            return pd.Timestamp("2015-01-27")
 
         with security_list_copy():
             add_security_data(["AAPL", "GOOG"], [])
@@ -159,7 +160,7 @@ class SecurityListTestCase(WithMakeAlgo, ZiplineTestCase):
         with security_list_copy():
 
             def get_datetime():
-                return pd.Timestamp("2015-01-27", tz="UTC")
+                return pd.Timestamp("2015-01-27")
 
             rl = SecurityListSet(get_datetime, self.asset_finder)
             assert "BZQ" not in rl.leveraged_etf_list.current_securities(get_datetime())

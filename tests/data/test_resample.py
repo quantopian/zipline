@@ -18,7 +18,6 @@ from parameterized import parameterized
 from numpy.testing import assert_almost_equal
 from numpy import nan, array, full, isnan
 import pandas as pd
-from pandas import DataFrame
 
 from zipline.data.resample import (
     minute_frame_to_session_frame,
@@ -170,7 +169,7 @@ EQUITY_CASES = OrderedDict()
 
 for sid, combos in _EQUITY_CASES:
     frames = [
-        DataFrame(SCENARIOS[s], columns=OHLCV).set_index(NYSE_MINUTES[m])
+        pd.DataFrame(SCENARIOS[s], columns=OHLCV).set_index(NYSE_MINUTES[m])
         for s, m in combos
     ]
     EQUITY_CASES[sid] = pd.concat(frames)
@@ -186,13 +185,13 @@ FUTURE_CASES = OrderedDict()
 
 for sid, combos in _FUTURE_CASES:
     frames = [
-        DataFrame(SCENARIOS[s], columns=OHLCV).set_index(FUT_MINUTES[m])
+        pd.DataFrame(SCENARIOS[s], columns=OHLCV).set_index(FUT_MINUTES[m])
         for s, m in combos
     ]
     FUTURE_CASES[sid] = pd.concat(frames)
 
 EXPECTED_AGGREGATION = {
-    1: DataFrame(
+    1: pd.DataFrame(
         {
             "open": [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
             "high": [101.9, 103.9, 103.9, 107.9, 108.9, 108.9],
@@ -202,7 +201,7 @@ EXPECTED_AGGREGATION = {
         },
         columns=OHLCV,
     ),
-    2: DataFrame(
+    2: pd.DataFrame(
         {
             "open": [nan, 103.5, 103.5, 103.5, 103.5, 103.5],
             "high": [nan, 103.9, 103.9, 103.9, 103.9, 103.9],
@@ -213,7 +212,7 @@ EXPECTED_AGGREGATION = {
         columns=OHLCV,
     ),
     # Equity 3 straddles two days.
-    3: DataFrame(
+    3: pd.DataFrame(
         {
             "open": [107.5, 107.5, 107.5, nan, 103.5, 103.5],
             "high": [107.9, 108.9, 108.9, nan, 103.9, 103.9],
@@ -224,7 +223,7 @@ EXPECTED_AGGREGATION = {
         columns=OHLCV,
     ),
     # Equity 4 straddles two days and is not active the first day.
-    4: DataFrame(
+    4: pd.DataFrame(
         {
             "open": [nan, nan, nan, 101.5, 101.5, 101.5],
             "high": [nan, nan, nan, 101.9, 103.9, 103.9],
@@ -235,7 +234,7 @@ EXPECTED_AGGREGATION = {
         columns=OHLCV,
     ),
     # Equity 5 straddles two days and does not have data the first day.
-    5: DataFrame(
+    5: pd.DataFrame(
         {
             "open": [nan, nan, nan, 101.5, 101.5, 101.5],
             "high": [nan, nan, nan, 101.9, 103.9, 103.9],
@@ -245,7 +244,7 @@ EXPECTED_AGGREGATION = {
         },
         columns=OHLCV,
     ),
-    1001: DataFrame(
+    1001: pd.DataFrame(
         {
             "open": [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
             "high": [101.9, 103.9, 103.9, 103.9, 103.9, 103.9],
@@ -255,7 +254,7 @@ EXPECTED_AGGREGATION = {
         },
         columns=OHLCV,
     ),
-    1002: DataFrame(
+    1002: pd.DataFrame(
         {
             "open": [nan, 103.5, 103.5, 103.5, 103.5, 103.5],
             "high": [nan, 103.9, 103.9, 103.9, 103.9, 103.9],
@@ -265,7 +264,7 @@ EXPECTED_AGGREGATION = {
         },
         columns=OHLCV,
     ),
-    1003: DataFrame(
+    1003: pd.DataFrame(
         {
             "open": [107.5, 107.5, 107.5, nan, 103.5, 103.5],
             "high": [107.9, 108.9, 108.9, nan, 103.9, 103.9],
@@ -275,7 +274,7 @@ EXPECTED_AGGREGATION = {
         },
         columns=OHLCV,
     ),
-    1004: DataFrame(
+    1004: pd.DataFrame(
         {
             "open": [nan, nan, nan, 101.5, 101.5, 101.5],
             "high": [nan, nan, nan, 101.9, 103.9, 103.9],
@@ -288,40 +287,40 @@ EXPECTED_AGGREGATION = {
 }
 
 EXPECTED_SESSIONS = {
-    1: DataFrame(
+    1: pd.DataFrame(
         [EXPECTED_AGGREGATION[1].iloc[-1].values],
         columns=OHLCV,
-        index=pd.to_datetime(["2016-03-15"], utc=True),
+        index=pd.to_datetime(["2016-03-15"]),
     ),
-    2: DataFrame(
+    2: pd.DataFrame(
         [EXPECTED_AGGREGATION[2].iloc[-1].values],
         columns=OHLCV,
-        index=pd.to_datetime(["2016-03-15"], utc=True),
+        index=pd.to_datetime(["2016-03-15"]),
     ),
-    3: DataFrame(
+    3: pd.DataFrame(
         EXPECTED_AGGREGATION[3].iloc[[2, 5]].values,
         columns=OHLCV,
-        index=pd.to_datetime(["2016-03-15", "2016-03-16"], utc=True),
+        index=pd.to_datetime(["2016-03-15", "2016-03-16"]),
     ),
-    1001: DataFrame(
+    1001: pd.DataFrame(
         [EXPECTED_AGGREGATION[1001].iloc[-1].values],
         columns=OHLCV,
-        index=pd.to_datetime(["2016-03-16"], utc=True),
+        index=pd.to_datetime(["2016-03-16"]),
     ),
-    1002: DataFrame(
+    1002: pd.DataFrame(
         [EXPECTED_AGGREGATION[1002].iloc[-1].values],
         columns=OHLCV,
-        index=pd.to_datetime(["2016-03-16"], utc=True),
+        index=pd.to_datetime(["2016-03-16"]),
     ),
-    1003: DataFrame(
+    1003: pd.DataFrame(
         EXPECTED_AGGREGATION[1003].iloc[[2, 5]].values,
         columns=OHLCV,
-        index=pd.to_datetime(["2016-03-16", "2016-03-17"], utc=True),
+        index=pd.to_datetime(["2016-03-16", "2016-03-17"]),
     ),
-    1004: DataFrame(
+    1004: pd.DataFrame(
         EXPECTED_AGGREGATION[1004].iloc[[2, 5]].values,
         columns=OHLCV,
-        index=pd.to_datetime(["2016-03-16", "2016-03-17"], utc=True),
+        index=pd.to_datetime(["2016-03-16", "2016-03-17"]),
     ),
 }
 
@@ -337,14 +336,8 @@ class MinuteToDailyAggregationTestCase(
     # 20 21 22 23 24 25 26
     # 27 28 29 30 31
 
-    TRADING_ENV_MIN_DATE = START_DATE = pd.Timestamp(
-        "2016-03-01",
-        tz="UTC",
-    )
-    TRADING_ENV_MAX_DATE = END_DATE = pd.Timestamp(
-        "2016-03-31",
-        tz="UTC",
-    )
+    TRADING_ENV_MIN_DATE = START_DATE = pd.Timestamp("2016-03-01")
+    TRADING_ENV_MAX_DATE = END_DATE = pd.Timestamp("2016-03-31")
 
     TRADING_CALENDAR_STRS = ("NYSE", "us_futures")
 
@@ -356,7 +349,7 @@ class MinuteToDailyAggregationTestCase(
         frame = super(MinuteToDailyAggregationTestCase, cls).make_equity_info()
         # Make equity 4 start a day behind the data start to exercise assets
         # which not alive for the session.
-        frame.loc[[4], "start_date"] = pd.Timestamp("2016-03-16", tz="UTC")
+        frame.loc[[4], "start_date"] = pd.Timestamp("2016-03-16")
         return frame
 
     @classmethod
@@ -389,13 +382,13 @@ class MinuteToDailyAggregationTestCase(
         # Set up a fresh data portal for each test, since order of calling
         # needs to be tested.
         self.equity_daily_aggregator = DailyHistoryAggregator(
-            self.nyse_calendar.schedule.market_open,
+            self.nyse_calendar.first_minutes,
             self.bcolz_equity_minute_bar_reader,
             self.nyse_calendar,
         )
 
         self.future_daily_aggregator = DailyHistoryAggregator(
-            self.us_futures_calendar.schedule.market_open,
+            self.us_futures_calendar.first_minutes,
             self.bcolz_future_minute_bar_reader,
             self.us_futures_calendar,
         )
@@ -616,14 +609,8 @@ class TestMinuteToSession(WithEquityMinuteBarData, ZiplineTestCase):
     # 20 21 22 23 24 25 26
     # 27 28 29 30 31
 
-    START_DATE = pd.Timestamp(
-        "2016-03-15",
-        tz="UTC",
-    )
-    END_DATE = pd.Timestamp(
-        "2016-03-15",
-        tz="UTC",
-    )
+    START_DATE = pd.Timestamp("2016-03-15")
+    END_DATE = pd.Timestamp("2016-03-15")
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
     @classmethod
@@ -654,8 +641,8 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
 
     ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003, 1004
 
-    START_DATE = pd.Timestamp("2016-03-16", tz="UTC")
-    END_DATE = pd.Timestamp("2016-03-17", tz="UTC")
+    START_DATE = pd.Timestamp("2016-03-16")
+    END_DATE = pd.Timestamp("2016-03-17")
     NUM_SESSIONS = 2
 
     @classmethod
@@ -687,14 +674,14 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
         calendar = self.trading_calendar
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             case_frame = FUTURE_CASES[sid]
-            first = calendar.minute_to_session_label(case_frame.index[0])
-            last = calendar.minute_to_session_label(case_frame.index[-1])
+            first = calendar.minute_to_session(case_frame.index[0])
+            last = calendar.minute_to_session(case_frame.index[-1])
             result = self.session_bar_reader.load_raw_arrays(OHLCV, first, last, [sid])
             for i, field in enumerate(OHLCV):
                 assert_almost_equal(
                     EXPECTED_SESSIONS[sid][[field]],
                     result[i],
-                    err_msg="sid={0} field={1}".format(sid, field),
+                    err_msg=f"sid={sid} field={field}",
                 )
 
     def test_sessions(self):
@@ -719,18 +706,11 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
         )
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             expected = EXPECTED_SESSIONS[sid]
-            for dt_str, values in expected.iterrows():
-                try:
-                    dt = pd.Timestamp(dt_str, tz="UTC")
-                except ValueError:
-                    dt = dt_str.tz_convert(tz="UTC")
-
+            for dt, values in expected.iterrows():
                 for col in OHLCV:
                     result = session_bar_reader.get_value(sid, dt, col)
                     assert_almost_equal(
-                        result,
-                        values[col],
-                        err_msg="sid={0} col={1} dt={2}".format(sid, col, dt),
+                        result, values[col], err_msg=f"sid={sid} col={col} dt={dt}"
                     )
 
     def test_first_trading_day(self):
@@ -739,7 +719,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader, ZiplineTestCase):
     def test_get_last_traded_dt(self):
         future = self.asset_finder.retrieve_asset(self.ASSET_FINDER_FUTURE_SIDS[0])
 
-        assert self.trading_calendar.previous_session_label(
+        assert self.trading_calendar.previous_session(
             self.END_DATE
         ) == self.session_bar_reader.get_last_traded_dt(future, self.END_DATE)
 
@@ -750,8 +730,8 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader, ZiplineTestCase):
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
-    START_DATE = pd.Timestamp("2015-12-01", tz="UTC")
-    END_DATE = pd.Timestamp("2015-12-31", tz="UTC")
+    START_DATE = pd.Timestamp("2015-12-01")
+    END_DATE = pd.Timestamp("2015-12-31")
 
     def test_load_raw_arrays(self):
         reindex_reader = ReindexMinuteBarReader(
@@ -760,13 +740,13 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader, ZiplineTestCase):
             self.START_DATE,
             self.END_DATE,
         )
-        m_open, m_close = self.trading_calendar.open_and_close_for_session(
-            self.START_DATE
-        )
+        m_open = self.trading_calendar.session_first_minute(self.START_DATE)
+        m_close = self.trading_calendar.session_close(self.START_DATE)
+
         outer_minutes = self.trading_calendar.minutes_in_range(m_open, m_close)
         result = reindex_reader.load_raw_arrays(OHLCV, m_open, m_close, [1, 2])
 
-        opens = DataFrame(data=result[0], index=outer_minutes, columns=[1, 2])
+        opens = pd.DataFrame(data=result[0], index=outer_minutes, columns=[1, 2])
         opens_with_price = opens.dropna()
 
         assert 1440 == len(opens), (
@@ -820,8 +800,8 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
 
     # Dates are chosen to span Thanksgiving, which is not a Holiday on
     # us_futures.
-    START_DATE = pd.Timestamp("2015-11-02", tz="UTC")
-    END_DATE = pd.Timestamp("2015-11-30", tz="UTC")
+    START_DATE = pd.Timestamp("2015-11-02")
+    END_DATE = pd.Timestamp("2015-11-30")
 
     #     November 2015
     # Su Mo Tu We Th Fr Sa
@@ -850,7 +830,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
             OHLCV, self.START_DATE, self.END_DATE, [1, 2]
         )
 
-        opens = DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
+        opens = pd.DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
         opens_with_price = opens.dropna()
 
         assert 21 == len(opens), (
@@ -862,7 +842,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
             "because Thanksgiving is a NYSE holiday."
         )
 
-        tday = pd.Timestamp("2015-11-26", tz="UTC")
+        tday = pd.Timestamp("2015-11-26")
 
         # Thanksgiving, 2015-11-26.
         # Is a holiday in NYSE, but not in us_futures.
@@ -877,7 +857,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
 
         # Thanksgiving, 2015-11-26.
         # Is a holiday in NYSE, but not in us_futures.
-        tday_loc = outer_sessions.get_loc(pd.Timestamp("2015-11-26", tz="UTC"))
+        tday_loc = outer_sessions.get_loc(pd.Timestamp("2015-11-26"))
 
         assert_almost_equal(
             nan,
@@ -887,12 +867,12 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         )
 
     def test_load_raw_arrays_holiday_start(self):
-        tday = pd.Timestamp("2015-11-26", tz="UTC")
+        tday = pd.Timestamp("2015-11-26")
         outer_sessions = self.trading_calendar.sessions_in_range(tday, self.END_DATE)
 
         result = self.reader.load_raw_arrays(OHLCV, tday, self.END_DATE, [1, 2])
 
-        opens = DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
+        opens = pd.DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
         opens_with_price = opens.dropna()
 
         assert 3 == len(opens), (
@@ -905,12 +885,12 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         )
 
     def test_load_raw_arrays_holiday_end(self):
-        tday = pd.Timestamp("2015-11-26", tz="UTC")
+        tday = pd.Timestamp("2015-11-26")
         outer_sessions = self.trading_calendar.sessions_in_range(self.START_DATE, tday)
 
         result = self.reader.load_raw_arrays(OHLCV, self.START_DATE, tday, [1, 2])
 
-        opens = DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
+        opens = pd.DataFrame(data=result[0], index=outer_sessions, columns=[1, 2])
         opens_with_price = opens.dropna()
 
         assert 19 == len(opens), (
@@ -935,7 +915,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
 
         assert self.reader.get_value(1, tday, "volume") == 0
 
-    def test_last_availabe_dt(self):
+    def test_last_available_dt(self):
         assert self.reader.last_available_dt == self.END_DATE
 
     def test_get_last_traded_dt(self):
@@ -945,8 +925,8 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader, ZiplineTestCase):
     def test_sessions(self):
         sessions = self.reader.sessions
         assert 21 == len(sessions), "There should be 21 sessions in 2015-11."
-        assert pd.Timestamp("2015-11-02", tz="UTC") == sessions[0]
-        assert pd.Timestamp("2015-11-30", tz="UTC") == sessions[-1]
+        assert pd.Timestamp("2015-11-02") == sessions[0]
+        assert pd.Timestamp("2015-11-30") == sessions[-1]
 
     def test_first_trading_day(self):
         assert self.reader.first_trading_day == self.START_DATE

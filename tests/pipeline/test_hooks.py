@@ -226,8 +226,8 @@ class ProgressHooksTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
 
     ASSET_FINDER_COUNTRY_CODE = "US"
 
-    START_DATE = pd.Timestamp("2014-01-02", tz="UTC")
-    END_DATE = pd.Timestamp("2014-01-31", tz="UTC")
+    START_DATE = pd.Timestamp("2014-01-02")
+    END_DATE = pd.Timestamp("2014-01-31")
 
     # Don't populate PREPOPULATED_TERM for days after this cutoff.
     # This is used to test that we correctly compute progress when the number

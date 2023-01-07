@@ -22,9 +22,10 @@ def set_session(request):
         pd.Timestamp("2016-07-15"), pd.Timestamp("2016-07-19")
     )
 
-    trading_o_and_c = request.cls.nyse_calendar.schedule.loc[request.cls.sessions]
-    request.cls.opens = trading_o_and_c["market_open"]
-    request.cls.closes = trading_o_and_c["market_close"]
+    request.cls.opens = request.cls.nyse_calendar.first_minutes[request.cls.sessions]
+    request.cls.closes = request.cls.nyse_calendar.schedule.loc[
+        request.cls.sessions, "close"
+    ]
 
 
 @pytest.mark.usefixtures("set_session")
@@ -34,18 +35,23 @@ class TestClock:
             self.sessions,
             self.opens,
             self.closes,
-            days_at_time(self.sessions, time(6, 17), "US/Eastern"),
+            days_at_time(
+                self.sessions,
+                time(6, 17),
+                "US/Eastern",
+                day_offset=0,
+            ),
             False,
         )
 
         all_events = list(clock)
 
         def _check_session_bts_first(session_label, events, bts_dt):
-            minutes = self.nyse_calendar.minutes_for_session(session_label)
+            minutes = self.nyse_calendar.session_minutes(session_label)
 
             assert 393 == len(events)
 
-            assert events[0] == (session_label, SESSION_START)
+            assert events[0] == (session_label.tz_localize("UTC"), SESSION_START)
             assert events[1] == (bts_dt, BEFORE_TRADING_START_BAR)
             for i in range(2, 392):
                 assert events[i] == (minutes[i - 2], BAR)
@@ -104,11 +110,11 @@ class TestClock:
 
     def verify_bts_during_session(self, bts_time, bts_session_times, bts_idx):
         def _check_session_bts_during(session_label, events, bts_dt):
-            minutes = self.nyse_calendar.minutes_for_session(session_label)
+            minutes = self.nyse_calendar.session_minutes(session_label)
 
             assert 393 == len(events)
 
-            assert events[0] == (session_label, SESSION_START)
+            assert events[0] == (session_label.tz_localize("UTC"), SESSION_START)
 
             for i in range(1, bts_idx):
                 assert events[i] == (minutes[i - 1], BAR)
@@ -124,7 +130,7 @@ class TestClock:
             self.sessions,
             self.opens,
             self.closes,
-            days_at_time(self.sessions, bts_time, "US/Eastern"),
+            days_at_time(self.sessions, bts_time, "US/Eastern", day_offset=0),
             False,
         )
 
@@ -147,7 +153,7 @@ class TestClock:
             self.sessions,
             self.opens,
             self.closes,
-            days_at_time(self.sessions, time(19, 5), "US/Eastern"),
+            days_at_time(self.sessions, time(19, 5), "US/Eastern", day_offset=0),
             False,
         )
 
@@ -158,10 +164,10 @@ class TestClock:
         # 390 BARs, and then SESSION_END
 
         def _check_session_bts_after(session_label, events):
-            minutes = self.nyse_calendar.minutes_for_session(session_label)
+            minutes = self.nyse_calendar.session_minutes(session_label)
 
             assert 392 == len(events)
-            assert events[0] == (session_label, SESSION_START)
+            assert events[0] == (session_label.tz_localize("UTC"), SESSION_START)
 
             for i in range(1, 391):
                 assert events[i] == (minutes[i - 1], BAR)

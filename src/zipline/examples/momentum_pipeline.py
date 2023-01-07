@@ -93,7 +93,7 @@ def _test_args():
     return {
         # We run through october of 2013 because DELL is in the test data and
         # it went private on 2013-10-29.
-        "start": pd.Timestamp("2013-10-07", tz="utc"),
-        "end": pd.Timestamp("2013-11-30", tz="utc"),
+        "start": pd.Timestamp("2013-10-07"),
+        "end": pd.Timestamp("2013-11-30"),
         "capital_base": 100000,
     }

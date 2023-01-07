@@ -77,8 +77,7 @@ def QuartersEstimatesNoNumQuartersAttr(num_qtr):
 
 
 def create_expected_df_for_factor_compute(start_date, sids, tuples, end_date):
-    """
-    Given a list of tuples of new data we get for each sid on each critical
+    """Given a list of tuples of new data we get for each sid on each critical
     date (when information changes), create a DataFrame that fills that
     data through a date range ending at `end_date`.
     """
@@ -89,16 +88,15 @@ def create_expected_df_for_factor_compute(start_date, sids, tuples, end_date):
     df = df.reindex(pd.date_range(start_date, end_date))
     # Index name is lost during reindex.
     df.index = df.index.rename("knowledge_date")
-    df["at_date"] = end_date.tz_localize("utc")
-    df = df.set_index(["at_date", df.index.tz_localize("utc")]).ffill()
+    df["at_date"] = end_date
+    df = df.set_index(["at_date", df.index]).ffill()
     new_sids = set(sids) - set(df.columns)
     df = df.reindex(columns=df.columns.union(new_sids))
     return df
 
 
 class WithEstimates(WithTradingSessions, WithAdjustmentReader):
-    """
-    ZiplineTestCase mixin providing cls.loader and cls.events as class
+    """ZiplineTestCase mixin providing cls.loader and cls.events as class
     level fixtures.
 
 
@@ -118,8 +116,8 @@ class WithEstimates(WithTradingSessions, WithAdjustmentReader):
     """
 
     # Short window defined in order for test to run faster.
-    START_DATE = pd.Timestamp("2014-12-28", tz="utc")
-    END_DATE = pd.Timestamp("2015-02-04", tz="utc")
+    START_DATE = pd.Timestamp("2014-12-28")
+    END_DATE = pd.Timestamp("2015-02-04")
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -236,8 +234,8 @@ class WithOneDayPipeline(WithEstimates):
         engine = self.make_engine()
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in dataset.columns}),
-            start_date=pd.Timestamp("2015-01-15", tz="utc"),
-            end_date=pd.Timestamp("2015-01-15", tz="utc"),
+            start_date=pd.Timestamp("2015-01-15"),
+            end_date=pd.Timestamp("2015-01-15"),
         )
 
         assert_frame_equal(
@@ -265,9 +263,7 @@ class PreviousWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
                 FISCAL_QUARTER_FIELD_NAME: 1.0,
                 FISCAL_YEAR_FIELD_NAME: 2015.0,
             },
-            index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp("2015-01-15", tz="utc"), cls.sid0),)
-            ),
+            index=pd.MultiIndex.from_tuples(((pd.Timestamp("2015-01-15"), cls.sid0),)),
         )
 
 
@@ -291,9 +287,7 @@ class NextWithOneDayPipeline(WithOneDayPipeline, ZiplineTestCase):
                 FISCAL_QUARTER_FIELD_NAME: 2.0,
                 FISCAL_YEAR_FIELD_NAME: 2015.0,
             },
-            index=pd.MultiIndex.from_tuples(
-                ((pd.Timestamp("2015-01-15", tz="utc"), cls.sid0),)
-            ),
+            index=pd.MultiIndex.from_tuples(((pd.Timestamp("2015-01-15"), cls.sid0),)),
         )
 
 
@@ -474,7 +468,7 @@ class WithEstimatesTimeZero(WithEstimates):
     """
 
     # Shorter date range for performance
-    END_DATE = pd.Timestamp("2015-01-28", tz="utc")
+    END_DATE = pd.Timestamp("2015-01-28")
 
     q1_knowledge_dates = [
         pd.Timestamp("2015-01-01"),
@@ -791,15 +785,11 @@ class NextEstimateMultipleQuarters(WithEstimateMultipleQuarters, ZiplineTestCase
         # Fill columns for 1 Q out
         for raw_name in cls.columns.values():
             expected.loc[
-                pd.Timestamp("2015-01-01", tz="UTC") : pd.Timestamp(
-                    "2015-01-11", tz="UTC"
-                ),
+                pd.Timestamp("2015-01-01") : pd.Timestamp("2015-01-11"),
                 raw_name + "1",
             ] = cls.events[raw_name].iloc[0]
             expected.loc[
-                pd.Timestamp("2015-01-11", tz="UTC") : pd.Timestamp(
-                    "2015-01-20", tz="UTC"
-                ),
+                pd.Timestamp("2015-01-11") : pd.Timestamp("2015-01-20"),
                 raw_name + "1",
             ] = cls.events[raw_name].iloc[1]
 
@@ -809,23 +799,21 @@ class NextEstimateMultipleQuarters(WithEstimateMultipleQuarters, ZiplineTestCase
         # out.
         for col_name in ["estimate", "event_date"]:
             expected.loc[
-                pd.Timestamp("2015-01-06", tz="UTC") : pd.Timestamp(
-                    "2015-01-10", tz="UTC"
-                ),
+                pd.Timestamp("2015-01-06") : pd.Timestamp("2015-01-10"),
                 col_name + "2",
             ] = cls.events[col_name].iloc[1]
         # But we know what FQ and FY we'd need in both Q1 and Q2
         # because we know which FQ is next and can calculate from there
         expected.loc[
-            pd.Timestamp("2015-01-01", tz="UTC") : pd.Timestamp("2015-01-09", tz="UTC"),
+            pd.Timestamp("2015-01-01") : pd.Timestamp("2015-01-09"),
             FISCAL_QUARTER_FIELD_NAME + "2",
         ] = 2
         expected.loc[
-            pd.Timestamp("2015-01-12", tz="UTC") : pd.Timestamp("2015-01-20", tz="UTC"),
+            pd.Timestamp("2015-01-12") : pd.Timestamp("2015-01-20"),
             FISCAL_QUARTER_FIELD_NAME + "2",
         ] = 3
         expected.loc[
-            pd.Timestamp("2015-01-01", tz="UTC") : pd.Timestamp("2015-01-20", tz="UTC"),
+            pd.Timestamp("2015-01-01") : pd.Timestamp("2015-01-20"),
             FISCAL_YEAR_FIELD_NAME + "2",
         ] = 2015
 
@@ -842,37 +830,32 @@ class PreviousEstimateMultipleQuarters(WithEstimateMultipleQuarters, ZiplineTest
         # Fill columns for 1 Q out
         for raw_name in cls.columns.values():
             expected[raw_name + "1"].loc[
-                pd.Timestamp("2015-01-12", tz="UTC") : pd.Timestamp(
-                    "2015-01-19", tz="UTC"
-                )
+                pd.Timestamp(
+                    "2015-01-12",
+                ) : pd.Timestamp("2015-01-19")
             ] = cls.events[raw_name].iloc[0]
-            expected[raw_name + "1"].loc[
-                pd.Timestamp("2015-01-20", tz="UTC") :
-            ] = cls.events[raw_name].iloc[1]
+            expected[raw_name + "1"].loc[pd.Timestamp("2015-01-20") :] = cls.events[
+                raw_name
+            ].iloc[1]
 
         # Fill columns for 2 Q out
         for col_name in ["estimate", "event_date"]:
-            expected[col_name + "2"].loc[
-                pd.Timestamp("2015-01-20", tz="UTC") :
-            ] = cls.events[col_name].iloc[0]
+            expected[col_name + "2"].loc[pd.Timestamp("2015-01-20") :] = cls.events[
+                col_name
+            ].iloc[0]
         expected[FISCAL_QUARTER_FIELD_NAME + "2"].loc[
-            pd.Timestamp("2015-01-12", tz="UTC") : pd.Timestamp("2015-01-20", tz="UTC")
+            pd.Timestamp("2015-01-12") : pd.Timestamp("2015-01-20")
         ] = 4
         expected[FISCAL_YEAR_FIELD_NAME + "2"].loc[
-            pd.Timestamp("2015-01-12", tz="UTC") : pd.Timestamp("2015-01-20", tz="UTC")
+            pd.Timestamp("2015-01-12") : pd.Timestamp("2015-01-20")
         ] = 2014
-        expected[FISCAL_QUARTER_FIELD_NAME + "2"].loc[
-            pd.Timestamp("2015-01-20", tz="UTC") :
-        ] = 1
-        expected[FISCAL_YEAR_FIELD_NAME + "2"].loc[
-            pd.Timestamp("2015-01-20", tz="UTC") :
-        ] = 2015
+        expected[FISCAL_QUARTER_FIELD_NAME + "2"].loc[pd.Timestamp("2015-01-20") :] = 1
+        expected[FISCAL_YEAR_FIELD_NAME + "2"].loc[pd.Timestamp("2015-01-20") :] = 2015
         return expected
 
 
 class WithVaryingNumEstimates(WithEstimates):
-    """
-    ZiplineTestCase mixin providing fixtures and a test to ensure that we
+    """ZiplineTestCase mixin providing fixtures and a test to ensure that we
     have the correct overwrites when the event date changes. We want to make
     sure that if we have a quarter with an event date that gets pushed back,
     we don't start overwriting for the next quarter early. Likewise,
@@ -937,15 +920,15 @@ class WithVaryingNumEstimates(WithEstimates):
         engine = self.make_engine()
         engine.run_pipeline(
             Pipeline({"est": SomeFactor()}),
-            start_date=pd.Timestamp("2015-01-13", tz="utc"),
+            start_date=pd.Timestamp("2015-01-13"),
             # last event date we have
-            end_date=pd.Timestamp("2015-01-14", tz="utc"),
+            end_date=pd.Timestamp("2015-01-14"),
         )
 
 
 class PreviousVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
     def assert_compute(self, estimate, today):
-        if today == pd.Timestamp("2015-01-13", tz="utc"):
+        if today == pd.Timestamp("2015-01-13"):
             assert_array_equal(estimate[:, 0], np.array([np.NaN, np.NaN, 12]))
             assert_array_equal(estimate[:, 1], np.array([np.NaN, 12, 12]))
         else:
@@ -959,7 +942,7 @@ class PreviousVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
 
 class NextVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
     def assert_compute(self, estimate, today):
-        if today == pd.Timestamp("2015-01-13", tz="utc"):
+        if today == pd.Timestamp("2015-01-13"):
             assert_array_equal(estimate[:, 0], np.array([11, 12, 12]))
             assert_array_equal(estimate[:, 1], np.array([np.NaN, np.NaN, 21]))
         else:
@@ -972,8 +955,7 @@ class NextVaryingNumEstimates(WithVaryingNumEstimates, ZiplineTestCase):
 
 
 class WithEstimateWindows(WithEstimates):
-    """
-    ZiplineTestCase mixin providing fixures and a test to test running a
+    """ZiplineTestCase mixin providing fixures and a test to test running a
     Pipeline with an estimates loader over differently-sized windows.
 
     Attributes
@@ -998,15 +980,15 @@ class WithEstimateWindows(WithEstimates):
         the correct dates when we have a factor that asks for a window of data.
     """
 
-    END_DATE = pd.Timestamp("2015-02-10", tz="utc")
+    END_DATE = pd.Timestamp("2015-02-10")
     window_test_start_date = pd.Timestamp("2015-01-05")
     critical_dates = [
-        pd.Timestamp("2015-01-09", tz="utc"),
-        pd.Timestamp("2015-01-15", tz="utc"),
-        pd.Timestamp("2015-01-20", tz="utc"),
-        pd.Timestamp("2015-01-26", tz="utc"),
-        pd.Timestamp("2015-02-05", tz="utc"),
-        pd.Timestamp("2015-02-10", tz="utc"),
+        pd.Timestamp("2015-01-09"),
+        pd.Timestamp("2015-01-15"),
+        pd.Timestamp("2015-01-20"),
+        pd.Timestamp("2015-01-26"),
+        pd.Timestamp("2015-02-05"),
+        pd.Timestamp("2015-02-10"),
     ]
     # Starting date, number of announcements out.
     window_test_cases = list(itertools.product(critical_dates, (1, 2)))
@@ -1151,7 +1133,7 @@ class WithEstimateWindows(WithEstimates):
             Pipeline({"est": SomeFactor()}),
             start_date=start_date,
             # last event date we have
-            end_date=pd.Timestamp("2015-02-10", tz="utc"),
+            end_date=pd.Timestamp("2015-02-10"),
         )
 
 
@@ -2133,9 +2115,9 @@ class WithSplitAdjustedMultipleEstimateColumns(WithEstimates):
         we still split-adjust correctly.
     """
 
-    END_DATE = pd.Timestamp("2015-02-10", tz="utc")
-    test_start_date = pd.Timestamp("2015-01-06", tz="utc")
-    test_end_date = pd.Timestamp("2015-01-12", tz="utc")
+    END_DATE = pd.Timestamp("2015-02-10")
+    test_start_date = pd.Timestamp("2015-01-06")
+    test_end_date = pd.Timestamp("2015-01-12")
     split_adjusted_asof = pd.Timestamp("2015-01-08")
 
     @classmethod
@@ -2294,19 +2276,19 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_1q_out(cls):
         return {
-            pd.Timestamp("2015-01-06", tz="utc"): {
+            pd.Timestamp("2015-01-06"): {
                 "estimate1": np.array([[np.NaN, np.NaN]] * 3),
                 "estimate2": np.array([[np.NaN, np.NaN]] * 3),
             },
-            pd.Timestamp("2015-01-07", tz="utc"): {
+            pd.Timestamp("2015-01-07"): {
                 "estimate1": np.array([[np.NaN, np.NaN]] * 3),
                 "estimate2": np.array([[np.NaN, np.NaN]] * 3),
             },
-            pd.Timestamp("2015-01-08", tz="utc"): {
+            pd.Timestamp("2015-01-08"): {
                 "estimate1": np.array([[np.NaN, np.NaN]] * 2 + [[np.NaN, 1110.0]]),
                 "estimate2": np.array([[np.NaN, np.NaN]] * 2 + [[np.NaN, 2110.0]]),
             },
-            pd.Timestamp("2015-01-09", tz="utc"): {
+            pd.Timestamp("2015-01-09"): {
                 "estimate1": np.array(
                     [[np.NaN, np.NaN]]
                     + [[np.NaN, 1110.0 * 4]]
@@ -2318,7 +2300,7 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
                     + [[2100 * 3.0, 2110.0 * 4]]
                 ),
             },
-            pd.Timestamp("2015-01-12", tz="utc"): {
+            pd.Timestamp("2015-01-12"): {
                 "estimate1": np.array(
                     [[np.NaN, np.NaN]] * 2 + [[1200 * 3.0, 1210.0 * 4]]
                 ),
@@ -2331,19 +2313,11 @@ class PreviousWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_2q_out(cls):
         return {
-            pd.Timestamp("2015-01-06", tz="utc"): {
-                "estimate2": np.array([[np.NaN, np.NaN]] * 3)
-            },
-            pd.Timestamp("2015-01-07", tz="utc"): {
-                "estimate2": np.array([[np.NaN, np.NaN]] * 3)
-            },
-            pd.Timestamp("2015-01-08", tz="utc"): {
-                "estimate2": np.array([[np.NaN, np.NaN]] * 3)
-            },
-            pd.Timestamp("2015-01-09", tz="utc"): {
-                "estimate2": np.array([[np.NaN, np.NaN]] * 3)
-            },
-            pd.Timestamp("2015-01-12", tz="utc"): {
+            pd.Timestamp("2015-01-06"): {"estimate2": np.array([[np.NaN, np.NaN]] * 3)},
+            pd.Timestamp("2015-01-07"): {"estimate2": np.array([[np.NaN, np.NaN]] * 3)},
+            pd.Timestamp("2015-01-08"): {"estimate2": np.array([[np.NaN, np.NaN]] * 3)},
+            pd.Timestamp("2015-01-09"): {"estimate2": np.array([[np.NaN, np.NaN]] * 3)},
+            pd.Timestamp("2015-01-12"): {
                 "estimate2": np.array(
                     [[np.NaN, np.NaN]] * 2 + [[2100 * 3.0, 2110.0 * 4]]
                 )
@@ -2367,7 +2341,7 @@ class NextWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_1q_out(cls):
         return {
-            pd.Timestamp("2015-01-06", tz="utc"): {
+            pd.Timestamp("2015-01-06"): {
                 "estimate1": np.array(
                     [[np.NaN, np.NaN]] + [[1100.0 * 1 / 0.3, 1110.0 * 1 / 0.4]] * 2
                 ),
@@ -2375,19 +2349,19 @@ class NextWithSplitAdjustedMultipleEstimateColumns(
                     [[np.NaN, np.NaN]] + [[2100.0 * 1 / 0.3, 2110.0 * 1 / 0.4]] * 2
                 ),
             },
-            pd.Timestamp("2015-01-07", tz="utc"): {
+            pd.Timestamp("2015-01-07"): {
                 "estimate1": np.array([[1100.0, 1110.0]] * 3),
                 "estimate2": np.array([[2100.0, 2110.0]] * 3),
             },
-            pd.Timestamp("2015-01-08", tz="utc"): {
+            pd.Timestamp("2015-01-08"): {
                 "estimate1": np.array([[1100.0, 1110.0]] * 3),
                 "estimate2": np.array([[2100.0, 2110.0]] * 3),
             },
-            pd.Timestamp("2015-01-09", tz="utc"): {
+            pd.Timestamp("2015-01-09"): {
                 "estimate1": np.array([[1100 * 3.0, 1210.0 * 4]] * 3),
                 "estimate2": np.array([[2100 * 3.0, 2210.0 * 4]] * 3),
             },
-            pd.Timestamp("2015-01-12", tz="utc"): {
+            pd.Timestamp("2015-01-12"): {
                 "estimate1": np.array([[1200 * 3.0, np.NaN]] * 3),
                 "estimate2": np.array([[2200 * 3.0, np.NaN]] * 3),
             },
@@ -2396,29 +2370,22 @@ class NextWithSplitAdjustedMultipleEstimateColumns(
     @classmethod
     def make_expected_timelines_2q_out(cls):
         return {
-            pd.Timestamp("2015-01-06", tz="utc"): {
+            pd.Timestamp("2015-01-06"): {
                 "estimate2": np.array(
                     [[np.NaN, np.NaN]] + [[2200 * 1 / 0.3, 2210.0 * 1 / 0.4]] * 2
                 )
             },
-            pd.Timestamp("2015-01-07", tz="utc"): {
-                "estimate2": np.array([[2200.0, 2210.0]] * 3)
-            },
-            pd.Timestamp("2015-01-08", tz="utc"): {
-                "estimate2": np.array([[2200, 2210.0]] * 3)
-            },
-            pd.Timestamp("2015-01-09", tz="utc"): {
+            pd.Timestamp("2015-01-07"): {"estimate2": np.array([[2200.0, 2210.0]] * 3)},
+            pd.Timestamp("2015-01-08"): {"estimate2": np.array([[2200, 2210.0]] * 3)},
+            pd.Timestamp("2015-01-09"): {
                 "estimate2": np.array([[2200 * 3.0, np.NaN]] * 3)
             },
-            pd.Timestamp("2015-01-12", tz="utc"): {
-                "estimate2": np.array([[np.NaN, np.NaN]] * 3)
-            },
+            pd.Timestamp("2015-01-12"): {"estimate2": np.array([[np.NaN, np.NaN]] * 3)},
         }
 
 
 class WithAdjustmentBoundaries(WithEstimates):
-    """
-    ZiplineTestCase mixin providing class-level attributes, methods,
+    """ZiplineTestCase mixin providing class-level attributes, methods,
     and a test to make sure that when the split-adjusted-asof-date is not
     strictly within the date index, we can still apply adjustments correctly.
 
@@ -2439,12 +2406,12 @@ class WithAdjustmentBoundaries(WithEstimates):
         dates of interest.
     """
 
-    START_DATE = pd.Timestamp("2015-01-04", tz="utc")
+    START_DATE = pd.Timestamp("2015-01-04")
     # We want to run the pipeline starting from `START_DATE`, but the
     # pipeline results will start from the next day, which is
     # `test_start_date`.
-    test_start_date = pd.Timestamp("2015-01-05", tz="UTC")
-    END_DATE = test_end_date = pd.Timestamp("2015-01-12", tz="utc")
+    test_start_date = pd.Timestamp("2015-01-05")
+    END_DATE = test_end_date = pd.Timestamp("2015-01-12")
     split_adjusted_before_start = test_start_date - timedelta(days=1)
     split_adjusted_after_end = test_end_date + timedelta(days=1)
     # Must parametrize over this because there can only be 1 such date for
@@ -2641,8 +2608,7 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                         },
                         index=pd.date_range(
                             cls.test_start_date,
-                            pd.Timestamp("2015-01-08", tz="UTC"),
-                            tz="utc",
+                            pd.Timestamp("2015-01-08"),
                         ),
                     ),
                     pd.DataFrame(
@@ -2651,9 +2617,8 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                             "estimate": 10.0,
                         },
                         index=pd.date_range(
-                            pd.Timestamp("2015-01-09", tz="UTC"),
+                            pd.Timestamp("2015-01-09"),
                             cls.test_end_date,
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
@@ -2661,36 +2626,28 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                             SID_FIELD_NAME: cls.s1,
                             "estimate": 11.0,
                         },
-                        index=pd.date_range(
-                            cls.test_start_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_start_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s2, "estimate": np.NaN},
-                        index=pd.date_range(
-                            cls.test_start_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_start_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s3, "estimate": np.NaN},
                         index=pd.date_range(
                             cls.test_start_date,
                             cls.test_end_date - timedelta(1),
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s3, "estimate": 13.0 * 0.13},
-                        index=pd.date_range(
-                            cls.test_end_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_end_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s4, "estimate": np.NaN},
                         index=pd.date_range(
                             cls.test_start_date,
                             cls.test_end_date - timedelta(2),
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
@@ -2698,7 +2655,6 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                         index=pd.date_range(
                             cls.test_end_date - timedelta(1),
                             cls.test_end_date,
-                            tz="utc",
                         ),
                     ),
                 ]
@@ -2719,8 +2675,7 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                         },
                         index=pd.date_range(
                             cls.test_start_date,
-                            pd.Timestamp("2015-01-08", tz="UTC"),
-                            tz="utc",
+                            pd.Timestamp("2015-01-08"),
                         ),
                     ),
                     pd.DataFrame(
@@ -2729,9 +2684,8 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                             "estimate": 10.0,
                         },
                         index=pd.date_range(
-                            pd.Timestamp("2015-01-09", tz="UTC"),
+                            pd.Timestamp("2015-01-09"),
                             cls.test_end_date,
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
@@ -2739,36 +2693,28 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                             SID_FIELD_NAME: cls.s1,
                             "estimate": 11.0,
                         },
-                        index=pd.date_range(
-                            cls.test_start_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_start_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s2, "estimate": np.NaN},
-                        index=pd.date_range(
-                            cls.test_start_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_start_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s3, "estimate": np.NaN},
                         index=pd.date_range(
                             cls.test_start_date,
                             cls.test_end_date - timedelta(1),
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s3, "estimate": 13.0},
-                        index=pd.date_range(
-                            cls.test_end_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_end_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {SID_FIELD_NAME: cls.s4, "estimate": np.NaN},
                         index=pd.date_range(
                             cls.test_start_date,
                             cls.test_end_date - timedelta(2),
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
@@ -2776,7 +2722,6 @@ class PreviousWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase
                         index=pd.date_range(
                             cls.test_end_date - timedelta(1),
                             cls.test_end_date,
-                            tz="utc",
                         ),
                     ),
                 ]
@@ -2821,8 +2766,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                         },
                         index=pd.date_range(
                             cls.test_start_date,
-                            pd.Timestamp("2015-01-09", tz="UTC"),
-                            tz="utc",
+                            pd.Timestamp("2015-01-09"),
                         ),
                     ),
                     pd.DataFrame(
@@ -2830,18 +2774,14 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                             SID_FIELD_NAME: cls.s1,
                             "estimate": 11.0,
                         },
-                        index=pd.date_range(
-                            cls.test_start_date, cls.test_start_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_start_date, cls.test_start_date),
                     ),
                     pd.DataFrame(
                         {
                             SID_FIELD_NAME: cls.s2,
                             "estimate": 12.0,
                         },
-                        index=pd.date_range(
-                            cls.test_end_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_end_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {
@@ -2851,7 +2791,6 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                         index=pd.date_range(
                             cls.test_end_date - timedelta(1),
                             cls.test_end_date,
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
@@ -2862,7 +2801,6 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                         index=pd.date_range(
                             cls.test_end_date - timedelta(1),
                             cls.test_end_date - timedelta(1),
-                            tz="utc",
                         ),
                     ),
                 ]
@@ -2883,8 +2821,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                         },
                         index=pd.date_range(
                             cls.test_start_date,
-                            pd.Timestamp("2015-01-09", tz="UTC"),
-                            tz="utc",
+                            pd.Timestamp("2015-01-09"),
                         ),
                     ),
                     pd.DataFrame(
@@ -2892,18 +2829,14 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                             SID_FIELD_NAME: cls.s1,
                             "estimate": 11.0,
                         },
-                        index=pd.date_range(
-                            cls.test_start_date, cls.test_start_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_start_date, cls.test_start_date),
                     ),
                     pd.DataFrame(
                         {
                             SID_FIELD_NAME: cls.s2,
                             "estimate": 12.0,
                         },
-                        index=pd.date_range(
-                            cls.test_end_date, cls.test_end_date, tz="utc"
-                        ),
+                        index=pd.date_range(cls.test_end_date, cls.test_end_date),
                     ),
                     pd.DataFrame(
                         {
@@ -2913,7 +2846,6 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                         index=pd.date_range(
                             cls.test_end_date - timedelta(1),
                             cls.test_end_date,
-                            tz="utc",
                         ),
                     ),
                     pd.DataFrame(
@@ -2924,7 +2856,6 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
                         index=pd.date_range(
                             cls.test_end_date - timedelta(1),
                             cls.test_end_date - timedelta(1),
-                            tz="utc",
                         ),
                     ),
                 ]
@@ -2947,8 +2878,7 @@ class NextWithAdjustmentBoundaries(WithAdjustmentBoundaries, ZiplineTestCase):
 
 
 class TestQuarterShift:
-    """
-    This tests, in isolation, quarter calculation logic for shifting quarters
+    """This tests, in isolation, quarter calculation logic for shifting quarters
     backwards/forwards from a starting point.
     """
 

@@ -1,4 +1,4 @@
-class IDBox(object):
+class IDBox:
     """A wrapper that hashs to the id of the underlying object and compares
     equality on the id of the underlying.
 

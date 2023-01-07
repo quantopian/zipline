@@ -398,7 +398,7 @@ CORRELATION_METHOD_NOTE = dedent(
 )
 
 
-class summary_funcs(object):
+class summary_funcs:
     """Namespace of functions meant to be used with DailySummary."""
 
     @staticmethod
@@ -1721,19 +1721,19 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     def _validate(self):
         try:
             super(CustomFactor, self)._validate()
-        except UnsupportedDataType:
+        except UnsupportedDataType as exc:
             if self.dtype in CLASSIFIER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomClassifier?",
-                )
+                ) from exc
             elif self.dtype in FILTER_DTYPES:
                 raise UnsupportedDataType(
                     typename=type(self).__name__,
                     dtype=self.dtype,
                     hint="Did you mean to create a CustomFilter?",
-                )
+                ) from exc
             raise
 
     def __getattribute__(self, name):
@@ -1745,7 +1745,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         else:
             try:
                 return super(CustomFactor, self).__getattribute__(name)
-            except AttributeError:
+            except AttributeError as exc:
                 raise AttributeError(
                     "Instance of {factor} has no output named {attr!r}. "
                     "Possible choices are: {choices}.".format(
@@ -1753,7 +1753,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                         attr=name,
                         choices=self.outputs,
                     )
-                )
+                ) from exc
 
     def __iter__(self):
         if self.outputs is NotSpecified:

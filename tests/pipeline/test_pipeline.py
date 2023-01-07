@@ -1,7 +1,6 @@
-"""
-Tests for zipline.pipeline.Pipeline
-"""
-from mock import patch
+"""Tests for zipline.pipeline.Pipeline"""
+
+from unittest import mock
 
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
@@ -154,7 +153,7 @@ class TestPipelineTestCase:
             mock_display_graph
         ), "Mock signature doesn't match signature for display_graph."
 
-        patch_display_graph = patch(
+        patch_display_graph = mock.patch(
             "zipline.pipeline.graph.display_graph",
             mock_display_graph,
         )

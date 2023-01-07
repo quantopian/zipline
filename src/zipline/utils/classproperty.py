@@ -1,4 +1,4 @@
-class classproperty(object):
+class classproperty:
     """Class property"""
 
     def __init__(self, fget):

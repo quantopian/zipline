@@ -19,7 +19,7 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.input_validation import expect_types
 
 
-class Transaction(object):
+class Transaction:
     @expect_types(asset=Asset)
     def __init__(self, asset, amount, dt, price, order_id):
         self.asset = asset

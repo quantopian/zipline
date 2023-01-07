@@ -20,8 +20,8 @@ TEST_RESOURCE_PATH = join(
 
 class TestCSVDIRBundle:
     symbols = "AAPL", "IBM", "KO", "MSFT"
-    asset_start = pd.Timestamp("2012-01-03", tz="utc")
-    asset_end = pd.Timestamp("2014-12-31", tz="utc")
+    asset_start = pd.Timestamp("2012-01-03")
+    asset_end = pd.Timestamp("2014-12-31")
     bundle = bundles["csvdir"]
     calendar = get_calendar(bundle.calendar_name)
     start_date = calendar.first_session
@@ -288,11 +288,11 @@ class TestCSVDIRBundle:
             assert equity.start_date == self.asset_start, equity
             assert equity.end_date == self.asset_end, equity
 
-        sessions = self.calendar.all_sessions
+        sessions = self.calendar.sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
-            sessions[sessions.get_loc(self.asset_start, "bfill")],
-            sessions[sessions.get_loc(self.asset_end, "ffill")],
+            sessions[sessions.get_indexer([self.asset_start], "bfill")[0]],
+            sessions[sessions.get_indexer([self.asset_end], "ffill")[0]],
             sids,
         )
 

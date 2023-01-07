@@ -18,7 +18,7 @@ from zipline.utils.compat import wraps
 from zipline.utils.algo_instance import get_algo_instance, set_algo_instance
 
 
-class ZiplineAPI(object):
+class ZiplineAPI:
     """
     Context manager for making an algorithm instance available to zipline API
     functions within a scoped block.

@@ -1,13 +1,10 @@
 """
 Quick and dirty script to generate test case inputs.
 """
-from os.path import (
-    dirname,
-    join,
-)
+from pathlib import Path
 from pandas_datareader.data import DataReader
 
-here = join(dirname(__file__))
+TESTPATH = Path(__file__).parent
 
 
 def main():
@@ -32,7 +29,7 @@ def main():
         )
         del data["Adj Close"]
 
-        dest = join(here, symbol + ".csv")
+        dest = TESTPATH / f"{symbol}.csv"
         print("Writing %s -> %s" % (symbol, dest))
         data.to_csv(dest, index_label="day")
 

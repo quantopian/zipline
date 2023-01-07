@@ -52,7 +52,7 @@ class TestRegistrationManager:
         with pytest.raises(ValueError, match=msg):
 
             @rm.register("ayy-lmao")
-            class Fake(object):
+            class Fake:
                 pass
 
         # assert excinfo.value.args == msg
@@ -91,7 +91,7 @@ class TestRegistrationManager:
         # Check that we successfully registered.
         check_registered()
 
-        class Fake(object):
+        class Fake:
             pass
 
         # Try and fail to register with the same key again.

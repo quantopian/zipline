@@ -27,7 +27,7 @@ def pricing_for_sid(sid):
     def column(name):
         return np.arange(252) + 1 + sid * 10000 + modifier[name] * 1000
 
-    trading_days = get_calendar("XNYS").all_sessions
+    trading_days = get_calendar("XNYS").sessions
 
     return (
         pd.DataFrame(

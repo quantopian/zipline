@@ -55,7 +55,7 @@ implements the following algorithm for executing pipelines:
    into "narrow" format, with output labels dictated by the Pipeline's
    screen. This logic lives in SimplePipelineEngine._to_narrow.
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from functools import partial
 
 from numpy import array, arange
@@ -80,11 +80,10 @@ from .hooks import DelegatingHooks
 from .term import AssetExists, InputDates, LoadableTerm
 
 
-class PipelineEngine(metaclass=ABCMeta):
+class PipelineEngine(ABC):
     @abstractmethod
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
-        """
-        Compute values for ``pipeline`` from ``start_date`` to ``end_date``.
+        """Compute values for ``pipeline`` from ``start_date`` to ``end_date``.
 
         Parameters
         ----------
@@ -117,8 +116,7 @@ class PipelineEngine(metaclass=ABCMeta):
     def run_chunked_pipeline(
         self, pipeline, start_date, end_date, chunksize, hooks=None
     ):
-        """
-        Compute values for ``pipeline`` from ``start_date`` to ``end_date``, in
+        """Compute values for ``pipeline`` from ``start_date`` to ``end_date``, in
         date chunks of size ``chunksize``.
 
         Chunked execution reduces memory consumption, and may reduce
@@ -159,16 +157,13 @@ class PipelineEngine(metaclass=ABCMeta):
 
 
 class NoEngineRegistered(Exception):
-    """
-    Raised if a user tries to call pipeline_output in an algorithm that hasn't
+    """Raised if a user tries to call pipeline_output in an algorithm that hasn't
     set up a pipeline engine.
     """
 
 
 class ExplodingPipelineEngine(PipelineEngine):
-    """
-    A PipelineEngine that doesn't do anything.
-    """
+    """A PipelineEngine that doesn't do anything."""
 
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
         raise NoEngineRegistered(
@@ -216,8 +211,7 @@ def default_populate_initial_workspace(
 
 
 class SimplePipelineEngine(PipelineEngine):
-    """
-    PipelineEngine class that computes each term independently.
+    """PipelineEngine class that computes each term independently.
 
     Parameters
     ----------
@@ -281,8 +275,7 @@ class SimplePipelineEngine(PipelineEngine):
     def run_chunked_pipeline(
         self, pipeline, start_date, end_date, chunksize, hooks=None
     ):
-        """
-        Compute values for ``pipeline`` from ``start_date`` to ``end_date``, in
+        """Compute values for ``pipeline`` from ``start_date`` to ``end_date``, in
         date chunks of size ``chunksize``.
 
         Chunked execution reduces memory consumption, and may reduce
@@ -321,7 +314,7 @@ class SimplePipelineEngine(PipelineEngine):
         """
         domain = self.resolve_domain(pipeline)
         ranges = compute_date_range_chunks(
-            domain.all_sessions(),
+            domain.sessions(),
             start_date,
             end_date,
             chunksize,
@@ -343,8 +336,7 @@ class SimplePipelineEngine(PipelineEngine):
         return categorical_df_concat(nonempty_chunks, inplace=True)
 
     def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
-        """
-        Compute values for ``pipeline`` from ``start_date`` to ``end_date``.
+        """Compute values for ``pipeline`` from ``start_date`` to ``end_date``.
 
         Parameters
         ----------
@@ -387,7 +379,7 @@ class SimplePipelineEngine(PipelineEngine):
         if end_date < start_date:
             raise ValueError(
                 "start_date must be before or equal to end_date \n"
-                "start_date=%s, end_date=%s" % (start_date, end_date)
+                f"start_date={start_date}, end_date={end_date}"
             )
 
         domain = self.resolve_domain(pipeline)
@@ -441,8 +433,7 @@ class SimplePipelineEngine(PipelineEngine):
         )
 
     def _compute_root_mask(self, domain, start_date, end_date, extra_rows):
-        """
-        Compute a lifetimes matrix from our AssetFinder, then drop columns that
+        """Compute a lifetimes matrix from our AssetFinder, then drop columns that
         didn't exist at all during the query dates.
 
         Parameters
@@ -467,18 +458,18 @@ class SimplePipelineEngine(PipelineEngine):
             that existed for at least one day between `start_date` and
             `end_date`.
         """
-        sessions = domain.all_sessions()
+        sessions = domain.sessions()
 
         if start_date not in sessions:
             raise ValueError(
-                "Pipeline start date ({}) is not a trading session for "
-                "domain {}.".format(start_date, domain)
+                f"Pipeline start date ({start_date}) is not a trading session for "
+                f"domain {domain}."
             )
 
         elif end_date not in sessions:
             raise ValueError(
-                "Pipeline end date {} is not a trading session for "
-                "domain {}.".format(end_date, domain)
+                f"Pipeline end date {end_date} is not a trading session for "
+                f"domain {domain}."
             )
 
         start_idx, end_idx = sessions.slice_locs(start_date, end_date)
@@ -579,8 +570,7 @@ class SimplePipelineEngine(PipelineEngine):
     def compute_chunk(
         self, graph, dates, sids, workspace, refcounts, execution_order, hooks
     ):
-        """
-        Compute the Pipeline terms in the graph for the requested start and end
+        """Compute the Pipeline terms in the graph for the requested start and end
         dates.
 
         This is where we do the actual work of running a pipeline.

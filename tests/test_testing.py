@@ -32,12 +32,12 @@ class TestParameterSpace(TestCase):
     y_args = [3, 4]
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         cls.xy_invocations = []
         cls.yx_invocations = []
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         # This is the only actual test here.
         assert cls.xy_invocations == list(product(cls.x_args, cls.y_args))
         assert cls.yx_invocations == list(product(cls.y_args, cls.x_args))
@@ -115,7 +115,7 @@ class TestTestingSlippage(
     def init_class_fixtures(cls):
         super(TestTestingSlippage, cls).init_class_fixtures()
         cls.asset = cls.asset_finder.retrieve_asset(1)
-        cls.minute, _ = cls.trading_calendar.open_and_close_for_session(cls.START_DATE)
+        cls.minute = cls.trading_calendar.session_first_minute(cls.START_DATE)
 
     def init_instance_fixtures(self):
         super(TestTestingSlippage, self).init_instance_fixtures()
@@ -171,7 +171,7 @@ class TestPredicates:
         assert "foo" == instance_of((str, int))
 
     def test_instance_of_exact(self):
-        class Foo(object):
+        class Foo:
             pass
 
         class Bar(Foo):

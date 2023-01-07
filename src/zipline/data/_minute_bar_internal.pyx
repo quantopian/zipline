@@ -9,8 +9,7 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 def minute_value(ndarray[long_t, ndim=1] market_opens,
                  Py_ssize_t pos,
                  short minutes_per_day):
-    """
-    Finds the value of the minute represented by `pos` in the given array of
+    """Finds the value of the minute represented by `pos` in the given array of
     market opens.
 
     Parameters
@@ -40,8 +39,7 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
                             long_t minute_val,
                             short minutes_per_day,
                             bool forward_fill):
-    """
-    Finds the position of a given minute in the given array of market opens.
+    """Finds the position of a given minute in the given array of market opens.
     If not a market minute, adjusts to the last market minute.
 
     Parameters
@@ -76,8 +74,7 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
     """
     cdef Py_ssize_t market_open_loc, market_open, delta
 
-    market_open_loc = \
-        searchsorted(market_opens, minute_val, side='right') - 1
+    market_open_loc = searchsorted(market_opens, minute_val, side='right') - 1
     market_open = market_opens[market_open_loc]
     market_close = market_closes[market_open_loc]
 
@@ -96,8 +93,7 @@ def find_last_traded_position_internal(
         volumes,
         short minutes_per_day):
 
-    """
-    Finds the position of the last traded minute for the given volumes array.
+    """Finds the position of the last traded minute for the given volumes array.
 
     Parameters
     ----------

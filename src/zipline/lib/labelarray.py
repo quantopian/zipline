@@ -37,16 +37,12 @@ from ._factorize import (
 
 def compare_arrays(left, right):
     "Eq check with a short-circuit for identical objects."
-    return left is right or (
-        (left.shape == right.shape) and (left == right).all()
-    )
+    return left is right or ((left.shape == right.shape) and (left == right).all())
 
 
 def _make_unsupported_method(name):
     def method(*args, **kwargs):
-        raise NotImplementedError(
-            "Method %s is not supported on LabelArrays." % name
-        )
+        raise NotImplementedError("Method %s is not supported on LabelArrays." % name)
 
     method.__name__ = name
     method.__doc__ = "Unsupported LabelArray Method: %s" % name
@@ -294,9 +290,7 @@ class LabelArray(ndarray):
            responsible for copying over the parent array's category metadata.
         """
         if obj is None:
-            raise TypeError(
-                "Direct construction of LabelArrays is not supported."
-            )
+            raise TypeError("Direct construction of LabelArrays is not supported.")
 
         # See docstring for an explanation of when these will or will not be
         # set.
@@ -346,9 +340,7 @@ class LabelArray(ndarray):
         Coerce self into a pandas DataFrame of Categoricals.
         """
         if len(self.shape) != 2:
-            raise ValueError(
-                "Can't convert a non-2D LabelArray into a DataFrame."
-            )
+            raise ValueError("Can't convert a non-2D LabelArray into a DataFrame.")
 
         expected_shape = (len(index), len(columns))
         if expected_shape != self.shape:
@@ -421,8 +413,8 @@ class LabelArray(ndarray):
         """
         try:
             value_code = self.reverse_categories[value]
-        except KeyError:
-            raise ValueError("%r is not in LabelArray categories." % value)
+        except KeyError as exc:
+            raise ValueError("%r is not in LabelArray categories." % value) from exc
 
         self.as_int_array()[indexer] = value_code
 
@@ -443,17 +435,13 @@ class LabelArray(ndarray):
         """
         Like isnan, but checks for locations where we store missing values.
         """
-        return (
-            self.as_int_array() == self.reverse_categories[self.missing_value]
-        )
+        return self.as_int_array() == self.reverse_categories[self.missing_value]
 
     def not_missing(self):
         """
         Like ~isnan, but checks for locations where we store missing values.
         """
-        return (
-            self.as_int_array() != self.reverse_categories[self.missing_value]
-        )
+        return self.as_int_array() != self.reverse_categories[self.missing_value]
 
     def _equality_check(op):
         """
@@ -655,9 +643,7 @@ class LabelArray(ndarray):
         else:
             allowed_outtypes = self.SUPPORTED_NON_NONE_SCALAR_TYPES
 
-        def f_to_use(
-            x, missing_value=self.missing_value, otypes=allowed_outtypes
-        ):
+        def f_to_use(x, missing_value=self.missing_value, otypes=allowed_outtypes):
 
             # Don't call f on the missing value; those locations don't exist
             # semantically. We return _sortable_sentinel rather than None
@@ -685,9 +671,9 @@ class LabelArray(ndarray):
 
             return ret
 
-        new_categories_with_duplicates = np.vectorize(
-            f_to_use, otypes=[object]
-        )(self.categories)
+        new_categories_with_duplicates = np.vectorize(f_to_use, otypes=[object])(
+            self.categories
+        )
 
         # If f() maps multiple inputs to the same output, then we can end up
         # with the same code duplicated multiple times. Compress the categories
@@ -807,7 +793,7 @@ class LabelArray(ndarray):
 
 @instance  # This makes _sortable_sentinel a singleton instance.
 @total_ordering
-class _sortable_sentinel(object):
+class _sortable_sentinel:
     """Dummy object that sorts before any other python object."""
 
     def __eq__(self, other):
@@ -821,9 +807,7 @@ class _sortable_sentinel(object):
 def labelarray_where(cond, trues, falses):
     """LabelArray-aware implementation of np.where."""
     if trues.missing_value != falses.missing_value:
-        raise ValueError(
-            "Can't compute where on arrays with different missing values."
-        )
+        raise ValueError("Can't compute where on arrays with different missing values.")
 
     strs = np.where(cond, trues.as_string_array(), falses.as_string_array())
     return LabelArray(strs, missing_value=trues.missing_value)

@@ -133,8 +133,7 @@ class InMemoryDailyBarReader(CurrencyAwareSessionBarReader):
 
 
 def verify_frames_aligned(frames, calendar):
-    """
-    Verify that DataFrames in ``frames`` have the same indexing scheme and are
+    """Verify that DataFrames in ``frames`` have the same indexing scheme and are
     aligned to ``calendar``.
 
     Parameters
@@ -158,6 +157,6 @@ def verify_frames_aligned(frames, calendar):
     start, end = indexes[0][[0, -1]]
     cal_sessions = calendar.sessions_in_range(start, end)
     check_indexes_all_same(
-        [indexes[0], cal_sessions],
-        "DataFrame index doesn't match {} calendar:".format(calendar.name),
+        [indexes[0].tz_localize(None), cal_sessions],
+        f"DataFrame index doesn't match {calendar.name} calendar:",
     )

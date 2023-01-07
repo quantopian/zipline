@@ -13,19 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logbook
+import logging
 import pandas as pd
 
 from zipline.utils.memoize import remember_last
-from zipline.utils.pandas_utils import normalize_date
 
-log = logbook.Logger("Trading")
+log = logging.getLogger("Trading")
 
 
 DEFAULT_CAPITAL_BASE = 1e5
 
 
-class SimulationParameters(object):
+class SimulationParameters:
     def __init__(
         self,
         start_session,
@@ -43,17 +42,17 @@ class SimulationParameters(object):
         assert trading_calendar is not None, "Must pass in trading calendar!"
         assert start_session <= end_session, "Period start falls after period end."
         assert (
-            start_session <= trading_calendar.last_trading_session
+            start_session.tz_localize(None) <= trading_calendar.last_session
         ), "Period start falls after the last known trading day."
         assert (
-            end_session >= trading_calendar.first_trading_session
+            end_session.tz_localize(None) >= trading_calendar.first_session
         ), "Period end falls before the first known trading day."
 
         # chop off any minutes or hours on the given start and end dates,
         # as we only support session labels here (and we represent session
         # labels as midnight UTC).
-        self._start_session = normalize_date(start_session)
-        self._end_session = normalize_date(end_session)
+        self._start_session = start_session.normalize()
+        self._end_session = end_session.normalize()
         self._capital_base = capital_base
 
         self._emission_rate = emission_rate
@@ -64,27 +63,27 @@ class SimulationParameters(object):
 
         self._trading_calendar = trading_calendar
 
-        if not trading_calendar.is_session(self._start_session):
+        if not trading_calendar.is_session(self._start_session.tz_localize(None)):
             # if the start date is not a valid session in this calendar,
             # push it forward to the first valid session
-            self._start_session = trading_calendar.minute_to_session_label(
+            self._start_session = trading_calendar.minute_to_session(
                 self._start_session
             )
 
-        if not trading_calendar.is_session(self._end_session):
+        if not trading_calendar.is_session(self._end_session.tz_localize(None)):
             # if the end date is not a valid session in this calendar,
             # pull it backward to the last valid session before the given
             # end date.
-            self._end_session = trading_calendar.minute_to_session_label(
+            self._end_session = trading_calendar.minute_to_session(
                 self._end_session, direction="previous"
             )
 
-        self._first_open = trading_calendar.open_and_close_for_session(
-            self._start_session
-        )[0]
-        self._last_close = trading_calendar.open_and_close_for_session(
-            self._end_session
-        )[1]
+        self._first_open = trading_calendar.session_first_minute(
+            self._start_session.tz_localize(None)
+        )
+        self._last_close = trading_calendar.session_close(
+            self._end_session.tz_localize(None)
+        )
 
     @property
     def capital_base(self):

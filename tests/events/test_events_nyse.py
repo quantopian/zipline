@@ -23,14 +23,12 @@ from zipline.utils.events import NthTradingDayOfWeek
 
 from .test_events import StatelessRulesTests, StatefulRulesTests, minutes_for_days
 
-T = partial(pd.Timestamp, tz="UTC")
-
 
 class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
     CALENDAR_STRING = "NYSE"
 
-    HALF_SESSION = pd.Timestamp("2014-07-03", tz="UTC")
-    FULL_SESSION = pd.Timestamp("2014-09-24", tz="UTC")
+    HALF_SESSION = pd.Timestamp("2014-07-03")
+    FULL_SESSION = pd.Timestamp("2014-09-24")
 
     def test_edge_cases_for_TradingDayOfWeek(self):
         """
@@ -84,7 +82,8 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
         }
 
         results = {
-            x: rule.should_trigger(self.cal.next_open(T(x))) for x in expected.keys()
+            x: rule.should_trigger(self.cal.session_first_minute(x))
+            for x in expected.keys()
         }
 
         assert expected == results
@@ -109,7 +108,8 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
         }
 
         results = {
-            x: rule.should_trigger(self.cal.next_open(T(x))) for x in expected.keys()
+            x: rule.should_trigger(self.cal.session_first_minute(x))
+            for x in expected.keys()
         }
 
         assert expected == results
@@ -133,7 +133,8 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
         }
 
         results = {
-            x: rule.should_trigger(self.cal.next_open(T(x))) for x in expected.keys()
+            x: rule.should_trigger(self.cal.session_first_minute(x))
+            for x in expected.keys()
         }
 
         assert expected == results
@@ -154,8 +155,9 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
 
         should_trigger = composed_rule.should_trigger
 
-        week_minutes = self.cal.minutes_for_sessions_in_range(
-            pd.Timestamp("2014-01-06", tz="UTC"), pd.Timestamp("2014-01-10", tz="UTC")
+        week_minutes = self.cal.sessions_minutes(
+            pd.Timestamp("2014-01-06"),
+            pd.Timestamp("2014-01-10"),
         )
 
         dt = pd.Timestamp("2014-01-06 14:30:00", tz="UTC")

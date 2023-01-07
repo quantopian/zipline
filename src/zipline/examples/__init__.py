@@ -64,9 +64,7 @@ _cols_to_check = [
 
 
 def run_example(example_modules, example_name, environ, benchmark_returns=None):
-    """
-    Run an example module from zipline.examples.
-    """
+    """Run an example module from zipline.examples."""
     mod = example_modules[example_name]
 
     register_calendar("YAHOO", get_calendar("NYSE"), force=True)

@@ -14,24 +14,22 @@
 # limitations under the License.
 from collections import OrderedDict
 from textwrap import dedent
-from parameterized import parameterized
-import numpy as np
-from numpy import nan
-import pandas as pd
 
-from zipline._protocol import handle_non_market_minutes, BarData
+import numpy as np
+import pandas as pd
+import pytest
+from parameterized import parameterized
+
+import zipline.testing.fixtures as zf
+from zipline._protocol import BarData, handle_non_market_minutes
 from zipline.assets import Asset, Equity
-from zipline.errors import (
-    HistoryWindowStartsBeforeData,
-)
+from zipline.errors import HistoryWindowStartsBeforeData
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.testing import (
+    MockDailyBarReader,
     create_minute_df_for_asset,
     str_to_seconds,
-    MockDailyBarReader,
 )
-import zipline.testing.fixtures as zf
-import pytest
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -39,11 +37,8 @@ ALL_FIELDS = OHLCP + ["volume"]
 
 
 class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
-    TRADING_START_DT = TRADING_ENV_MIN_DATE = START_DATE = pd.Timestamp(
-        "2014-01-03",
-        tz="UTC",
-    )
-    TRADING_END_DT = END_DATE = pd.Timestamp("2016-01-29", tz="UTC")
+    TRADING_START_DT = TRADING_ENV_MIN_DATE = START_DATE = pd.Timestamp("2014-01-03")
+    TRADING_END_DT = END_DATE = pd.Timestamp("2016-01-29")
 
     SPLIT_ASSET_SID = 4
     DIVIDEND_ASSET_SID = 5
@@ -105,13 +100,13 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
 
     @classmethod
     def make_equity_info(cls):
-        jan_5_2015 = pd.Timestamp("2015-01-05", tz="UTC")
-        day_after_12312015 = pd.Timestamp("2016-01-04", tz="UTC")
+        jan_5_2015 = pd.Timestamp("2015-01-05")
+        day_after_12312015 = pd.Timestamp("2016-01-04")
 
         return pd.DataFrame.from_dict(
             {
                 1: {
-                    "start_date": pd.Timestamp("2014-01-03", tz="UTC"),
+                    "start_date": pd.Timestamp("2014-01-03"),
                     "end_date": cls.TRADING_END_DT,
                     "symbol": "ASSET1",
                     "exchange": "TEST",
@@ -147,14 +142,14 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
                     "exchange": "TEST",
                 },
                 cls.HALF_DAY_TEST_ASSET_SID: {
-                    "start_date": pd.Timestamp("2014-07-02", tz="UTC"),
+                    "start_date": pd.Timestamp("2014-07-02"),
                     "end_date": day_after_12312015,
                     "symbol": "HALF_DAY_TEST_ASSET",
                     "exchange": "TEST",
                 },
                 cls.SHORT_ASSET_SID: {
-                    "start_date": pd.Timestamp("2015-01-05", tz="UTC"),
-                    "end_date": pd.Timestamp("2015-01-06", tz="UTC"),
+                    "start_date": pd.Timestamp("2015-01-05"),
+                    "end_date": pd.Timestamp("2015-01-06"),
                     "symbol": "SHORT_ASSET",
                     "exchange": "TEST",
                 },
@@ -202,22 +197,18 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
             [
                 {
                     # only care about ex date, the other dates don't matter here
-                    "ex_date": pd.Timestamp("2015-01-06", tz="UTC").to_datetime64(),
-                    "record_date": pd.Timestamp("2015-01-06", tz="UTC").to_datetime64(),
-                    "declared_date": pd.Timestamp(
-                        "2015-01-06", tz="UTC"
-                    ).to_datetime64(),
-                    "pay_date": pd.Timestamp("2015-01-06", tz="UTC").to_datetime64(),
+                    "ex_date": pd.Timestamp("2015-01-06").to_datetime64(),
+                    "record_date": pd.Timestamp("2015-01-06").to_datetime64(),
+                    "declared_date": pd.Timestamp("2015-01-06").to_datetime64(),
+                    "pay_date": pd.Timestamp("2015-01-06").to_datetime64(),
                     "amount": 2.0,
                     "sid": cls.DIVIDEND_ASSET_SID,
                 },
                 {
-                    "ex_date": pd.Timestamp("2015-01-07", tz="UTC").to_datetime64(),
-                    "record_date": pd.Timestamp("2015-01-07", tz="UTC").to_datetime64(),
-                    "declared_date": pd.Timestamp(
-                        "2015-01-07", tz="UTC"
-                    ).to_datetime64(),
-                    "pay_date": pd.Timestamp("2015-01-07", tz="UTC").to_datetime64(),
+                    "ex_date": pd.Timestamp("2015-01-07").to_datetime64(),
+                    "record_date": pd.Timestamp("2015-01-07").to_datetime64(),
+                    "declared_date": pd.Timestamp("2015-01-07").to_datetime64(),
+                    "pay_date": pd.Timestamp("2015-01-07").to_datetime64(),
                     "amount": 4.0,
                     "sid": cls.DIVIDEND_ASSET_SID,
                 },
@@ -252,26 +243,22 @@ class WithHistory(zf.WithCreateBarData, zf.WithDataPortal):
         equity_cal = self.trading_calendars[Equity]
 
         def reindex_to_primary_calendar(a, field):
-            """
-            Reindex an array of prices from a window on the NYSE
+            """Reindex an array of prices from a window on the NYSE
             calendar by the window on the primary calendar with the same
             dt and window size.
             """
             if mode == "daily":
-                dts = cal.sessions_window(dt, -9)
+                dts = cal.sessions_window(dt, -10)
 
                 # `dt` may not be a session on the equity calendar, so
                 # find the next valid session.
-                equity_sess = equity_cal.minute_to_session_label(dt)
-                equity_dts = equity_cal.sessions_window(equity_sess, -9)
+                equity_sess = equity_cal.minute_to_session(dt)
+                equity_dts = equity_cal.sessions_window(equity_sess, -10)
             elif mode == "minute":
                 dts = cal.minutes_window(dt, -10)
                 equity_dts = equity_cal.minutes_window(dt, -10)
 
-            output = pd.Series(
-                index=equity_dts,
-                data=a,
-            ).reindex(dts)
+            output = pd.Series(index=equity_dts, data=a).reindex(dts)
 
             # Fill after reindexing, to ensure we don't forward fill
             # with values that are being dropped.
@@ -524,8 +511,8 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
 
         data[1] = create_minute_df_for_asset(
             equities_cal,
-            pd.Timestamp("2014-01-03", tz="utc"),
-            pd.Timestamp("2016-01-29", tz="utc"),
+            pd.Timestamp("2014-01-03"),
+            pd.Timestamp("2016-01-29"),
             start_val=2,
         )
 
@@ -533,7 +520,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         data[asset2.sid] = create_minute_df_for_asset(
             equities_cal,
             asset2.start_date,
-            equities_cal.previous_session_label(asset2.end_date),
+            equities_cal.previous_session(asset2.end_date),
             start_val=2,
             minute_blacklist=[
                 pd.Timestamp("2015-01-08 14:31", tz="UTC"),
@@ -550,26 +537,26 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             (
                 create_minute_df_for_asset(
                     equities_cal,
-                    pd.Timestamp("2015-01-05", tz="UTC"),
-                    pd.Timestamp("2015-01-05", tz="UTC"),
+                    pd.Timestamp("2015-01-05"),
+                    pd.Timestamp("2015-01-05"),
                     start_val=8000,
                 ),
                 create_minute_df_for_asset(
                     equities_cal,
-                    pd.Timestamp("2015-01-06", tz="UTC"),
-                    pd.Timestamp("2015-01-06", tz="UTC"),
+                    pd.Timestamp("2015-01-06"),
+                    pd.Timestamp("2015-01-06"),
                     start_val=2000,
                 ),
                 create_minute_df_for_asset(
                     equities_cal,
-                    pd.Timestamp("2015-01-07", tz="UTC"),
-                    pd.Timestamp("2015-01-07", tz="UTC"),
+                    pd.Timestamp("2015-01-07"),
+                    pd.Timestamp("2015-01-07"),
                     start_val=1000,
                 ),
                 create_minute_df_for_asset(
                     equities_cal,
-                    pd.Timestamp("2015-01-08", tz="UTC"),
-                    pd.Timestamp("2015-01-08", tz="UTC"),
+                    pd.Timestamp("2015-01-08"),
+                    pd.Timestamp("2015-01-08"),
                     start_val=1000,
                 ),
             )
@@ -601,9 +588,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
     #         algo.run()
 
     def test_negative_bar_count(self):
-        """
-        Negative bar counts leak future information.
-        """
+        """Negative bar counts leak future information."""
         with pytest.raises(ValueError, match="bar_count must be >= 1, but got -1"):
             self.data_portal.get_history_window(
                 [self.ASSET1],
@@ -618,13 +603,13 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
         # on 1/6 and 1/7
 
-        jan5 = pd.Timestamp("2015-01-05", tz="UTC")
+        jan5 = pd.Timestamp("2015-01-05")
 
         for asset in [self.SPLIT_ASSET, self.MERGER_ASSET]:
             # before any of the adjustments, 1/4 and 1/5
             window1 = self.data_portal.get_history_window(
                 [asset],
-                self.trading_calendar.open_and_close_for_session(jan5)[1],
+                self.trading_calendar.session_close(jan5),
                 2,
                 "1d",
                 "close",
@@ -682,7 +667,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
     def test_daily_dividends(self):
         # self.DIVIDEND_ASSET had dividends on 1/6 and 1/7
 
-        jan5 = pd.Timestamp("2015-01-05", tz="UTC")
+        jan5 = pd.Timestamp("2015-01-05")
         asset = self.DIVIDEND_ASSET
 
         # before any of the dividends
@@ -695,7 +680,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             "minute",
         )[asset]
 
-        np.testing.assert_array_equal(np.array([nan, 391]), window1)
+        np.testing.assert_array_equal(np.array([np.nan, 391]), window1)
 
         # straddling the first event
         window2 = self.data_portal.get_history_window(
@@ -751,10 +736,8 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
     def test_minute_before_assets_trading(self):
         # since asset2 and asset3 both started trading on 1/5/2015, let's do
         # some history windows that are completely before that
-        minutes = self.trading_calendar.minutes_for_session(
-            self.trading_calendar.previous_session_label(
-                pd.Timestamp("2015-01-05", tz="UTC")
-            )
+        minutes = self.trading_calendar.session_minutes(
+            self.trading_calendar.previous_session(pd.Timestamp("2015-01-05"))
         )[0:60]
 
         for idx, minute in enumerate(minutes):
@@ -799,8 +782,8 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         asset = self.asset_finder.retrieve_asset(sid)
 
         # Check the first hour of equities trading.
-        minutes = self.trading_calendars[Equity].minutes_for_session(
-            pd.Timestamp("2015-01-05", tz="UTC")
+        minutes = self.trading_calendars[Equity].session_minutes(
+            pd.Timestamp("2015-01-05")
         )[0:60]
 
         for idx, minute in enumerate(minutes):
@@ -815,7 +798,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         # Find the closest prior minute when the trading calendar was
         # open (note that if the calendar is open at `sunday_midnight`,
         # this will be `sunday_midnight`).
-        trading_minutes = self.trading_calendar.all_minutes
+        trading_minutes = self.trading_calendar.minutes
         last_minute = trading_minutes[trading_minutes <= sunday_midnight][-1]
 
         sunday_midnight_bar_data = self.create_bardata(lambda: sunday_midnight)
@@ -838,8 +821,8 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
     def test_minute_after_asset_stopped(self):
         # SHORT_ASSET's last day was 2015-01-06
         # get some history windows that straddle the end
-        minutes = self.trading_calendars[Equity].minutes_for_session(
-            pd.Timestamp("2015-01-07", tz="UTC")
+        minutes = self.trading_calendars[Equity].session_minutes(
+            pd.Timestamp("2015-01-07")
         )[0:60]
 
         for idx, minute in enumerate(minutes):
@@ -931,7 +914,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
         # on 1/6 and 1/7
 
-        jan5 = pd.Timestamp("2015-01-05", tz="UTC")
+        jan5 = pd.Timestamp("2015-01-05")
 
         # the assets' close column starts at 2 on the first minute of
         # 1/5, then goes up one per minute forever
@@ -941,7 +924,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             equity_cal = self.trading_calendars[Equity]
             window1 = self.data_portal.get_history_window(
                 [asset],
-                equity_cal.open_and_close_for_session(jan5)[1],
+                equity_cal.session_close(jan5),
                 10,
                 "1m",
                 "close",
@@ -1275,7 +1258,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         equity_cal = self.trading_calendars[Equity]
 
         # at trading start, only asset1 existed
-        day = self.trading_calendar.next_session_label(self.TRADING_START_DT)
+        day = self.trading_calendar.next_session(self.TRADING_START_DT)
 
         # Range containing 100 equity minutes, possibly more on other
         # calendars (i.e. futures).
@@ -1284,9 +1267,9 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         bar_count = len(cal.minutes_in_range(window_start, window_end))
 
         equity_cal = self.trading_calendars[Equity]
-        first_equity_open, _ = equity_cal.open_and_close_for_session(day)
+        first_equity_open = equity_cal.session_first_minute(day)
 
-        asset1_minutes = equity_cal.minutes_for_sessions_in_range(
+        asset1_minutes = equity_cal.sessions_minutes(
             self.ASSET1.start_date, self.ASSET1.end_date
         )
         asset1_idx = asset1_minutes.searchsorted(first_equity_open)
@@ -1328,9 +1311,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-        first_day_minutes = self.trading_calendar.minutes_for_session(
-            self.TRADING_START_DT
-        )
+        first_day_minutes = self.trading_calendar.session_minutes(self.TRADING_START_DT)
         exp_msg = (
             "History window extends before 2014-01-03. To use this history "
             "window, start the backtest on or after 2014-01-06."
@@ -1351,11 +1332,11 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         # last day
 
         # January 2015 has both daily and minute data for ASSET2
-        day = pd.Timestamp("2015-01-07", tz="UTC")
-        minutes = self.trading_calendar.minutes_for_session(day)
+        day = pd.Timestamp("2015-01-07")
+        minutes = self.trading_calendar.session_minutes(day)
 
         equity_cal = self.trading_calendars[Equity]
-        equity_minutes = equity_cal.minutes_for_session(day)
+        equity_minutes = equity_cal.session_minutes(day)
         equity_open, equity_close = equity_minutes[0], equity_minutes[-1]
 
         # minute data, baseline:
@@ -1404,7 +1385,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                     elif field == "price":
                         last_val = window[1]
                     else:
-                        last_val = nan
+                        last_val = np.nan
                 elif field == "open":
                     last_val = 783
                 elif field == "high":
@@ -1433,11 +1414,11 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         # last day
 
         # January 2015 has both daily and minute data for ASSET2
-        day = pd.Timestamp("2015-01-08", tz="UTC")
-        minutes = self.trading_calendar.minutes_for_session(day)
+        day = pd.Timestamp("2015-01-08")
+        minutes = self.trading_calendar.session_minutes(day)
 
         equity_cal = self.trading_calendars[Equity]
-        equity_minutes = equity_cal.minutes_for_session(day)
+        equity_minutes = equity_cal.session_minutes(day)
         equity_open, equity_close = equity_minutes[0], equity_minutes[-1]
 
         # minute data, baseline:
@@ -1487,7 +1468,7 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
                 elif field == "price":
                     last_val = window[1]
                 else:
-                    last_val = nan
+                    last_val = np.nan
             elif field == "open":
                 if idx == 0:
                     last_val = np.nan
@@ -1536,10 +1517,10 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
             np.testing.assert_almost_equal(
                 window[-1],
                 last_val,
-                err_msg="field={0} minute={1}".format(field, minute),
+                err_msg=f"field={field} minute={minute}",
             )
 
-    @parameterized.expand([(("bar_count%s" % x), x) for x in [1, 2, 3]])
+    @parameterized.expand([((f"bar_count{x}"), x) for x in [1, 2, 3]])
     def test_daily_history_minute_gaps_price_ffill(self, test_name, bar_count):
         # Make sure we use the previous day's value when there's been no volume
         # yet today.
@@ -1555,16 +1536,16 @@ class MinuteEquityHistoryTestCase(WithHistory, zf.WithMakeAlgo, zf.ZiplineTestCa
         # day is not a trading day.
         for day_idx, day in enumerate(
             [
-                pd.Timestamp("2015-01-05", tz="UTC"),
-                pd.Timestamp("2015-01-06", tz="UTC"),
-                pd.Timestamp("2015-01-12", tz="UTC"),
+                pd.Timestamp("2015-01-05"),
+                pd.Timestamp("2015-01-06"),
+                pd.Timestamp("2015-01-12"),
             ]
         ):
 
-            session_minutes = self.trading_calendar.minutes_for_session(day)
+            session_minutes = self.trading_calendar.session_minutes(day)
 
             equity_cal = self.trading_calendars[Equity]
-            equity_minutes = equity_cal.minutes_for_session(day)
+            equity_minutes = equity_cal.session_minutes(day)
 
             if day_idx == 0:
                 # dedupe when session_minutes are same as equity_minutes
@@ -1643,18 +1624,16 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
 
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
-        yield 1, cls.create_df_for_asset(
-            cls.START_DATE, pd.Timestamp("2016-01-30", tz="UTC")
-        )
+        yield 1, cls.create_df_for_asset(cls.START_DATE, pd.Timestamp("2016-01-30"))
         yield 3, cls.create_df_for_asset(
-            pd.Timestamp("2015-01-05", tz="UTC"),
-            pd.Timestamp("2015-12-31", tz="UTC"),
+            pd.Timestamp("2015-01-05"),
+            pd.Timestamp("2015-12-31"),
             interval=10,
             force_zeroes=True,
         )
         yield cls.SHORT_ASSET_SID, cls.create_df_for_asset(
-            pd.Timestamp("2015-01-05", tz="UTC"),
-            pd.Timestamp("2015-01-06", tz="UTC"),
+            pd.Timestamp("2015-01-05"),
+            pd.Timestamp("2015-01-06"),
         )
 
         for sid in {2, 4, 5, 6}:
@@ -1699,11 +1678,11 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # asset2 and asset3 both started trading in 2015
 
         days = self.trading_calendar.sessions_in_range(
-            pd.Timestamp("2014-12-15", tz="UTC"),
-            pd.Timestamp("2014-12-18", tz="UTC"),
+            pd.Timestamp("2014-12-15"),
+            pd.Timestamp("2014-12-18"),
         )
 
-        for idx, day in enumerate(days):
+        for _idx, day in enumerate(days):
             bar_data = self.create_bardata(
                 simulation_dt_func=lambda: day,
             )
@@ -1734,7 +1713,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
 
         # Regardless of the calendar used for this test, equities will
         # only have data on NYSE sessions.
-        days = self.trading_calendars[Equity].sessions_window(jan5, 30)
+        days = self.trading_calendars[Equity].sessions_window(jan5, 31)
 
         for idx, day in enumerate(days):
             self.verify_regular_dt(idx, day, "daily")
@@ -1744,7 +1723,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # asset2 ends on 2015-12-13
 
         bar_data = self.create_bardata(
-            simulation_dt_func=lambda: pd.Timestamp("2016-01-06", tz="UTC"),
+            simulation_dt_func=lambda: pd.Timestamp("2016-01-06"),
         )
 
         for field in OHLCP:
@@ -1767,8 +1746,8 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # SHORT_ASSET trades on 1/5, 1/6, that's it.
 
         days = self.trading_calendar.sessions_in_range(
-            pd.Timestamp("2015-01-07", tz="UTC"),
-            pd.Timestamp("2015-01-08", tz="UTC"),
+            pd.Timestamp("2015-01-07"),
+            pd.Timestamp("2015-01-08"),
         )
 
         # days has 1/7, 1/8
@@ -1805,7 +1784,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             # before any of the adjustments
             window1 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-05", tz="UTC"),
+                pd.Timestamp("2015-01-05"),
                 1,
                 "1d",
                 "close",
@@ -1816,7 +1795,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
 
             window1_volume = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-05", tz="UTC"),
+                pd.Timestamp("2015-01-05"),
                 1,
                 "1d",
                 "volume",
@@ -1828,7 +1807,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             # straddling the first event
             window2 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-06", tz="UTC"),
+                pd.Timestamp("2015-01-06"),
                 2,
                 "1d",
                 "close",
@@ -1840,7 +1819,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
 
             window2_volume = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-06", tz="UTC"),
+                pd.Timestamp("2015-01-06"),
                 2,
                 "1d",
                 "volume",
@@ -1856,7 +1835,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             # straddling both events
             window3 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-07", tz="UTC"),
+                pd.Timestamp("2015-01-07"),
                 3,
                 "1d",
                 "close",
@@ -1867,7 +1846,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
 
             window3_volume = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-07", tz="UTC"),
+                pd.Timestamp("2015-01-07"),
                 3,
                 "1d",
                 "volume",
@@ -1885,7 +1864,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # before any dividend
         window1 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-05", tz="UTC"),
+            pd.Timestamp("2015-01-05"),
             1,
             "1d",
             "close",
@@ -1897,7 +1876,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # straddling the first dividend
         window2 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-06", tz="UTC"),
+            pd.Timestamp("2015-01-06"),
             2,
             "1d",
             "close",
@@ -1911,7 +1890,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         # straddling both dividends
         window3 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-07", tz="UTC"),
+            pd.Timestamp("2015-01-07"),
             3,
             "1d",
             "close",
@@ -1949,7 +1928,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-        second_day = self.trading_calendar.next_session_label(self.TRADING_START_DT)
+        second_day = self.trading_calendar.next_session(self.TRADING_START_DT)
 
         exp_msg = (
             "History window extends before 2014-01-03. To use this history "
@@ -1977,7 +1956,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             )[self.ASSET1]
 
         # Use a minute to force minute mode.
-        first_minute = self.trading_calendar.schedule.market_open[self.TRADING_START_DT]
+        first_minute = self.trading_calendar.first_minutes[self.TRADING_START_DT]
 
         with pytest.raises(HistoryWindowStartsBeforeData, match=exp_msg):
             self.data_portal.get_history_window(
@@ -1990,8 +1969,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             )[self.ASSET2]
 
     def test_history_window_different_order(self):
-        """
-        Prevent regression on a bug where the passing the same assets, but
+        """Prevent regression on a bug where the passing the same assets, but
         in a different order would return a history window with the values,
         but not the keys, in order of the first history call.
         """
@@ -2024,8 +2002,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
         )
 
     def test_history_window_out_of_order_dates(self):
-        """
-        Use a history window with non-monotonically increasing dates.
+        """Use a history window with non-monotonically increasing dates.
         A scenario which does not occur during simulations, but useful
         for using a history loader in a notebook.
         """
@@ -2089,7 +2066,7 @@ class DailyEquityHistoryTestCase(WithHistory, zf.ZiplineTestCase):
             # If not on the NYSE calendar, it is possible that MLK day
             # (2014-01-20) is an active trading session. In that case,
             # we expect a nan value for this asset.
-            assert_window_prices(window_4, [12, nan, 13, 14])
+            assert_window_prices(window_4, [12, np.nan, 13, 14])
 
 
 class NoPrefetchDailyEquityHistoryTestCase(DailyEquityHistoryTestCase):

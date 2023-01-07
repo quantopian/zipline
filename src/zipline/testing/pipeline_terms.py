@@ -7,7 +7,7 @@ from zipline.utils.idbox import IDBox
 from .predicates import assert_equal
 
 
-class CheckWindowsMixin(object):
+class CheckWindowsMixin:
     params = ("expected_windows",)
 
     def compute(self, today, assets, out, input_, expected_windows):

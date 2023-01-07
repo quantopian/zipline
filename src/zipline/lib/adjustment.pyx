@@ -221,13 +221,13 @@ cpdef tuple get_adjustment_locs(DatetimeIndex_t dates_index,
         start_date_loc = 0
     else:
         # Location of earliest date on or after start_date.
-        start_date_loc = dates_index.get_loc(start_date, method='bfill')
+        start_date_loc = dates_index.get_indexer([start_date], method='bfill')[0]
 
     return (
         start_date_loc,
         # Location of latest date on or before start_date.
-        dates_index.get_loc(end_date, method='ffill'),
-        assets_index.get_loc(asset_id),  # Must be exact match.
+        dates_index.get_indexer([end_date], method='ffill')[0],
+        assets_index.get_indexer([asset_id])[0],  # Must be exact match.
     )
 
 

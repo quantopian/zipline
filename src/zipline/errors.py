@@ -31,7 +31,6 @@ class ZiplineError(Exception):
         msg = self.msg.format(**self.kwargs)
         return msg
 
-    __unicode__ = __str__
     __repr__ = __str__
 
 
@@ -63,8 +62,7 @@ dividend on {dt}.  Choose another asset to use as the benchmark.
 
 
 class WrongDataForTransform(ZiplineError):
-    """
-    Raised whenever a rolling transform is called on an event that
+    """Raised whenever a rolling transform is called on an event that
     does not have the necessary properties.
     """
 
@@ -72,8 +70,7 @@ class WrongDataForTransform(ZiplineError):
 
 
 class UnsupportedSlippageModel(ZiplineError):
-    """
-    Raised if a user script calls the set_slippage magic
+    """Raised if a user script calls the set_slippage magic
     with a slipage object that isn't a VolumeShareSlippage or
     FixedSlipapge
     """
@@ -85,8 +82,7 @@ Please use VolumeShareSlippage or FixedSlippage.
 
 
 class IncompatibleSlippageModel(ZiplineError):
-    """
-    Raised if a user tries to set a futures slippage model for equities or vice
+    """Raised if a user tries to set a futures slippage model for equities or vice
     versa.
     """
 
@@ -133,8 +129,7 @@ Account controls may only be set in your initialize method.
 
 
 class UnsupportedCommissionModel(ZiplineError):
-    """
-    Raised if a user script calls the set_commission magic
+    """Raised if a user script calls the set_commission magic
     with a commission object that isn't a PerShare, PerTrade or
     PerDollar commission
     """
@@ -146,8 +141,7 @@ Please use PerShare or PerTrade.
 
 
 class IncompatibleCommissionModel(ZiplineError):
-    """
-    Raised if a user tries to set a futures commission model for equities or
+    """Raised if a user tries to set a futures commission model for equities or
     vice versa.
     """
 
@@ -158,8 +152,7 @@ The commission model '{given_model}' only supports {supported_asset_types}.
 
 
 class UnsupportedCancelPolicy(ZiplineError):
-    """
-    Raised if a user script calls set_cancel_policy with an object that isn't
+    """Raised if a user script calls set_cancel_policy with an object that isn't
     a CancelPolicy.
     """
 
@@ -170,8 +163,7 @@ an instance of CancelPolicy.
 
 
 class SetCommissionPostInit(ZiplineError):
-    """
-    Raised if a users script calls set_commission magic
+    """Raised if a users script calls set_commission magic
     after the initialize method has returned.
     """
 
@@ -182,9 +174,7 @@ You may only call 'set_commission' in your initialize method.
 
 
 class TransactionWithNoVolume(ZiplineError):
-    """
-    Raised if a transact call returns a transaction with zero volume.
-    """
+    """Raised if a transact call returns a transaction with zero volume."""
 
     msg = """
 Transaction {txn} has a volume of zero.
@@ -192,8 +182,7 @@ Transaction {txn} has a volume of zero.
 
 
 class TransactionWithWrongDirection(ZiplineError):
-    """
-    Raised if a transact call returns a transaction with a direction that
+    """Raised if a transact call returns a transaction with a direction that
     does not match the order.
     """
 
@@ -203,9 +192,7 @@ Transaction {txn} not in same direction as corresponding order {order}.
 
 
 class TransactionWithNoAmount(ZiplineError):
-    """
-    Raised if a transact call returns a transaction with zero amount.
-    """
+    """Raised if a transact call returns a transaction with zero amount."""
 
     msg = """
 Transaction {txn} has an amount of zero.
@@ -213,8 +200,7 @@ Transaction {txn} has an amount of zero.
 
 
 class TransactionVolumeExceedsOrder(ZiplineError):
-    """
-        Raised if a transact call returns a transaction with a volume greater than
+    """Raised if a transact call returns a transaction with a volume greater than
     the corresponding order.
     """
 
@@ -224,8 +210,7 @@ Transaction volume of {txn} exceeds the order volume of {order}.
 
 
 class UnsupportedOrderParameters(ZiplineError):
-    """
-    Raised if a set of mutually exclusive parameters are passed to an order
+    """Raised if a set of mutually exclusive parameters are passed to an order
     call.
     """
 
@@ -233,16 +218,13 @@ class UnsupportedOrderParameters(ZiplineError):
 
 
 class CannotOrderDelistedAsset(ZiplineError):
-    """
-    Raised if an order is for a delisted asset.
-    """
+    """Raised if an order is for a delisted asset."""
 
     msg = "{msg}"
 
 
 class BadOrderParameters(ZiplineError):
-    """
-    Raised if any impossible parameters (nan, negative limit/stop)
+    """Raised if any impossible parameters (nan, negative limit/stop)
     are passed to an order call.
     """
 
@@ -250,33 +232,25 @@ class BadOrderParameters(ZiplineError):
 
 
 class OrderDuringInitialize(ZiplineError):
-    """
-    Raised if order is called during initialize()
-    """
+    """Raised if order is called during initialize()"""
 
     msg = "{msg}"
 
 
 class SetBenchmarkOutsideInitialize(ZiplineError):
-    """
-    Raised if set_benchmark is called outside initialize()
-    """
+    """Raised if set_benchmark is called outside initialize()"""
 
     msg = "'set_benchmark' can only be called within initialize function."
 
 
 class ZeroCapitalError(ZiplineError):
-    """
-    Raised if initial capital is set at or below zero
-    """
+    """Raised if initial capital is set at or below zero"""
 
     msg = "initial capital base must be greater than zero"
 
 
 class AccountControlViolation(ZiplineError):
-    """
-    Raised if the account violates a constraint set by a AccountControl.
-    """
+    """Raised if the account violates a constraint set by a AccountControl."""
 
     msg = """
 Account violates account constraint {constraint}.
@@ -284,9 +258,7 @@ Account violates account constraint {constraint}.
 
 
 class TradingControlViolation(ZiplineError):
-    """
-    Raised if an order would violate a constraint set by a TradingControl.
-    """
+    """Raised if an order would violate a constraint set by a TradingControl."""
 
     msg = """
 Order for {amount} shares of {asset} at {datetime} violates trading constraint
@@ -295,8 +267,7 @@ Order for {amount} shares of {asset} at {datetime} violates trading constraint
 
 
 class IncompatibleHistoryFrequency(ZiplineError):
-    """
-    Raised when a frequency is given to history which is not supported.
+    """Raised when a frequency is given to history which is not supported.
     At least, not yet.
     """
 
@@ -307,16 +278,13 @@ at frequency '{data_frequency}'.
 
 
 class OrderInBeforeTradingStart(ZiplineError):
-    """
-    Raised when an algorithm calls an order method in before_trading_start.
-    """
+    """Raised when an algorithm calls an order method in before_trading_start."""
 
     msg = "Cannot place orders inside before_trading_start."
 
 
 class MultipleSymbolsFound(ZiplineError):
-    """
-    Raised when a symbol() call contains a symbol that changed over
+    """Raised when a symbol() call contains a symbol that changed over
     time and is thus not resolvable without additional information
     provided via as_of_date.
     """
@@ -331,8 +299,7 @@ Possible options: {options}
 
 
 class MultipleSymbolsFoundForFuzzySymbol(MultipleSymbolsFound):
-    """
-    Raised when a fuzzy symbol lookup is not resolvable without additional
+    """Raised when a fuzzy symbol lookup is not resolvable without additional
     information.
     """
 
@@ -348,8 +315,7 @@ class MultipleSymbolsFoundForFuzzySymbol(MultipleSymbolsFound):
 
 
 class SameSymbolUsedAcrossCountries(MultipleSymbolsFound):
-    """
-    Raised when a symbol() call contains a symbol that is used in more than
+    """Raised when a symbol() call contains a symbol that is used in more than
     one country and is thus not resolvable without a country_code.
     """
 
@@ -364,9 +330,7 @@ class SameSymbolUsedAcrossCountries(MultipleSymbolsFound):
 
 
 class SymbolNotFound(ZiplineError):
-    """
-    Raised when a symbol() call contains a non-existant symbol.
-    """
+    """Raised when a symbol() call contains a non-existant symbol."""
 
     msg = """
 Symbol '{symbol}' was not found.
@@ -374,9 +338,7 @@ Symbol '{symbol}' was not found.
 
 
 class RootSymbolNotFound(ZiplineError):
-    """
-    Raised when a lookup_future_chain() call contains a non-existant symbol.
-    """
+    """Raised when a lookup_future_chain() call contains a non-existant symbol."""
 
     msg = """
 Root symbol '{root_symbol}' was not found.
@@ -384,8 +346,7 @@ Root symbol '{root_symbol}' was not found.
 
 
 class ValueNotFoundForField(ZiplineError):
-    """
-    Raised when a lookup_by_supplementary_mapping() call contains a
+    """Raised when a lookup_by_supplementary_mapping() call contains a
     value does not exist for the specified mapping type.
     """
 
@@ -395,8 +356,7 @@ Value '{value}' was not found for field '{field}'.
 
 
 class MultipleValuesFoundForField(ZiplineError):
-    """
-    Raised when a lookup_by_supplementary_mapping() call contains a
+    """Raised when a lookup_by_supplementary_mapping() call contains a
     value that changed over time for the specified field and is
     thus not resolvable without additional information provided via
     as_of_date.
@@ -412,8 +372,7 @@ Possible options: {options}
 
 
 class NoValueForSid(ZiplineError):
-    """
-    Raised when a get_supplementary_field() call contains a sid that
+    """Raised when a get_supplementary_field() call contains a sid that
     does not have a value for the specified mapping type.
     """
 
@@ -423,8 +382,7 @@ No '{field}' value found for sid '{sid}'.
 
 
 class MultipleValuesFoundForSid(ZiplineError):
-    """
-    Raised when a get_supplementary_field() call contains a value that
+    """Raised when a get_supplementary_field() call contains a value that
     changed over time for the specified field and is thus not resolvable
     without additional information provided via as_of_date.
     """
@@ -438,8 +396,7 @@ Possible options: {options}
 
 
 class SidsNotFound(ZiplineError):
-    """
-    Raised when a retrieve_asset() or retrieve_all() call contains a
+    """Raised when a retrieve_asset() or retrieve_all() call contains a
     non-existent sid.
     """
 
@@ -459,9 +416,7 @@ class SidsNotFound(ZiplineError):
 
 
 class EquitiesNotFound(SidsNotFound):
-    """
-    Raised when a call to `retrieve_equities` fails to find an asset.
-    """
+    """Raised when a call to `retrieve_equities` fails to find an asset."""
 
     @lazyval
     def msg(self):
@@ -471,9 +426,7 @@ class EquitiesNotFound(SidsNotFound):
 
 
 class FutureContractsNotFound(SidsNotFound):
-    """
-    Raised when a call to `retrieve_futures_contracts` fails to find an asset.
-    """
+    """Raised when a call to `retrieve_futures_contracts` fails to find an asset."""
 
     @lazyval
     def msg(self):
@@ -483,9 +436,7 @@ class FutureContractsNotFound(SidsNotFound):
 
 
 class ConsumeAssetMetaDataError(ZiplineError):
-    """
-    Raised when AssetFinder.consume() is called on an invalid object.
-    """
+    """Raised when AssetFinder.consume() is called on an invalid object."""
 
     msg = """
 AssetFinder can not consume metadata of type {obj}. Metadata must be a dict, a
@@ -495,8 +446,7 @@ must contain both or one of 'sid' or 'symbol'.
 
 
 class SidAssignmentError(ZiplineError):
-    """
-    Raised when an AssetFinder tries to build an Asset that does not have a sid
+    """Raised when an AssetFinder tries to build an Asset that does not have a sid
     and that AssetFinder is not permitted to assign sids.
     """
 
@@ -506,9 +456,7 @@ AssetFinder metadata is missing a SID for identifier '{identifier}'.
 
 
 class NoSourceError(ZiplineError):
-    """
-    Raised when no source is given to the pipeline
-    """
+    """Raised when no source is given to the pipeline"""
 
     msg = """
 No data source given.
@@ -516,9 +464,7 @@ No data source given.
 
 
 class PipelineDateError(ZiplineError):
-    """
-    Raised when only one date is passed to the pipeline
-    """
+    """Raised when only one date is passed to the pipeline"""
 
     msg = """
 Only one simulation date given. Please specify both the 'start' and 'end' for
@@ -528,8 +474,7 @@ DataSource will be used. Given start = '{start}', end = '{end}'
 
 
 class WindowLengthTooLong(ZiplineError):
-    """
-    Raised when a trailing window is instantiated with a lookback greater than
+    """Raised when a trailing window is instantiated with a lookback greater than
     the length of the underlying array.
     """
 
@@ -540,8 +485,7 @@ class WindowLengthTooLong(ZiplineError):
 
 
 class WindowLengthNotPositive(ZiplineError):
-    """
-    Raised when a trailing window would be instantiated with a length less than
+    """Raised when a trailing window would be instantiated with a length less than
     1.
     """
 
@@ -549,8 +493,7 @@ class WindowLengthNotPositive(ZiplineError):
 
 
 class NonWindowSafeInput(ZiplineError):
-    """
-    Raised when a Pipeline API term that is not deemed window safe is specified
+    """Raised when a Pipeline API term that is not deemed window safe is specified
     as an input to another windowed term.
 
     This is an error because it's generally not safe to compose windowed
@@ -561,8 +504,7 @@ class NonWindowSafeInput(ZiplineError):
 
 
 class TermInputsNotSpecified(ZiplineError):
-    """
-    Raised if a user attempts to construct a term without specifying inputs and
+    """Raised if a user attempts to construct a term without specifying inputs and
     that term does not have class-level default inputs.
     """
 
@@ -570,9 +512,7 @@ class TermInputsNotSpecified(ZiplineError):
 
 
 class NonPipelineInputs(ZiplineError):
-    """
-    Raised when a non-pipeline object is passed as input to a ComputableTerm
-    """
+    """Raised when a non-pipeline object is passed as input to a ComputableTerm"""
 
     def __init__(self, term, inputs):
         self.term = term
@@ -591,17 +531,13 @@ class NonPipelineInputs(ZiplineError):
 
 
 class TermOutputsEmpty(ZiplineError):
-    """
-    Raised if a user attempts to construct a term with an empty outputs list.
-    """
+    """Raised if a user attempts to construct a term with an empty outputs list."""
 
     msg = "{termname} requires at least one output when passed an outputs " "argument."
 
 
 class InvalidOutputName(ZiplineError):
-    """
-    Raised if a term's output names conflict with any of its attributes.
-    """
+    """Raised if a term's output names conflict with any of its attributes."""
 
     msg = (
         "{output_name!r} cannot be used as an output name for {termname}. "
@@ -611,8 +547,7 @@ class InvalidOutputName(ZiplineError):
 
 
 class WindowLengthNotSpecified(ZiplineError):
-    """
-    Raised if a user attempts to construct a term without specifying window
+    """Raised if a user attempts to construct a term without specifying window
     length and that term does not have a class-level default window length.
     """
 
@@ -620,8 +555,7 @@ class WindowLengthNotSpecified(ZiplineError):
 
 
 class InvalidTermParams(ZiplineError):
-    """
-    Raised if a user attempts to construct a Term using ParameterizedTermMixin
+    """Raised if a user attempts to construct a Term using ParameterizedTermMixin
     without specifying a `params` list in the class body.
     """
 
@@ -632,8 +566,7 @@ class InvalidTermParams(ZiplineError):
 
 
 class DTypeNotSpecified(ZiplineError):
-    """
-    Raised if a user attempts to construct a term without specifying dtype and
+    """Raised if a user attempts to construct a term without specifying dtype and
     that term does not have class-level default dtype.
     """
 
@@ -641,8 +574,7 @@ class DTypeNotSpecified(ZiplineError):
 
 
 class NotDType(ZiplineError):
-    """
-    Raised when a pipeline Term is constructed with a dtype that isn't a numpy
+    """Raised when a pipeline Term is constructed with a dtype that isn't a numpy
     dtype object.
     """
 
@@ -653,8 +585,7 @@ class NotDType(ZiplineError):
 
 
 class UnsupportedDType(ZiplineError):
-    """
-    Raised when a pipeline Term is constructed with a dtype that's not
+    """Raised when a pipeline Term is constructed with a dtype that's not
     supported.
     """
 
@@ -665,8 +596,7 @@ class UnsupportedDType(ZiplineError):
 
 
 class BadPercentileBounds(ZiplineError):
-    """
-    Raised by API functions accepting percentile bounds when the passed bounds
+    """Raised by API functions accepting percentile bounds when the passed bounds
     are invalid.
     """
 
@@ -678,8 +608,7 @@ class BadPercentileBounds(ZiplineError):
 
 
 class UnknownRankMethod(ZiplineError):
-    """
-    Raised during construction of a Rank factor when supplied a bad Rank
+    """Raised during construction of a Rank factor when supplied a bad Rank
     method.
     """
 
@@ -687,9 +616,7 @@ class UnknownRankMethod(ZiplineError):
 
 
 class AttachPipelineAfterInitialize(ZiplineError):
-    """
-    Raised when a user tries to call add_pipeline outside of initialize.
-    """
+    """Raised when a user tries to call add_pipeline outside of initialize."""
 
     msg = (
         "Attempted to attach a pipeline after initialize(). "
@@ -698,9 +625,7 @@ class AttachPipelineAfterInitialize(ZiplineError):
 
 
 class PipelineOutputDuringInitialize(ZiplineError):
-    """
-    Raised when a user tries to call `pipeline_output` during initialize.
-    """
+    """Raised when a user tries to call `pipeline_output` during initialize."""
 
     msg = (
         "Attempted to call pipeline_output() during initialize. "
@@ -709,9 +634,7 @@ class PipelineOutputDuringInitialize(ZiplineError):
 
 
 class NoSuchPipeline(ZiplineError, KeyError):
-    """
-    Raised when a user tries to access a non-existent pipeline by name.
-    """
+    """Raised when a user tries to access a non-existent pipeline by name."""
 
     msg = (
         "No pipeline named '{name}' exists. Valid pipeline names are {valid}. "
@@ -720,8 +643,7 @@ class NoSuchPipeline(ZiplineError, KeyError):
 
 
 class DuplicatePipelineName(ZiplineError):
-    """
-    Raised when a user tries to attach a pipeline with a name that already
+    """Raised when a user tries to attach a pipeline with a name that already
     exists for another attached pipeline.
     """
 
@@ -747,8 +669,7 @@ class UnsupportedDataType(ZiplineError):
 
 
 class NoFurtherDataError(ZiplineError):
-    """
-    Raised by calendar operations that would ask for dates beyond the extent of
+    """Raised by calendar operations that would ask for dates beyond the extent of
     our known data.
     """
 
@@ -779,9 +700,7 @@ class NoFurtherDataError(ZiplineError):
 
 
 class UnsupportedDatetimeFormat(ZiplineError):
-    """
-    Raised when an unsupported datetime is passed to an API method.
-    """
+    """Raised when an unsupported datetime is passed to an API method."""
 
     msg = (
         "The input '{input}' passed to '{method}' is not "
@@ -824,9 +743,7 @@ class NonExistentAssetInTimeFrame(ZiplineError):
 
 
 class InvalidCalendarName(ZiplineError):
-    """
-    Raised when a calendar with an invalid name is requested.
-    """
+    """Raised when a calendar with an invalid name is requested."""
 
     msg = "The requested TradingCalendar, {calendar_name}, does not exist."
 

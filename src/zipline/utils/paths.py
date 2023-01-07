@@ -4,14 +4,14 @@ Canonical path locations for zipline data.
 Paths are rooted at $ZIPLINE_ROOT if that environment variable is set.
 Otherwise default to expanduser(~/.zipline)
 """
-from errno import EEXIST
 import os
-from os.path import exists, expanduser, join
+from pathlib import Path
+from typing import Any, Iterable, Mapping, Optional
 
 import pandas as pd
 
 
-def hidden(path):
+def hidden(path: str) -> bool:
     """Check if a path is hidden.
 
     Parameters
@@ -19,35 +19,27 @@ def hidden(path):
     path : str
         A filepath.
     """
-    return os.path.split(path)[1].startswith(".")
+    # return os.path.split(path)[1].startswith(".")
+    return Path(path).stem.startswith(".")
 
 
-def ensure_directory(path):
-    """
-    Ensure that a directory named "path" exists.
-    """
-    try:
-        os.makedirs(path)
-    except OSError as exc:
-        if exc.errno == EEXIST and os.path.isdir(path):
-            return
-        raise
+def ensure_directory(path: str) -> None:
+    """Ensure that a directory named "path" exists."""
+    Path(path).mkdir(parents=True, exist_ok=True)
 
 
-def ensure_directory_containing(path):
-    """
-    Ensure that the directory containing `path` exists.
+def ensure_directory_containing(path: str) -> None:
+    """Ensure that the directory containing `path` exists.
 
     This is just a convenience wrapper for doing::
 
         ensure_directory(os.path.dirname(path))
     """
-    ensure_directory(os.path.dirname(path))
+    ensure_directory(str(Path(path).parent))
 
 
-def ensure_file(path):
-    """
-    Ensure that a file exists. This will create any parent directories needed
+def ensure_file(path: str) -> None:
+    """Ensure that a file exists. This will create any parent directories needed
     and create an empty file if it does not exist.
 
     Parameters
@@ -56,35 +48,16 @@ def ensure_file(path):
         The file path to ensure exists.
     """
     ensure_directory_containing(path)
-    open(path, "a+").close()  # touch the file
+    Path(path).touch(exist_ok=True)
 
 
-def update_modified_time(path, times=None):
-    """
-    Updates the modified time of an existing file. This will create any
-    parent directories needed and create an empty file if it does not exist.
-
-    Parameters
-    ----------
-    path : str
-        The file path to update.
-    times : tuple
-        A tuple of size two; access time and modified time
-    """
-    ensure_directory_containing(path)
-    os.utime(path, times)
+def last_modified_time(path: str) -> pd.Timestamp:
+    """Get the last modified time of path as a Timestamp."""
+    return pd.Timestamp(Path(path).stat().st_mtime, unit="s", tz="UTC")
 
 
-def last_modified_time(path):
-    """
-    Get the last modified time of path as a Timestamp.
-    """
-    return pd.Timestamp(os.path.getmtime(path), unit="s", tz="UTC")
-
-
-def modified_since(path, dt):
-    """
-    Check whether `path` was modified since `dt`.
+def modified_since(path: str, dt: pd.Timestamp) -> bool:
+    """Check whether `path` was modified since `dt`.
 
     Returns False if path doesn't exist.
 
@@ -101,12 +74,11 @@ def modified_since(path, dt):
         Will be ``False`` if path doesn't exists, or if its last modified date
         is earlier than or equal to `dt`
     """
-    return exists(path) and last_modified_time(path) > dt
+    return Path(path).exists() and last_modified_time(path) > dt
 
 
-def zipline_root(environ=None):
-    """
-    Get the root directory for all zipline-managed files.
+def zipline_root(environ: Optional[Mapping[Any, Any]] = None) -> str:
+    """Get the root directory for all zipline-managed files.
 
     For testing purposes, this accepts a dictionary to interpret as the os
     environment.
@@ -126,14 +98,13 @@ def zipline_root(environ=None):
 
     root = environ.get("ZIPLINE_ROOT", None)
     if root is None:
-        root = expanduser("~/.zipline")
+        root = str(Path.expanduser(Path("~/.zipline")))
 
     return root
 
 
-def zipline_path(paths, environ=None):
-    """
-    Get a path relative to the zipline root.
+def zipline_path(paths: list[str], environ: Optional[Mapping[Any, Any]] = None) -> str:
+    """Get a path relative to the zipline root.
 
     Parameters
     ----------
@@ -147,12 +118,11 @@ def zipline_path(paths, environ=None):
     newpath : str
         The requested path joined with the zipline root.
     """
-    return join(zipline_root(environ=environ), *paths)
+    return str(Path(zipline_root(environ=environ) / Path(*paths)))
 
 
-def default_extension(environ=None):
-    """
-    Get the path to the default zipline extension file.
+def default_extension(environ: Optional[Mapping[Any, Any]] = None) -> str:
+    """Get the path to the default zipline extension file.
 
     Parameters
     ----------
@@ -167,9 +137,8 @@ def default_extension(environ=None):
     return zipline_path(["extension.py"], environ=environ)
 
 
-def data_root(environ=None):
-    """
-    The root directory for zipline data files.
+def data_root(environ: Optional[Mapping[Any, Any]] = None) -> str:
+    """The root directory for zipline data files.
 
     Parameters
     ----------
@@ -184,16 +153,8 @@ def data_root(environ=None):
     return zipline_path(["data"], environ=environ)
 
 
-def ensure_data_root(environ=None):
-    """
-    Ensure that the data root exists.
-    """
-    ensure_directory(data_root(environ=environ))
-
-
-def data_path(paths, environ=None):
-    """
-    Get a path relative to the zipline data directory.
+def data_path(paths: Iterable[str], environ: Optional[Mapping[Any, Any]] = None) -> str:
+    """Get a path relative to the zipline data directory.
 
     Parameters
     ----------
@@ -210,9 +171,8 @@ def data_path(paths, environ=None):
     return zipline_path(["data"] + list(paths), environ=environ)
 
 
-def cache_root(environ=None):
-    """
-    The root directory for zipline cache files.
+def cache_root(environ: Optional[Mapping[Any, Any]] = None) -> str:
+    """The root directory for zipline cache files.
 
     Parameters
     ----------
@@ -227,16 +187,13 @@ def cache_root(environ=None):
     return zipline_path(["cache"], environ=environ)
 
 
-def ensure_cache_root(environ=None):
-    """
-    Ensure that the data root exists.
-    """
+def ensure_cache_root(environ: Optional[Mapping[Any, Any]] = None) -> None:
+    """Ensure that the data root exists."""
     ensure_directory(cache_root(environ=environ))
 
 
-def cache_path(paths, environ=None):
-    """
-    Get a path relative to the zipline cache directory.
+def cache_path(paths: Iterable[str], environ: Optional[dict] = None) -> str:
+    """Get a path relative to the zipline cache directory.
 
     Parameters
     ----------

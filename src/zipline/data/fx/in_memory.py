@@ -1,5 +1,4 @@
-"""Interface and definitions for foreign exchange rate readers.
-"""
+"""Interface and definitions for foreign exchange rate readers."""
 from interface import implements
 import numpy as np
 
@@ -8,8 +7,7 @@ from .utils import check_dts
 
 
 class InMemoryFXRateReader(implements(FXRateReader)):
-    """
-    A simple in-memory FXRateReader.
+    """A simple in-memory FXRateReader.
 
     This is primarily used for testing.
 
@@ -51,7 +49,7 @@ class InMemoryFXRateReader(implements(FXRateReader)):
         # method a lot, so we implement our own indexing logic.
 
         values = df.values
-        row_ixs = df.index.searchsorted(dts, side="right") - 1
+        row_ixs = df.index.searchsorted(dts.tz_localize(None), side="right") - 1
         col_ixs = df.columns.get_indexer(bases)
 
         out = values[:, col_ixs][row_ixs]

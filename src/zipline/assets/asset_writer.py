@@ -12,28 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import namedtuple
 import re
+from collections import namedtuple
 
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 from toolz import first
 
-from zipline.errors import AssetDBVersionError
 from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION,
     asset_db_table_names,
     asset_router,
-    equities as equities_table,
-    equity_symbol_mappings,
-    equity_supplementary_mappings as equity_supplementary_mappings_table,
-    futures_contracts as futures_contracts_table,
-    exchanges as exchanges_table,
-    futures_root_symbols,
-    metadata,
-    version_info,
 )
+from zipline.assets.asset_db_schema import equities as equities_table
+from zipline.assets.asset_db_schema import (
+    equity_supplementary_mappings as equity_supplementary_mappings_table,
+)
+from zipline.assets.asset_db_schema import equity_symbol_mappings
+from zipline.assets.asset_db_schema import exchanges as exchanges_table
+from zipline.assets.asset_db_schema import futures_contracts as futures_contracts_table
+from zipline.assets.asset_db_schema import futures_root_symbols, metadata, version_info
+from zipline.errors import AssetDBVersionError
 from zipline.utils.compat import ExitStack
 from zipline.utils.preprocess import preprocess
 from zipline.utils.range import from_tuple, intersecting_ranges
@@ -385,7 +385,7 @@ def _split_symbol_mappings(df, exchanges):
     )
 
 
-def _dt_to_epoch_ns(dt_series):
+def _dt_to_epoch_ns(dt_series: pd.Series) -> pd.Index:
     """Convert a timeseries into an Int64Index of nanoseconds since the epoch.
 
     Parameters
@@ -395,7 +395,7 @@ def _dt_to_epoch_ns(dt_series):
 
     Returns
     -------
-    idx : pd.Int64Index
+    idx : pd.Index
         The index converted to nanoseconds since the epoch.
     """
     index = pd.to_datetime(dt_series.values)
@@ -406,7 +406,7 @@ def _dt_to_epoch_ns(dt_series):
     return index.view(np.int64)
 
 
-def check_version_info(conn, version_table, expected_version):
+def check_version_info(conn, version_table, expected_version: int):
     """
     Checks for a version value in the version table.
 
@@ -426,9 +426,7 @@ def check_version_info(conn, version_table, expected_version):
     """
 
     # Read the version out of the table
-    version_from_table = conn.execute(
-        sa.select((version_table.c.version,)),
-    ).scalar()
+    version_from_table = conn.execute(sa.select(version_table.c.version)).scalar()
 
     # A db without a version is considered v0
     if version_from_table is None:
@@ -455,14 +453,12 @@ def write_version_info(conn, version_table, version_value):
         The version to write in to the database
 
     """
-    conn.execute(sa.insert(version_table, values={"version": version_value}))
+    if conn.engine.name == "postgresql":
+        conn.execute(sa.text("ALTER SEQUENCE version_info_id_seq RESTART WITH 1"))
+    conn.execute(version_table.insert().values(version=version_value))
 
 
-class _empty(object):
-    columns = ()
-
-
-class AssetDBWriter(object):
+class AssetDBWriter:
     """Class used to write data to an assets db.
 
     Parameters
@@ -825,13 +821,16 @@ class AssetDBWriter(object):
 
     def _write_df_to_table(self, tbl, df, txn, chunk_size):
         df = df.copy()
-        for column, dtype in df.dtypes.iteritems():
+        for column, dtype in df.dtypes.items():
             if dtype.kind == "M":
                 df[column] = _dt_to_epoch_ns(df[column])
 
+        if txn.dialect.name == "postgresql":
+            txn.execute(sa.text(f"ALTER TABLE {tbl.name} DISABLE TRIGGER ALL;"))
+
         df.to_sql(
             tbl.name,
-            txn.connection,
+            txn,
             index=True,
             index_label=first(tbl.primary_key.columns).name,
             if_exists="append",
@@ -870,7 +869,7 @@ class AssetDBWriter(object):
             }
         ).to_sql(
             asset_router.name,
-            txn.connection,
+            txn,
             if_exists="append",
             index=False,
             chunksize=chunk_size,
@@ -890,11 +889,12 @@ class AssetDBWriter(object):
         has_tables : bool
             True if any tables are present, otherwise False.
         """
-        conn = txn.connect()
+        # conn = txn.connect()
         for table_name in asset_db_table_names:
-            if txn.dialect.has_table(conn, table_name):
-                return True
-        return False
+            return sa.inspect(txn).has_table(table_name)
+            # if txn.dialect.has_table(conn, table_name):
+            # return True
+        # return False
 
     def init_db(self, txn=None):
         """Connect to database and create tables.
@@ -902,7 +902,7 @@ class AssetDBWriter(object):
         Parameters
         ----------
         txn : sa.engine.Connection, optional
-            The transaction to execute in. If this is not provided, a new
+            The transaction block to execute in. If this is not provided, a new
             transaction will be started with the engine provided.
 
         Returns

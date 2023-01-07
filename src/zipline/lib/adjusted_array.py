@@ -122,13 +122,13 @@ def _normalize_array(data, missing_value):
         try:
             outarray = data.astype("datetime64[ns]", copy=False).view("int64")
             return outarray, {"dtype": datetime64ns_dtype}
-        except OverflowError:
+        except OverflowError as exc:
             raise ValueError(
                 "AdjustedArray received a datetime array "
                 "not representable as datetime64[ns].\n"
                 "Min Date: %s\n"
                 "Max Date: %s\n" % (data.min(), data.max())
-            )
+            ) from exc
     else:
         raise TypeError(
             "Don't know how to construct AdjustedArray "
@@ -176,7 +176,7 @@ _merge_methods = {
 }
 
 
-class AdjustedArray(object):
+class AdjustedArray:
     """
     An array that can be iterated with a variable-length window, and which can
     provide different views on data from different perspectives.
@@ -238,11 +238,11 @@ class AdjustedArray(object):
         """
         try:
             merge_func = _merge_methods[method]
-        except KeyError:
+        except KeyError as exc:
             raise ValueError(
                 "Invalid merge method %s\n"
                 "Valid methods are: %s" % (method, ", ".join(_merge_methods))
-            )
+            ) from exc
 
         self.adjustments = merge_with(
             merge_func,

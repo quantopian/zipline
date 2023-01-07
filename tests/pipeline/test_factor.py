@@ -1,59 +1,44 @@
 """
 Tests for Factor terms.
 """
+import re
 from functools import partial
 from itertools import product
-from parameterized import parameterized
 from unittest import skipIf
 
-from toolz import compose
 import numpy as np
+import pandas as pd
+import pytest
 from numpy import nan
 from numpy.random import randn, seed
-import pandas as pd
+from parameterized import parameterized
 from scipy.stats.mstats import winsorize as scipy_winsorize
+from toolz import compose
 
 from zipline.errors import BadPercentileBounds, UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
-from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
+from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline import Classifier, Factor, Filter, Pipeline
-from zipline.pipeline.data import DataSet, Column, EquityPricing
-from zipline.pipeline.factors import (
-    CustomFactor,
-    DailyReturns,
-    Returns,
-    PercentChange,
-)
-from zipline.pipeline.factors.factor import (
-    summary_funcs,
-    winsorize as zp_winsorize,
-)
-from zipline.testing import (
-    check_allclose,
-    check_arrays,
-    parameter_space,
-    permute_rows,
-)
-from zipline.testing.fixtures import (
-    WithUSEquityPricingPipelineEngine,
-    ZiplineTestCase,
-)
+from zipline.pipeline.data import Column, DataSet, EquityPricing
+from zipline.pipeline.factors import CustomFactor, DailyReturns, PercentChange, Returns
+from zipline.pipeline.factors.factor import summary_funcs
+from zipline.pipeline.factors.factor import winsorize as zp_winsorize
+from zipline.testing import check_allclose, check_arrays, parameter_space, permute_rows
+from zipline.testing.fixtures import WithUSEquityPricingPipelineEngine, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
+from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.numpy_utils import (
+    NaTns,
     as_column,
     categorical_dtype,
     datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
-    NaTns,
 )
-from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
 from .base import BaseUSEquityPipelineTestCase
-import pytest
-import re
 
 
 class F(Factor):

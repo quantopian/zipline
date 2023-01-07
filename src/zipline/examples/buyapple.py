@@ -40,6 +40,7 @@ def analyze(context=None, results=None):
     import matplotlib.pyplot as plt
 
     # Plot the portfolio and asset data.
+    plt.clf()
     ax1 = plt.subplot(211)
     results.portfolio_value.plot(ax=ax1)
     ax1.set_ylabel("Portfolio value (USD)")
@@ -56,7 +57,4 @@ def _test_args():
     """Extra arguments to use when zipline's automated tests run this example."""
     import pandas as pd
 
-    return {
-        "start": pd.Timestamp("2014-01-01", tz="utc"),
-        "end": pd.Timestamp("2014-11-01", tz="utc"),
-    }
+    return {"start": pd.Timestamp("2014-01-01"), "end": pd.Timestamp("2014-11-01")}

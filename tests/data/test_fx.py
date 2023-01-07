@@ -9,8 +9,7 @@ import pytest
 
 
 class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
-    """
-    Base class for testing FXRateReader implementations.
+    """Base class for testing FXRateReader implementations.
 
     To test a new FXRateReader implementation, subclass from this base class
     and implement the ``reader`` property, returning an FXRateReader that uses
@@ -19,8 +18,8 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
 
     __test__ = False
 
-    FX_RATES_START_DATE = pd.Timestamp("2014-01-01", tz="UTC")
-    FX_RATES_END_DATE = pd.Timestamp("2014-01-31", tz="UTC")
+    FX_RATES_START_DATE = pd.Timestamp("2014-01-01")
+    FX_RATES_END_DATE = pd.Timestamp("2014-01-31")
 
     # Calendar to which exchange rates data is aligned.
     FX_RATES_CALENDAR = "24/5"
@@ -285,10 +284,12 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
 
         for dt in pd.date_range("2014-01-02", "2014-01-08"):
             result = zp_fixtures.fast_get_loc_ffilled(dts.values, dt.asm8)
-            expected = dts.get_loc(dt, method="ffill")
+            expected = dts.get_indexer([dt], method="ffill")[0]
             assert_equal(result, expected)
 
         with pytest.raises(KeyError):
+            # TODO FIXME get_loc is deprecated  but get_indexer doesn't raise keyerror
+            # THIS IS worrying as -1 is returned instead
             dts.get_loc(pd.Timestamp("2014-01-01"), method="ffill")
 
         with pytest.raises(KeyError):

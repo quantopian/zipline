@@ -31,7 +31,7 @@ def create_simulation_parameters(
     year=2006,
     start=None,
     end=None,
-    capital_base=float("1.0e5"),
+    capital_base=1.0e5,
     num_days=None,
     data_frequency="daily",
     emission_rate="daily",
@@ -48,8 +48,8 @@ def create_simulation_parameters(
 
     if end is None:
         if num_days:
-            start_index = trading_calendar.all_sessions.searchsorted(start)
-            end = trading_calendar.all_sessions[start_index + num_days - 1]
+            start_index = trading_calendar.sessions.searchsorted(start)
+            end = trading_calendar.sessions[start_index + num_days - 1]
         else:
             end = pd.Timestamp("{0}-12-31".format(year), tz="UTC")
     elif type(end) == datetime:

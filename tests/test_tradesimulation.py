@@ -39,8 +39,8 @@ class TestBeforeTradingStartTiming(
     # 13 14 15 16 17 18 19
     # 20 21 22 23 24 25 26
     # 27 28 29 30 31
-    START_DATE = pd.Timestamp("2016-03-10", tz="UTC")
-    END_DATE = pd.Timestamp("2016-03-15", tz="UTC")
+    START_DATE = pd.Timestamp("2016-03-10")
+    END_DATE = pd.Timestamp("2016-03-15")
 
     @parameter_space(
         num_sessions=[1, 2, 3],
@@ -83,7 +83,7 @@ class TestBeforeTradingStartTiming(
         assert bts_times == expected_times[:num_sessions]
 
 
-class BeforeTradingStartsOnlyClock(object):
+class BeforeTradingStartsOnlyClock:
     def __init__(self, bts_minute):
         self.bts_minute = bts_minute
 
