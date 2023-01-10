@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4.0.0
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
@@ -35,9 +35,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.8", "3.9", "3.10"]
-        exclude:
-          - os: windows-latest
-            python-version: 3.9
 
     steps:
       - name: Checkout Zipline

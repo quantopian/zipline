@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest , windows-latest, macos-latest ]
-        python: [ 37, 38, 39, '310' ]
+        python: [ 38, 39, '310' ]
         arch: [ auto64 ]
 
     steps:
@@ -38,11 +38,10 @@ jobs:
 
       - name: Wheels macOS / Linux
         if: runner.os != 'Windows'
-        uses: pypa/cibuildwheel@v2.11.2
+        uses: pypa/cibuildwheel@v2.11.4
         env:
-          CIBW_BEFORE_ALL_LINUX: >
-            ./tools/install_talib.sh
-          CIBW_BEFORE_TEST_MACOS: brew install ta-lib
+          CIBW_BEFORE_ALL_LINUX: ./tools/install_talib.sh
+          CIBW_BEFORE_ALL_MACOS: brew install ta-lib
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: x86_64 arm64
           CIBW_BUILD: "cp${{ matrix.python }}-*"
@@ -56,7 +55,7 @@ jobs:
 
       - name: Wheels Windows
         if: runner.os == 'Windows'
-        uses: pypa/cibuildwheel@v2.11.2
+        uses: pypa/cibuildwheel@v2.11.4
         env:
           CIBW_BUILD: "cp${{ matrix.python }}-win_amd64"
           CIBW_BEFORE_TEST_WINDOWS: >

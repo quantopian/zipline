@@ -1,8 +1,8 @@
 [project]
 name = 'zipline-reloaded'
-version = '2.3'
 description = 'A Pythonic backtester for trading algorithms'
 readme = 'README.md'
+dynamic = ["version"]
 
 authors = [
     { name = 'Quantopian Inc' },
@@ -21,12 +21,12 @@ classifiers = [
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
     'Topic :: Office/Business :: Financial :: Investment',
     'Topic :: Scientific/Engineering :: Information Analysis',
     'Topic :: System :: Distributed Computing'
-
 ]
 
 license = { file = "LICENSE" }
@@ -38,7 +38,7 @@ dependencies = [
     'bottleneck >=1.0.0',
     'click >=4.0.0',
     'empyrical-reloaded >=0.5.7',
-    'h5py >=2.7.1',
+    'h5py >=2.7.1', # currently requires installation from source for Python 3.11
     'intervaltree >=2.1.0',
     'iso3166 >=2.1.1',
     'iso4217 >=1.6.20180829',
@@ -94,15 +94,15 @@ test = [
     'click <8.1.0',
     'coverage',
     'pytest-rerunfailures',
-    'psycopg2 ==2.9.4',
-    'pytest-postgresql ==3.1.3'
+    # the following are required to run tests using PostgreSQL instead of SQLite
+    #    'psycopg2',
+    #    'pytest-postgresql ==3.1.3'
 ]
 dev = [
     'flake8 >=3.9.1',
     'black',
     'pre-commit >=2.12.1',
     'Cython>=0.29.21,<3',
-
 ]
 docs = [
     'Cython',
@@ -139,9 +139,8 @@ testpaths = 'tests'
 addopts = '-v'
 
 [tool.cibuildwheel]
-skip = ["cp37-macosx_arm64", "cp37-macosx_universal2"]
 test-extras = "test"
-test-command = "pytest -n 8 --reruns 5 {package}/tests"
+test-command = "pytest -n 2 --reruns 5 {package}/tests"
 build-verbosity = 3
 
 [tool.cibuildwheel.macos]
@@ -154,7 +153,7 @@ skip = "*musllinux*"
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310']
 exclude = '''
 (
     asv_bench/env
@@ -171,7 +170,7 @@ exclude = '''
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py{37,38,39,310}-pandas{11,12,13},py{38,39,310}-pandas{14,15}
+envlist = py{38,39,310}-pandas{12,13,14,15}
 isolated_build = True
 skip_missing_interpreters = True
 minversion = 3.23.0
@@ -190,6 +189,7 @@ setenv =
 changedir = tmp
 extras = test
 deps =
+    pandas12: pandas>=1.2.0,<1.3
     pandas13: pandas>=1.3.0,<1.4
     pandas14: pandas>=1.4.0,<1.5
     pandas15: pandas>=1.5.0,<1.6

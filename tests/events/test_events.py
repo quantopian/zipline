@@ -199,10 +199,10 @@ def minutes_for_days(cal, ordered_days=False):
             return ordered_session_list[day]
 
     else:
-        # Other than AfterOpen and BeforeClose, we don't rely on the the nature
+        # Other than AfterOpen and BeforeClose, we don't rely on the nature
         # of the clock, so we don't care.
         def session_picker(day):
-            return random.choice(cal.sessions[:-1])
+            return random.choice(cal.sessions[:-1].tolist())
 
     return [cal.session_minutes(session_picker(cnt)) for cnt in range(500)]
 

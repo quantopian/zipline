@@ -6,7 +6,7 @@ Otherwise default to expanduser(~/.zipline)
 """
 import os
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Optional
+from typing import Any, Iterable, Mapping, Optional, List
 
 import pandas as pd
 
@@ -71,7 +71,7 @@ def modified_since(path: str, dt: pd.Timestamp) -> bool:
     Returns
     -------
     was_modified : bool
-        Will be ``False`` if path doesn't exists, or if its last modified date
+        Will be ``False`` if path doesn't exist, or if its last modified date
         is earlier than or equal to `dt`
     """
     return Path(path).exists() and last_modified_time(path) > dt
@@ -103,7 +103,7 @@ def zipline_root(environ: Optional[Mapping[Any, Any]] = None) -> str:
     return root
 
 
-def zipline_path(paths: list[str], environ: Optional[Mapping[Any, Any]] = None) -> str:
+def zipline_path(paths: List[str], environ: Optional[Mapping[Any, Any]] = None) -> str:
     """Get a path relative to the zipline root.
 
     Parameters

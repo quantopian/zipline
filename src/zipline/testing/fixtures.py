@@ -478,7 +478,7 @@ class WithTradingCalendars:
     Attributes
     ----------
     TRADING_CALENDAR_STRS : iterable
-        iterable of identifiers of the calendars to use.
+        Iterable of identifiers of the calendars to use.
     TRADING_CALENDAR_FOR_ASSET_TYPE : dict
         A dictionary which maps asset type names to the calendar associated
         with that asset type.
@@ -486,7 +486,7 @@ class WithTradingCalendars:
 
     TRADING_CALENDAR_STRS = ("NYSE",)
     TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: "NYSE", Future: "us_futures"}
-    # For backwards compatibility, exisitng tests and fixtures refer to
+    # For backwards compatibility, existing tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
     # calendar.
     TRADING_CALENDAR_PRIMARY_CAL = "NYSE"

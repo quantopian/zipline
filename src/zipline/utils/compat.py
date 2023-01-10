@@ -1,10 +1,10 @@
 import functools
 import inspect
-
+from collections import namedtuple  # noqa: compatibility with python 3.11
 from contextlib import contextmanager, ExitStack
 from html import escape as escape_html
-from types import MappingProxyType as mappingproxy
 from math import ceil
+from types import MappingProxyType as mappingproxy
 
 
 def consistent_round(val):
@@ -19,8 +19,11 @@ wraps = functools.wraps
 
 
 def getargspec(f):
+    ArgSpec = namedtuple(
+        "ArgSpec", "args varargs keywords defaults"
+    )  # noqa: compatibility with python 3.11
     full_argspec = inspect.getfullargspec(f)
-    return inspect.ArgSpec(
+    return ArgSpec(
         args=full_argspec.args,
         varargs=full_argspec.varargs,
         keywords=full_argspec.varkw,

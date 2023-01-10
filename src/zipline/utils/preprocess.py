@@ -10,16 +10,16 @@ from toolz.curried.operator import getitem
 
 from zipline.utils.compat import getargspec, wraps
 
-if sys.version_info[0:2] >= (3, 8):
+if sys.version_info[0:2] < (3, 7):
+    _code_argorder_head = ("co_argcount", "co_kwonlyargcount")
+else:
     _code_argorder_head = (
         "co_argcount",
         "co_posonlyargcount",
         "co_kwonlyargcount",
     )
-else:
-    _code_argorder_head = ("co_argcount", "co_kwonlyargcount")
 
-_code_argorder = (_code_argorder_head) + (
+_code_argorder_body = (
     "co_nlocals",
     "co_stacksize",
     "co_flags",
@@ -29,12 +29,33 @@ _code_argorder = (_code_argorder_head) + (
     "co_varnames",
     "co_filename",
     "co_name",
-    "co_firstlineno",
-    "co_lnotab",
+)
+
+_code_argorder_tail = (
     "co_freevars",
     "co_cellvars",
 )
 
+if sys.version_info[0:2] <= (3, 10):
+    _code_argorder = (
+        _code_argorder_head
+        + _code_argorder_body
+        + ("co_firstlineno", "co_lnotab")
+        + _code_argorder_tail
+    )
+
+else:
+    _code_argorder = (
+        _code_argorder_head
+        + _code_argorder_body
+        + (
+            "co_qualname",  # new in 3.11
+            "co_firstlineno",
+            "co_lnotab",
+            "co_exceptiontable",  # new in 3.11
+        )
+        + _code_argorder_tail
+    )
 NO_DEFAULT = object()
 
 
@@ -233,17 +254,16 @@ def _build_preprocessed_function(func, processors, args_defaults, varargs, varkw
     # work as intended.
     try:
         # Try to get the pycode object from the underlying function.
-        original_code = func.__code__
+        _ = func.__code__
     except AttributeError:
         try:
             # The underlying callable was not a function, try to grab the
             # `__func__.__code__` which exists on method objects.
-            original_code = func.__func__.__code__
+            _ = func.__func__.__code__
         except AttributeError:
             # The underlying callable does not have a `__code__`. There is
             # nothing for us to correct.
             return new_func
 
-    args["co_firstlineno"] = original_code.co_firstlineno
     new_func.__code__ = CodeType(*map(getitem(args), _code_argorder))
     return new_func
