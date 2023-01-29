@@ -43,7 +43,7 @@ Alternatively, if you are using the [Anaconda](https://www.anaconda.com/products
 > **Note:** We are currently working to transition the conda package to [conda-forge](https://conda-forge.org/docs/index.html).
 
 ```bash
-conda install -c ml4t -c conda-forge -c ranaroussi zipline-reloaded
+conda install -c conda-forge zipline-reloaded
 ```
 
 You can also [enable](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html) `conda-forge` by listing it in your `.condarc`.

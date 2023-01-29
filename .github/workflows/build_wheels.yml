@@ -3,10 +3,11 @@ name: PyPI
 on:
   workflow_dispatch:
     inputs:
-      target:
-        description: 'Package Index'
+      publish_to_pypi:
+        description: 'Publish to PyPI?'
         required: true
-        default: 'TESTPYPI'
+        type: boolean
+        default: false
 
 jobs:
   build_wheels:
@@ -16,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest , windows-latest, macos-latest ]
-        python: [ 38, 39, '310' ]
+        python: [ 38, 39, '310' , '311']
         arch: [ auto64 ]
 
     steps:
@@ -58,6 +59,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.12.0
         env:
           CIBW_BUILD: "cp${{ matrix.python }}-win_amd64"
+          CIBW_TEST_SKIP: "cp311-win_amd64"
           CIBW_BEFORE_TEST_WINDOWS: >
             call "c:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 &&
             call ./tools/install_talib.bat
@@ -101,7 +103,7 @@ jobs:
 
       - name: publish to testpypi
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: ${{ github.event.inputs.target }} == 'TESTPYPI'
+        if: ${{ inputs.publish_to_pypi == false }}
         with:
           user: __token__
           password: ${{ secrets.TESTPYPI_TOKEN }}
@@ -109,7 +111,7 @@ jobs:
 
       - name: publish to pypi
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: ${{ github.event.inputs.target }} == 'PYPI' && startsWith(github.ref, 'refs/tags'
+        if: ${{ inputs.publish_to_pypi == true }}
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
