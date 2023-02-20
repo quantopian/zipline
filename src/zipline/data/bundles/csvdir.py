@@ -197,8 +197,7 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
         # NOTE: if there are duplicates it will arbitrarily pick the latest found
         fnames = {
             f.name.split(".")[0]: f.name
-            for f in files
-            if f.is_file() and f.name.split(".")[0] in it
+            for f in files if f.is_file()
         }
 
         for sid, symbol in enumerate(it):
