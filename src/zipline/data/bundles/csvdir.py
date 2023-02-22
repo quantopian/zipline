@@ -195,10 +195,7 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
         files = os.scandir(csvdir)
         # building a dictionary of filenames
         # NOTE: if there are duplicates it will arbitrarily pick the latest found
-        fnames = {
-            f.name.split(".")[0]: f.name
-            for f in files if f.is_file()
-        }
+        fnames = {f.name.split(".")[0]: f.name for f in files if f.is_file()}
 
         for sid, symbol in enumerate(it):
             logger.debug(f"{symbol}: sid {sid}")
