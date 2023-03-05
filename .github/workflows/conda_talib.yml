@@ -64,19 +64,19 @@ jobs:
         run: conda mambabuild --output-folder . --python ${{ matrix.python }} conda/ta-lib/
 
       - name: store macos result
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.os == 'macos-latest' }}
         with:
           path: osx-64/*.tar.bz2
 
       - name: store linux result
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           path: linux-64/*.tar.bz2
 
       - name: store windows result
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.os == 'windows-latest' }}
         with:
           path: win-64/*.tar.bz2
