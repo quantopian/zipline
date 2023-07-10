@@ -39,7 +39,7 @@ jobs:
 
       - name: Wheels macOS / Linux
         if: runner.os != 'Windows'
-        uses: pypa/cibuildwheel@v2.13.0
+        uses: pypa/cibuildwheel@v2.14.0
         env:
           CIBW_BEFORE_ALL_LINUX: ./tools/install_talib.sh
           CIBW_BEFORE_ALL_MACOS: brew install ta-lib
@@ -56,7 +56,7 @@ jobs:
 
       - name: Wheels Windows
         if: runner.os == 'Windows'
-        uses: pypa/cibuildwheel@v2.13.0
+        uses: pypa/cibuildwheel@v2.14.0
         env:
           CIBW_BUILD: "cp${{ matrix.python }}-win_amd64"
           CIBW_TEST_SKIP: "cp311-win_amd64"
