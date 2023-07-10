@@ -47,7 +47,6 @@ _1_ns = pd.Timedelta(1, unit="ns")
 
 
 class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestCase):
-
     START_DATE = pd.Timestamp("2014-01-06")
     END_DATE = pd.Timestamp("2014-01-10")
 
@@ -334,13 +333,13 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
                     to_bundle_ingest_dirname(ingestions[0]),  # most recent
                     self.environ,
                     version,
-                ),
-                future=False,
+                )
             )
             metadata = sa.MetaData()
             metadata.reflect(eng)
             version_table = metadata.tables["version_info"]
-            check_version_info(eng, version_table, version)
+            with eng.connect() as conn:
+                check_version_info(conn, version_table, version)
 
     @parameterized.expand([("clean",), ("load",)])
     def test_bundle_doesnt_exist(self, fnname):

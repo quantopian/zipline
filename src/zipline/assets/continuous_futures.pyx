@@ -31,7 +31,7 @@ from cpython cimport bool
 from functools import partial
 
 from numpy import array, empty, iinfo
-from numpy cimport long_t, int64_t
+from numpy cimport int64_t, int64_t
 from pandas import Timestamp
 from zipline.utils.calendar_utils import get_calendar
 import warnings
@@ -89,9 +89,9 @@ cdef class ContinuousFuture:
     Instances of this class are exposed to the algorithm.
     """
 
-    cdef readonly long_t sid
+    cdef readonly int64_t sid
     # Cached hash of self.sid
-    cdef long_t sid_hash
+    cdef int64_t sid_hash
 
     cdef readonly object root_symbol
     cdef readonly int offset
@@ -114,7 +114,7 @@ cdef class ContinuousFuture:
     })
 
     def __init__(self,
-                 long_t sid, # sid is required
+                 int64_t sid, # sid is required
                  object root_symbol,
                  int offset,
                  object roll_style,
@@ -155,7 +155,7 @@ cdef class ContinuousFuture:
         This is used in place of various
         equality checkers in pure python.
         """
-        cdef long_t x_as_int, y_as_int
+        cdef int64_t x_as_int, y_as_int
 
         try:
             x_as_int = PyNumber_Index(x)
@@ -373,7 +373,7 @@ cdef class OrderedContracts:
             prev.next = curr
             prev = curr
 
-    cpdef long_t contract_before_auto_close(self, long_t dt_value):
+    cpdef int64_t contract_before_auto_close(self, int64_t dt_value):
         """Get the contract with next upcoming auto close date."""
         curr = self._head_contract
         while curr.next is not None:
@@ -382,7 +382,7 @@ cdef class OrderedContracts:
             curr = curr.next
         return curr.contract.sid
 
-    cpdef contract_at_offset(self, long_t sid, Py_ssize_t offset, int64_t start_cap):
+    cpdef contract_at_offset(self, int64_t sid, Py_ssize_t offset, int64_t start_cap):
         """Get the sid which is the given sid plus the offset distance.
         An offset of 0 should be reflexive.
         """
@@ -399,7 +399,7 @@ cdef class OrderedContracts:
         else:
             return None
 
-    cpdef long_t[:] active_chain(self, long_t starting_sid, long_t dt_value):
+    cpdef int64_t[:] active_chain(self, int64_t starting_sid, int64_t dt_value):
         curr = self.sid_to_contract[starting_sid]
         cdef list contracts = []
 

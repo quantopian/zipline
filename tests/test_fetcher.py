@@ -159,12 +159,9 @@ def handle_data(context, data):
 
         # manually getting generator because we need the minutely emission
         # packets here. TradingAlgorithm.run() only returns daily packets.
-        gen = test_algo.get_generator()
-        perf_packets = list(gen)
-
         signal = [
             result["minute_perf"]["recorded_vars"]["aapl_signal"]
-            for result in perf_packets
+            for result in test_algo.get_generator()
             if "minute_perf" in result
         ]
 

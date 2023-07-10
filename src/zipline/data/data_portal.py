@@ -143,7 +143,6 @@ class DataPortal:
         minute_history_prefetch_length=_DEF_M_HIST_PREFETCH,
         daily_history_prefetch_length=_DEF_D_HIST_PREFETCH,
     ):
-
         self.trading_calendar = trading_calendar
 
         self.asset_finder = asset_finder
@@ -403,7 +402,8 @@ class DataPortal:
         )
 
     def _get_fetcher_value(self, asset, field, dt):
-        day = dt.normalize()
+        # TODO: FIX TZ MESS
+        day = dt.normalize().tz_localize(None)
 
         try:
             return self._augmented_sources_map[field][asset].loc[day, field]
@@ -1186,7 +1186,8 @@ class DataPortal:
         if self._extra_source_df is None:
             return []
 
-        day = dt.normalize()
+        # TODO: FIX THIS TZ MESS!
+        day = dt.normalize().tz_localize(None)
 
         if day in self._extra_source_df.index:
             assets = self._extra_source_df.loc[day]["sid"]

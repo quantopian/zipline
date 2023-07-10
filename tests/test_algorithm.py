@@ -2753,7 +2753,7 @@ class TestGetDatetime(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
             def handle_data(context, data):
                 dt = get_datetime({tz})
-                if dt.tz.zone != context.tz:
+                if str(dt.tz) != context.tz:
                     raise ValueError("Mismatched Zone")
 
                 if context.first_bar:

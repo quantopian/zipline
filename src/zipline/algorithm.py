@@ -16,7 +16,7 @@ from collections.abc import Iterable
 from collections import namedtuple
 from copy import copy
 import warnings
-from datetime import tzinfo, time
+from datetime import tzinfo, time, timezone
 import logging
 import pytz
 import pandas as pd
@@ -537,7 +537,6 @@ class TradingAlgorithm:
             benchmark_asset = self.asset_finder.retrieve_asset(self.benchmark_sid)
             benchmark_returns = None
         else:
-
             benchmark_asset = None
             benchmark_returns = self.benchmark_returns
         return BenchmarkSource(
@@ -644,7 +643,6 @@ class TradingAlgorithm:
         # warning.
         for perf in perfs:
             if "daily_perf" in perf:
-
                 perf["daily_perf"].update(perf["daily_perf"].pop("recorded_vars"))
                 perf["daily_perf"].update(perf["cumulative_risk_metrics"])
                 daily_perfs.append(perf["daily_perf"])
@@ -778,7 +776,7 @@ class TradingAlgorithm:
         post_func=None,
         date_column="date",
         date_format=None,
-        timezone=pytz.utc.zone,
+        timezone=str(timezone.utc),
         symbol=None,
         mask=True,
         symbol_column=None,
@@ -1455,7 +1453,7 @@ class TradingAlgorithm:
             The current simulation datetime converted to ``tz``.
         """
         dt = self.datetime
-        assert dt.tzinfo == pytz.utc, "Algorithm should have a utc datetime"
+        assert dt.tzinfo == timezone.utc, "Algorithm should have a utc datetime"
         if tz is not None:
             dt = dt.astimezone(tz)
         return dt

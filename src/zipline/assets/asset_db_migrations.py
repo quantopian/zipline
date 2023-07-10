@@ -76,10 +76,13 @@ def downgrade(engine, desired_version):
 
     # Check the version of the db at the engine
     with engine.begin() as conn:
-        metadata = sa.MetaData(conn)
-        metadata.reflect()
-        version_info_table = metadata.tables["version_info"]
-        starting_version = sa.select((version_info_table.c.version,)).scalar()
+        metadata_obj = sa.MetaData()
+        metadata_obj.reflect(conn)
+        version_info_table = metadata_obj.tables["version_info"]
+        # starting_version = sa.select((version_info_table.c.version,)).scalar()
+        starting_version = conn.execute(
+            sa.select(version_info_table.c.version)
+        ).scalar()
 
         # Check for accidental upgrade
         if starting_version < desired_version:
@@ -180,7 +183,6 @@ def _downgrade_v1(op):
 
     # Execute batch op to allow column modification in SQLite
     with op.batch_alter_table("futures_contracts") as batch_op:
-
         # Rename 'multiplier'
         batch_op.alter_column(
             column_name="multiplier", new_column_name="contract_multiplier"

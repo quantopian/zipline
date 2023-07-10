@@ -1,13 +1,12 @@
+import logging
+import sqlite3
 from collections import namedtuple
 from errno import ENOENT
 from os import remove
 
-import logging
 import numpy as np
-from numpy import integer as any_integer
 import pandas as pd
-from pandas import Timestamp
-import sqlite3
+from numpy import integer as any_integer
 
 from zipline.utils.functional import keysorted
 from zipline.utils.input_validation import preprocess
@@ -19,7 +18,8 @@ from zipline.utils.numpy_utils import (
     uint64_dtype,
 )
 from zipline.utils.pandas_utils import empty_dataframe
-from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
+from zipline.utils.sqlite_utils import coerce_string_to_conn, group_into_chunks
+
 from ._adjustments import load_adjustments_from_sqlite
 
 log = logging.getLogger(__name__)
@@ -217,7 +217,7 @@ class SQLiteAdjustmentReader:
         c.close()
 
         return [
-            [Timestamp(adjustment[0], unit="s"), adjustment[1]]
+            [pd.Timestamp(adjustment[0], unit="s"), adjustment[1]]
             for adjustment in adjustments_for_sid
         ]
 
@@ -237,7 +237,7 @@ class SQLiteAdjustmentReader:
                 div = Dividend(
                     asset_finder.retrieve_asset(row[0]),
                     row[1],
-                    Timestamp(row[2], unit="s", tz="UTC"),
+                    pd.Timestamp(row[2], unit="s", tz="UTC"),
                 )
                 divs.append(div)
         c.close()
@@ -264,7 +264,7 @@ class SQLiteAdjustmentReader:
                     asset_finder.retrieve_asset(row[0]),  # asset
                     asset_finder.retrieve_asset(row[1]),  # payment_asset
                     row[2],
-                    Timestamp(row[3], unit="s", tz="UTC"),
+                    pd.Timestamp(row[3], unit="s", tz="UTC"),
                 )
                 stock_divs.append(stock_div)
         c.close()
@@ -312,7 +312,7 @@ class SQLiteAdjustmentReader:
         )
 
         result = pd.read_sql(
-            'select * from "{}"'.format(table_name),
+            f"select * from {table_name}",
             self.conn,
             index_col="index",
             **kwargs,

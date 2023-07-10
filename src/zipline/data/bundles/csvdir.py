@@ -80,7 +80,6 @@ class CSVDIRBundle:
         show_progress,
         output_dir,
     ):
-
         csvdir_bundle(
             environ,
             asset_db_writer,
@@ -208,7 +207,6 @@ def _pricing_iter(csvdir, symbols, metadata, divs_splits, show_progress):
             dfr = pd.read_csv(
                 os.path.join(csvdir, fname),
                 parse_dates=[0],
-                infer_datetime_format=True,
                 index_col=0,
             ).sort_index()
 

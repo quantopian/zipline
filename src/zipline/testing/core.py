@@ -741,7 +741,7 @@ class tmp_assets_db:
         self._eng = None  # set in enter and exit
 
     def __enter__(self):
-        self._eng = eng = create_engine(self._url, future=False)
+        self._eng = eng = create_engine(self._url)
         AssetDBWriter(eng).write(**self._frames)
         return eng
 
@@ -1092,7 +1092,6 @@ def parameter_space(__fail_fast=_FAIL_FAST_DEFAULT, **params):
     """
 
     def decorator(f):
-
         argspec = getargspec(f)
         if argspec.varargs:
             raise AssertionError("parameter_space() doesn't support *args")

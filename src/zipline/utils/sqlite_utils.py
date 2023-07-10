@@ -42,7 +42,7 @@ def check_and_create_connection(path, require_exists):
 def check_and_create_engine(path, require_exists):
     if require_exists:
         verify_sqlite_path_exists(path)
-    return sa.create_engine("sqlite:///" + path, future=False)
+    return sa.create_engine("sqlite:///" + path)
 
 
 def coerce_string_to_conn(require_exists):

@@ -412,7 +412,7 @@ def check_version_info(conn, version_table, expected_version: int):
 
     Parameters
     ----------
-    conn : sa.Connection
+    conn : Connection
         The connection to use to perform the check.
     version_table : sa.Table
         The version table of the asset database
@@ -424,7 +424,6 @@ def check_version_info(conn, version_table, expected_version: int):
     AssetDBVersionError
         If the version is in the table and not equal to ASSET_DB_VERSION.
     """
-
     # Read the version out of the table
     version_from_table = conn.execute(sa.select(version_table.c.version)).scalar()
 

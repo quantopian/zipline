@@ -21,7 +21,7 @@ DEFAULT_DATE_BOUNDS = {
 @pytest.fixture(scope="function")
 def sql_db(request):
     url = "sqlite:///:memory:"
-    request.cls.engine = sa.create_engine(url, future=False)
+    request.cls.engine = sa.create_engine(url)
     yield request.cls.engine
     request.cls.engine.dispose()
     request.cls.engine = None
@@ -30,7 +30,7 @@ def sql_db(request):
 @pytest.fixture(scope="class")
 def sql_db_class(request):
     url = "sqlite:///:memory:"
-    request.cls.engine = sa.create_engine(url, future=False)
+    request.cls.engine = sa.create_engine(url)
     yield request.cls.engine
     request.cls.engine.dispose()
     request.cls.engine = None
@@ -39,7 +39,7 @@ def sql_db_class(request):
 @pytest.fixture(scope="function")
 def empty_assets_db(sql_db, request):
     AssetDBWriter(sql_db).write(None)
-    request.cls.metadata = sa.MetaData(sql_db)
+    request.cls.metadata = sa.MetaData()
     request.cls.metadata.reflect(bind=sql_db)
 
 

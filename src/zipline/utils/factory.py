@@ -37,12 +37,11 @@ def create_simulation_parameters(
     emission_rate="daily",
     trading_calendar=None,
 ):
-
     if not trading_calendar:
         trading_calendar = get_calendar("NYSE")
 
     if start is None:
-        start = pd.Timestamp("{0}-01-01".format(year), tz="UTC")
+        start = pd.Timestamp(f"{year}-01-01", tz="UTC")
     elif type(start) == datetime:
         start = pd.Timestamp(start)
 
@@ -51,7 +50,7 @@ def create_simulation_parameters(
             start_index = trading_calendar.sessions.searchsorted(start)
             end = trading_calendar.sessions[start_index + num_days - 1]
         else:
-            end = pd.Timestamp("{0}-12-31".format(year), tz="UTC")
+            end = pd.Timestamp(f"{year}-12-31", tz="UTC")
     elif type(end) == datetime:
         end = pd.Timestamp(end)
 

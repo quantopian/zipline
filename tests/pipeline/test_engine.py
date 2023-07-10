@@ -11,7 +11,8 @@ import numpy as np
 
 from numpy.testing import assert_almost_equal
 import pandas as pd
-from pandas.compat.chainmap import ChainMap
+from collections import ChainMap
+
 from pandas.testing import assert_frame_equal
 from toolz import merge
 
@@ -1478,7 +1479,6 @@ class PopulateInitialWorkspaceTestCase(
 
 
 class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine, zf.ZiplineTestCase):
-
     PIPELINE_START_DATE = pd.Timestamp("2006-01-05")
     END_DATE = pd.Timestamp("2006-12-29")
     ASSET_FINDER_COUNTRY_CODE = "US"

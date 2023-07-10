@@ -110,7 +110,6 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
 
         # For every combination of rate name and quote currency...
         for rate, quote in itertools.product(rates, possible_quotes):
-
             # Choose N random distinct days...
             for ndays in 1, 2, 7, 20:
                 dts_raw = rand.choice(dates, ndays, replace=False)
@@ -203,7 +202,6 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
             self.FX_RATES_START_DATE - pd.Timedelta("1 day"),
             self.FX_RATES_START_DATE - pd.Timedelta("1000 days"),
         ):
-
             for rate in self.FX_RATES_RATE_NAMES:
                 quote = "USD"
                 bases = np.array(["CAD"], dtype=object)
@@ -222,7 +220,6 @@ class _FXReaderTestCase(zp_fixtures.WithFXRates, zp_fixtures.ZiplineTestCase):
             self.FX_RATES_END_DATE + pd.Timedelta("1 day"),
             self.FX_RATES_END_DATE + pd.Timedelta("1000 days"),
         ):
-
             for rate in self.FX_RATES_RATE_NAMES:
                 quote = "USD"
                 bases = np.array(["CAD"], dtype=object)
@@ -288,9 +285,7 @@ class FastGetLocTestCase(zp_fixtures.ZiplineTestCase):
             assert_equal(result, expected)
 
         with pytest.raises(KeyError):
-            # TODO FIXME get_loc is deprecated  but get_indexer doesn't raise keyerror
-            # THIS IS worrying as -1 is returned instead
-            dts.get_loc(pd.Timestamp("2014-01-01"), method="ffill")
+            dts.get_loc(pd.Timestamp("2014-01-01"))
 
         with pytest.raises(KeyError):
             zp_fixtures.fast_get_loc_ffilled(dts, pd.Timestamp("2014-01-01"))

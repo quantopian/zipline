@@ -1,18 +1,7 @@
 from textwrap import dedent
 from functools import partial
-from numpy import (
-    bool_,
-    dtype,
-    float32,
-    float64,
-    int32,
-    int64,
-    int16,
-    uint16,
-    ndarray,
-    uint32,
-    uint8,
-)
+import numpy as np
+
 from toolz import merge_with
 from zipline.errors import (
     WindowLengthNotPositive,
@@ -35,20 +24,18 @@ from ._uint8window import AdjustedArrayWindow as UInt8Window
 
 
 BOOL_DTYPES = frozenset(
-    map(dtype, [bool_, uint8]),
+    map(np.dtype, [np.bool_, np.uint8]),
 )
 FLOAT_DTYPES = frozenset(
-    map(dtype, [float32, float64]),
+    map(np.dtype, [np.float32, np.float64]),
 )
 INT_DTYPES = frozenset(
     # NOTE: uint64 not supported because it can't be safely cast to int64.
-    map(dtype, [int16, uint16, int32, int64, uint32]),
+    map(np.dtype, [np.int16, np.uint16, np.int32, np.int64, np.uint32]),
 )
-DATETIME_DTYPES = frozenset(
-    map(dtype, ["datetime64[ns]", "datetime64[D]"]),
-)
+DATETIME_DTYPES = frozenset(map(np.dtype, ["datetime64[ns]"]))
 # We use object arrays for strings.
-OBJECT_DTYPES = frozenset(map(dtype, ["O"]))
+OBJECT_DTYPES = frozenset(map(np.dtype, ["O"]))
 STRING_KINDS = frozenset(["S", "U"])
 
 REPRESENTABLE_DTYPES = BOOL_DTYPES.union(
@@ -60,16 +47,12 @@ REPRESENTABLE_DTYPES = BOOL_DTYPES.union(
 
 
 def can_represent_dtype(dtype):
-    """
-    Can we build an AdjustedArray for a baseline of `dtype``?
-    """
+    """Can we build an AdjustedArray for a baseline of `dtype``?"""
     return dtype in REPRESENTABLE_DTYPES or dtype.kind in STRING_KINDS
 
 
 def is_categorical(dtype):
-    """
-    Do we represent this dtype with LabelArrays rather than ndarrays?
-    """
+    """Do we represent this dtype with LabelArrays rather than ndarrays?"""
     return dtype in OBJECT_DTYPES or dtype.kind in STRING_KINDS
 
 
@@ -106,11 +89,11 @@ def _normalize_array(data, missing_value):
 
     data_dtype = data.dtype
     if data_dtype in BOOL_DTYPES:
-        return data.astype(uint8, copy=False), {"dtype": dtype(bool_)}
+        return data.astype(np.uint8, copy=False), {"dtype": np.dtype(np.bool_)}
     elif data_dtype in FLOAT_DTYPES:
-        return data.astype(float64, copy=False), {"dtype": dtype(float64)}
+        return data.astype(np.float64, copy=False), {"dtype": np.dtype(np.float64)}
     elif data_dtype in INT_DTYPES:
-        return data.astype(int64, copy=False), {"dtype": dtype(int64)}
+        return data.astype(np.int64, copy=False), {"dtype": np.dtype(np.int64)}
     elif is_categorical(data_dtype):
         if not isinstance(missing_value, LabelArray.SUPPORTED_SCALAR_TYPES):
             raise TypeError(
@@ -354,7 +337,7 @@ class AdjustedArray:
 def ensure_adjusted_array(ndarray_or_adjusted_array, missing_value):
     if isinstance(ndarray_or_adjusted_array, AdjustedArray):
         return ndarray_or_adjusted_array
-    elif isinstance(ndarray_or_adjusted_array, ndarray):
+    elif isinstance(ndarray_or_adjusted_array, np.ndarray):
         return AdjustedArray(
             ndarray_or_adjusted_array,
             {},
@@ -382,7 +365,7 @@ def ensure_ndarray(ndarray_or_adjusted_array):
     -------
     out : The input, converted to an ndarray.
     """
-    if isinstance(ndarray_or_adjusted_array, ndarray):
+    if isinstance(ndarray_or_adjusted_array, np.ndarray):
         return ndarray_or_adjusted_array
     elif isinstance(ndarray_or_adjusted_array, AdjustedArray):
         return ndarray_or_adjusted_array.data

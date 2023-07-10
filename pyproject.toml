@@ -46,8 +46,8 @@ dependencies = [
     'multipledispatch >=0.6.0',
     'networkx >=2.0',
     'numexpr >=2.6.1',
-    'numpy >=1.14.5, <1.24',
-    'pandas >=1.3, <1.6',
+    'numpy >=1.14.5',
+    'pandas >=2.0',
     'patsy >=0.4.0',
     'python-dateutil >=2.4.2',
     'python-interface >=1.5.3',
@@ -55,7 +55,7 @@ dependencies = [
     'requests >=2.9.1',
     'scipy >=0.17.1',
     'six >=1.10.0',
-    'sqlalchemy >=1.0.8A, <2',
+    'sqlalchemy >=2',
     'statsmodels >=0.6.1',
     'ta-lib >=0.4.09',
     'tables >=3.4.3',
@@ -134,9 +134,10 @@ local_scheme = 'dirty-tag'
 [tool.setuptools.package-data]
 "*" = ["*.pyi", "*.pyx", "*.pxi", "*.pxd"]
 
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = 'tests'
 addopts = '-v'
+filterwarnings = 'ignore::DeprecationWarning:pandas_datareader.compat'
 
 [tool.cibuildwheel]
 test-extras = "test"
@@ -153,7 +154,7 @@ skip = "*musllinux*"
 
 [tool.black]
 line-length = 88
-target-version = ['py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310', 'py311']
 exclude = '''
 (
     asv_bench/env
@@ -170,7 +171,7 @@ exclude = '''
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py{38,39,310}-pandas{12,13,14,15}
+envlist = py{38,39,310,311}-pandas{2}
 isolated_build = True
 skip_missing_interpreters = True
 minversion = 3.23.0
@@ -180,6 +181,7 @@ python =
     3.8: py38
     3.9: py39
     3.10: py310
+    3.11: py311
 
 [testenv]
 usedevelop = True
@@ -189,10 +191,7 @@ setenv =
 changedir = tmp
 extras = test
 deps =
-    pandas12: pandas>=1.2.0,<1.3
-    pandas13: pandas>=1.3.0,<1.4
-    pandas14: pandas>=1.4.0,<1.5
-    pandas15: pandas>=1.5.0,<1.6
+    pandas2: pandas>=2.0
 
 commands =
     pytest -n 4 --reruns 5 --cov={toxinidir}/src --cov-report term  --cov-report=xml --cov-report=html:htmlcov {toxinidir}/tests

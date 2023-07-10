@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: flake8 Lint
         uses: py-actions/flake8@v2
@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10"]
+        python-version: ["3.11"]
 
     steps:
       - name: Checkout Zipline
@@ -80,7 +80,7 @@ jobs:
           max_attempts: 3
           retry_on: error
           new_command_on_retry: python -m pip install tox tox-gh-actions .[test]
-          command: tox -e py310-pandas15
+          command: tox -e py311-pandas2
 
       - name: Upload coverage data to Codecov
         if: ${{ matrix.os == 'ubuntu-latest' }}
