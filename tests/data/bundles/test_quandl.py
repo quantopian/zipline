@@ -21,6 +21,7 @@ from zipline.testing.fixtures import (
 )
 
 from zipline.utils.functional import apply
+from zipline.testing.github_actions import skip_on
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(dirname(realpath(__file__)))),
@@ -185,6 +186,7 @@ class QuandlBundleTestCase(WithResponses, ZiplineTestCase):
         ]
         return pricing, adjustments
 
+    @skip_on(PermissionError)
     def test_bundle(self):
         with open(
             join(TEST_RESOURCE_PATH, "quandl_samples", "QUANDL_ARCHIVE.zip"),

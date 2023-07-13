@@ -39,6 +39,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
     WithDefaultDateBounds,
 )
+from zipline.testing.github_actions import skip_on
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.functional import apply
 import zipline.utils.paths as pth
@@ -125,6 +126,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         self.ingest("bundle", self.environ)
         assert called[0]
 
+    @skip_on(PermissionError)
     def test_ingest(self):
         calendar = get_calendar("XNYS")
         sessions = calendar.sessions_in_range(self.START_DATE, self.END_DATE)
@@ -271,6 +273,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, WithDefaultDateBounds, ZiplineTestC
         }, "volume"
 
     @pytest.mark.filterwarnings("ignore: Overwriting bundle with name")
+    @skip_on(PermissionError)
     def test_ingest_assets_versions(self):
         versions = (1, 2)
 

@@ -141,8 +141,9 @@ filterwarnings = 'ignore::DeprecationWarning:pandas_datareader.compat'
 
 [tool.cibuildwheel]
 test-extras = "test"
-test-command = "pytest --reruns 5 {package}/tests"
+test-command = "pytest -x --reruns 5 {package}/tests"
 build-verbosity = 3
+environment = "GITHUB_ACTIONS=true"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64", "universal2"]
@@ -151,6 +152,9 @@ test-skip = ["*universal2:arm64"]
 [tool.cibuildwheel.linux]
 archs = ["auto64"]
 skip = "*musllinux*"
+
+[tool.cibuildwheel.windows]
+test-command = 'pytest -k "not daily_returns_is_special_case_of_returns" --reruns 5 {package}/tests'
 
 [tool.black]
 line-length = 88

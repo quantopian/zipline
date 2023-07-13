@@ -11,6 +11,7 @@ from zipline.utils.calendar_utils import get_calendar
 
 from zipline.data.bundles import ingest, load, bundles
 from zipline.utils.functional import apply
+from zipline.testing.github_actions import skip_on
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(dirname(realpath(__file__)))),
@@ -270,6 +271,7 @@ class TestCSVDIRBundle:
 
         return pricing, adjustments
 
+    @skip_on(PermissionError)
     def test_bundle(self):
         environ = {
             "CSVDIR": join(

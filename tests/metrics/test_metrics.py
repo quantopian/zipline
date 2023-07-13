@@ -937,7 +937,6 @@ class TestConstantPrice(
             check_names=False,
         )
 
-    # @unittest.skip("Needs fix to calendar mismatch.")
     @pytest.mark.xfail(reason="Needs fix to calendar mismatch.")
     @parameter_space(
         direction=["long", "short"],

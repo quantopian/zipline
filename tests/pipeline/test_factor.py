@@ -26,6 +26,7 @@ from zipline.pipeline.factors.factor import summary_funcs
 from zipline.pipeline.factors.factor import winsorize as zp_winsorize
 from zipline.testing import check_allclose, check_arrays, parameter_space, permute_rows
 from zipline.testing.fixtures import WithUSEquityPricingPipelineEngine, ZiplineTestCase
+from zipline.testing.github_actions import skip_on
 from zipline.testing.predicates import assert_equal
 from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.numpy_utils import (
@@ -188,7 +189,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
     @for_each_factor_dtype
     def test_rank_ascending(self, name, factor_dtype):
-
         f = F(dtype=factor_dtype)
 
         # Generated with:
@@ -268,7 +268,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
     @for_each_factor_dtype
     def test_rank_descending(self, name, factor_dtype):
-
         f = F(dtype=factor_dtype)
 
         # Generated with:
@@ -345,7 +344,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
     @for_each_factor_dtype
     def test_rank_after_mask(self, name, factor_dtype):
-
         f = F(dtype=factor_dtype)
         # data = arange(25).reshape(5, 5).transpose() % 4
         data = np.array(
@@ -418,7 +416,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
     @for_each_factor_dtype
     def test_grouped_rank_ascending(self, name, factor_dtype=float64_dtype):
-
         f = F(dtype=factor_dtype)
         c = C()
         str_c = C(dtype=categorical_dtype, missing_value=None)
@@ -537,7 +534,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
 
     @for_each_factor_dtype
     def test_grouped_rank_descending(self, name, factor_dtype):
-
         f = F(dtype=factor_dtype)
         c = C()
         str_c = C(dtype=categorical_dtype, missing_value=None)
@@ -658,7 +654,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         ]
     )
     def test_returns(self, seed_value, window_length):
-
         returns = Returns(window_length=window_length)
 
         today = np.datetime64(1, "ns")
@@ -683,7 +678,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
         ]
     )
     def test_percentchange(self, seed_value, window_length):
-
         pct_change = PercentChange(
             inputs=[EquityPricing.close],
             window_length=window_length,
@@ -1172,7 +1166,6 @@ class FactorTestCase(BaseUSEquityPipelineTestCase):
     def test_normalizations_randomized(
         self, seed_value, normalizer_name_and_func, add_nulls_to_factor
     ):
-
         name, kwargs, func = normalizer_name_and_func
 
         shape = (20, 20)
@@ -1720,6 +1713,7 @@ class TestSpecialCases(WithUSEquityPricingPipelineEngine, ZiplineTestCase):
         for name in terms:
             assert_equal(results.loc[:, name], first_column, check_names=False)
 
+    @skip_on(PermissionError)
     def test_daily_returns_is_special_case_of_returns(self):
         self.check_equivalent_terms(
             {

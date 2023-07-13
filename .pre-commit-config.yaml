@@ -1,20 +1,20 @@
 default_language_version:
-    python: python3.9
+    python: python3.11
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 'v3.4.0'
+    rev: 'v4.4.0'
     hooks:
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/ambv/black
-    rev: 22.3.0
+    rev: 23.7.0
     hooks:
       - id: black
         additional_dependencies: ['click==8.0.4']
         language_version: python3.9
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: '3.9.1'
+  - repo: https://github.com/PyCQA/flake8
+    rev: '6.0.0'
     hooks:
       - id: flake8

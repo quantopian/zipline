@@ -19,6 +19,7 @@ class TestingSlippage(SlippageModel):
     zipline.finance.slippage.SlippageModel
     """
 
+    __test__ = False
     ALL = sentinel("ALL")
 
     allowed_asset_types = (Equity,)
@@ -34,4 +35,4 @@ class TestingSlippage(SlippageModel):
         else:
             volume = self.filled_per_tick
 
-        return (price, volume)
+        return price, volume

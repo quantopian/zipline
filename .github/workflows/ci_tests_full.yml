@@ -2,6 +2,9 @@ name: CI Tests
 
 on:
   workflow_dispatch:
+  push:
+      branches:
+      - main
   schedule:
     - cron: "0 9 * * 6"
 

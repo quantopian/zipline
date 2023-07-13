@@ -24,11 +24,15 @@ by [Stefan Jansen](https://www.linkedin.com/in/applied-ai/) who is trying to kee
 - **PyData Integration:** Input of historical data and output of performance statistics are based on Pandas DataFrames to integrate nicely into the existing PyData ecosystem.
 - **Statistics and Machine Learning Libraries:** You can use libraries like matplotlib, scipy, statsmodels, and scikit-klearn to support development, analysis, and visualization of state-of-the-art trading systems.
 
+> **Note:** Release 3.0 updates Zipline to use [pandas](https://pandas.pydata.org/pandas-docs/stable/whatsnew/v2.0.0.html) >= 2.0 and [SQLAlchemy](https://docs.sqlalchemy.org/en/20/) > 2.0. These are major version updates that may break existing code; please review the linked docs.
+
 > **Note:** Release 2.4 updates Zipline to use [exchange_calendars](https://github.com/gerrymanoim/exchange_calendars) >= 4.2. This is a major version update and may break existing code (which we have tried to avoid but cannot guarantee). Please review the changes [here](https://github.com/gerrymanoim/exchange_calendars/issues/61).
 
 ## Installation
 
 Zipline supports Python >= 3.8 and is compatible with current versions of the relevant [NumFOCUS](https://numfocus.org/sponsored-projects?_sft_project_category=python-interface) libraries, including [pandas](https://pandas.pydata.org/) and [scikit-learn](https://scikit-learn.org/stable/index.html).
+
+### Using `pip`
 
 If your system meets the pre-requisites described in the [installation instructions](https://zipline.ml4trading.io/install.html), you can install Zipline using `pip` by running:
 
@@ -36,11 +40,9 @@ If your system meets the pre-requisites described in the [installation instructi
 pip install zipline-reloaded
 ```
 
-> **Note:** Installation under Python 3.11 requires building `h5py` [from source](https://docs.h5py.org/en/stable/build.html#source-installation) until [wheels become available](https://github.com/h5py/h5py/issues/2146).
+### Using `conda`
 
-Alternatively, if you are using the [Anaconda](https://www.anaconda.com/products/individual) or [miniconda](https://docs.conda.io/en/latest/miniconda.html) distributions, you can use
-
-> **Note:** We are currently working to transition the conda package to [conda-forge](https://conda-forge.org/docs/index.html).
+If you are using the [Anaconda](https://www.anaconda.com/products/individual) or [miniconda](https://docs.conda.io/en/latest/miniconda.html) distributions, you install `zipline-reloaded` from the channel `conda-forge` like so:
 
 ```bash
 conda install -c conda-forge zipline-reloaded
@@ -50,7 +52,7 @@ You can also [enable](https://docs.conda.io/projects/conda/en/latest/user-guide/
 
 In case you are installing `zipline-reloaded` alongside other packages and encounter [conflict errors](https://github.com/conda/conda/issues/9707), consider using [mamba](https://github.com/mamba-org/mamba) instead.
 
-See the [installation](https://zipline.ml4trading.io/install.html) section of the docs for more detailed instructions.
+See the [installation](https://zipline.ml4trading.io/install.html) section of the docs for more detailed instructions and the corresponding [conda-forge site](https://github.com/conda-forge/zipline-reloaded-feedstock).
 
 ## Quickstart
 
