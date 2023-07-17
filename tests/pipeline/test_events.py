@@ -1,34 +1,24 @@
 """
-Tests for setting up an EventsLoader and a BlazeEventsLoader.
+Tests for setting up an EventsLoader.
 """
+import re
 from datetime import time
 from itertools import product
 from unittest import skipIf
 
-import blaze as bz
 import numpy as np
 import pandas as pd
+import pytest
 import pytz
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
-from zipline.pipeline.common import (
-    EVENT_DATE_FIELD_NAME,
-    TS_FIELD_NAME,
-    SID_FIELD_NAME,
-)
-from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.common import EVENT_DATE_FIELD_NAME, SID_FIELD_NAME, TS_FIELD_NAME
+from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.domain import US_EQUITIES, EquitySessionDomain
 from zipline.pipeline.loaders.events import EventsLoader
-from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
-from zipline.pipeline.loaders.utils import (
-    next_event_indexer,
-    previous_event_indexer,
-)
+from zipline.pipeline.loaders.utils import next_event_indexer, previous_event_indexer
 from zipline.testing import ZiplineTestCase
-from zipline.testing.fixtures import (
-    WithAssetFinder,
-    WithTradingSessions,
-)
+from zipline.testing.fixtures import WithAssetFinder, WithTradingSessions
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
     categorical_dtype,
@@ -40,7 +30,6 @@ from zipline.utils.pandas_utils import new_pandas, skip_pipeline_new_pandas
 
 
 class EventDataSet(DataSet):
-
     previous_event_date = Column(dtype=datetime64ns_dtype)
     next_event_date = Column(dtype=datetime64ns_dtype)
 
@@ -58,36 +47,39 @@ class EventDataSet(DataSet):
 
     previous_string_custom_missing = Column(
         dtype=categorical_dtype,
-        missing_value=u"<<NULL>>",
+        missing_value="<<NULL>>",
     )
     next_string_custom_missing = Column(
         dtype=categorical_dtype,
-        missing_value=u"<<NULL>>",
+        missing_value="<<NULL>>",
     )
 
 
 EventDataSet_US = EventDataSet.specialize(US_EQUITIES)
 
-
-critical_dates = pd.to_datetime([
-    '2014-01-05',
-    '2014-01-10',
-    '2014-01-15',
-    '2014-01-20',
-])
+critical_dates = pd.to_datetime(
+    [
+        "2014-01-05",
+        "2014-01-10",
+        "2014-01-15",
+        "2014-01-20",
+    ]
+)
 
 
 def make_events_for_sid(sid, event_dates, event_timestamps):
     num_events = len(event_dates)
-    return pd.DataFrame({
-        'sid': np.full(num_events, sid, dtype=np.int64),
-        'timestamp': event_timestamps,
-        'event_date': event_dates,
-        'float': np.arange(num_events, dtype=np.float64) + sid,
-        'int': np.arange(num_events) + sid,
-        'datetime': pd.date_range('1990-01-01', periods=num_events).shift(sid),
-        'string': ['-'.join([str(sid), str(i)]) for i in range(num_events)],
-    })
+    return pd.DataFrame(
+        {
+            "sid": np.full(num_events, sid, dtype=np.int64),
+            "timestamp": event_timestamps,
+            "event_date": event_dates,
+            "float": np.arange(num_events, dtype=np.float64) + sid,
+            "int": np.arange(num_events) + sid,
+            "datetime": pd.date_range("1990-01-01", periods=num_events).shift(sid),
+            "string": ["-".join([str(sid), str(i)]) for i in range(num_events)],
+        }
+    )
 
 
 def make_null_event_date_events(all_sids, timestamp):
@@ -96,15 +88,17 @@ def make_null_event_date_events(all_sids, timestamp):
 
     Used to test that EventsLoaders filter out null events.
     """
-    return pd.DataFrame({
-        'sid': all_sids,
-        'timestamp': timestamp,
-        'event_date': pd.Timestamp('NaT'),
-        'float': -9999.0,
-        'int': -9999,
-        'datetime': pd.Timestamp('1980'),
-        'string': 'should be ignored',
-    })
+    return pd.DataFrame(
+        {
+            "sid": all_sids,
+            "timestamp": timestamp,
+            "event_date": pd.NaT,
+            "float": -9999.0,
+            "int": -9999,
+            "datetime": pd.Timestamp("1980"),
+            "string": "should be ignored",
+        }
+    )
 
 
 def make_events(add_nulls):
@@ -131,6 +125,7 @@ def make_events(add_nulls):
     generate a set of fake events with those dates and assign them to a new
     sid.
     """
+
     def gen_date_interleavings():
         for e1, e2, t1, t2 in product(*[critical_dates] * 4):
             if e1 < e2:
@@ -152,27 +147,27 @@ def make_events(add_nulls):
     return pd.concat(event_frames, ignore_index=True)
 
 
-class EventIndexerTestCase(ZiplineTestCase):
+@pytest.fixture(scope="class")
+def event(request):
+    request.cls.events = make_events(add_nulls=False).sort_values("event_date")
+    request.cls.events.reset_index(inplace=True)
 
-    @classmethod
-    def init_class_fixtures(cls):
-        super(EventIndexerTestCase, cls).init_class_fixtures()
-        cls.events = make_events(add_nulls=False).sort_values('event_date')
-        cls.events.reset_index(inplace=True)
 
+@pytest.mark.usefixtures("event")
+class TestEventIndexer:
     def test_previous_event_indexer(self):
         events = self.events
-        event_sids = events['sid'].values
-        event_dates = events['event_date'].values
-        event_timestamps = events['timestamp'].values
+        event_sids = events["sid"].values
+        event_dates = events["event_date"].values
+        event_timestamps = events["timestamp"].values
 
-        all_dates = pd.date_range('2014', '2014-01-31')
+        all_dates = pd.date_range("2014", "2014-01-31")
         all_sids = np.unique(event_sids)
 
         domain = EquitySessionDomain(
             all_dates,
-            'US',
-            time(8, 45, tzinfo=pytz.timezone('US/Eastern')),
+            "US",
+            time(8, 45, tzinfo=pytz.timezone("US/Eastern")),
         )
 
         indexer = previous_event_indexer(
@@ -192,51 +187,47 @@ class EventIndexerTestCase(ZiplineTestCase):
                 indexer[:, i],
             )
 
-    def check_previous_event_indexer(self,
-                                     events,
-                                     all_dates,
-                                     sid,
-                                     indexer):
+    def check_previous_event_indexer(self, events, all_dates, sid, indexer):
         relevant_events = events[events.sid == sid]
-        self.assertEqual(len(relevant_events), 2)
+        assert len(relevant_events) == 2
 
         ix1, ix2 = relevant_events.index
 
         # An event becomes a possible value once we're past both its event_date
         # and its timestamp.
         event1_first_eligible = max(
-            relevant_events.loc[ix1, ['event_date', 'timestamp']],
+            relevant_events.loc[ix1, ["event_date", "timestamp"]],
         )
         event2_first_eligible = max(
-            relevant_events.loc[ix2, ['event_date', 'timestamp']],
+            relevant_events.loc[ix2, ["event_date", "timestamp"]],
         )
 
         for date, computed_index in zip(all_dates, indexer):
             if date >= event2_first_eligible:
                 # If we've seen event 2, it should win even if we've seen event
                 # 1, because events are sorted by event_date.
-                self.assertEqual(computed_index, ix2)
+                assert computed_index == ix2
             elif date >= event1_first_eligible:
                 # If we've seen event 1 but not event 2, event 1 should win.
-                self.assertEqual(computed_index, ix1)
+                assert computed_index == ix1
             else:
                 # If we haven't seen either event, then we should have -1 as
                 # sentinel.
-                self.assertEqual(computed_index, -1)
+                assert computed_index == -1
 
     def test_next_event_indexer(self):
         events = self.events
-        event_sids = events['sid'].values
-        event_dates = events['event_date'].values
-        event_timestamps = events['timestamp'].values
+        event_sids = events["sid"].to_numpy()
+        event_dates = events["event_date"].to_numpy()
+        event_timestamps = events["timestamp"].to_numpy()
 
-        all_dates = pd.date_range('2014', '2014-01-31', tz='UTC')
+        all_dates = pd.date_range("2014", "2014-01-31")
         all_sids = np.unique(event_sids)
 
         domain = EquitySessionDomain(
             all_dates,
-            'US',
-            time(8, 45, tzinfo=pytz.timezone('US/Eastern')),
+            "US",
+            time(8, 45, tzinfo=pytz.timezone("US/Eastern")),
         )
 
         indexer = next_event_indexer(
@@ -257,17 +248,14 @@ class EventIndexerTestCase(ZiplineTestCase):
                 indexer[:, i],
             )
 
-    def check_next_event_indexer(self,
-                                 events,
-                                 all_dates,
-                                 sid,
-                                 indexer):
+    def check_next_event_indexer(self, events, all_dates, sid, indexer):
         relevant_events = events[events.sid == sid]
-        self.assertEqual(len(relevant_events), 2)
+        assert len(relevant_events) == 2
 
         ix1, ix2 = relevant_events.index
-        e1, e2 = relevant_events['event_date'].dt.tz_localize('UTC')
-        t1, t2 = relevant_events['timestamp'].dt.tz_localize('UTC')
+
+        e1, e2 = relevant_events["event_date"]
+        t1, t2 = relevant_events["timestamp"]
 
         for date, computed_index in zip(all_dates, indexer):
             # An event is eligible to be the next event if it's between the
@@ -275,26 +263,24 @@ class EventIndexerTestCase(ZiplineTestCase):
             if t1 <= date <= e1:
                 # If e1 is eligible, it should be chosen even if e2 is
                 # eligible, since it's earlier.
-                self.assertEqual(computed_index, ix1)
+                assert computed_index == ix1
             elif t2 <= date <= e2:
                 # e2 is eligible and e1 is not, so e2 should be chosen.
-                self.assertEqual(computed_index, ix2)
+                assert computed_index == ix2
             else:
                 # Neither event is eligible.  Return -1 as a sentinel.
-                self.assertEqual(computed_index, -1)
+                assert computed_index == -1
 
 
-class EventsLoaderEmptyTestCase(WithAssetFinder,
-                                WithTradingSessions,
-                                ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-01-01')
-    END_DATE = pd.Timestamp('2014-01-30')
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+class EventsLoaderEmptyTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase):
+    START_DATE = pd.Timestamp("2014-01-01")
+    END_DATE = pd.Timestamp("2014-01-30")
+    ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod
     def init_class_fixtures(cls):
         cls.ASSET_FINDER_EQUITY_SIDS = [0, 1]
-        cls.ASSET_FINDER_EQUITY_SYMBOLS = ['A', 'B']
+        cls.ASSET_FINDER_EQUITY_SYMBOLS = ["A", "B"]
         super(EventsLoaderEmptyTestCase, cls).init_class_fixtures()
 
     def frame_containing_all_missing_values(self, index, columns):
@@ -307,7 +293,7 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
             # the missing value is string, but we expect categoricals in the
             # final result.
             if c.dtype == categorical_dtype:
-                frame[c.name] = frame[c.name].astype('category')
+                frame[c.name] = frame[c.name].astype("category")
         return frame
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
@@ -318,42 +304,42 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
         correct missing value.
         """
         raw_events = pd.DataFrame(
-            columns=["sid",
-                     "timestamp",
-                     "event_date",
-                     "float",
-                     "int",
-                     "datetime",
-                     "string"]
+            columns=[
+                "sid",
+                "timestamp",
+                "event_date",
+                "float",
+                "int",
+                "datetime",
+                "string",
+            ]
         )
         next_value_columns = {
-            EventDataSet_US.next_datetime: 'datetime',
-            EventDataSet_US.next_event_date: 'event_date',
-            EventDataSet_US.next_float: 'float',
-            EventDataSet_US.next_int: 'int',
-            EventDataSet_US.next_string: 'string',
-            EventDataSet_US.next_string_custom_missing: 'string'
+            EventDataSet_US.next_datetime: "datetime",
+            EventDataSet_US.next_event_date: "event_date",
+            EventDataSet_US.next_float: "float",
+            EventDataSet_US.next_int: "int",
+            EventDataSet_US.next_string: "string",
+            EventDataSet_US.next_string_custom_missing: "string",
         }
         previous_value_columns = {
-            EventDataSet_US.previous_datetime: 'datetime',
-            EventDataSet_US.previous_event_date: 'event_date',
-            EventDataSet_US.previous_float: 'float',
-            EventDataSet_US.previous_int: 'int',
-            EventDataSet_US.previous_string: 'string',
-            EventDataSet_US.previous_string_custom_missing: 'string'
+            EventDataSet_US.previous_datetime: "datetime",
+            EventDataSet_US.previous_event_date: "event_date",
+            EventDataSet_US.previous_float: "float",
+            EventDataSet_US.previous_int: "int",
+            EventDataSet_US.previous_string: "string",
+            EventDataSet_US.previous_string_custom_missing: "string",
         }
-        loader = EventsLoader(
-            raw_events, next_value_columns, previous_value_columns
-        )
+        loader = EventsLoader(raw_events, next_value_columns, previous_value_columns)
         engine = SimplePipelineEngine(
             lambda x: loader,
             self.asset_finder,
         )
 
         results = engine.run_pipeline(
-            Pipeline({
-                c.name: c.latest for c in EventDataSet_US.columns
-            }, domain=US_EQUITIES),
+            Pipeline(
+                {c.name: c.latest for c in EventDataSet_US.columns}, domain=US_EQUITIES
+            ),
             start_date=self.trading_days[0],
             end_date=self.trading_days[-1],
         )
@@ -369,13 +355,10 @@ class EventsLoaderEmptyTestCase(WithAssetFinder,
         assert_equal(results, expected)
 
 
-class EventsLoaderTestCase(WithAssetFinder,
-                           WithTradingSessions,
-                           ZiplineTestCase):
-
-    START_DATE = pd.Timestamp('2014-01-01')
-    END_DATE = pd.Timestamp('2014-01-30')
-    ASSET_FINDER_COUNTRY_CODE = 'US'
+class EventsLoaderTestCase(WithAssetFinder, WithTradingSessions, ZiplineTestCase):
+    START_DATE = pd.Timestamp("2014-01-01")
+    END_DATE = pd.Timestamp("2014-01-30")
+    ASSET_FINDER_COUNTRY_CODE = "US"
 
     @classmethod
     def init_class_fixtures(cls):
@@ -383,33 +366,31 @@ class EventsLoaderTestCase(WithAssetFinder,
         # call init_class_fixtures.  We choose our sids for WithAssetFinder
         # based on the events generated by make_event_data.
         cls.raw_events = make_events(add_nulls=True)
-        cls.raw_events_no_nulls = cls.raw_events[
-            cls.raw_events['event_date'].notnull()
-        ]
+        cls.raw_events_no_nulls = cls.raw_events[cls.raw_events["event_date"].notnull()]
         cls.next_value_columns = {
-            EventDataSet_US.next_datetime: 'datetime',
-            EventDataSet_US.next_event_date: 'event_date',
-            EventDataSet_US.next_float: 'float',
-            EventDataSet_US.next_int: 'int',
-            EventDataSet_US.next_string: 'string',
-            EventDataSet_US.next_string_custom_missing: 'string'
+            EventDataSet_US.next_datetime: "datetime",
+            EventDataSet_US.next_event_date: "event_date",
+            EventDataSet_US.next_float: "float",
+            EventDataSet_US.next_int: "int",
+            EventDataSet_US.next_string: "string",
+            EventDataSet_US.next_string_custom_missing: "string",
         }
         cls.previous_value_columns = {
-            EventDataSet_US.previous_datetime: 'datetime',
-            EventDataSet_US.previous_event_date: 'event_date',
-            EventDataSet_US.previous_float: 'float',
-            EventDataSet_US.previous_int: 'int',
-            EventDataSet_US.previous_string: 'string',
-            EventDataSet_US.previous_string_custom_missing: 'string'
+            EventDataSet_US.previous_datetime: "datetime",
+            EventDataSet_US.previous_event_date: "event_date",
+            EventDataSet_US.previous_float: "float",
+            EventDataSet_US.previous_int: "int",
+            EventDataSet_US.previous_string: "string",
+            EventDataSet_US.previous_string_custom_missing: "string",
         }
         cls.loader = cls.make_loader(
             events=cls.raw_events,
             next_value_columns=cls.next_value_columns,
             previous_value_columns=cls.previous_value_columns,
         )
-        cls.ASSET_FINDER_EQUITY_SIDS = list(cls.raw_events['sid'].unique())
+        cls.ASSET_FINDER_EQUITY_SIDS = list(cls.raw_events["sid"].unique())
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
-            's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
+            "s" + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
         super(EventsLoaderTestCase, cls).init_class_fixtures()
 
@@ -421,7 +402,7 @@ class EventsLoaderTestCase(WithAssetFinder,
 
     @classmethod
     def make_loader(cls, events, next_value_columns, previous_value_columns):
-        # This method exists to be overridden by BlazeEventsLoaderTestCase
+        # This method exists to be overridden by EventsLoaderTestCases using alternative loaders
         return EventsLoader(events, next_value_columns, previous_value_columns)
 
     @skipIf(new_pandas, skip_pipeline_new_pandas)
@@ -455,7 +436,7 @@ class EventsLoaderTestCase(WithAssetFinder,
         # is not in our window. The results should be computed the same as if
         # we had computed across the entire window and then sliced after the
         # computation.
-        dates = self.trading_days[len(self.trading_days) // 2:]
+        dates = self.trading_days[len(self.trading_days) // 2 :]
         results = self.engine.run_pipeline(
             Pipeline({c.name: c.latest for c in EventDataSet_US.columns}),
             start_date=dates[0],
@@ -498,27 +479,27 @@ class EventsLoaderTestCase(WithAssetFinder,
 
         for asset, asset_result in results.iteritems():
             relevant_events = events[events.sid == asset.sid]
-            self.assertEqual(len(relevant_events), 2)
+            assert len(relevant_events) == 2
 
             v1, v2 = relevant_events[self.previous_value_columns[column]]
             event1_first_eligible = max(
                 # .ix doesn't work here because the frame index contains
                 # integers, so 0 is still interpreted as a key.
-                relevant_events.iloc[0].loc[['event_date', 'timestamp']],
+                relevant_events.iloc[0].loc[["event_date", "timestamp"]],
             )
             event2_first_eligible = max(
-                relevant_events.iloc[1].loc[['event_date', 'timestamp']]
+                relevant_events.iloc[1].loc[["event_date", "timestamp"]]
             )
 
             for date, computed_value in zip(dates, asset_result):
                 if date >= event2_first_eligible:
                     # If we've seen event 2, it should win even if we've seen
                     # event 1, because events are sorted by event_date.
-                    self.assertEqual(computed_value, v2)
+                    assert computed_value == v2
                 elif date >= event1_first_eligible:
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
-                    self.assertEqual(computed_value, v1)
+                    assert computed_value == v1
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
@@ -541,21 +522,21 @@ class EventsLoaderTestCase(WithAssetFinder,
         dates = dates.tz_localize(None)
         for asset, asset_result in results.iteritems():
             relevant_events = events[events.sid == asset.sid]
-            self.assertEqual(len(relevant_events), 2)
+            assert len(relevant_events) == 2
 
             v1, v2 = relevant_events[self.next_value_columns[column]]
-            e1, e2 = relevant_events['event_date']
-            t1, t2 = relevant_events['timestamp']
+            e1, e2 = relevant_events["event_date"]
+            t1, t2 = relevant_events["timestamp"]
 
             for date, computed_value in zip(dates, asset_result):
                 if t1 <= date <= e1:
                     # If we've seen event 2, it should win even if we've seen
                     # event 1, because events are sorted by event_date.
-                    self.assertEqual(computed_value, v1)
+                    assert computed_value == v1
                 elif t2 <= date <= e2:
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
-                    self.assertEqual(computed_value, v2)
+                    assert computed_value == v2
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
@@ -568,37 +549,22 @@ class EventsLoaderTestCase(WithAssetFinder,
 
     def test_wrong_cols(self):
         # Test wrong cols (cols != expected)
-        events = pd.DataFrame({
-            'c': [5],
-            SID_FIELD_NAME: [1],
-            TS_FIELD_NAME: [pd.Timestamp('2014')],
-            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2014')],
-        })
+        events = pd.DataFrame(
+            {
+                "c": [5],
+                SID_FIELD_NAME: [1],
+                TS_FIELD_NAME: [pd.Timestamp("2014")],
+                EVENT_DATE_FIELD_NAME: [pd.Timestamp("2014")],
+            }
+        )
 
-        EventsLoader(events, {EventDataSet_US.next_float: 'c'}, {})
-        EventsLoader(events, {}, {EventDataSet_US.previous_float: 'c'})
+        EventsLoader(events, {EventDataSet_US.next_float: "c"}, {})
+        EventsLoader(events, {}, {EventDataSet_US.previous_float: "c"})
 
-        with self.assertRaises(ValueError) as e:
-            EventsLoader(events, {EventDataSet_US.next_float: 'd'}, {})
-
-        msg = str(e.exception)
         expected = (
             "EventsLoader missing required columns ['d'].\n"
             "Got Columns: ['c', 'event_date', 'sid', 'timestamp']\n"
             "Expected Columns: ['d', 'event_date', 'sid', 'timestamp']"
         )
-        self.assertEqual(msg, expected)
-
-
-class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
-    """
-    Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
-    """
-
-    @classmethod
-    def make_loader(cls, events, next_value_columns, previous_value_columns):
-        return BlazeEventsLoader(
-            bz.data(events),
-            next_value_columns,
-            previous_value_columns,
-        )
+        with pytest.raises(ValueError, match=re.escape(expected)):
+            EventsLoader(events, {EventDataSet_US.next_float: "d"}, {})

@@ -1,67 +1,61 @@
-from unittest import TestCase
-
-from pandas import Timestamp, Timedelta
-
+import pandas as pd
 from zipline.utils.cache import CachedObject, Expired, ExpiringCache
+import pytest
 
 
-class CachedObjectTestCase(TestCase):
-
+class TestCachedObject:
     def test_cached_object(self):
-        expiry = Timestamp('2014')
-        before = expiry - Timedelta('1 minute')
-        after = expiry + Timedelta('1 minute')
+        expiry = pd.Timestamp("2014")
+        before = expiry - pd.Timedelta("1 minute")
+        after = expiry + pd.Timedelta("1 minute")
 
         obj = CachedObject(1, expiry)
 
-        self.assertEqual(obj.unwrap(before), 1)
-        self.assertEqual(obj.unwrap(expiry), 1)  # Unwrap on expiry is allowed.
-        with self.assertRaises(Expired) as e:
+        assert obj.unwrap(before) == 1
+        assert obj.unwrap(expiry) == 1  # Unwrap on expiry is allowed.
+        with pytest.raises(Expired, match=str(expiry)):
             obj.unwrap(after)
-        self.assertEqual(e.exception.args, (expiry,))
 
-    def test_expired(self):
+    @pytest.mark.parametrize(
+        "date",
+        [pd.Timestamp.min, pd.Timestamp.now(), pd.Timestamp.max],
+        ids=["minTime", "nowTime", "maxTime"],
+    )
+    def test_expired(self, date):
         always_expired = CachedObject.expired()
-
-        for dt in Timestamp.min, Timestamp.now(), Timestamp.max:
-            with self.assertRaises(Expired):
-                always_expired.unwrap(dt)
+        with pytest.raises(Expired):
+            always_expired.unwrap(date)
 
 
-class ExpiringCacheTestCase(TestCase):
-
+class TestExpiringCache:
     def test_expiring_cache(self):
-        expiry_1 = Timestamp('2014')
-        before_1 = expiry_1 - Timedelta('1 minute')
-        after_1 = expiry_1 + Timedelta('1 minute')
+        expiry_1 = pd.Timestamp("2014")
+        before_1 = expiry_1 - pd.Timedelta("1 minute")
+        after_1 = expiry_1 + pd.Timedelta("1 minute")
 
-        expiry_2 = Timestamp('2015')
-        after_2 = expiry_1 + Timedelta('1 minute')
+        expiry_2 = pd.Timestamp("2015")
+        after_2 = expiry_1 + pd.Timedelta("1 minute")
 
-        expiry_3 = Timestamp('2016')
+        expiry_3 = pd.Timestamp("2016")
 
         cache = ExpiringCache()
 
-        cache.set('foo', 1, expiry_1)
-        cache.set('bar', 2, expiry_2)
+        cache.set("foo", 1, expiry_1)
+        cache.set("bar", 2, expiry_2)
 
-        self.assertEqual(cache.get('foo', before_1), 1)
-        # Unwrap on expiry is allowed.
-        self.assertEqual(cache.get('foo', expiry_1), 1)
+        assert cache.get("foo", before_1) == 1  # Unwrap on expiry is allowed.
+        assert cache.get("foo", expiry_1) == 1
 
-        with self.assertRaises(KeyError) as e:
-            self.assertEqual(cache.get('foo', after_1))
-        self.assertEqual(e.exception.args, ('foo',))
+        with pytest.raises(KeyError, match="foo"):
+            cache.get("foo", after_1)
 
         # Should raise same KeyError after deletion.
-        with self.assertRaises(KeyError) as e:
-            self.assertEqual(cache.get('foo', before_1))
-        self.assertEqual(e.exception.args, ('foo',))
+        with pytest.raises(KeyError, match="foo"):
+            cache.get("foo", before_1)
 
         # Second value should still exist.
-        self.assertEqual(cache.get('bar', after_2), 2)
+        assert cache.get("bar", after_2) == 2
 
         # Should raise similar KeyError on non-existent key.
-        with self.assertRaises(KeyError) as e:
-            self.assertEqual(cache.get('baz', expiry_3))
-        self.assertEqual(e.exception.args, ('baz',))
+        with pytest.raises(KeyError, match="baz"):
+            cache.get("baz", expiry_3)

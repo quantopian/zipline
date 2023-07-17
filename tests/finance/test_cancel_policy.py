@@ -12,23 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import TestCase
 
+import pytest
 from zipline.finance.cancel_policy import NeverCancel, EODCancel
-from zipline.gens.sim_engine import (
-    BAR,
-    SESSION_END
-)
+from zipline.gens.sim_engine import BAR, SESSION_END
 
 
-class CancelPolicyTestCase(TestCase):
+TEST_INPUT = [SESSION_END, BAR]
 
-    def test_eod_cancel(self):
-        cancel_policy = EODCancel()
-        self.assertTrue(cancel_policy.should_cancel(SESSION_END))
-        self.assertFalse(cancel_policy.should_cancel(BAR))
 
-    def test_never_cancel(self):
-        cancel_policy = NeverCancel()
-        self.assertFalse(cancel_policy.should_cancel(SESSION_END))
-        self.assertFalse(cancel_policy.should_cancel(BAR))
+def test_eod_cancel():
+    cancel_policy = EODCancel()
+    assert cancel_policy.should_cancel(SESSION_END)
+    assert not cancel_policy.should_cancel(BAR)
+
+
+@pytest.mark.parametrize("test_input", TEST_INPUT)
+def test_never_cancel(test_input):
+    cancel_policy = NeverCancel()
+    assert not cancel_policy.should_cancel(test_input)

@@ -1,3 +1,0 @@
-Cython>=0.25.2
-numpy>=1.11.3
-setuptools-scm  # for bcolz

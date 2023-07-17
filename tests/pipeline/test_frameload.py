@@ -1,17 +1,11 @@
 """
 Tests for zipline.pipeline.loaders.frame.DataFrameLoader.
 """
-from unittest import TestCase
-
-from mock import patch
-from numpy import arange, ones
+from unittest import mock
+import numpy as np
+import pandas as pd
 from numpy.testing import assert_array_equal
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Int64Index,
-)
-from trading_calendars import get_calendar
+from zipline.utils.calendar_utils import get_calendar
 
 from zipline.lib.adjustment import (
     ADD,
@@ -25,36 +19,36 @@ from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.domain import US_EQUITIES
 from zipline.pipeline.loaders.frame import DataFrameLoader
 
+import pytest
 
-class DataFrameLoaderTestCase(TestCase):
 
-    def setUp(self):
-        self.trading_day = get_calendar("NYSE").day
+@pytest.fixture(scope="class")
+def frame_loader(request):
+    request.cls.trading_day = get_calendar("NYSE").day
+    request.cls.nsids = 5
+    request.cls.ndates = 20
+    request.cls.sids = pd.Index(range(request.cls.nsids), dtype="int64")
+    request.cls.dates = pd.date_range(
+        start="2014-01-02",
+        freq=request.cls.trading_day,
+        periods=request.cls.ndates,
+    )
+    request.cls.mask = np.ones(
+        (len(request.cls.dates), len(request.cls.sids)), dtype=bool
+    )
 
-        self.nsids = 5
-        self.ndates = 20
 
-        self.sids = Int64Index(range(self.nsids))
-        self.dates = DatetimeIndex(
-            start='2014-01-02',
-            freq=self.trading_day,
-            periods=self.ndates,
-        )
-
-        self.mask = ones((len(self.dates), len(self.sids)), dtype=bool)
-
-    def tearDown(self):
-        pass
-
+@pytest.mark.usefixtures("frame_loader")
+class TestDataFrameLoader:
     def test_bad_input(self):
-        data = arange(100).reshape(self.ndates, self.nsids)
-        baseline = DataFrame(data, index=self.dates, columns=self.sids)
+        data = np.arange(100).reshape(self.ndates, self.nsids)
+        baseline = pd.DataFrame(data, index=self.dates, columns=self.sids)
         loader = DataFrameLoader(
             USEquityPricing.close,
             baseline,
         )
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # Wrong column.
             loader.load_adjusted_array(
                 US_EQUITIES,
@@ -64,7 +58,7 @@ class DataFrameLoaderTestCase(TestCase):
                 self.mask,
             )
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # Too many columns.
             loader.load_adjusted_array(
                 US_EQUITIES,
@@ -75,8 +69,8 @@ class DataFrameLoaderTestCase(TestCase):
             )
 
     def test_baseline(self):
-        data = arange(100).reshape(self.ndates, self.nsids)
-        baseline = DataFrame(data, index=self.dates, columns=self.sids)
+        data = np.arange(100).reshape(self.ndates, self.nsids)
+        baseline = pd.DataFrame(data, index=self.dates, columns=self.sids)
         loader = DataFrameLoader(USEquityPricing.close, baseline)
 
         dates_slice = slice(None, 10, None)
@@ -90,12 +84,12 @@ class DataFrameLoaderTestCase(TestCase):
         ).values()
 
         for idx, window in enumerate(adj_array.traverse(window_length=3)):
-            expected = baseline.values[dates_slice, sids_slice][idx:idx + 3]
+            expected = baseline.values[dates_slice, sids_slice][idx : idx + 3]
             assert_array_equal(window, expected)
 
     def test_adjustments(self):
-        data = arange(100).reshape(self.ndates, self.nsids)
-        baseline = DataFrame(data, index=self.dates, columns=self.sids)
+        data = np.arange(100).reshape(self.ndates, self.nsids)
+        baseline = pd.DataFrame(data, index=self.dates, columns=self.sids)
 
         # Use the dates from index 10 on and sids 1-3.
         dates_slice = slice(10, None, None)
@@ -104,84 +98,84 @@ class DataFrameLoaderTestCase(TestCase):
         # Adjustments that should actually affect the output.
         relevant_adjustments = [
             {
-                'sid': 1,
-                'start_date': None,
-                'end_date': self.dates[15],
-                'apply_date': self.dates[16],
-                'value': 0.5,
-                'kind': MULTIPLY,
+                "sid": 1,
+                "start_date": None,
+                "end_date": self.dates[15],
+                "apply_date": self.dates[16],
+                "value": 0.5,
+                "kind": MULTIPLY,
             },
             {
-                'sid': 2,
-                'start_date': self.dates[5],
-                'end_date': self.dates[15],
-                'apply_date': self.dates[16],
-                'value': 1.0,
-                'kind': ADD,
+                "sid": 2,
+                "start_date": self.dates[5],
+                "end_date": self.dates[15],
+                "apply_date": self.dates[16],
+                "value": 1.0,
+                "kind": ADD,
             },
             {
-                'sid': 2,
-                'start_date': self.dates[15],
-                'end_date': self.dates[16],
-                'apply_date': self.dates[17],
-                'value': 1.0,
-                'kind': ADD,
+                "sid": 2,
+                "start_date": self.dates[15],
+                "end_date": self.dates[16],
+                "apply_date": self.dates[17],
+                "value": 1.0,
+                "kind": ADD,
             },
             {
-                'sid': 3,
-                'start_date': self.dates[16],
-                'end_date': self.dates[17],
-                'apply_date': self.dates[18],
-                'value': 99.0,
-                'kind': OVERWRITE,
+                "sid": 3,
+                "start_date": self.dates[16],
+                "end_date": self.dates[17],
+                "apply_date": self.dates[18],
+                "value": 99.0,
+                "kind": OVERWRITE,
             },
         ]
 
         # These adjustments shouldn't affect the output.
         irrelevant_adjustments = [
             {  # Sid Not Requested
-                'sid': 0,
-                'start_date': self.dates[16],
-                'end_date': self.dates[17],
-                'apply_date': self.dates[18],
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 0,
+                "start_date": self.dates[16],
+                "end_date": self.dates[17],
+                "apply_date": self.dates[18],
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Sid Unknown
-                'sid': 9999,
-                'start_date': self.dates[16],
-                'end_date': self.dates[17],
-                'apply_date': self.dates[18],
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 9999,
+                "start_date": self.dates[16],
+                "end_date": self.dates[17],
+                "apply_date": self.dates[18],
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Date Not Requested
-                'sid': 2,
-                'start_date': self.dates[1],
-                'end_date': self.dates[2],
-                'apply_date': self.dates[3],
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 2,
+                "start_date": self.dates[1],
+                "end_date": self.dates[2],
+                "apply_date": self.dates[3],
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Date Before Known Data
-                'sid': 2,
-                'start_date': self.dates[0] - (2 * self.trading_day),
-                'end_date': self.dates[0] - self.trading_day,
-                'apply_date': self.dates[0] - self.trading_day,
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 2,
+                "start_date": self.dates[0] - (2 * self.trading_day),
+                "end_date": self.dates[0] - self.trading_day,
+                "apply_date": self.dates[0] - self.trading_day,
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
             {  # Date After Known Data
-                'sid': 2,
-                'start_date': self.dates[-1] + self.trading_day,
-                'end_date': self.dates[-1] + (2 * self.trading_day),
-                'apply_date': self.dates[-1] + (3 * self.trading_day),
-                'value': -9999.0,
-                'kind': OVERWRITE,
+                "sid": 2,
+                "start_date": self.dates[-1] + self.trading_day,
+                "end_date": self.dates[-1] + (2 * self.trading_day),
+                "apply_date": self.dates[-1] + (3 * self.trading_day),
+                "value": -9999.0,
+                "kind": OVERWRITE,
             },
         ]
 
-        adjustments = DataFrame(relevant_adjustments + irrelevant_adjustments)
+        adjustments = pd.DataFrame(relevant_adjustments + irrelevant_adjustments)
         loader = DataFrameLoader(
             USEquityPricing.close,
             baseline,
@@ -230,10 +224,10 @@ class DataFrameLoaderTestCase(TestCase):
                 )
             ],
         }
-        self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
+        assert formatted_adjustments == expected_formatted_adjustments
 
         mask = self.mask[dates_slice, sids_slice]
-        with patch('zipline.pipeline.loaders.frame.AdjustedArray') as m:
+        with mock.patch("zipline.pipeline.loaders.frame.AdjustedArray") as m:
             loader.load_adjusted_array(
                 US_EQUITIES,
                 columns=[USEquityPricing.close],
@@ -242,8 +236,8 @@ class DataFrameLoaderTestCase(TestCase):
                 mask=mask,
             )
 
-        self.assertEqual(m.call_count, 1)
+        assert m.call_count == 1
 
         args, kwargs = m.call_args
-        assert_array_equal(kwargs['data'], expected_baseline.values)
-        self.assertEqual(kwargs['adjustments'], expected_formatted_adjustments)
+        assert_array_equal(kwargs["data"], expected_baseline.values)
+        assert kwargs["adjustments"] == expected_formatted_adjustments

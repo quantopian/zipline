@@ -1,0 +1,6 @@
+[flake8]
+exclude = setup.py, .git, __pycache__, docs, conda, tools
+max-line-length = 88
+max-complexity = 18
+select = B,C,E,F,W,T4,B9
+ignore = E203, E266, E501, W503, F403, F401, E231

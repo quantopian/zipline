@@ -14,6 +14,8 @@ from zipline.utils.numpy_utils import (
 )
 
 from .base import BaseUSEquityPipelineTestCase
+import pytest
+import re
 
 
 class Floats(Factor):
@@ -79,7 +81,6 @@ class AltInts(Classifier):
 
 
 class FillNATestCase(BaseUSEquityPipelineTestCase):
-
     @parameter_space(
         null_locs=[
             # No NaNs.
@@ -102,12 +103,14 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         float_expected = np.where(null_locs, float_fillval, floats)
         float_expected_zero = np.where(null_locs, 0.0, floats)
 
-        dates = (np.arange(num_cells, dtype='i8')
-                 .view('M8[D]')
-                 .astype('M8[ns]')
-                 .reshape(shape))
+        dates = (
+            np.arange(num_cells, dtype="i8")
+            .view("M8[D]")
+            .astype("M8[ns]")
+            .reshape(shape)
+        )
         dates[null_locs] = NaTns
-        date_fillval = np.datetime64('2014-01-02', 'ns')
+        date_fillval = np.datetime64("2014-01-02", "ns")
         date_expected = np.where(null_locs, date_fillval, dates)
 
         strs = np.arange(num_cells).astype(str).astype(object).reshape(shape)
@@ -115,27 +118,27 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         str_fillval = "filled"
         str_expected = np.where(null_locs, str_fillval, strs)
 
-        ints = np.arange(num_cells, dtype='i8').reshape(shape)
+        ints = np.arange(num_cells, dtype="i8").reshape(shape)
         ints[null_locs] = -1
         int_fillval = 777
         int_expected = np.where(null_locs, int_fillval, ints)
 
         terms = {
-            'floats': Floats().fillna(float_fillval),
+            "floats": Floats().fillna(float_fillval),
             # Make sure we accept integer as a fill value on float-dtype
             # factors.
-            'floats_fill_zero': Floats().fillna(0),
-            'dates': Dates().fillna(date_fillval),
-            'strs': Strs().fillna(str_fillval),
-            'ints': Ints().fillna(int_fillval),
+            "floats_fill_zero": Floats().fillna(0),
+            "dates": Dates().fillna(date_fillval),
+            "strs": Strs().fillna(str_fillval),
+            "ints": Ints().fillna(int_fillval),
         }
 
         expected = {
-            'floats': float_expected,
-            'floats_fill_zero': float_expected_zero,
-            'dates': date_expected,
-            'strs': self.make_labelarray(str_expected),
-            'ints': int_expected,
+            "floats": float_expected,
+            "floats_fill_zero": float_expected_zero,
+            "dates": date_expected,
+            "strs": self.make_labelarray(str_expected),
+            "ints": int_expected,
         }
 
         self.check_terms(
@@ -177,12 +180,9 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         float_expected = np.where(null_locs, float_fillval, floats)
         float_expected_1d = np.where(null_locs, float_fillval[:, [0]], floats)
 
-        dates = (np.arange(16, dtype='i8')
-                 .view('M8[D]')
-                 .astype('M8[ns]').
-                 reshape(shape))
+        dates = np.arange(16, dtype="i8").view("M8[D]").astype("M8[ns]").reshape(shape)
         dates[null_locs] = NaTns
-        date_fillval = rand_vals('M8[D]').astype('M8[ns]')
+        date_fillval = rand_vals("M8[D]").astype("M8[ns]")
         date_expected = np.where(null_locs, date_fillval, dates)
         date_expected_1d = np.where(null_locs, date_fillval[:, [1]], dates)
 
@@ -199,28 +199,25 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         int_expected_1d = np.where(null_locs, int_fillval[:, [3]], ints)
 
         terms = {
-            'floats': Floats().fillna(AltFloats()),
-            'floats_1d': Floats().fillna(AltFloats()[assets[0]]),
-
-            'dates': Dates().fillna(AltDates()),
-            'dates_1d': Dates().fillna(AltDates()[assets[1]]),
-
-            'strs': Strs().fillna(AltStrs()),
-            'strs_1d': Strs().fillna(AltStrs()[assets[2]]),
-
-            'ints': Ints().fillna(AltInts()),
-            'ints_1d': Ints().fillna(AltInts()[assets[3]]),
+            "floats": Floats().fillna(AltFloats()),
+            "floats_1d": Floats().fillna(AltFloats()[assets[0]]),
+            "dates": Dates().fillna(AltDates()),
+            "dates_1d": Dates().fillna(AltDates()[assets[1]]),
+            "strs": Strs().fillna(AltStrs()),
+            "strs_1d": Strs().fillna(AltStrs()[assets[2]]),
+            "ints": Ints().fillna(AltInts()),
+            "ints_1d": Ints().fillna(AltInts()[assets[3]]),
         }
 
         expected = {
-            'floats': float_expected,
-            'floats_1d': float_expected_1d,
-            'dates': date_expected,
-            'dates_1d': date_expected_1d,
-            'strs': self.make_labelarray(str_expected),
-            'strs_1d': self.make_labelarray(str_expected_1d),
-            'ints': int_expected,
-            'ints_1d': int_expected_1d,
+            "floats": float_expected,
+            "floats_1d": float_expected_1d,
+            "dates": date_expected,
+            "dates_1d": date_expected_1d,
+            "strs": self.make_labelarray(str_expected),
+            "strs_1d": self.make_labelarray(str_expected_1d),
+            "ints": int_expected,
+            "ints_1d": int_expected_1d,
         }
 
         self.check_terms(
@@ -231,7 +228,6 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
                 Dates(): dates,
                 Strs(): self.make_labelarray(strs),
                 Ints(): ints,
-
                 AltFloats(): float_fillval,
                 AltDates(): date_fillval,
                 AltStrs(): self.make_labelarray(str_fillval),
@@ -241,35 +237,35 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
         )
 
     def should_error(self, f, exc_type, expected_message):
-        with self.assertRaises(exc_type) as e:
+        with pytest.raises(exc_type, match=re.escape(expected_message)):
             f()
-
-        message = str(e.exception)
-        self.assertIn(expected_message, message)
 
     def test_bad_inputs(self):
         def dtype_for(o):
             return np.array([o]).dtype
 
         self.should_error(
-            lambda: Floats().fillna('3.0'),
+            lambda: Floats().fillna("3.0"),
             TypeError,
-            " from {!r} to {!r} according to the rule 'same_kind'"
-            .format(dtype_for('3.0'), np.dtype(float))
+            " from {!r} to {!r} according to the rule 'same_kind'".format(
+                dtype_for("3.0"), np.dtype(float)
+            ),
         )
 
         self.should_error(
-            lambda: Dates().fillna('2014-01-02'),
+            lambda: Dates().fillna("2014-01-02"),
             TypeError,
-            "from {!r} to {!r} according to the rule 'same_kind'"
-            .format(dtype_for('2014-01-02'), np.dtype('M8[ns]'))
+            "from {!r} to {!r} according to the rule 'same_kind'".format(
+                dtype_for("2014-01-02"), np.dtype("M8[ns]")
+            ),
         )
 
         self.should_error(
-            lambda: Ints().fillna('300'),
+            lambda: Ints().fillna("300"),
             TypeError,
-            "from {!r} to {!r} according to the rule 'same_kind'"
-            .format(dtype_for('300'), np.dtype('i8')),
+            "from {!r} to {!r} according to the rule 'same_kind'".format(
+                dtype_for("300"), np.dtype("i8")
+            ),
         )
 
         self.should_error(
@@ -278,8 +274,7 @@ class FillNATestCase(BaseUSEquityPipelineTestCase):
             "Fill value 10.0 is not a valid choice for term Strs with dtype"
             " object.\n\n"
             "Coercion attempt failed with: "
-            "String-dtype classifiers can only produce strings or None."
-
+            "String-dtype classifiers can only produce bytes or str or NoneType.",
         )
 
     def make_labelarray(self, strs):

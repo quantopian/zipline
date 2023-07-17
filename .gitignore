@@ -78,3 +78,20 @@ TAGS
 .gdb_history
 
 *.dSYM/
+
+# Vscode custome settings
+.vscode
+
+# Python Virtual envs
+.venv
+
+revision
+.python-version
+condag
+archive
+
+conda
+.pytest_cache
+admin
+*.html
+src/zipline/_version.py

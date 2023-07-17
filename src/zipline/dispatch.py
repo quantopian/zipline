@@ -1,0 +1,13 @@
+"""dispatcher object with a custom namespace.
+
+Anything that has been dispatched will also be put into this module.
+"""
+from functools import partial
+import sys
+
+from multipledispatch import dispatch
+
+dispatch = partial(dispatch, namespace=globals())
+
+del partial
+del sys

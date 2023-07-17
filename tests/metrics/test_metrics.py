@@ -1,5 +1,3 @@
-import unittest
-
 import numpy as np
 import pandas as pd
 
@@ -17,42 +15,42 @@ from zipline.testing.fixtures import (
     WithMakeAlgo,
     WithConstantEquityMinuteBarData,
     WithConstantFutureMinuteBarData,
-    WithWerror,
     ZiplineTestCase,
 )
 from zipline.testing.predicates import assert_equal, wildcard
+import pytest
 
 
-def T(cs):
-    return pd.Timestamp(cs, tz='utc')
+def ts_utc(cs):
+    return pd.Timestamp(cs, tz="UTC")
 
 
 def portfolio_snapshot(p):
-    """Extract all of the fields from the portfolio as a new dictionary.
-    """
+    """Extract all of the fields from the portfolio as a new dictionary."""
     fields = (
-        'cash_flow',
-        'starting_cash',
-        'portfolio_value',
-        'pnl',
-        'returns',
-        'cash',
-        'positions',
-        'positions_value',
-        'positions_exposure',
+        "cash_flow",
+        "starting_cash",
+        "portfolio_value",
+        "pnl",
+        "returns",
+        "cash",
+        "positions",
+        "positions_value",
+        "positions_exposure",
     )
     return {field: getattr(p, field) for field in fields}
 
 
-class TestConstantPrice(WithConstantEquityMinuteBarData,
-                        WithConstantFutureMinuteBarData,
-                        WithMakeAlgo,
-                        WithWerror,
-                        ZiplineTestCase):
+class TestConstantPrice(
+    WithConstantEquityMinuteBarData,
+    WithConstantFutureMinuteBarData,
+    WithMakeAlgo,
+    ZiplineTestCase,
+):
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
     FUTURE_DAILY_BAR_SOURCE_FROM_MINUTE = True
 
-    ASSET_FINDER_EQUITY_SIDS = [ord('A')]
+    ASSET_FINDER_EQUITY_SIDS = [ord("A")]
 
     EQUITY_MINUTE_CONSTANT_LOW = 1.0
     EQUITY_MINUTE_CONSTANT_OPEN = 1.0
@@ -66,8 +64,8 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
     FUTURE_MINUTE_CONSTANT_HIGH = 1.0
     FUTURE_MINUTE_CONSTANT_VOLUME = 100.0
 
-    START_DATE = T('2014-01-06')
-    END_DATE = T('2014-01-10')
+    START_DATE = pd.Timestamp("2014-01-06")
+    END_DATE = pd.Timestamp("2014-01-10")
 
     # note: class attributes after this do not configure fixtures, they are
     # just used in this test suite
@@ -77,15 +75,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
     future_contract_multiplier = 2
 
     # this is the expected exposure for a position of one contract
-    future_constant_exposure = (
-        FUTURE_MINUTE_CONSTANT_CLOSE * future_contract_multiplier
-    )
+    future_constant_exposure = FUTURE_MINUTE_CONSTANT_CLOSE * future_contract_multiplier
 
     @classmethod
     def make_futures_info(cls):
         return make_commodity_future_info(
-            first_sid=ord('Z'),
-            root_symbols=['Z'],
+            first_sid=ord("Z"),
+            root_symbols=["Z"],
             years=[cls.START_DATE.year],
             multiplier=cls.future_contract_multiplier,
         )
@@ -102,16 +98,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         )
 
         cls.trading_minutes = pd.Index(
-            cls.trading_calendar.minutes_for_sessions_in_range(
+            cls.trading_calendar.sessions_minutes(
                 cls.START_DATE,
                 cls.END_DATE,
             ),
         )
         cls.closes = pd.Index(
-            cls.trading_calendar.session_closes_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            ),
+            cls.trading_calendar.closes[cls.START_DATE : cls.END_DATE]
         )
         cls.closes.name = None
 
@@ -120,19 +113,19 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         zeros = pd.Series(0.0, index=self.closes)
         all_zero_fields = [
-            'algorithm_period_return',
-            'benchmark_period_return',
-            'capital_used',
-            'excess_return',
-            'long_exposure',
-            'long_value',
-            'longs_count',
-            'max_drawdown',
-            'max_leverage',
-            'short_exposure',
-            'short_value',
-            'shorts_count',
-            'treasury_period_return',
+            "algorithm_period_return",
+            "benchmark_period_return",
+            "capital_used",
+            "excess_return",
+            "long_exposure",
+            "long_value",
+            "longs_count",
+            "max_drawdown",
+            "max_leverage",
+            "short_exposure",
+            "short_value",
+            "shorts_count",
+            "treasury_period_return",
         ]
 
         for field in all_zero_fields:
@@ -145,10 +138,10 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
         nan_then_zero = pd.Series(0.0, index=self.closes)
-        nan_then_zero[0] = float('nan')
+        nan_then_zero[0] = float("nan")
         nan_then_zero_fields = (
-            'algo_volatility',
-            'benchmark_volatility',
+            "algo_volatility",
+            "benchmark_volatility",
         )
         for field in nan_then_zero_fields:
             assert_equal(
@@ -160,9 +153,9 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         empty_lists = pd.Series([[]] * len(self.closes), self.closes)
         empty_list_fields = (
-            'orders',
-            'positions',
-            'transactions',
+            "orders",
+            "positions",
+            "transactions",
         )
         for field in empty_list_fields:
             assert_equal(
@@ -173,19 +166,17 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
     @parameter_space(
-        direction=['long', 'short'],
+        direction=["long", "short"],
         # checking the portfolio forces a sync; we want to ensure that the
         # perf packets are correct even without explicitly requesting the
         # portfolio every day. we also want to test that ``context.portfolio``
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_slippage(self,
-                             direction,
-                             check_portfolio_during_simulation):
-        if direction not in ('long', 'short'):
+    def test_equity_slippage(self, direction, check_portfolio_during_simulation):
+        if direction not in ("long", "short"):
             raise ValueError(
-                'direction must be either long or short, got: %r' % direction,
+                "direction must be either long or short, got: %r" % direction,
             )
 
         # the number of shares to order, this will be filled one share at a
@@ -196,7 +187,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         st = np.random.RandomState(1868655980)
         per_fill_slippage = st.uniform(0, 5, shares).round(3)
 
-        if direction == 'short':
+        if direction == "short":
             per_fill_slippage = -per_fill_slippage
             shares = -shares
 
@@ -207,7 +198,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             def process_order(data, order):
                 return (
                     self.EQUITY_MINUTE_CONSTANT_CLOSE + next(slippage_iter),
-                    1 if direction == 'long' else -1,
+                    1 if direction == "long" else -1,
                 )
 
         if check_portfolio_during_simulation:
@@ -225,17 +216,17 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                     return
 
                 expected_amount = min(context.bar_count, 100)
-                if direction == 'short':
+                if direction == "short":
                     expected_amount = -expected_amount
 
                 expected_position = {
-                    'asset': self.equity,
-                    'last_sale_date': api.get_datetime(),
-                    'last_sale_price': self.EQUITY_MINUTE_CONSTANT_CLOSE,
-                    'amount': expected_amount,
-                    'cost_basis': (
-                        self.EQUITY_MINUTE_CONSTANT_CLOSE +
-                        per_fill_slippage[:context.bar_count].mean()
+                    "asset": self.equity,
+                    "last_sale_date": api.get_datetime(),
+                    "last_sale_price": self.EQUITY_MINUTE_CONSTANT_CLOSE,
+                    "amount": expected_amount,
+                    "cost_basis": (
+                        self.EQUITY_MINUTE_CONSTANT_CLOSE
+                        + per_fill_slippage[: context.bar_count].mean()
                     ),
                 }
                 expected_positions = {self.equity: [expected_position]}
@@ -246,7 +237,9 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                 }
 
                 assert_equal(positions, expected_positions)
+
         else:
+
             def check_portfolio(context):
                 pass
 
@@ -274,7 +267,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_returns.iloc[0] = first_day_returns
 
         assert_equal(
-            perf['returns'],
+            perf["returns"],
             expected_returns,
             check_names=False,
         )
@@ -285,20 +278,19 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         )
 
         assert_equal(
-            perf['algorithm_period_return'],
+            perf["algorithm_period_return"],
             expected_cumulative_returns,
             check_names=False,
         )
 
         first_day_capital_used = -(
-            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE +
-            abs(per_fill_slippage.sum())
+            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE + abs(per_fill_slippage.sum())
         )
         expected_capital_used = pd.Series(0.0, index=self.closes)
         expected_capital_used.iloc[0] = first_day_capital_used
 
         assert_equal(
-            perf['capital_used'],
+            perf["capital_used"],
             expected_capital_used,
             check_names=False,
         )
@@ -308,21 +300,21 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         portfolio_snapshots = pd.DataFrame.from_dict(
             portfolio_snapshots,
-            orient='index',
+            orient="index",
         )
 
         # each minute our cash flow is the share filled (if any) plus the
         # slippage for that minute
         minutely_cash_flow = pd.Series(0.0, index=self.trading_minutes)
-        minutely_cash_flow[1:abs(shares) + 1] = (
+        minutely_cash_flow[1 : abs(shares) + 1] = (
             -(per_fill_slippage + self.EQUITY_MINUTE_CONSTANT_CLOSE)
-            if direction == 'long' else
-            (per_fill_slippage + self.EQUITY_MINUTE_CONSTANT_CLOSE)
+            if direction == "long"
+            else (per_fill_slippage + self.EQUITY_MINUTE_CONSTANT_CLOSE)
         )
         expected_cash_flow = minutely_cash_flow.cumsum()
 
         assert_equal(
-            portfolio_snapshots['cash_flow'],
+            portfolio_snapshots["cash_flow"],
             expected_cash_flow,
             check_names=False,
         )
@@ -331,11 +323,11 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         # because we trade from cash into a position which holds 100% of its
         # value, but we lose the slippage on the way into that position.
         minutely_pnl = pd.Series(0.0, index=self.trading_minutes)
-        minutely_pnl[1:abs(shares) + 1] = -np.abs(per_fill_slippage)
+        minutely_pnl[1 : abs(shares) + 1] = -np.abs(per_fill_slippage)
         expected_pnl = minutely_pnl.cumsum()
 
         assert_equal(
-            portfolio_snapshots['pnl'],
+            portfolio_snapshots["pnl"],
             expected_pnl,
             check_names=False,
         )
@@ -344,25 +336,23 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_returns = expected_pnl / self.SIM_PARAMS_CAPITAL_BASE
 
         assert_equal(
-            portfolio_snapshots['returns'],
+            portfolio_snapshots["returns"],
             expected_returns,
             check_names=False,
         )
 
     @parameter_space(
-        direction=['long', 'short'],
+        direction=["long", "short"],
         # checking the portfolio forces a sync; we want to ensure that the
         # perf packets are correct even without explicitly requesting the
         # portfolio every day. we also want to test that ``context.portfolio``
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_commissions(self,
-                                direction,
-                                check_portfolio_during_simulation):
-        if direction not in ('long', 'short'):
+    def test_equity_commissions(self, direction, check_portfolio_during_simulation):
+        if direction not in ("long", "short"):
             raise ValueError(
-                'direction must be either long or short, got: %r' % direction,
+                "direction must be either long or short, got: %r" % direction,
             )
 
         shares = 100
@@ -372,18 +362,19 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         per_fill_commission = st.uniform(0, 5, shares).round(3)
         commission_iter = iter(per_fill_commission)
 
-        if direction == 'short':
+        if direction == "short":
             shares = -shares
 
         class SplitOrderButIncurNoSlippage(api.slippage.SlippageModel):
             """This model fills 1 share at a time, but otherwise fills with no
             penalty.
             """
+
             @staticmethod
             def process_order(data, order):
                 return (
                     self.EQUITY_MINUTE_CONSTANT_CLOSE,
-                    1 if direction == 'long' else -1,
+                    1 if direction == "long" else -1,
                 )
 
         class TestingCommission(api.commission.CommissionModel):
@@ -406,18 +397,18 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                     return
 
                 expected_amount = min(context.bar_count, 100)
-                if direction == 'short':
+                if direction == "short":
                     expected_amount = -expected_amount
 
                 expected_position = {
-                    'asset': self.equity,
-                    'last_sale_date': api.get_datetime(),
-                    'last_sale_price': self.EQUITY_MINUTE_CONSTANT_CLOSE,
-                    'amount': expected_amount,
-                    'cost_basis': (
-                        self.EQUITY_MINUTE_CONSTANT_CLOSE +
-                        np.copysign(
-                            per_fill_commission[:context.bar_count].mean(),
+                    "asset": self.equity,
+                    "last_sale_date": api.get_datetime(),
+                    "last_sale_price": self.EQUITY_MINUTE_CONSTANT_CLOSE,
+                    "amount": expected_amount,
+                    "cost_basis": (
+                        self.EQUITY_MINUTE_CONSTANT_CLOSE
+                        + np.copysign(
+                            per_fill_commission[: context.bar_count].mean(),
                             expected_amount,
                         )
                     ),
@@ -430,7 +421,9 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                 }
 
                 assert_equal(positions, expected_positions)
+
         else:
+
             def check_portfolio(context):
                 pass
 
@@ -458,7 +451,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_returns.iloc[0] = first_day_returns
 
         assert_equal(
-            perf['returns'],
+            perf["returns"],
             expected_returns,
             check_names=False,
         )
@@ -469,20 +462,19 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         )
 
         assert_equal(
-            perf['algorithm_period_return'],
+            perf["algorithm_period_return"],
             expected_cumulative_returns,
             check_names=False,
         )
 
         first_day_capital_used = -(
-            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE +
-            per_fill_commission.sum()
+            shares * self.EQUITY_MINUTE_CONSTANT_CLOSE + per_fill_commission.sum()
         )
         expected_capital_used = pd.Series(0.0, index=self.closes)
         expected_capital_used.iloc[0] = first_day_capital_used
 
         assert_equal(
-            perf['capital_used'],
+            perf["capital_used"],
             expected_capital_used,
             check_names=False,
         )
@@ -492,21 +484,21 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         portfolio_snapshots = pd.DataFrame.from_dict(
             portfolio_snapshots,
-            orient='index',
+            orient="index",
         )
 
         # each minute our cash flow is the share filled (if any) plus the
         # commission for that minute
         minutely_cash_flow = pd.Series(0.0, index=self.trading_minutes)
-        minutely_cash_flow[1:abs(shares) + 1] = (
+        minutely_cash_flow[1 : abs(shares) + 1] = (
             -(self.EQUITY_MINUTE_CONSTANT_CLOSE + per_fill_commission)
-            if direction == 'long' else
-            (self.EQUITY_MINUTE_CONSTANT_CLOSE - per_fill_commission)
+            if direction == "long"
+            else (self.EQUITY_MINUTE_CONSTANT_CLOSE - per_fill_commission)
         )
         expected_cash_flow = minutely_cash_flow.cumsum()
 
         assert_equal(
-            portfolio_snapshots['cash_flow'],
+            portfolio_snapshots["cash_flow"],
             expected_cash_flow,
             check_names=False,
         )
@@ -515,11 +507,11 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         # because we trade from cash into a position which holds 100% of its
         # value, but we lose the commission on the way into that position.
         minutely_pnl = pd.Series(0.0, index=self.trading_minutes)
-        minutely_pnl[1:abs(shares) + 1] = -per_fill_commission
+        minutely_pnl[1 : abs(shares) + 1] = -per_fill_commission
         expected_pnl = minutely_pnl.cumsum()
 
         assert_equal(
-            portfolio_snapshots['pnl'],
+            portfolio_snapshots["pnl"],
             expected_pnl,
             check_names=False,
         )
@@ -528,28 +520,28 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_returns = expected_pnl / self.SIM_PARAMS_CAPITAL_BASE
 
         assert_equal(
-            portfolio_snapshots['returns'],
+            portfolio_snapshots["returns"],
             expected_returns,
             check_names=False,
         )
 
+    # TODO: simplify
+    # flake8: noqa: C901
     @parameter_space(
-        direction=['long', 'short'],
+        direction=["long", "short"],
         # checking the portfolio forces a sync; we want to ensure that the
         # perf packets are correct even without explicitly requesting the
         # portfolio every day. we also want to test that ``context.portfolio``
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_single_position(self,
-                                    direction,
-                                    check_portfolio_during_simulation):
-        if direction not in ('long', 'short'):
+    def test_equity_single_position(self, direction, check_portfolio_during_simulation):
+        if direction not in ("long", "short"):
             raise ValueError(
-                'direction must be either long or short, got: %r' % direction,
+                f"direction must be either long or short, got: {direction!r}"
             )
 
-        shares = 1 if direction == 'long' else -1
+        shares = 1 if direction == "long" else -1
 
         def initialize(context):
             api.set_benchmark(self.equity)
@@ -586,7 +578,9 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                     position.cost_basis,
                     self.EQUITY_MINUTE_CONSTANT_CLOSE,
                 )
+
         else:
+
             def check_portfolio(context, first_bar):
                 pass
 
@@ -607,22 +601,26 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         zeros = pd.Series(0.0, index=self.closes)
         all_zero_fields = [
-            'algorithm_period_return',
-            'benchmark_period_return',
-            'excess_return',
-            'max_drawdown',
-            'treasury_period_return',
+            "algorithm_period_return",
+            "benchmark_period_return",
+            "excess_return",
+            "max_drawdown",
+            "treasury_period_return",
         ]
-        if direction == 'long':
-            all_zero_fields.extend((
-                'short_value',
-                'shorts_count',
-            ))
+        if direction == "long":
+            all_zero_fields.extend(
+                (
+                    "short_value",
+                    "shorts_count",
+                )
+            )
         else:
-            all_zero_fields.extend((
-                'long_value',
-                'longs_count',
-            ))
+            all_zero_fields.extend(
+                (
+                    "long_value",
+                    "longs_count",
+                )
+            )
         for field in all_zero_fields:
             assert_equal(
                 perf[field],
@@ -633,10 +631,10 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
         ones = pd.Series(1, index=self.closes)
-        if direction == 'long':
-            count_field = 'longs_count'
+        if direction == "long":
+            count_field = "longs_count"
         else:
-            count_field = 'shorts_count'
+            count_field = "shorts_count"
 
         assert_equal(
             perf[count_field],
@@ -645,12 +643,12 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             msg=field,
         )
 
-        if direction == 'long':
+        if direction == "long":
             expected_exposure = pd.Series(
                 self.EQUITY_MINUTE_CONSTANT_CLOSE,
                 index=self.closes,
             )
-            for field in 'long_value', 'long_exposure':
+            for field in "long_value", "long_exposure":
                 assert_equal(
                     perf[field],
                     expected_exposure,
@@ -661,7 +659,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                 -self.EQUITY_MINUTE_CONSTANT_CLOSE,
                 index=self.closes,
             )
-            for field in 'short_value', 'short_exposure':
+            for field in "short_value", "short_exposure":
                 assert_equal(
                     perf[field],
                     expected_exposure,
@@ -669,10 +667,10 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                 )
 
         nan_then_zero = pd.Series(0.0, index=self.closes)
-        nan_then_zero[0] = float('nan')
+        nan_then_zero[0] = float("nan")
         nan_then_zero_fields = (
-            'algo_volatility',
-            'benchmark_volatility',
+            "algo_volatility",
+            "benchmark_volatility",
         )
         for field in nan_then_zero_fields:
             assert_equal(
@@ -691,7 +689,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         # with no commissions, slippage, or returns our portfolio value stays
         # constant (at the capital base)
         assert_equal(
-            perf['portfolio_value'],
+            perf["portfolio_value"],
             capital_base_series,
             check_names=False,
         )
@@ -704,16 +702,17 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             # we are exposed to only one share, the portfolio value is the
             # capital_base because we have no commissions, slippage, or
             # returns
-            self.EQUITY_MINUTE_CONSTANT_CLOSE / capital_base_series
+            self.EQUITY_MINUTE_CONSTANT_CLOSE
+            / capital_base_series
         )
         assert_equal(
-            perf['max_leverage'],
+            perf["max_leverage"],
             expected_max_leverage,
             check_names=False,
         )
 
         expected_cash = capital_base_series.copy()
-        if direction == 'long':
+        if direction == "long":
             # we purchased one share on the first day
             cash_modifier = -self.EQUITY_MINUTE_CONSTANT_CLOSE
         else:
@@ -723,14 +722,14 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_cash[1:] += cash_modifier
 
         assert_equal(
-            perf['starting_cash'],
+            perf["starting_cash"],
             expected_cash,
             check_names=False,
         )
 
         expected_cash[0] += cash_modifier
         assert_equal(
-            perf['ending_cash'],
+            perf["ending_cash"],
             expected_cash,
             check_names=False,
         )
@@ -740,7 +739,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_capital_used[0] += cash_modifier
 
         assert_equal(
-            perf['capital_used'],
+            perf["capital_used"],
             expected_capital_used,
             check_names=False,
         )
@@ -750,7 +749,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             -cash_modifier,
             index=self.closes,
         )
-        for field in 'ending_value', 'ending_exposure':
+        for field in "ending_value", "ending_exposure":
             # for equities, position value and position exposure are the same
             assert_equal(
                 perf[field],
@@ -762,7 +761,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         # we don't start with any positions; the first day has no starting
         # exposure
         expected_position_exposure[0] = 0
-        for field in 'starting_value', 'starting_exposure':
+        for field in "starting_value", "starting_exposure":
             # for equities, position value and position exposure are the same
             assert_equal(
                 perf[field],
@@ -772,7 +771,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
         assert_equal(
-            perf['trading_days'],
+            perf["trading_days"],
             pd.Series(
                 np.arange(len(self.closes)) + 1,
                 index=self.closes,
@@ -783,12 +782,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         all_none = pd.Series(
             [None] * len(self.closes),
-            index=self.closes, dtype=object,
+            index=self.closes,
+            dtype=object,
         )
         all_none_fields = (
-            'alpha',
-            'beta',
-            'sortino',
+            "alpha",
+            "beta",
+            "sortino",
         )
         for field in all_none_fields:
             assert_equal(
@@ -798,29 +798,26 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                 msg=field,
             )
 
-        orders = perf['orders']
+        orders = perf["orders"]
 
         expected_single_order = {
-            'amount': shares,
-            'commission': 0.0,
-            'created': T('2014-01-06 14:31'),
-            'dt': T('2014-01-06 14:32'),
-            'filled': shares,
-            'id': wildcard,
-            'limit': None,
-            'limit_reached': False,
-            'reason': None,
-            'sid': self.equity,
-            'status': 1,
-            'stop': None,
-            'stop_reached': False
+            "amount": shares,
+            "commission": 0.0,
+            "created": ts_utc("2014-01-06 14:31"),
+            "dt": ts_utc("2014-01-06 14:32"),
+            "filled": shares,
+            "id": wildcard,
+            "limit": None,
+            "limit_reached": False,
+            "reason": None,
+            "sid": self.equity,
+            "status": 1,
+            "stop": None,
+            "stop_reached": False,
         }
 
         # we only order on the first day
-        expected_orders = (
-            [[expected_single_order]] +
-            [[]] * (len(self.closes) - 1)
-        )
+        expected_orders = [[expected_single_order]] + [[]] * (len(self.closes) - 1)
 
         assert_equal(
             orders.tolist(),
@@ -833,22 +830,21 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             check_names=False,
         )
 
-        transactions = perf['transactions']
+        transactions = perf["transactions"]
 
         expected_single_transaction = {
-            'amount': shares,
-            'commission': None,
-            'dt': T('2014-01-06 14:32'),
-            'order_id': wildcard,
-            'price': 1.0,
-            'sid': self.equity,
+            "amount": shares,
+            "commission": None,
+            "dt": ts_utc("2014-01-06 14:32"),
+            "order_id": wildcard,
+            "price": 1.0,
+            "sid": self.equity,
         }
 
         # since we only order on the first day, we should only transact on the
         # first day
-        expected_transactions = (
-            [[expected_single_transaction]] +
-            [[]] * (len(self.closes) - 1)
+        expected_transactions = [[expected_single_transaction]] + [[]] * (
+            len(self.closes) - 1
         )
 
         assert_equal(
@@ -866,19 +862,19 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         portfolio_snapshots = pd.DataFrame.from_dict(
             portfolio_snapshots,
-            orient='index',
+            orient="index",
         )
 
         expected_cash = pd.Series(
             self.SIM_PARAMS_CAPITAL_BASE,
             index=self.trading_minutes,
         )
-        if direction == 'long':
+        if direction == "long":
             expected_cash.iloc[1:] -= self.EQUITY_MINUTE_CONSTANT_CLOSE
         else:
             expected_cash.iloc[1:] += self.EQUITY_MINUTE_CONSTANT_CLOSE
         assert_equal(
-            portfolio_snapshots['cash'],
+            portfolio_snapshots["cash"],
             expected_cash,
             check_names=False,
         )
@@ -890,13 +886,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_portfolio_capital_used[0] = 0.0
         expected_capital_used[0] = 0
         assert_equal(
-            portfolio_snapshots['cash_flow'],
+            portfolio_snapshots["cash_flow"],
             expected_portfolio_capital_used,
             check_names=False,
         )
 
         zero_minutes = pd.Series(0.0, index=self.trading_minutes)
-        for field in 'pnl', 'returns':
+        for field in "pnl", "returns":
             assert_equal(
                 portfolio_snapshots[field],
                 zero_minutes,
@@ -905,35 +901,34 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
         reindex_columns = sorted(
-            set(portfolio_snapshots.columns) - {
-                'starting_cash',
-                'cash_flow',
-                'pnl',
-                'returns',
-                'positions',
+            set(portfolio_snapshots.columns)
+            - {
+                "starting_cash",
+                "cash_flow",
+                "pnl",
+                "returns",
+                "positions",
             },
         )
         minute_reindex = perf.rename(
             columns={
-                'capital_used': 'cash_flow',
-                'ending_cash': 'cash',
-                'ending_exposure': 'positions_exposure',
-                'ending_value': 'positions_value',
+                "capital_used": "cash_flow",
+                "ending_cash": "cash",
+                "ending_exposure": "positions_exposure",
+                "ending_value": "positions_value",
             },
         )[reindex_columns].reindex(
             self.trading_minutes,
-            method='bfill',
+            method="bfill",
         )
 
         first_minute = self.trading_minutes[0]
         # the first minute should have the default values because we haven't
         # done anything yet
-        minute_reindex.loc[first_minute, 'cash'] = (
-            self.SIM_PARAMS_CAPITAL_BASE
-        )
+        minute_reindex.loc[first_minute, "cash"] = self.SIM_PARAMS_CAPITAL_BASE
         minute_reindex.loc[
             first_minute,
-            ['positions_exposure', 'positions_value'],
+            ["positions_exposure", "positions_value"],
         ] = 0
 
         assert_equal(
@@ -942,24 +937,22 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             check_names=False,
         )
 
-    @unittest.skip("Needs fix to calendar mismatch.")
+    @pytest.mark.xfail(reason="Needs fix to calendar mismatch.")
     @parameter_space(
-        direction=['long', 'short'],
+        direction=["long", "short"],
         # checking the portfolio forces a sync; we want to ensure that the
         # perf packets are correct even without explicitly requesting the
         # portfolio every day. we also want to test that ``context.portfolio``
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_future_single_position(self,
-                                    direction,
-                                    check_portfolio_during_simulation):
-        if direction not in ('long', 'short'):
+    def test_future_single_position(self, direction, check_portfolio_during_simulation):
+        if direction not in ("long", "short"):
             raise ValueError(
-                'direction must be either long or short, got: %r' % direction,
+                "direction must be either long or short, got: %r" % direction,
             )
 
-        if direction == 'long':
+        if direction == "long":
             contracts = 1
             expected_exposure = self.future_constant_exposure
         else:
@@ -1001,7 +994,9 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                     position.cost_basis,
                     self.FUTURE_MINUTE_CONSTANT_CLOSE,
                 )
+
         else:
+
             def check_portfolio(context, first_bar):
                 pass
 
@@ -1022,28 +1017,31 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         zeros = pd.Series(0.0, index=self.closes)
         all_zero_fields = [
-            'algorithm_period_return',
-            'benchmark_period_return',
-            'excess_return',
-            'max_drawdown',
-            'treasury_period_return',
-
+            "algorithm_period_return",
+            "benchmark_period_return",
+            "excess_return",
+            "max_drawdown",
+            "treasury_period_return",
             # futures contracts have no value, just exposure
-            'starting_value',
-            'ending_value',
-            'long_value',
-            'short_value',
+            "starting_value",
+            "ending_value",
+            "long_value",
+            "short_value",
         ]
-        if direction == 'long':
-            all_zero_fields.extend((
-                'short_value',
-                'shorts_count',
-            ))
+        if direction == "long":
+            all_zero_fields.extend(
+                (
+                    "short_value",
+                    "shorts_count",
+                )
+            )
         else:
-            all_zero_fields.extend((
-                'long_value',
-                'longs_count',
-            ))
+            all_zero_fields.extend(
+                (
+                    "long_value",
+                    "longs_count",
+                )
+            )
 
         for field in all_zero_fields:
             assert_equal(
@@ -1055,7 +1053,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
         ones = pd.Series(1, index=self.closes)
-        count_field = direction + 's_count'
+        count_field = direction + "s_count"
         assert_equal(
             perf[count_field],
             ones,
@@ -1067,7 +1065,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             expected_exposure,
             index=self.closes,
         )
-        exposure_field = direction + '_exposure'
+        exposure_field = direction + "_exposure"
         assert_equal(
             perf[exposure_field],
             expected_exposure_series,
@@ -1076,10 +1074,10 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         )
 
         nan_then_zero = pd.Series(0.0, index=self.closes)
-        nan_then_zero[0] = float('nan')
+        nan_then_zero[0] = float("nan")
         nan_then_zero_fields = (
-            'algo_volatility',
-            'benchmark_volatility',
+            "algo_volatility",
+            "benchmark_volatility",
         )
         for field in nan_then_zero_fields:
             assert_equal(
@@ -1101,18 +1099,16 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         # gross market exposure is
         # sum(long_exposure) + sum(abs(short_exposure))
         # current notional capital is the current portfolio value
-        expected_max_leverage = (
-            self.future_constant_exposure / capital_base_series
-        )
+        expected_max_leverage = self.future_constant_exposure / capital_base_series
         assert_equal(
-            perf['max_leverage'],
+            perf["max_leverage"],
             expected_max_leverage,
             check_names=False,
         )
 
         # with no commissions, slippage, or returns our portfolio value stays
         # constant (at the capital base)
-        for field in 'starting_cash', 'ending_cash', 'portfolio_value':
+        for field in "starting_cash", "ending_cash", "portfolio_value":
             assert_equal(
                 perf[field],
                 capital_base_series,
@@ -1125,7 +1121,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         expected_capital_used = pd.Series(0.0, index=self.closes)
 
         assert_equal(
-            perf['capital_used'],
+            perf["capital_used"],
             expected_capital_used,
             check_names=False,
         )
@@ -1137,7 +1133,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             index=self.closes,
         )
         assert_equal(
-            perf['ending_exposure'],
+            perf["ending_exposure"],
             expected_position_exposure,
             check_names=False,
             check_dtype=False,
@@ -1147,13 +1143,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         # exposure
         expected_position_exposure[0] = 0
         assert_equal(
-            perf['starting_exposure'],
+            perf["starting_exposure"],
             expected_position_exposure,
             check_names=False,
         )
 
         assert_equal(
-            perf['trading_days'],
+            perf["trading_days"],
             pd.Series(
                 np.arange(len(self.closes)) + 1,
                 index=self.closes,
@@ -1167,9 +1163,9 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             dtype=object,
         )
         all_none_fields = (
-            'alpha',
-            'beta',
-            'sortino',
+            "alpha",
+            "beta",
+            "sortino",
         )
         for field in all_none_fields:
             assert_equal(
@@ -1179,25 +1175,27 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
                 msg=field,
             )
 
-        orders = perf['orders']
+        orders = perf["orders"]
 
         # we only order on the first day
         expected_orders = [
-            [{
-                'amount': contracts,
-                'commission': 0.0,
-                'created': T('2014-01-06 14:31'),
-                'dt': T('2014-01-06 14:32'),
-                'filled': contracts,
-                'id': wildcard,
-                'limit': None,
-                'limit_reached': False,
-                'reason': None,
-                'sid': self.future,
-                'status': 1,
-                'stop': None,
-                'stop_reached': False
-            }],
+            [
+                {
+                    "amount": contracts,
+                    "commission": 0.0,
+                    "created": ts_utc("2014-01-06 14:31"),
+                    "dt": ts_utc("2014-01-06 14:32"),
+                    "filled": contracts,
+                    "id": wildcard,
+                    "limit": None,
+                    "limit_reached": False,
+                    "reason": None,
+                    "sid": self.future,
+                    "status": 1,
+                    "stop": None,
+                    "stop_reached": False,
+                }
+            ],
         ] + [[]] * (len(self.closes) - 1)
 
         assert_equal(
@@ -1211,19 +1209,21 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             check_names=False,
         )
 
-        transactions = perf['transactions']
+        transactions = perf["transactions"]
 
         # since we only order on the first day, we should only transact on the
         # first day
         expected_transactions = [
-            [{
-                'amount': contracts,
-                'commission': None,
-                'dt': T('2014-01-06 14:32'),
-                'order_id': wildcard,
-                'price': 1.0,
-                'sid': self.future,
-            }],
+            [
+                {
+                    "amount": contracts,
+                    "commission": None,
+                    "dt": ts_utc("2014-01-06 14:32"),
+                    "order_id": wildcard,
+                    "price": 1.0,
+                    "sid": self.future,
+                }
+            ],
         ] + [[]] * (len(self.closes) - 1)
 
         assert_equal(
@@ -1242,7 +1242,7 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
 
         portfolio_snapshots = pd.DataFrame.from_dict(
             portfolio_snapshots,
-            orient='index',
+            orient="index",
         )
 
         expected_starting_cash = pd.Series(
@@ -1250,13 +1250,13 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             index=self.trading_minutes,
         )
         assert_equal(
-            portfolio_snapshots['starting_cash'],
+            portfolio_snapshots["starting_cash"],
             expected_starting_cash,
             check_names=False,
         )
 
         zero_minutes = pd.Series(0.0, index=self.trading_minutes)
-        for field in 'pnl', 'returns', 'cash_flow':
+        for field in "pnl", "returns", "cash_flow":
             assert_equal(
                 portfolio_snapshots[field],
                 zero_minutes,
@@ -1265,35 +1265,34 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
             )
 
         reindex_columns = sorted(
-            set(portfolio_snapshots.columns) - {
-                'starting_cash',
-                'cash_flow',
-                'pnl',
-                'returns',
-                'positions',
+            set(portfolio_snapshots.columns)
+            - {
+                "starting_cash",
+                "cash_flow",
+                "pnl",
+                "returns",
+                "positions",
             },
         )
         minute_reindex = perf.rename(
             columns={
-                'capital_used': 'cash_flow',
-                'ending_cash': 'cash',
-                'ending_exposure': 'positions_exposure',
-                'ending_value': 'positions_value',
+                "capital_used": "cash_flow",
+                "ending_cash": "cash",
+                "ending_exposure": "positions_exposure",
+                "ending_value": "positions_value",
             },
         )[reindex_columns].reindex(
             self.trading_minutes,
-            method='bfill',
+            method="bfill",
         )
 
         first_minute = self.trading_minutes[0]
         # the first minute should have the default values because we haven't
         # done anything yet
-        minute_reindex.loc[first_minute, 'cash'] = (
-            self.SIM_PARAMS_CAPITAL_BASE
-        )
+        minute_reindex.loc[first_minute, "cash"] = self.SIM_PARAMS_CAPITAL_BASE
         minute_reindex.loc[
             first_minute,
-            ['positions_exposure', 'positions_value'],
+            ["positions_exposure", "positions_value"],
         ] = 0
 
         assert_equal(
@@ -1303,12 +1302,12 @@ class TestConstantPrice(WithConstantEquityMinuteBarData,
         )
 
 
-class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
+class TestFixedReturns(WithMakeAlgo, ZiplineTestCase):
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
     FUTURE_DAILY_BAR_SOURCE_FROM_MINUTE = True
 
-    START_DATE = T('2014-01-06')
-    END_DATE = T('2014-01-10')
+    START_DATE = pd.Timestamp("2014-01-06")
+    END_DATE = pd.Timestamp("2014-01-10")
 
     # note: class attributes after this do not configure fixtures, they are
     # just used in this test suite
@@ -1318,12 +1317,14 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
     future_contract_multiplier = 2
 
     asset_start_price = 100
-    asset_daily_returns = np.array([
-        +0.02,  # up 2%
-        -0.02,  # down 2%, this should give us less value that we started with
-        +0.00,  # no returns
-        +0.04,  # up 4%
-    ])
+    asset_daily_returns = np.array(
+        [
+            +0.02,  # up 2%
+            -0.02,  # down 2%, this should give us less value that we started with
+            +0.00,  # no returns
+            +0.04,  # up 4%
+        ]
+    )
     asset_daily_close = prices_generating_returns(
         asset_daily_returns,
         asset_start_price,
@@ -1342,45 +1343,39 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         )
 
         cls.equity_minutes = pd.Index(
-            cls.trading_calendars[Equity].minutes_for_sessions_in_range(
+            cls.trading_calendars[Equity].sessions_minutes(
                 cls.START_DATE,
                 cls.END_DATE,
             ),
         )
         cls.equity_closes = pd.Index(
-            cls.trading_calendars[Equity].session_closes_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            ),
+            cls.trading_calendars[Equity].closes[cls.START_DATE : cls.END_DATE]
         )
         cls.equity_closes.name = None
 
         futures_cal = cls.trading_calendars[Future]
         cls.future_minutes = pd.Index(
             futures_cal.execution_minutes_for_sessions_in_range(
-                cls.START_DATE,
-                cls.END_DATE,
-            ),
-
+                cls.START_DATE, cls.END_DATE
+            )
         )
         cls.future_closes = pd.Index(
             futures_cal.execution_time_from_close(
-                futures_cal.session_closes_in_range(
-                    cls.START_DATE,
-                    cls.END_DATE,
-                ),
+                futures_cal.closes[cls.START_DATE : cls.END_DATE]
             ),
         )
         cls.future_closes.name = None
 
-        cls.future_opens = pd.Index(
-            futures_cal.execution_time_from_open(
-                futures_cal.session_opens_in_range(
-                    cls.START_DATE,
-                    cls.END_DATE,
-                ),
-            ),
-        )
+        if futures_cal.name == "us_futures":
+            cls.future_opens = pd.Index(
+                futures_cal.execution_time_from_open(
+                    futures_cal.first_minutes[cls.START_DATE : cls.END_DATE]
+                )
+            )
+        else:
+            cls.future_opens = pd.Index(
+                futures_cal.first_minutes[cls.START_DATE, cls.END_DATE]
+            )
         cls.future_opens.name = None
 
     def init_instance_fixtures(self):
@@ -1402,45 +1397,41 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,
             equity_daily_reader=(
                 self.bcolz_equity_daily_bar_reader
-                if self.DATA_PORTAL_USE_DAILY_DATA else
-                None
+                if self.DATA_PORTAL_USE_DAILY_DATA
+                else None
             ),
             equity_minute_reader=(
                 self.bcolz_equity_minute_bar_reader
-                if self.DATA_PORTAL_USE_MINUTE_DATA else
-                None
+                if self.DATA_PORTAL_USE_MINUTE_DATA
+                else None
             ),
             adjustment_reader=(
-                self.adjustment_reader
-                if self.DATA_PORTAL_USE_ADJUSTMENTS else
-                None
+                self.adjustment_reader if self.DATA_PORTAL_USE_ADJUSTMENTS else None
             ),
             future_minute_reader=(
                 self.bcolz_future_minute_bar_reader
-                if self.DATA_PORTAL_USE_MINUTE_DATA else
-                None
+                if self.DATA_PORTAL_USE_MINUTE_DATA
+                else None
             ),
             future_daily_reader=(
                 MinuteResampleSessionBarReader(
                     self.bcolz_future_minute_bar_reader.trading_calendar,
-                    self.bcolz_future_minute_bar_reader)
-                if self.DATA_PORTAL_USE_MINUTE_DATA else None
+                    self.bcolz_future_minute_bar_reader,
+                )
+                if self.DATA_PORTAL_USE_MINUTE_DATA
+                else None
             ),
             last_available_session=self.DATA_PORTAL_LAST_AVAILABLE_SESSION,
             last_available_minute=self.DATA_PORTAL_LAST_AVAILABLE_MINUTE,
-            minute_history_prefetch_length=(
-                self.DATA_PORTAL_MINUTE_HISTORY_PREFETCH
-            ),
-            daily_history_prefetch_length=(
-                self.DATA_PORTAL_DAILY_HISTORY_PREFETCH
-            ),
+            minute_history_prefetch_length=(self.DATA_PORTAL_MINUTE_HISTORY_PREFETCH),
+            daily_history_prefetch_length=(self.DATA_PORTAL_DAILY_HISTORY_PREFETCH),
         )
 
     @classmethod
     def make_futures_info(cls):
         return make_commodity_future_info(
-            first_sid=ord('Z'),
-            root_symbols=['Z'],
+            first_sid=ord("Z"),
+            root_symbols=["Z"],
             years=[cls.START_DATE.year],
             multiplier=cls.future_contract_multiplier,
         )
@@ -1461,7 +1452,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                     l,
                     c,
                     cls.asset_daily_volume,
-                    trading_minutes=len(calendar.minutes_for_session(session)),
+                    trading_minutes=len(calendar.session_minutes(session)),
                     random_state=random_state,
                 )
                 for o, h, l, c, session in zip(
@@ -1474,7 +1465,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             ],
             ignore_index=True,
         )
-        data.index = calendar.minutes_for_sessions_in_range(
+        data.index = calendar.sessions_minutes(
             cls.START_DATE,
             cls.END_DATE,
         )
@@ -1497,29 +1488,27 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         )
 
     @parameter_space(
-        direction=['long', 'short'],
+        direction=["long", "short"],
         # checking the portfolio forces a sync; we want to ensure that the
         # perf packets are correct even without explicitly requesting the
         # portfolio every day. we also want to test that ``context.portfolio``
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_equity_single_position(self,
-                                    direction,
-                                    check_portfolio_during_simulation):
-        if direction not in ('long', 'short'):
+    def test_equity_single_position(self, direction, check_portfolio_during_simulation):
+        if direction not in ("long", "short"):
             raise ValueError(
-                'direction must be either long or short, got: %r' % direction,
+                f"direction must be either long or short, got: {direction!r}"
             )
 
-        shares = 1 if direction == 'long' else -1
+        shares = 1 if direction == "long" else -1
 
         expected_fill_price = self.data_portal.get_scalar_asset_spot_value(
             self.equity,
-            'close',
+            "close",
             # we expect to kill in the second bar of the first day
             self.equity_minutes[1],
-            'minute',
+            "minute",
         )
 
         def initialize(context):
@@ -1541,7 +1530,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
                 positions = portfolio.positions
                 if first_bar:
-                    assert_equal(positions, {})
+                    assert positions == {}
                     return
 
                 assert_equal(list(positions), [self.equity])
@@ -1550,14 +1539,16 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                 assert_equal(position.amount, shares)
                 assert_equal(
                     position.last_sale_price,
-                    data.current(self.equity, 'close'),
+                    data.current(self.equity, "close"),
                 )
                 assert_equal(position.asset, self.equity)
                 assert_equal(
                     position.cost_basis,
                     expected_fill_price,
                 )
+
         else:
+
             def check_portfolio(data, context, first_bar):
                 pass
 
@@ -1578,19 +1569,23 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
         zeros = pd.Series(0.0, index=self.equity_closes)
         all_zero_fields = [
-            'excess_return',
-            'treasury_period_return',
+            "excess_return",
+            "treasury_period_return",
         ]
-        if direction == 'long':
-            all_zero_fields.extend((
-                'short_value',
-                'shorts_count',
-            ))
+        if direction == "long":
+            all_zero_fields.extend(
+                (
+                    "short_value",
+                    "shorts_count",
+                )
+            )
         else:
-            all_zero_fields.extend((
-                'long_value',
-                'longs_count',
-            ))
+            all_zero_fields.extend(
+                (
+                    "long_value",
+                    "longs_count",
+                )
+            )
         for field in all_zero_fields:
             assert_equal(
                 perf[field],
@@ -1601,10 +1596,10 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             )
 
         ones = pd.Series(1, index=self.equity_closes)
-        if direction == 'long':
-            count_field = 'longs_count'
+        if direction == "long":
+            count_field = "longs_count"
         else:
-            count_field = 'shorts_count'
+            count_field = "shorts_count"
 
         assert_equal(
             perf[count_field],
@@ -1613,18 +1608,18 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             msg=field,
         )
 
-        if direction == 'long':
+        if direction == "long":
             expected_exposure = pd.Series(
                 self.asset_daily_close,
                 index=self.equity_closes,
             )
-            exposure_fields = 'long_value', 'long_exposure'
+            exposure_fields = "long_value", "long_exposure"
         else:
             expected_exposure = pd.Series(
                 -self.asset_daily_close,
                 index=self.equity_closes,
             )
-            exposure_fields = 'short_value', 'short_exposure'
+            exposure_fields = "short_value", "short_exposure"
 
         for field in exposure_fields:
             assert_equal(
@@ -1634,7 +1629,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                 msg=field,
             )
 
-        if direction == 'long':
+        if direction == "long":
             delta = self.asset_daily_close - expected_fill_price
         else:
             delta = -self.asset_daily_close + expected_fill_price
@@ -1644,7 +1639,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         )
 
         assert_equal(
-            perf['portfolio_value'],
+            perf["portfolio_value"],
             expected_portfolio_value,
             check_names=False,
         )
@@ -1662,13 +1657,13 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             expected_exposure.abs() / expected_portfolio_value,
         )
         assert_equal(
-            perf['max_leverage'],
+            perf["max_leverage"],
             expected_max_leverage,
             check_names=False,
         )
 
         expected_cash = capital_base_series.copy()
-        if direction == 'long':
+        if direction == "long":
             # we purchased one share on the first day
             cash_modifier = -expected_fill_price
         else:
@@ -1678,14 +1673,14 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         expected_cash[1:] += cash_modifier
 
         assert_equal(
-            perf['starting_cash'],
+            perf["starting_cash"],
             expected_cash,
             check_names=False,
         )
 
         expected_cash[0] += cash_modifier
         assert_equal(
-            perf['ending_cash'],
+            perf["ending_cash"],
             expected_cash,
             check_names=False,
         )
@@ -1695,12 +1690,12 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         expected_capital_used[0] += cash_modifier
 
         assert_equal(
-            perf['capital_used'],
+            perf["capital_used"],
             expected_capital_used,
             check_names=False,
         )
 
-        for field in 'ending_value', 'ending_exposure':
+        for field in "ending_value", "ending_exposure":
             # for equities, position value and position exposure are the same
             assert_equal(
                 perf[field],
@@ -1713,7 +1708,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         # exposure
         expected_starting_exposure = expected_exposure.shift(1)
         expected_starting_exposure[0] = 0.0
-        for field in 'starting_value', 'starting_exposure':
+        for field in "starting_value", "starting_exposure":
             # for equities, position value and position exposure are the same
             assert_equal(
                 perf[field],
@@ -1723,7 +1718,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             )
 
         assert_equal(
-            perf['trading_days'],
+            perf["trading_days"],
             pd.Series(
                 np.arange(len(self.equity_closes)) + 1,
                 index=self.equity_closes,
@@ -1732,28 +1727,27 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             check_names=False,
         )
 
-        orders = perf['orders']
+        orders = perf["orders"]
 
         expected_single_order = {
-            'amount': shares,
-            'commission': 0.0,
-            'created': T('2014-01-06 14:31'),
-            'dt': T('2014-01-06 14:32'),
-            'filled': shares,
-            'id': wildcard,
-            'limit': None,
-            'limit_reached': False,
-            'reason': None,
-            'sid': self.equity,
-            'status': 1,
-            'stop': None,
-            'stop_reached': False
+            "amount": shares,
+            "commission": 0.0,
+            "created": ts_utc("2014-01-06 14:31"),
+            "dt": ts_utc("2014-01-06 14:32"),
+            "filled": shares,
+            "id": wildcard,
+            "limit": None,
+            "limit_reached": False,
+            "reason": None,
+            "sid": self.equity,
+            "status": 1,
+            "stop": None,
+            "stop_reached": False,
         }
 
         # we only order on the first day
-        expected_orders = (
-            [[expected_single_order]] +
-            [[]] * (len(self.equity_closes) - 1)
+        expected_orders = [[expected_single_order]] + [[]] * (
+            len(self.equity_closes) - 1
         )
 
         assert_equal(
@@ -1767,27 +1761,26 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             check_names=False,
         )
 
-        transactions = perf['transactions']
+        transactions = perf["transactions"]
 
         expected_single_transaction = {
-            'amount': shares,
-            'commission': None,
-            'dt': T('2014-01-06 14:32'),
-            'order_id': wildcard,
-            'price': self.data_portal.get_scalar_asset_spot_value(
+            "amount": shares,
+            "commission": None,
+            "dt": ts_utc("2014-01-06 14:32"),
+            "order_id": wildcard,
+            "price": self.data_portal.get_scalar_asset_spot_value(
                 self.equity,
-                'close',
-                T('2014-01-06 14:32'),
-                'minute',
+                "close",
+                ts_utc("2014-01-06 14:32"),
+                "minute",
             ),
-            'sid': self.equity,
+            "sid": self.equity,
         }
 
         # since we only order on the first day, we should only transact on the
         # first day
-        expected_transactions = (
-            [[expected_single_transaction]] +
-            [[]] * (len(self.equity_closes) - 1)
+        expected_transactions = [[expected_single_transaction]] + [[]] * (
+            len(self.equity_closes) - 1
         )
 
         assert_equal(
@@ -1805,7 +1798,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
         portfolio_snapshots = pd.DataFrame.from_dict(
             portfolio_snapshots,
-            orient='index',
+            orient="index",
         )
 
         expected_starting_cash = pd.Series(
@@ -1813,7 +1806,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             index=self.equity_minutes,
         )
         assert_equal(
-            portfolio_snapshots['starting_cash'],
+            portfolio_snapshots["starting_cash"],
             expected_starting_cash,
             check_names=False,
         )
@@ -1825,7 +1818,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         expected_portfolio_capital_used[0] = 0.0
         expected_capital_used[0] = 0
         assert_equal(
-            portfolio_snapshots['cash_flow'],
+            portfolio_snapshots["cash_flow"],
             expected_portfolio_capital_used,
             check_names=False,
         )
@@ -1834,9 +1827,9 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             [self.equity],
             self.equity_minutes[-1],
             len(self.equity_minutes),
-            '1m',
-            'close',
-            'minute',
+            "1m",
+            "close",
+            "minute",
         )[self.equity]
 
         expected_pnl = minute_prices.diff()
@@ -1844,28 +1837,27 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         expected_pnl.iloc[:2] = 0.0
         expected_pnl = expected_pnl.cumsum()
 
-        if direction == 'short':
+        if direction == "short":
             expected_pnl = -expected_pnl
 
         assert_equal(
-            portfolio_snapshots['pnl'],
+            portfolio_snapshots["pnl"],
             expected_pnl,
             check_names=False,
         )
 
         expected_portfolio_value = self.SIM_PARAMS_CAPITAL_BASE + expected_pnl
         assert_equal(
-            portfolio_snapshots['portfolio_value'],
+            portfolio_snapshots["portfolio_value"],
             expected_portfolio_value,
             check_names=False,
         )
 
         expected_returns = (
-            portfolio_snapshots['portfolio_value'] /
-            self.SIM_PARAMS_CAPITAL_BASE
+            portfolio_snapshots["portfolio_value"] / self.SIM_PARAMS_CAPITAL_BASE
         ) - 1
         assert_equal(
-            portfolio_snapshots['returns'],
+            portfolio_snapshots["returns"],
             expected_returns,
             check_names=False,
         )
@@ -1873,10 +1865,10 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         expected_exposure = minute_prices.copy()
         # we don't enter the position until the second minute
         expected_exposure.iloc[0] = 0.0
-        if direction == 'short':
+        if direction == "short":
             expected_exposure = -expected_exposure
 
-        for field in 'positions_value', 'positions_exposure':
+        for field in "positions_value", "positions_exposure":
             assert_equal(
                 portfolio_snapshots[field],
                 expected_exposure,
@@ -1884,42 +1876,38 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                 msg=field,
             )
 
-    @unittest.skip("Needs fix to calendar mismatch.")
+    @pytest.mark.xfail(reason="Needs fix to calendar mismatch.")
     @parameter_space(
-        direction=['long', 'short'],
+        direction=["long", "short"],
         # checking the portfolio forces a sync; we want to ensure that the
         # perf packets are correct even without explicitly requesting the
         # portfolio every day. we also want to test that ``context.portfolio``
         # produces the expected values when queried mid-simulation
         check_portfolio_during_simulation=[True, False],
     )
-    def test_future_single_position(self,
-                                    direction,
-                                    check_portfolio_during_simulation):
-        if direction not in ('long', 'short'):
+    def test_future_single_position(self, direction, check_portfolio_during_simulation):
+        if direction not in ("long", "short"):
             raise ValueError(
-                'direction must be either long or short, got: %r' % direction,
+                "direction must be either long or short, got: %r" % direction,
             )
 
-        contracts = 1 if direction == 'long' else -1
+        contracts = 1 if direction == "long" else -1
 
-        expected_fill_price = (
-            self.futures_data_portal.get_scalar_asset_spot_value(
-                self.future,
-                'close',
-                # we expect to kill in the second bar of the first day
-                self.future_minutes[1],
-                'minute',
-            )
+        expected_fill_price = self.futures_data_portal.get_scalar_asset_spot_value(
+            self.future,
+            "close",
+            # we expect to kill in the second bar of the first day
+            self.future_minutes[1],
+            "minute",
         )
 
         future_execution_close_prices = pd.Series(
             [
                 self.futures_data_portal.get_scalar_asset_spot_value(
                     self.future,
-                    'close',
+                    "close",
                     execution_close_minute,
-                    'minute',
+                    "minute",
                 )
                 for execution_close_minute in self.future_closes
             ],
@@ -1929,10 +1917,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         future_execution_open_prices = pd.Series(
             [
                 self.futures_data_portal.get_scalar_asset_spot_value(
-                    self.future,
-                    'close',
-                    execution_open_minute,
-                    'minute',
+                    self.future, "close", execution_open_minute, "minute"
                 )
                 for execution_open_minute in self.future_opens
             ],
@@ -1941,7 +1926,6 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
         def initialize(context):
             api.set_benchmark(self.equity)
-
             api.set_slippage(us_futures=api.slippage.NoSlippage())
             api.set_commission(us_futures=api.commission.NoCommission())
 
@@ -1967,14 +1951,16 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
                 assert_equal(position.amount, contracts)
                 assert_equal(
                     position.last_sale_price,
-                    data.current(self.future, 'close'),
+                    data.current(self.future, "close"),
                 )
                 assert_equal(position.asset, self.future)
                 assert_equal(
                     position.cost_basis,
                     expected_fill_price,
                 )
+
         else:
+
             def check_portfolio(data, context, first_bar):
                 pass
 
@@ -1997,17 +1983,17 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
         zeros = pd.Series(0.0, index=self.future_closes)
         all_zero_fields = [
-            'excess_return',
-            'treasury_period_return',
-            'short_value',
-            'long_value',
-            'starting_value',
-            'ending_value',
+            "excess_return",
+            "treasury_period_return",
+            "short_value",
+            "long_value",
+            "starting_value",
+            "ending_value",
         ]
-        if direction == 'long':
-            all_zero_fields.append('shorts_count')
+        if direction == "long":
+            all_zero_fields.append("shorts_count")
         else:
-            all_zero_fields.append('longs_count')
+            all_zero_fields.append("longs_count")
 
         for field in all_zero_fields:
             assert_equal(
@@ -2019,10 +2005,10 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             )
 
         ones = pd.Series(1, index=self.future_closes)
-        if direction == 'long':
-            count_field = 'longs_count'
+        if direction == "long":
+            count_field = "longs_count"
         else:
-            count_field = 'shorts_count'
+            count_field = "shorts_count"
 
         assert_equal(
             perf[count_field],
@@ -2035,9 +2021,9 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             future_execution_close_prices * self.future_contract_multiplier,
             index=self.future_closes,
         )
-        exposure_field = 'long_exposure'
-        if direction == 'short':
-            exposure_field = 'short_exposure'
+        exposure_field = "long_exposure"
+        if direction == "short":
+            exposure_field = "short_exposure"
             expected_exposure = -expected_exposure
 
         assert_equal(
@@ -2048,21 +2034,18 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             check_dtype=False,
         )
 
-        if direction == 'long':
+        if direction == "long":
             delta = future_execution_close_prices - expected_fill_price
         else:
             delta = -future_execution_close_prices + expected_fill_price
 
         expected_portfolio_value = pd.Series(
-            (
-                self.SIM_PARAMS_CAPITAL_BASE +
-                self.future_contract_multiplier * delta
-            ),
+            (self.SIM_PARAMS_CAPITAL_BASE + self.future_contract_multiplier * delta),
             index=self.future_closes,
         )
 
         assert_equal(
-            perf['portfolio_value'],
+            perf["portfolio_value"],
             expected_portfolio_value,
             check_names=False,
         )
@@ -2075,33 +2058,32 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             expected_exposure.abs() / expected_portfolio_value,
         )
         assert_equal(
-            perf['max_leverage'],
+            perf["max_leverage"],
             expected_max_leverage,
             check_names=False,
         )
 
         expected_cashflow = pd.Series(
             (
-                self.future_contract_multiplier *
-                (future_execution_close_prices - expected_fill_price)
+                self.future_contract_multiplier
+                * (future_execution_close_prices - expected_fill_price)
             ),
             index=self.future_closes,
         )
-        if direction == 'short':
+        if direction == "short":
             expected_cashflow = -expected_cashflow
 
         expected_cash = self.SIM_PARAMS_CAPITAL_BASE + expected_cashflow
         assert_equal(
-            perf['ending_cash'],
+            perf["ending_cash"],
             expected_cash,
             check_names=False,
         )
 
-        delta = (
-            self.future_contract_multiplier *
-            (future_execution_open_prices - expected_fill_price)
+        delta = self.future_contract_multiplier * (
+            future_execution_open_prices - expected_fill_price
         )
-        if direction == 'short':
+        if direction == "short":
             delta = -delta
 
         # NOTE: this seems really wrong to me: we should report the cash
@@ -2111,20 +2093,20 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         expected_starting_cash.iloc[0] = self.SIM_PARAMS_CAPITAL_BASE
 
         assert_equal(
-            perf['starting_cash'],
+            perf["starting_cash"],
             expected_starting_cash,
             check_names=False,
         )
 
         assert_equal(
-            perf['capital_used'],
-            perf['ending_cash'] - perf['starting_cash'],
+            perf["capital_used"],
+            perf["ending_cash"] - perf["starting_cash"],
             check_names=False,
         )
 
         # for equities, position value and position exposure are the same
         assert_equal(
-            perf['ending_exposure'],
+            perf["ending_exposure"],
             expected_exposure,
             check_names=False,
             msg=field,
@@ -2135,14 +2117,14 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         expected_starting_exposure = expected_exposure.shift(1)
         expected_starting_exposure[0] = 0.0
         assert_equal(
-            perf['starting_exposure'],
+            perf["starting_exposure"],
             expected_starting_exposure,
             check_names=False,
             msg=field,
         )
 
         assert_equal(
-            perf['trading_days'],
+            perf["trading_days"],
             pd.Series(
                 np.arange(len(self.future_closes)) + 1,
                 index=self.future_closes,
@@ -2150,28 +2132,27 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             check_names=False,
         )
 
-        orders = perf['orders']
+        orders = perf["orders"]
 
         expected_single_order = {
-            'amount': contracts,
-            'commission': 0.0,
-            'created': self.future_minutes[0],
-            'dt': self.future_minutes[1],
-            'filled': contracts,
-            'id': wildcard,
-            'limit': None,
-            'limit_reached': False,
-            'reason': None,
-            'sid': self.future,
-            'status': 1,
-            'stop': None,
-            'stop_reached': False
+            "amount": contracts,
+            "commission": 0.0,
+            "created": self.future_minutes[0],
+            "dt": self.future_minutes[1],
+            "filled": contracts,
+            "id": wildcard,
+            "limit": None,
+            "limit_reached": False,
+            "reason": None,
+            "sid": self.future,
+            "status": 1,
+            "stop": None,
+            "stop_reached": False,
         }
 
         # we only order on the first day
-        expected_orders = (
-            [[expected_single_order]] +
-            [[]] * (len(self.future_closes) - 1)
+        expected_orders = [[expected_single_order]] + [[]] * (
+            len(self.future_closes) - 1
         )
 
         assert_equal(
@@ -2185,28 +2166,27 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             check_names=False,
         )
 
-        transactions = perf['transactions']
+        transactions = perf["transactions"]
 
         dt = self.future_minutes[1]
         expected_single_transaction = {
-            'amount': contracts,
-            'commission': None,
-            'dt': dt,
-            'order_id': wildcard,
-            'price': self.futures_data_portal.get_scalar_asset_spot_value(
+            "amount": contracts,
+            "commission": None,
+            "dt": dt,
+            "order_id": wildcard,
+            "price": self.futures_data_portal.get_scalar_asset_spot_value(
                 self.future,
-                'close',
+                "close",
                 dt,
-                'minute',
+                "minute",
             ),
-            'sid': self.future,
+            "sid": self.future,
         }
 
         # since we only order on the first day, we should only transact on the
         # first day
-        expected_transactions = (
-            [[expected_single_transaction]] +
-            [[]] * (len(self.future_closes) - 1)
+        expected_transactions = [[expected_single_transaction]] + [[]] * (
+            len(self.future_closes) - 1
         )
 
         assert_equal(
@@ -2224,7 +2204,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
 
         portfolio_snapshots = pd.DataFrame.from_dict(
             portfolio_snapshots,
-            orient='index',
+            orient="index",
         )
 
         expected_starting_cash = pd.Series(
@@ -2232,7 +2212,7 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             index=self.future_minutes,
         )
         assert_equal(
-            portfolio_snapshots['starting_cash'],
+            portfolio_snapshots["starting_cash"],
             expected_starting_cash,
             check_names=False,
         )
@@ -2241,34 +2221,31 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             [
                 self.futures_data_portal.get_scalar_asset_spot_value(
                     self.future,
-                    'close',
+                    "close",
                     minute,
-                    'minute',
+                    "minute",
                 )
                 for minute in self.future_minutes
             ],
             index=self.future_minutes,
         )
-        expected_portfolio_capital_used = (
-            self.future_contract_multiplier *
-            (execution_minute_prices - expected_fill_price)
+        expected_portfolio_capital_used = self.future_contract_multiplier * (
+            execution_minute_prices - expected_fill_price
         )
-        if direction == 'short':
+        if direction == "short":
             expected_portfolio_capital_used = -expected_portfolio_capital_used
 
         # we don't execute until the second minute; then cash adjustments begin
         expected_portfolio_capital_used.iloc[:2] = 0.0
         assert_equal(
-            portfolio_snapshots['cash_flow'],
+            portfolio_snapshots["cash_flow"],
             expected_portfolio_capital_used,
             check_names=False,
         )
 
-        all_minutes = (
-            self.trading_calendars[Future].minutes_for_sessions_in_range(
-                self.START_DATE,
-                self.END_DATE,
-            )
+        all_minutes = self.trading_calendars[Future].sessions_minutes(
+            self.START_DATE,
+            self.END_DATE,
         )
         valid_minutes = all_minutes[
             all_minutes.slice_indexer(
@@ -2280,9 +2257,9 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
             [self.future],
             self.future_minutes[-1],
             len(valid_minutes) + 1,
-            '1m',
-            'close',
-            'minute',
+            "1m",
+            "close",
+            "minute",
         )[self.future]
 
         raw_pnl = minute_prices.diff()
@@ -2291,28 +2268,27 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         raw_pnl = raw_pnl.cumsum() * self.future_contract_multiplier
 
         expected_pnl = raw_pnl.reindex(self.future_minutes)
-        if direction == 'short':
+        if direction == "short":
             expected_pnl = -expected_pnl
 
         assert_equal(
-            portfolio_snapshots['pnl'],
+            portfolio_snapshots["pnl"],
             expected_pnl,
             check_names=False,
         )
 
         expected_portfolio_value = self.SIM_PARAMS_CAPITAL_BASE + expected_pnl
         assert_equal(
-            portfolio_snapshots['portfolio_value'],
+            portfolio_snapshots["portfolio_value"],
             expected_portfolio_value,
             check_names=False,
         )
 
         expected_returns = (
-            portfolio_snapshots['portfolio_value'] /
-            self.SIM_PARAMS_CAPITAL_BASE
+            portfolio_snapshots["portfolio_value"] / self.SIM_PARAMS_CAPITAL_BASE
         ) - 1
         assert_equal(
-            portfolio_snapshots['returns'],
+            portfolio_snapshots["returns"],
             expected_returns,
             check_names=False,
         )
@@ -2322,18 +2298,18 @@ class TestFixedReturns(WithMakeAlgo, WithWerror, ZiplineTestCase):
         ).reindex(self.future_minutes)
         # we don't enter the position until the second minute
         expected_exposure.iloc[0] = 0.0
-        if direction == 'short':
+        if direction == "short":
             expected_exposure = -expected_exposure
 
         assert_equal(
-            portfolio_snapshots['positions_exposure'],
+            portfolio_snapshots["positions_exposure"],
             expected_exposure,
             check_names=False,
         )
 
         expected_value = pd.Series(0.0, index=self.future_minutes)
         assert_equal(
-            portfolio_snapshots['positions_value'],
+            portfolio_snapshots["positions_value"],
             expected_value,
             check_names=False,
             check_dtype=False,

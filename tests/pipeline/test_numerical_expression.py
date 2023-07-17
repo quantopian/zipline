@@ -12,23 +12,9 @@ from operator import (
     sub,
 )
 from string import ascii_uppercase
-from unittest import TestCase
 
-import numpy
-from numpy import (
-    arange,
-    array,
-    eye,
-    float64,
-    full,
-    isnan,
-    zeros,
-)
-from pandas import (
-    DataFrame,
-    date_range,
-    Int64Index,
-)
+import numpy as np
+import pandas as pd
 
 from zipline.pipeline import Factor, Filter
 from zipline.pipeline.factors.factor import NumExprFactor
@@ -36,8 +22,10 @@ from zipline.pipeline.expression import (
     NUMEXPR_MATH_FUNCS,
     NumericalExpression,
 )
-from zipline.testing import check_allclose, parameter_space
+from zipline.testing import check_allclose
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
+import pytest
+import re
 
 
 class F(Factor):
@@ -69,23 +57,29 @@ class DateFactor(Factor):
     window_length = 0
 
 
-class NumericalExpressionTestCase(TestCase):
+@pytest.fixture(scope="function")
+def set_num_expression(request):
+    request.cls.dates = pd.date_range("2014-01-01", periods=5, freq="D")
+    request.cls.assets = pd.Index(range(5), dtype="int64")
+    request.cls.f = F()
+    request.cls.g = G()
+    request.cls.h = H()
+    request.cls.d = DateFactor()
+    request.cls.fake_raw_data = {
+        request.cls.f: np.full((5, 5), 3, float),
+        request.cls.g: np.full((5, 5), 2, float),
+        request.cls.h: np.full((5, 5), 1, float),
+        request.cls.d: np.full((5, 5), 0, dtype="datetime64[ns]"),
+    }
+    request.cls.mask = pd.DataFrame(
+        True, index=request.cls.dates, columns=request.cls.assets
+    )
+    yield
+    pass
 
-    def setUp(self):
-        self.dates = date_range('2014-01-01', periods=5, freq='D')
-        self.assets = Int64Index(range(5))
-        self.f = F()
-        self.g = G()
-        self.h = H()
-        self.d = DateFactor()
-        self.fake_raw_data = {
-            self.f: full((5, 5), 3, float),
-            self.g: full((5, 5), 2, float),
-            self.h: full((5, 5), 1, float),
-            self.d: full((5, 5), 0, dtype='datetime64[ns]'),
-        }
-        self.mask = DataFrame(True, index=self.dates, columns=self.assets)
 
+@pytest.mark.usefixtures("set_num_expression")
+class TestNumericalExpression:
     def check_output(self, expr, expected):
         result = expr._compute(
             [self.fake_raw_data[input_] for input_ in expr.inputs],
@@ -96,8 +90,8 @@ class NumericalExpressionTestCase(TestCase):
         check_allclose(result, expected)
 
     def check_constant_output(self, expr, expected):
-        self.assertFalse(isnan(expected))
-        return self.check_output(expr, full((5, 5), expected, float))
+        assert not np.isnan(expected)
+        return self.check_output(expr, np.full((5, 5), expected, float))
 
     def test_validate_good(self):
         f = self.f
@@ -116,42 +110,42 @@ class NumericalExpressionTestCase(TestCase):
         f, g, h = self.f, self.g, self.h
 
         # Too few inputs.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0", (), dtype=float64_dtype)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0 + x_1", (f,), dtype=float64_dtype)
 
         # Too many inputs.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0", (f, g), dtype=float64_dtype)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0 + x_1", (f, g, h), dtype=float64_dtype)
 
         # Invalid variable name.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0x_1", (f,), dtype=float64_dtype)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_0x_1", (f, g), dtype=float64_dtype)
 
         # Variable index must start at 0.
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             NumExprFactor("x_1", (f,), dtype=float64_dtype)
 
         # Scalar operands must be numeric.
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             "2" + f
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             f + "2"
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             f > "2"
 
         # Boolean binary operators must be between filters.
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             f + (f > 2)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             (f > f) > f
 
-    @parameter_space(num_new_inputs=[1, 4])
+    @pytest.mark.parametrize("num_new_inputs", [1, 4])
     def test_many_inputs(self, num_new_inputs):
         """
         Test adding NumericalExpressions with >=32 (NPY_MAXARGS) inputs.
@@ -160,7 +154,7 @@ class NumericalExpressionTestCase(TestCase):
         f = self.f
         expr = f + f
 
-        self.fake_raw_data = OrderedDict({f: full((5, 5), 0, float)})
+        self.fake_raw_data = OrderedDict({f: np.full((5, 5), 0, float)})
         expected = 0
 
         # Alternate between adding and subtracting factors. Because subtraction
@@ -168,10 +162,8 @@ class NumericalExpressionTestCase(TestCase):
         # correct order.
         ops = (add, sub)
 
-        for i, name in enumerate(
-            islice(product(ascii_uppercase, ascii_uppercase), 64)
-        ):
-            name = ''.join(name)
+        for i, name in enumerate(islice(product(ascii_uppercase, ascii_uppercase), 64)):
+            name = "".join(name)
             op = ops[i % 2]
 
             new_expr_inputs = []
@@ -182,15 +174,15 @@ class NumericalExpressionTestCase(TestCase):
                     dict(dtype=float64_dtype, inputs=(), window_length=0),
                 )
                 new_factor = NewFactor()
-                self.fake_raw_data[new_factor] = full((5, 5), i + 1, float)
+                self.fake_raw_data[new_factor] = np.full((5, 5), i + 1, float)
                 new_expr_inputs.append(new_factor)
 
             # Again we need a NumericalExpression, so add two factors together.
             new_expr = new_expr_inputs[0]
-            self.fake_raw_data[new_expr] = full((5, 5), (i + 1), float)
+            self.fake_raw_data[new_expr] = np.full((5, 5), (i + 1), float)
             for new_expr_input in new_expr_inputs:
                 new_expr = new_expr + new_expr_input
-            self.fake_raw_data[new_expr] = full(
+            self.fake_raw_data[new_expr] = np.full(
                 (5, 5), (i + 1) * (num_new_inputs + 1), float
             )
 
@@ -200,69 +192,58 @@ class NumericalExpressionTestCase(TestCase):
             expr = op(expr, new_expr)
             # Each factor is counted num_new_inputs + 1 times.
             expected = op(expected, (i + 1) * (num_new_inputs + 1))
-            self.fake_raw_data[expr] = full((5, 5), expected, float)
+            self.fake_raw_data[expr] = np.full((5, 5), expected, float)
 
         for expr, expected in self.fake_raw_data.items():
             if isinstance(expr, NumericalExpression):
                 self.check_output(expr, expected)
 
     def test_combine_datetimes(self):
-        with self.assertRaises(TypeError) as e:
-            self.d + self.d
-        message = e.exception.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] + datetime64[ns].\n"
             "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
-        self.assertEqual(message, expected)
+        with pytest.raises(TypeError, match=re.escape(expected)):
+            self.d + self.d
 
         # Confirm that * shows up in the error instead of +.
-        with self.assertRaises(TypeError) as e:
-            self.d * self.d
-        message = e.exception.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] * datetime64[ns].\n"
             "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
-        self.assertEqual(message, expected)
+        with pytest.raises(TypeError, match=re.escape(expected)):
+            self.d * self.d
 
     def test_combine_datetime_with_float(self):
         # Test with both float-type factors and numeric values.
-        for float_value in (self.f, float64(1.0), 1.0):
-            for op, sym in ((add, '+'), (mul, '*')):
-                with self.assertRaises(TypeError) as e:
-                    op(self.f, self.d)
-                message = e.exception.args[0]
+        for float_value in (self.f, np.float64(1.0), 1.0):
+            for op, sym in ((add, "+"), (mul, "*")):
                 expected = (
                     "Don't know how to compute float64 {sym} datetime64[ns].\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
                 ).format(sym=sym)
-                self.assertEqual(message, expected)
+                with pytest.raises(TypeError, match=re.escape(expected)):
+                    op(self.f, self.d)
 
-                with self.assertRaises(TypeError) as e:
-                    op(self.d, self.f)
-                message = e.exception.args[0]
                 expected = (
                     "Don't know how to compute datetime64[ns] {sym} float64.\n"
                     "Arithmetic operators are only supported between Factors"
                     " of dtype 'float64'."
                 ).format(sym=sym)
-                self.assertEqual(message, expected)
+                with pytest.raises(TypeError, match=re.escape(expected)):
+                    op(self.d, self.f)
 
     def test_negate_datetime(self):
-        with self.assertRaises(TypeError) as e:
-            -self.d
-
-        message = e.exception.args[0]
         expected = (
             "Can't apply unary operator '-' to instance of "
             "'DateFactor' with dtype 'datetime64[ns]'.\n"
             "'-' is only supported for Factors of dtype 'float64'."
         )
-        self.assertEqual(message, expected)
+        with pytest.raises(TypeError, match=re.escape(expected)):
+            -self.d
 
     def test_negate(self):
         f, g = self.f, self.g
@@ -310,22 +291,22 @@ class NumericalExpressionTestCase(TestCase):
 
         self.check_constant_output(f - g, 1.0)  # 3 - 2
 
-        self.check_constant_output((1 - f) - g, -4.)   # (1 - 3) - 2
-        self.check_constant_output(1 - (f - g), 0.0)   # 1 - (3 - 2)
-        self.check_constant_output((f - 1) - g, 0.0)   # (3 - 1) - 2
-        self.check_constant_output(f - (1 - g), 4.0)   # 3 - (1 - 2)
-        self.check_constant_output((f - g) - 1, 0.0)   # (3 - 2) - 1
-        self.check_constant_output(f - (g - 1), 2.0)   # 3 - (2 - 1)
+        self.check_constant_output((1 - f) - g, -4.0)  # (1 - 3) - 2
+        self.check_constant_output(1 - (f - g), 0.0)  # 1 - (3 - 2)
+        self.check_constant_output((f - 1) - g, 0.0)  # (3 - 1) - 2
+        self.check_constant_output(f - (1 - g), 4.0)  # 3 - (1 - 2)
+        self.check_constant_output((f - g) - 1, 0.0)  # (3 - 2) - 1
+        self.check_constant_output(f - (g - 1), 2.0)  # 3 - (2 - 1)
 
-        self.check_constant_output((f - f) - f, -3.)   # (3 - 3) - 3
-        self.check_constant_output(f - (f - f), 3.0)   # 3 - (3 - 3)
+        self.check_constant_output((f - f) - f, -3.0)  # (3 - 3) - 3
+        self.check_constant_output(f - (f - f), 3.0)  # 3 - (3 - 3)
 
-        self.check_constant_output((f - g) - f, -2.)   # (3 - 2) - 3
-        self.check_constant_output(f - (g - f), 4.0)   # 3 - (2 - 3)
+        self.check_constant_output((f - g) - f, -2.0)  # (3 - 2) - 3
+        self.check_constant_output(f - (g - f), 4.0)  # 3 - (2 - 3)
 
         self.check_constant_output((f - g) - (f - g), 0.0)  # (3 - 2) - (3 - 2)
         self.check_constant_output((f - g) - (g - f), 2.0)  # (3 - 2) - (2 - 3)
-        self.check_constant_output((g - f) - (f - g), -2.)  # (2 - 3) - (3 - 2)
+        self.check_constant_output((g - f) - (f - g), -2.0)  # (2 - 3) - (3 - 2)
         self.check_constant_output((g - f) - (g - f), 0.0)  # (2 - 3) - (2 - 3)
 
     def test_multiply(self):
@@ -358,10 +339,7 @@ class NumericalExpressionTestCase(TestCase):
 
         self.check_constant_output(f / g, 3.0 / 2.0)
 
-        self.check_constant_output(
-            (2 / f) / g,
-            (2 / 3.0) / 2.0
-        )
+        self.check_constant_output((2 / f) / g, (2 / 3.0) / 2.0)
         self.check_constant_output(
             2 / (f / g),
             2 / (3.0 / 2.0),
@@ -382,10 +360,7 @@ class NumericalExpressionTestCase(TestCase):
             f / (g / 2),
             3.0 / (2.0 / 2),
         )
-        self.check_constant_output(
-            (f / f) / f,
-            (3.0 / 3.0) / 3.0
-        )
+        self.check_constant_output((f / f) / f, (3.0 / 3.0) / 3.0)
         self.check_constant_output(
             f / (f / f),
             3.0 / (3.0 / 3.0),
@@ -419,20 +394,20 @@ class NumericalExpressionTestCase(TestCase):
     def test_pow(self):
         f, g = self.f, self.g
 
-        self.check_constant_output(f ** g, 3.0 ** 2)
-        self.check_constant_output(2 ** f, 2.0 ** 3)
-        self.check_constant_output(f ** 2, 3.0 ** 2)
+        self.check_constant_output(f**g, 3.0**2)
+        self.check_constant_output(2**f, 2.0**3)
+        self.check_constant_output(f**2, 3.0**2)
 
         self.check_constant_output((f + g) ** 2, (3.0 + 2.0) ** 2)
         self.check_constant_output(2 ** (f + g), 2 ** (3.0 + 2.0))
 
-        self.check_constant_output(f ** (f ** g), 3.0 ** (3.0 ** 2.0))
-        self.check_constant_output((f ** f) ** g, (3.0 ** 3.0) ** 2.0)
+        self.check_constant_output(f ** (f**g), 3.0 ** (3.0**2.0))
+        self.check_constant_output((f**f) ** g, (3.0**3.0) ** 2.0)
 
-        self.check_constant_output((f ** g) ** (f ** g), 9.0 ** 9.0)
-        self.check_constant_output((f ** g) ** (g ** f), 9.0 ** 8.0)
-        self.check_constant_output((g ** f) ** (f ** g), 8.0 ** 9.0)
-        self.check_constant_output((g ** f) ** (g ** f), 8.0 ** 8.0)
+        self.check_constant_output((f**g) ** (f**g), 9.0**9.0)
+        self.check_constant_output((f**g) ** (g**f), 9.0**8.0)
+        self.check_constant_output((g**f) ** (f**g), 8.0**9.0)
+        self.check_constant_output((g**f) ** (g**f), 8.0**8.0)
 
     def test_mod(self):
         f, g = self.f, self.g
@@ -454,17 +429,17 @@ class NumericalExpressionTestCase(TestCase):
 
         fake_raw_data = self.fake_raw_data
         alt_fake_raw_data = {
-            self.f: full((5, 5), .5),
-            self.g: full((5, 5), -.5),
+            self.f: np.full((5, 5), 0.5),
+            self.g: np.full((5, 5), -0.5),
         }
 
         for funcname in NUMEXPR_MATH_FUNCS:
             method = methodcaller(funcname)
-            func = getattr(numpy, funcname)
+            func = getattr(np, funcname)
 
             # These methods have domains in [0, 1], so we need alternate inputs
             # that are in the domain.
-            if funcname in ('arcsin', 'arccos', 'arctanh'):
+            if funcname in ("arcsin", "arccos", "arctanh"):
                 self.fake_raw_data = alt_fake_raw_data
             else:
                 self.fake_raw_data = fake_raw_data
@@ -478,8 +453,8 @@ class NumericalExpressionTestCase(TestCase):
             self.check_constant_output(method(f) + 1, func(f_val) + 1)
             self.check_constant_output(1 + method(f), 1 + func(f_val))
 
-            self.check_constant_output(method(f + .25), func(f_val + .25))
-            self.check_constant_output(method(.25 + f), func(.25 + f_val))
+            self.check_constant_output(method(f + 0.25), func(f_val + 0.25))
+            self.check_constant_output(method(0.25 + f), func(0.25 + f_val))
 
             self.check_constant_output(
                 method(f) + method(g),
@@ -493,16 +468,16 @@ class NumericalExpressionTestCase(TestCase):
     def test_comparisons(self):
         f, g, h = self.f, self.g, self.h
         self.fake_raw_data = {
-            f: arange(25, dtype=float).reshape(5, 5),
-            g: arange(25, dtype=float).reshape(5, 5) - eye(5),
-            h: full((5, 5), 5, dtype=float),
+            f: np.arange(25, dtype=float).reshape(5, 5),
+            g: np.arange(25, dtype=float).reshape(5, 5) - np.eye(5),
+            h: np.full((5, 5), 5, dtype=float),
         }
         f_data = self.fake_raw_data[f]
         g_data = self.fake_raw_data[g]
 
         cases = [
             # Sanity Check with hand-computed values.
-            (f, g, eye(5), zeros((5, 5))),
+            (f, g, np.eye(5), np.zeros((5, 5))),
             (f, 10, f_data, 10),
             (10, f, 10, f_data),
             (f, f, f_data, f_data),
@@ -512,7 +487,7 @@ class NumericalExpressionTestCase(TestCase):
             (f + 1, g, f_data + 1, g_data),
             (f, g + 1, f_data, g_data + 1),
             (f + 1, g + 1, f_data + 1, g_data + 1),
-            ((f + g) / 2, f ** 2, (f_data + g_data) / 2, f_data ** 2),
+            ((f + g) / 2, f**2, (f_data + g_data) / 2, f_data**2),
         ]
         for op in (gt, ge, lt, le, ne):
             for expr_lhs, expr_rhs, expected_lhs, expected_rhs in cases:
@@ -527,31 +502,33 @@ class NumericalExpressionTestCase(TestCase):
         # Add a non-numexpr filter to ensure that we correctly handle
         # delegation to NumericalExpression.
         custom_filter = NonExprFilter()
-        custom_filter_mask = array(
-            [[0, 1, 0, 1, 0],
-             [0, 0, 1, 0, 0],
-             [1, 0, 0, 0, 0],
-             [0, 0, 1, 1, 0],
-             [0, 0, 0, 1, 0]],
+        custom_filter_mask = np.array(
+            [
+                [0, 1, 0, 1, 0],
+                [0, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0],
+                [0, 0, 1, 1, 0],
+                [0, 0, 0, 1, 0],
+            ],
             dtype=bool,
         )
 
         self.fake_raw_data = {
-            f: arange(25, dtype=float).reshape(5, 5),
-            g: arange(25, dtype=float).reshape(5, 5) - eye(5),
-            h: full((5, 5), 5, dtype=float),
+            f: np.arange(25, dtype=float).reshape(5, 5),
+            g: np.arange(25, dtype=float).reshape(5, 5) - np.eye(5),
+            h: np.full((5, 5), 5, dtype=float),
             custom_filter: custom_filter_mask,
         }
 
         # Should be True on the diagonal.
-        eye_filter = (f > g)
+        eye_filter = f > g
 
         # Should be True in the first row only.
         first_row_filter = f < h
 
-        eye_mask = eye(5, dtype=bool)
+        eye_mask = np.eye(5, dtype=bool)
 
-        first_row_mask = zeros((5, 5), dtype=bool)
+        first_row_mask = np.zeros((5, 5), dtype=bool)
         first_row_mask[0] = 1
 
         self.check_output(eye_filter, eye_mask)

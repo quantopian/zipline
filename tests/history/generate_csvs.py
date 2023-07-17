@@ -17,18 +17,15 @@ import random
 import numpy as np
 import pandas as pd
 
-from zipline.data.us_equity_minutes import BcolzMinuteBarWriter
-from zipline.utils.calendars import get_calendar
+from zipline.data import BcolzMinuteBarWriter
+from zipline.utils.calendar_utils import get_calendar
 
 
-def generate_daily_test_data(first_day,
-                             last_day,
-                             starting_open,
-                             starting_volume,
-                             multipliers_list,
-                             path):
+def generate_daily_test_data(
+    first_day, last_day, starting_open, starting_volume, multipliers_list, path
+):
 
-    cal = get_calendar('XNYS')
+    cal = get_calendar("XNYS")
     days = cal.days_in_range(first_day, last_day)
 
     days_count = len(days)
@@ -46,7 +43,7 @@ def generate_daily_test_data(first_day,
 
         o[idx] = new_open
         h[idx] = new_open + round((random.random() * 10000), 2)
-        l[idx] = new_open - round((random.random() * 10000),  2)
+        l[idx] = new_open - round((random.random() * 10000), 2)
         c[idx] = (h[idx] + l[idx]) / 2
         v[idx] = int(last_volume + (random.randrange(-10, 10) * 1e4))
 
@@ -70,29 +67,18 @@ def generate_daily_test_data(first_day,
 
             range_start = range_end
 
-    df = pd.DataFrame({
-        "open": o,
-        "high": h,
-        "low": l,
-        "close": c,
-        "volume": v
-    }, columns=[
-        "open",
-        "high",
-        "low",
-        "close",
-        "volume"
-    ], index=days)
+    df = pd.DataFrame(
+        {"open": o, "high": h, "low": l, "close": c, "volume": v},
+        columns=["open", "high", "low", "close", "volume"],
+        index=days,
+    )
 
     df.to_csv(path, index_label="day")
 
 
-def generate_minute_test_data(first_day,
-                              last_day,
-                              starting_open,
-                              starting_volume,
-                              multipliers_list,
-                              path):
+def generate_minute_test_data(
+    first_day, last_day, starting_open, starting_volume, multipliers_list, path
+):
     """
     Utility method to generate fake minute-level CSV data.
     :param first_day: first trading day
@@ -105,14 +91,11 @@ def generate_minute_test_data(first_day,
     :return: None
     """
 
-    full_minutes = BcolzMinuteBarWriter.full_minutes_for_days(
-        first_day, last_day)
+    full_minutes = BcolzMinuteBarWriter.full_minutes_for_days(first_day, last_day)
     minutes_count = len(full_minutes)
 
-    cal = get_calendar('XNYS')
-    minutes = cal.minutes_for_sessions_in_range(
-        first_day, last_day
-    )
+    cal = get_calendar("XNYS")
+    minutes = cal.sessions_minutes(first_day, last_day)
 
     o = np.zeros(minutes_count, dtype=np.uint32)
     h = np.zeros(minutes_count, dtype=np.uint32)
@@ -131,7 +114,7 @@ def generate_minute_test_data(first_day,
 
         o[idx] = new_open
         h[idx] = new_open + round((random.random() * 10000), 2)
-        l[idx] = new_open - round((random.random() * 10000),  2)
+        l[idx] = new_open - round((random.random() * 10000), 2)
         c[idx] = (h[idx] + l[idx]) / 2
         v[idx] = int(last_volume + (random.randrange(-10, 10) * 1e4))
 
@@ -152,18 +135,10 @@ def generate_minute_test_data(first_day,
             c[start_idx:end_idx] /= multiplier_info[1]
             v[start_idx:end_idx] *= multiplier_info[1]
 
-    df = pd.DataFrame({
-        "open": o,
-        "high": h,
-        "low": l,
-        "close": c,
-        "volume": v
-    }, columns=[
-        "open",
-        "high",
-        "low",
-        "close",
-        "volume"
-    ], index=minutes)
+    df = pd.DataFrame(
+        {"open": o, "high": h, "low": l, "close": c, "volume": v},
+        columns=["open", "high", "low", "close", "volume"],
+        index=minutes,
+    )
 
     df.to_csv(path, index_label="minute")

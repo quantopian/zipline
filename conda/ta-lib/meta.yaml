@@ -1,20 +1,32 @@
+{% set name = "TA-Lib" %}
+{% set version = "0.4.25" %}
+
 package:
-  name: ta-lib
-  version: !!str 0.4.9
+  name: {{ name|lower }}
+  version: {{ version }}
 
 source:
-  fn: TA_Lib-0.4.9.tar.gz
-  url: https://github.com/mrjbq7/ta-lib/archive/TA_Lib-0.4.9.tar.gz
-  md5: f2f6ec8b7d552ff96d53d56ffb7b4e97
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  md5: 948001ca61672b4eeef12a8cc9e8c59b
+
+build:
+  number: 0
+  skip: true # [py<37 or not x86_64]
+  include_recipe: False
 
 requirements:
   build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
     - python
+    - setuptools_scm
     - cython
-    - numpy x.x
+    - numpy
+
   run:
     - python
-    - numpy x.x
+    - numpy
 
 test:
   imports:
@@ -22,4 +34,4 @@ test:
 
 about:
   home: http://github.com/mrjbq7/ta-lib
-  license: BSD License
+  license: BSD

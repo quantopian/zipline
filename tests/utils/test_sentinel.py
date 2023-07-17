@@ -1,61 +1,61 @@
 from copy import copy, deepcopy
 from pickle import loads, dumps
 import sys
-from unittest import TestCase
 from weakref import ref
-
 from zipline.utils.sentinel import sentinel
+import pytest
 
 
-class SentinelTestCase(TestCase):
-    def tearDown(self):
-        sentinel._cache.clear()  # don't pollute cache.
+@pytest.fixture(scope="function")
+def clear_cache():
+    yield
+    sentinel._cache.clear()
 
+
+@pytest.mark.usefixtures("clear_cache")
+class TestSentinel:
     def test_name(self):
-        self.assertEqual(sentinel('a').__name__, 'a')
+        assert sentinel("a").__name__ == "a"
 
     def test_doc(self):
-        self.assertEqual(sentinel('a', 'b').__doc__, 'b')
+        assert sentinel("a", "b").__doc__ == "b"
 
     def test_doc_differentiates(self):
         # the following assignment must be exactly one source line above
         # the assignment of ``a``.
         line = sys._getframe().f_lineno
-        a = sentinel('sentinel-name', 'original-doc')
-        with self.assertRaises(ValueError) as e:
-            sentinel(a.__name__, 'new-doc')
+        a = sentinel("sentinel-name", "original-doc")
+        with pytest.raises(ValueError) as excinfo:
+            sentinel(a.__name__, "new-doc")
 
-        msg = str(e.exception)
-        self.assertIn(a.__name__, msg)
-        self.assertIn(a.__doc__, msg)
+        msg = str(excinfo.value)
+        assert a.__name__ in msg
+        assert a.__doc__ in msg
         # strip the 'c' in case ``__file__`` is a .pyc and we are running this
         # test twice in the same process...
-        self.assertIn('%s:%s' % (__file__.rstrip('c'), line + 1), msg)
+        assert "%s:%s" % (__file__.rstrip("c"), line + 1) in msg
 
     def test_memo(self):
-        self.assertIs(sentinel('a'), sentinel('a'))
+        assert sentinel("a") is sentinel("a")
 
     def test_copy(self):
-        a = sentinel('a')
-        self.assertIs(copy(a), a)
+        a = sentinel("a")
+        assert copy(a) is a
 
     def test_deepcopy(self):
-        a = sentinel('a')
-        self.assertIs(deepcopy(a), a)
+        a = sentinel("a")
+        assert deepcopy(a) is a
 
     def test_repr(self):
-        self.assertEqual(
-            repr(sentinel('a')),
-            "sentinel('a')",
-        )
+        assert repr(sentinel("a")) == "sentinel('a')"
 
     def test_new(self):
-        with self.assertRaises(TypeError):
-            type(sentinel('a'))()
+        with pytest.raises(TypeError):
+            type(sentinel("a"))()
 
     def test_pickle_roundtrip(self):
-        a = sentinel('a')
-        self.assertIs(loads(dumps(a)), a)
+        a = sentinel("a")
+        assert loads(dumps(a)) is a
 
     def test_weakreferencable(self):
-        ref(sentinel('a'))
+        ref(sentinel("a"))

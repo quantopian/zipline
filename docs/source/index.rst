@@ -1,6 +1,6 @@
 .. title:: Zipline
 
-.. include:: ../../README.rst
+.. mdinclude:: ../../README.md
 
 .. toctree::
    :maxdepth: 1
@@ -11,6 +11,5 @@
    trading-calendars
    risk-and-perf-metrics
    development-guidelines
-   appendix
-   release-process
+   api-reference
    releases

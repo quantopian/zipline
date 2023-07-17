@@ -1,6 +1,8 @@
-=============
-Release Notes
-=============
+========
+Releases
+========
+
+.. include:: whatsnew/2.0.0rc.txt
 
 .. include:: whatsnew/1.4.1.txt
 

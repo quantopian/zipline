@@ -15,16 +15,15 @@
 from unittest import TestCase
 import pandas as pd
 
-from .test_events import StatefulRulesTests, StatelessRulesTests, \
-    minutes_for_days
+from .test_events import StatefulRulesTests, StatelessRulesTests, minutes_for_days
 from zipline.utils.events import AfterOpen
 
 
 class TestStatelessRulesCMES(StatelessRulesTests, TestCase):
     CALENDAR_STRING = "CMES"
 
-    HALF_SESSION = pd.Timestamp("2014-07-04", tz='UTC')
-    FULL_SESSION = pd.Timestamp("2014-09-24", tz='UTC')
+    HALF_SESSION = pd.Timestamp("2014-07-04", tz="UTC")
+    FULL_SESSION = pd.Timestamp("2014-09-24", tz="UTC")
 
     def test_far_after_open(self):
         minute_groups = minutes_for_days(self.cal, ordered_days=True)
@@ -34,9 +33,9 @@ class TestStatelessRulesCMES(StatelessRulesTests, TestCase):
         for session_minutes in minute_groups:
             for i, minute in enumerate(session_minutes):
                 if i != 564:
-                    self.assertFalse(after_open.should_trigger(minute))
+                    assert not after_open.should_trigger(minute)
                 else:
-                    self.assertTrue(after_open.should_trigger(minute))
+                    assert after_open.should_trigger(minute)
 
 
 class TestStatefulRulesCMES(StatefulRulesTests, TestCase):

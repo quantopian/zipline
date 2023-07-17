@@ -1,6 +1,0 @@
-MANIFEST.in
-**/*pyc
-.eggs
-dist
-build
-*.egg-info

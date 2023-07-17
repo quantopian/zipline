@@ -1,0 +1,84 @@
+name: CI Tests
+
+on:
+  workflow_dispatch:
+  push:
+      branches:
+      - main
+  schedule:
+    - cron: "0 9 * * 6"
+
+jobs:
+  black-format:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable
+        with:
+          options: "--check --diff"
+          src: "./src ./tests"
+          version: "~=22.0"
+
+  flake8-lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: flake8 Lint
+        uses: py-actions/flake8@v2
+
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+
+    steps:
+      - name: Checkout Zipline
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install TA-Lib Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo ./tools/install_talib.sh
+
+      - name: Install TA-Lib macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew install ta-lib
+
+      - name: Developer Command Prompt for Microsoft Visual C++
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install TA-Lib Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          ./tools/install_talib.bat
+
+      - name: Install Zipline
+        run: |
+          python -VV
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install tox tox-gh-actions
+          python -m pip install .[test]
+
+      - name: Unittests with tox & pytest
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 90
+          max_attempts: 3
+          retry_on: error
+          new_command_on_retry: python -m pip install tox tox-gh-actions .[test]
+          command: tox

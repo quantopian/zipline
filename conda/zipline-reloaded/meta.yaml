@@ -1,0 +1,82 @@
+{% set name = "zipline-reloaded" %}
+{% set version = "2.2.0" %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  md5: 922ab8c5edeaae4a50523e5e40e1ee30
+
+build:
+  number: 0
+  skip: true # [py<37 or not x86_64]
+  entry_points:
+    - zipline = zipline.__main__:main
+  script: {{ PYTHON }} -m pip install . -vv
+  include_recipe: False
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cython                                 # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]      -
+    - {{ compiler('c') }}
+  host:
+    - python
+    - cython
+    - numpy
+    - pip
+  run:
+    - alembic >=0.7.7
+    - bcolz-zipline >=1.2.3
+    - bottleneck >=1.0.0
+    - click >=4.0.0
+    - empyrical-reloaded >=0.5.8
+    - greenlet
+    - h5py >=2.7.1
+    - intervaltree >=2.1.0
+    - iso3166 >=0.9
+    - iso4217 >=1.6.20180829
+    - logbook >=1.0
+    - lru-dict >=1.1.4
+    - multipledispatch >=0.6.0
+    - networkx >=2.0
+    - numexpr >=2.6.1
+    - pandas
+    - patsy >=0.4.0
+    - pytables >=3.4.3
+    - python >=3.7
+    - python-dateutil >=2.4.2
+    - python-interface >=1.5.3
+    - pytz >=2018.5
+    - requests >=2.9.1
+    - scipy >=0.17.1
+    - six >=1.10.0
+    - sqlalchemy >=1.0
+    - statsmodels >=0.6.1
+    - ta-lib >=0.4.09
+    - toolz >=0.8.2
+    - trading-calendars >=1.6.1
+    - exchange-calendars <=3.3
+    - {{ pin_compatible('numpy') }}
+
+test:
+  commands:
+    - pip check
+    - python -c "import zipline; print(zipline.__version__)"
+    - conda update --all -y
+  requires:
+    - pip
+
+about:
+  home: https://zipline.ml4trading.io
+  summary: A backtester for trading algorithms
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - stefan-jansen

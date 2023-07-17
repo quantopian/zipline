@@ -1,7 +1,7 @@
 .. _data-bundles:
 
-Data Bundles
-------------
+Data
+----
 
 A data bundle is a collection of pricing data, adjustment data, and an asset
 database. Bundles allow us to preload all of the data we will need to run
@@ -12,8 +12,8 @@ backtests and store the data for future runs.
 Discovering Available Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Zipline comes with a few bundles by default as well as the ability to register
-new bundles. To see which bundles we have available, we may run the
+Zipline comes with a default bundle as well as the ability to register
+new bundles. To see which bundles we may be available, we may run the
 ``bundles`` command, for example:
 
 .. code-block:: bash
@@ -22,20 +22,23 @@ new bundles. To see which bundles we have available, we may run the
    my-custom-bundle 2016-05-05 20:35:19.809398
    my-custom-bundle 2016-05-05 20:34:53.654082
    my-custom-bundle 2016-05-05 20:34:48.401767
-   quandl <no ingestions>
-   quantopian-quandl 2016-05-05 20:06:40.894956
+   quandl 2016-05-05 20:06:40.894956
 
 The output here shows that there are 3 bundles available:
 
 - ``my-custom-bundle`` (added by the user)
-- ``quandl`` (provided by zipline, though deprecated)
-- ``quantopian-quandl`` (provided by zipline, the default bundle)
+- ``quandl`` (provided by Zipline, the default bundle)
 
 The dates and times next to the name show the times when the data for this
 bundle was ingested. We have run three different ingestions for
 ``my-custom-bundle``. We have never ingested any data for the ``quandl`` bundle
-so it just shows ``<no ingestions>`` instead. Finally, there is only one
-ingestion for ``quantopian-quandl``.
+so it just shows ``<no ingestions>`` instead.
+
+**Note**: Quantopian used to provide a re-packaged version of the ``quandl`` bundle as ``quantopian-quandl``
+that is still available in April 2021. While it ingests much faster, it does not have the country code that
+the library has since come to require and which the current Zipline version inserts for the ``quandl`` bundle.
+If you want to use ``quantopian-quandl`` instead, use `this workaround <https://github.com/quantopian/zipline/issues/2517>`_
+to manually update the database.
 
 .. _ingesting-data:
 
@@ -43,7 +46,7 @@ Ingesting Data
 ~~~~~~~~~~~~~~
 
 The first step to using a data bundle is to ingest the data.
-The ingestion process will invoke some custom bundle command and then write the data to a standard location that zipline can find.
+The ingestion process will invoke some custom bundle command and then write the data to a standard location that Zipline can find.
 By default the location where ingested data will be written is ``$ZIPLINE_ROOT/data/<bundle>`` where by default ``ZIPLINE_ROOT=~/.zipline``.
 The ingestion step may take some time as it could involve downloading and processing a lot of data.
 To ingest a bundle, run:
@@ -53,7 +56,7 @@ To ingest a bundle, run:
    $ zipline ingest [-b <bundle>]
 
 
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quantopian-quandl``.
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to ``quandl``.
 
 Old Data
 ~~~~~~~~
@@ -117,35 +120,37 @@ Default Data Bundles
 Quandl WIKI Bundle
 ``````````````````
 
-By default zipline comes with the ``quantopian-quandl`` data bundle which uses quandl's `WIKI dataset <https://www.quandl.com/data/WIKI>`_.
-The quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
-Quantopian has ingested the data from quandl and rebundled it to make ingestion much faster.
-To ingest the ``quantopian-quandl`` data bundle, run either of the following commands:
+By default Zipline comes with the ``quandl`` data bundle which uses
+Quandl's `WIKI dataset <https://www.quandl.com/data/WIKI>`_.
+The Quandl data bundle includes daily pricing data, splits, cash dividends, and asset metadata.
+To ingest the ``quandl`` data bundle, run either of the following commands:
 
 .. code-block:: bash
 
-   $ zipline ingest -b quantopian-quandl
+   $ zipline ingest -b quandl
    $ zipline ingest
 
-Either command should only take a few seconds to download the data.
+Either command should only take a few minutes to download and process the data.
 
 .. note::
 
-   Quandl has discontinued this dataset.
-   The dataset is no longer updating, but is reasonable for trying out Zipline without setting up your own dataset.
+   Quandl has discontinued this dataset early 2018 and it no longer updates. Regardless, it is a useful starting point to try out Zipline without setting up your own dataset.
+
+
+.. _new_bundle:
 
 Writing a New Bundle
 ~~~~~~~~~~~~~~~~~~~~
 
 Data bundles exist to make it easy to use different data sources with
-zipline. To add a new bundle, one must implement an ``ingest`` function.
+Zipline. To add a new bundle, one must implement an ``ingest`` function.
 
 The ``ingest`` function is responsible for loading the data into memory and
-passing it to a set of writer objects provided by zipline to convert the data to
-zipline's internal format. The ingest function may work by downloading data from
+passing it to a set of writer objects provided by Zipline to convert the data to
+Zipline's internal format. The ingest function may work by downloading data from
 a remote location like the ``quandl`` bundle or it may just
 load files that are already on the machine. The function is provided with
-writers that will write the data to the correct location transactionally. If an
+writers that will write the data to the correct location. If an
 ingestion fails part way through the bundle will not be written in an incomplete
 state.
 
@@ -189,7 +194,7 @@ docs for write.
 
 ``minute_bar_writer`` is an instance of
 :class:`~zipline.data.minute_bars.BcolzMinuteBarWriter`. This writer is used to
-convert data to zipline's internal bcolz format to later be read by a
+convert data to Zipline's internal bcolz format to later be read by a
 :class:`~zipline.data.minute_bars.BcolzMinuteBarReader`. If minute data is
 provided, users should call
 :meth:`~zipline.data.minute_bars.BcolzMinuteBarWriter.write` with an iterable of
@@ -212,7 +217,7 @@ to signal that there is no minutely data.
 
 ``daily_bar_writer`` is an instance of
 :class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarWriter`. This writer is
-used to convert data into zipline's internal bcolz format to later be read by a
+used to convert data into Zipline's internal bcolz format to later be read by a
 :class:`~zipline.data.bcolz_daily_bars.BcolzDailyBarReader`. If daily data is
 provided, users should call
 :meth:`~zipline.data.minute_bars.BcolzDailyBarWriter.write` with an iterable of
@@ -363,6 +368,13 @@ To finally ingest our data, we can run:
 	 $ CSVDIR=/path/to/your/csvs zipline ingest -b custom-csvdir-bundle
 
 
-If you would like to use equities that are not in the NYSE calendar, or the existing zipline calendars,
+If you would like to use equities that are not in the NYSE calendar, or the existing Zipline calendars,
 you can look at the ``Trading Calendar Tutorial`` to build a custom trading calendar that you can then pass
 the name of to ``register()``.
+
+Practical Examples
+~~~~~~~~~~~~~~~~~~
+
+See examples for `Algoseek <https://www.algoseek.com/>`_ `minute data <https://github.com/stefan-jansen/machine-learning-for-trading/tree/master/08_ml4t_workflow/04_ml4t_workflow_with_zipline/01_custom_bundles>`_
+and `Japanese equities <https://github.com/stefan-jansen/machine-learning-for-trading/tree/master/11_decision_trees_random_forests/00_custom_bundle>`_
+at daily frequency from the book `Machine Learning for Trading <https://www.amazon.com/Machine-Learning-Algorithmic-Trading-alternative/dp/1839217715?pf_rd_r=GZH2XZ35GB3BET09PCCA&pf_rd_p=c5b6893a-24f2-4a59-9d4b-aff5065c90ec&pd_rd_r=91a679c7-f069-4a6e-bdbb-a2b3f548f0c8&pd_rd_w=2B0Q0&pd_rd_wg=GMY5S&ref_=pd_gw_ci_mcx_mr_hp_d>`_.

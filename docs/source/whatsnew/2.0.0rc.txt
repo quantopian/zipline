@@ -1,0 +1,53 @@
+Release 2.0.0rc
+-----------
+
+:Release: 2.0.0rc1
+:Date: April 5, 2021
+
+Highlights
+~~~~~~~~~~
+
+This release updates Zipline to be compatible with Python >= 3.7 as well as the current versions of relevant PyData libraries like Pandas, scikit-learn, and others.
+
+`Conda packages <https://anaconda.org/ml4t/repo>`_ for `Zipline <https://anaconda.org/ml4t/zipline-reloaded>`_ and key dependencies `bcolz <https://anaconda.org/ml4t/bcolz-zipline>`_ and `TA-Lib <https://anaconda.org/ml4t/ta-lib>`_ are now available for Python 3.7-3.9 on the 'ml4t' Anaconda channel. Binary wheels are available on `PyPi <https://pypi.org/project/zipline-reloaded/>`_ for Linux ( Python 3.7-3.9) and MacOSx (3.7 and 3.8).
+
+As part of the update, the ``BlazeLoader`` functionality was removed. It was built on the `Blaze Ecosystem <https://blaze.pydata.org/>`_. Unfortunately, the three relevant projects (`Blaze <https://blaze.readthedocs.io/en/latest/index.html>`_, `Odo <https://odo.readthedocs.io/en/latest/>`_ and `datashape <https://datashape.readthedocs.io/en/latest/>`_ have received very limited support over the last several years.
+
+Other updates include:
+
+- A `new release <https://github.com/stefan-jansen/bcolz-zipline>`_ for `Bcolz <https://github.com/Blosc/bcolz>`_ which has been marked unmaintained since September 2020 by the `author <https://github.com/Blosc>`_. The new release updates the underlying `c-blosc <https://github.com/Blosc/c-blosc>`_ library from version 1.14 to the latest 1.21.0. There are also conda packages for Bcolz (see links above).
+- `Networkx <https://networkx.org/>`_ now uses the better performing version 2.0.
+- Conda packages for TA-Lib 0.4.19.
+
+This new release also makes it easier to load custom data sources into a Pipeline (such as the predictions of an ML model) when backtesting. See the relevant examples in the `Github repo <https://github.com/stefan-jansen/machine-learning-for-trading>`_ of the book `Machine Learning for Trading <https://www.amazon.com/Machine-Learning-Algorithmic-Trading-alternative/dp/1839217715/ref=tmm_pap_swatch_0?_encoding=UTF8&qid=1617658040&sr=8-1-spons>`_, such as `these ones <https://github.com/stefan-jansen/machine-learning-for-trading/tree/master/08_ml4t_workflow/04_ml4t_workflow_with_zipline>`_.
+
+Enhancements
+~~~~~~~~~~~~
+
+- custom_loader() for custom Pipeline data
+- compatibility with the latest versions of Pandas, scikit-learn, and other relevant `PyData <https://pydata.org/>`_ libraries.
+
+Bug Fixes
+~~~~~~~~~
+
+- Numerous tests updates to accommodate recent Python and dependency versions.
+
+Performance
+~~~~~~~~~~~
+
+- Latest blosc library may improve compression and I/O performance
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed Python 2 support
+
+Build
+~~~~~
+
+- All builds consolidated on GitHub Actions CI
+
+Documentation
+~~~~~~~~~~~~~
+
+- Expanded with additional information on Pipeline and related DataLoaders

@@ -25,9 +25,9 @@ from zipline.testing.core import parameter_space
 import zipline.testing.fixtures as zf
 
 
-class TestBeforeTradingStartTiming(zf.WithMakeAlgo,
-                                   zf.WithTradingSessions,
-                                   zf.ZiplineTestCase):
+class TestBeforeTradingStartTiming(
+    zf.WithMakeAlgo, zf.WithTradingSessions, zf.ZiplineTestCase
+):
 
     ASSET_FINDER_EQUITY_SIDS = (1,)
     BENCHMARK_SID = 1
@@ -39,19 +39,18 @@ class TestBeforeTradingStartTiming(zf.WithMakeAlgo,
     # 13 14 15 16 17 18 19
     # 20 21 22 23 24 25 26
     # 27 28 29 30 31
-    START_DATE = pd.Timestamp('2016-03-10', tz='UTC')
-    END_DATE = pd.Timestamp('2016-03-15', tz='UTC')
+    START_DATE = pd.Timestamp("2016-03-10")
+    END_DATE = pd.Timestamp("2016-03-15")
 
     @parameter_space(
         num_sessions=[1, 2, 3],
-        data_frequency=['daily', 'minute'],
-        emission_rate=['daily', 'minute'],
+        data_frequency=["daily", "minute"],
+        emission_rate=["daily", "minute"],
         __fail_fast=True,
     )
-    def test_before_trading_start_runs_at_8_45(self,
-                                               num_sessions,
-                                               data_frequency,
-                                               emission_rate):
+    def test_before_trading_start_runs_at_8_45(
+        self, num_sessions, data_frequency, emission_rate
+    ):
         bts_times = []
 
         def initialize(algo, data):
@@ -75,16 +74,16 @@ class TestBeforeTradingStartTiming(zf.WithMakeAlgo,
             sim_params=sim_params,
         )
 
-        self.assertEqual(len(bts_times), num_sessions)
+        assert len(bts_times) == num_sessions
         expected_times = [
-            pd.Timestamp('2016-03-11 8:45', tz='US/Eastern').tz_convert('UTC'),
-            pd.Timestamp('2016-03-14 8:45', tz='US/Eastern').tz_convert('UTC'),
-            pd.Timestamp('2016-03-15 8:45', tz='US/Eastern').tz_convert('UTC'),
+            pd.Timestamp("2016-03-11 8:45", tz="US/Eastern").tz_convert("UTC"),
+            pd.Timestamp("2016-03-14 8:45", tz="US/Eastern").tz_convert("UTC"),
+            pd.Timestamp("2016-03-15 8:45", tz="US/Eastern").tz_convert("UTC"),
         ]
-        self.assertEqual(bts_times, expected_times[:num_sessions])
+        assert bts_times == expected_times[:num_sessions]
 
 
-class BeforeTradingStartsOnlyClock(object):
+class BeforeTradingStartsOnlyClock:
     def __init__(self, bts_minute):
         self.bts_minute = bts_minute
 
@@ -94,7 +93,7 @@ class BeforeTradingStartsOnlyClock(object):
 
 class TestBeforeTradingStartSimulationDt(zf.WithMakeAlgo, zf.ZiplineTestCase):
 
-    SIM_PARAMS_DATA_FREQUENCY = 'daily'
+    SIM_PARAMS_DATA_FREQUENCY = "daily"
     DATA_PORTAL_USE_MINUTE_DATA = False
 
     def test_bts_simulation_dt(self):
@@ -102,12 +101,12 @@ class TestBeforeTradingStartSimulationDt(zf.WithMakeAlgo, zf.ZiplineTestCase):
 def initialize(context):
     pass
 """
-        algo = self.make_algo(script=code, metrics=metrics.load('none'))
+        algo = self.make_algo(script=code, metrics=metrics.load("none"))
         algo.metrics_tracker = algo._create_metrics_tracker()
         benchmark_source = algo._create_benchmark_source()
         algo.metrics_tracker.handle_start_of_simulation(benchmark_source)
 
-        dt = pd.Timestamp("2016-08-04 9:13:14", tz='US/Eastern')
+        dt = pd.Timestamp("2016-08-04 9:13:14", tz="US/Eastern")
         algo_simulator = AlgorithmSimulator(
             algo,
             self.sim_params,
@@ -115,7 +114,6 @@ def initialize(context):
             BeforeTradingStartsOnlyClock(dt),
             benchmark_source,
             NoRestrictions(),
-            None
         )
 
         # run through the algo's simulation
@@ -123,4 +121,4 @@ def initialize(context):
 
         # since the clock only ever emitted a single before_trading_start
         # event, we can check that the simulation_dt was properly set
-        self.assertEqual(dt, algo_simulator.simulation_dt)
+        assert dt == algo_simulator.simulation_dt

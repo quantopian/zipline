@@ -1,0 +1,116 @@
+name: PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_to_pypi:
+        description: 'Publish to PyPI?'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  build_wheels:
+    name: Wheels for ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest , windows-latest, macos-latest ]
+        python: [ "cp38", "cp39", "cp310", "cp311" ]
+        arch: [ auto64 ]
+
+    steps:
+      - name: Checkout zipline
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+#      - name: Setup Python
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+
+      - name: Set Xcode version
+        uses: maxim-lobanov/setup-xcode@v1
+        if: ${{ matrix.os == 'macos-latest' }}
+        with:
+          xcode-version: latest-stable
+
+      - name: Wheels macOS / Linux
+        if: runner.os != 'Windows'
+        uses: pypa/cibuildwheel@v2.14.0
+        env:
+          CIBW_BEFORE_ALL_LINUX: ./tools/install_talib.sh
+          CIBW_BEFORE_ALL_MACOS: brew install ta-lib
+          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          CIBW_ARCHS_MACOS: x86_64 arm64
+          CIBW_BUILD: "${{ matrix.python }}-*"
+          CIBW_SKIP: "*-musllinux_*"
+          CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.15
+
+      - name: Install MSVC amd64
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Wheels Windows
+        if: runner.os == 'Windows'
+        uses: pypa/cibuildwheel@v2.14.0
+        env:
+          CIBW_BUILD: "${{ matrix.python }}-win_amd64"
+          CIBW_BEFORE_TEST_WINDOWS: >
+            call "c:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 &&
+            call ./tools/install_talib.bat
+
+      - name: Store artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.11'
+
+      - name: Build sdist
+        run: |
+          pip install -U pip setuptools build
+          python -m build --sdist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [ build_wheels, build_sdist ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
+      - name: publish to testpypi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: ${{ inputs.publish_to_pypi == false }}
+        with:
+          user: __token__
+          password: ${{ secrets.TESTPYPI_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+
+      - name: publish to pypi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: ${{ inputs.publish_to_pypi == true }}
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}

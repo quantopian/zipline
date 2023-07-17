@@ -32,12 +32,12 @@ class TestParameterSpace(TestCase):
     y_args = [3, 4]
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         cls.xy_invocations = []
         cls.yx_invocations = []
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         # This is the only actual test here.
         assert cls.xy_invocations == list(product(cls.x_args, cls.y_args))
         assert cls.yx_invocations == list(product(cls.y_args, cls.x_args))
@@ -59,24 +59,15 @@ class TestParameterSpace(TestCase):
         pass
 
 
-class TestMakeBooleanArray(TestCase):
-
+class TestMakeBooleanArray:
     def test_make_alternating_boolean_array(self):
         check_arrays(
             make_alternating_boolean_array((3, 3)),
-            array(
-                [[True,  False,  True],
-                 [False,  True, False],
-                 [True,  False,  True]]
-            ),
+            array([[True, False, True], [False, True, False], [True, False, True]]),
         )
         check_arrays(
             make_alternating_boolean_array((3, 3), first_value=False),
-            array(
-                [[False,  True, False],
-                 [True,  False,  True],
-                 [False,  True, False]]
-            ),
+            array([[False, True, False], [True, False, True], [False, True, False]]),
         )
         check_arrays(
             make_alternating_boolean_array((1, 3)),
@@ -94,19 +85,11 @@ class TestMakeBooleanArray(TestCase):
     def test_make_cascading_boolean_array(self):
         check_arrays(
             make_cascading_boolean_array((3, 3)),
-            array(
-                [[True,   True, False],
-                 [True,  False, False],
-                 [False, False, False]]
-            ),
+            array([[True, True, False], [True, False, False], [False, False, False]]),
         )
         check_arrays(
             make_cascading_boolean_array((3, 3), first_value=False),
-            array(
-                [[False, False, True],
-                 [False,  True, True],
-                 [True,   True, True]]
-            ),
+            array([[False, False, True], [False, True, True], [True, True, True]]),
         )
         check_arrays(
             make_cascading_boolean_array((1, 3)),
@@ -122,19 +105,17 @@ class TestMakeBooleanArray(TestCase):
         )
 
 
-class TestTestingSlippage(WithConstantEquityMinuteBarData,
-                          WithDataPortal,
-                          ZiplineTestCase):
-    ASSET_FINDER_EQUITY_SYMBOLS = ('A',)
+class TestTestingSlippage(
+    WithConstantEquityMinuteBarData, WithDataPortal, ZiplineTestCase
+):
+    ASSET_FINDER_EQUITY_SYMBOLS = ("A",)
     ASSET_FINDER_EQUITY_SIDS = (1,)
 
     @classmethod
     def init_class_fixtures(cls):
         super(TestTestingSlippage, cls).init_class_fixtures()
         cls.asset = cls.asset_finder.retrieve_asset(1)
-        cls.minute, _ = (
-            cls.trading_calendar.open_and_close_for_session(cls.START_DATE)
-        )
+        cls.minute = cls.trading_calendar.session_first_minute(cls.START_DATE)
 
     def init_instance_fixtures(self):
         super(TestTestingSlippage, self).init_instance_fixtures()
@@ -143,7 +124,7 @@ class TestTestingSlippage(WithConstantEquityMinuteBarData,
             lambda: self.minute,
             "minute",
             self.trading_calendar,
-            NoRestrictions()
+            NoRestrictions(),
         )
 
     def make_order(self, amount):
@@ -160,8 +141,8 @@ class TestTestingSlippage(WithConstantEquityMinuteBarData,
 
         price, volume = model.process_order(self.bar_data, order)
 
-        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
-        self.assertEqual(volume, filled_per_tick)
+        assert price == self.EQUITY_MINUTE_CONSTANT_CLOSE
+        assert volume == filled_per_tick
 
     def test_fill_all(self):
         filled_per_tick = TestingSlippage.ALL
@@ -172,31 +153,29 @@ class TestTestingSlippage(WithConstantEquityMinuteBarData,
 
         price, volume = model.process_order(self.bar_data, order)
 
-        self.assertEqual(price, self.EQUITY_MINUTE_CONSTANT_CLOSE)
-        self.assertEqual(volume, order_amount)
+        assert price == self.EQUITY_MINUTE_CONSTANT_CLOSE
+        assert volume == order_amount
 
 
-class TestPredicates(ZiplineTestCase):
-
+class TestPredicates:
     def test_wildcard(self):
         for obj in 1, object(), "foo", {}:
-            self.assertEqual(obj, wildcard)
-            self.assertEqual([obj], [wildcard])
-            self.assertEqual({'foo': wildcard}, {'foo': wildcard})
+            assert obj == wildcard
+            assert [obj] == [wildcard]
+            assert {"foo": wildcard} == {"foo": wildcard}
 
     def test_instance_of(self):
-        self.assertEqual(1, instance_of(int))
-        self.assertNotEqual(1, instance_of(str))
-        self.assertEqual(1, instance_of((str, int)))
-        self.assertEqual("foo", instance_of((str, int)))
+        assert 1 == instance_of(int)
+        assert 1 != instance_of(str)
+        assert 1 == instance_of((str, int))
+        assert "foo" == instance_of((str, int))
 
     def test_instance_of_exact(self):
-
-        class Foo(object):
+        class Foo:
             pass
 
         class Bar(Foo):
             pass
 
-        self.assertEqual(Bar(), instance_of(Foo))
-        self.assertNotEqual(Bar(), instance_of(Foo, exact=True))
+        assert Bar() == instance_of(Foo)
+        assert Bar() != instance_of(Foo, exact=True)
