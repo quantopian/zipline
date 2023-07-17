@@ -146,7 +146,7 @@ Documentation <https://conda.io/projects/conda/en/latest/user-guide/install/inde
 
 Once ``conda`` has been set up you can install Zipline from the ``conda-forge`` channel.
 
-See [here](https://github.com/conda-forge/zipline-reloaded-feedstock) for the latest installation details.
+See `here <https://github.com/conda-forge/zipline-reloaded-feedstock>`_ for the latest installation details.
 
 
 .. _managing-conda-environments:
@@ -178,7 +178,7 @@ You can install Zipline by running
 
 .. code-block:: bash
 
-    (env_zipline) $ conda install -c ml4t zipline-reloaded
+    (env_zipline) $ conda install -c conda-forge zipline-reloaded
 
 To deactivate the ``conda`` environment:
 
