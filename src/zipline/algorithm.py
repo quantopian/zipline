@@ -717,28 +717,30 @@ class TradingAlgorithm:
 
         Parameters
         ----------
-        field : {'platform', 'arena', 'data_frequency',
-                 'start', 'end', 'capital_base', 'platform', '*'}
-            The field to query. The options have the following meanings:
-              arena : str
-                  The arena from the simulation parameters. This will normally
-                  be ``'backtest'`` but some systems may use this distinguish
-                  live trading from backtesting.
-              data_frequency : {'daily', 'minute'}
-                  data_frequency tells the algorithm if it is running with
-                  daily data or minute data.
-              start : datetime
-                  The start date for the simulation.
-              end : datetime
-                  The end date for the simulation.
-              capital_base : float
-                  The starting capital for the simulation.
-              platform : str
-                  The platform that the code is running on. By default this
-                  will be the string 'zipline'. This can allow algorithms to
-                  know if they are running on the Quantopian platform instead.
-              * : dict[str -> any]
-                  Returns all of the fields in a dictionary.
+        field : {'platform', 'arena', 'data_frequency', 'start', 'end',
+        'capital_base', 'platform', '*'}
+
+        The field to query. The options have the following meanings:
+
+        - arena : str
+          The arena from the simulation parameters. This will normally
+          be ``'backtest'`` but some systems may use this distinguish
+          live trading from backtesting.
+        - data_frequency : {'daily', 'minute'}
+          data_frequency tells the algorithm if it is running with
+          daily data or minute data.
+        - start : datetime
+          The start date for the simulation.
+        - end : datetime
+          The end date for the simulation.
+        - capital_base : float
+          The starting capital for the simulation.
+        -platform : str
+          The platform that the code is running on. By default, this
+          will be the string 'zipline'. This can allow algorithms to
+          know if they are running on the Quantopian platform instead.
+        - * : dict[str -> any]
+          Returns all the fields in a dictionary.
 
         Returns
         -------

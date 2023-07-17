@@ -110,7 +110,7 @@ docs = [
     'numpydoc >=0.5.0',
     'sphinx-autobuild >=0.6.0',
     'pydata-sphinx-theme',
-    'sphinx-markdown-tables',
+    'sphinx_markdown_tables',
     'm2r2'
 
 ]

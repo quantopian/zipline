@@ -9,7 +9,7 @@ that runs on Windows, macOS, and Linux. In case you are installing `zipline-relo
 encounter [conflict errors](https://github.com/conda/conda/issues/9707), consider using
 [mamba](https://github.com/mamba-org/mamba) instead.
 
-Zipline runs on Python 3.8, 3.9 and 3.10. To install and use different Python versions in parallel as well as create
+Zipline runs on Python 3.8, 3.9, 3.10 and 3.11. To install and use different Python versions in parallel as well as create
 a virtual environment, you may want to use `pyenv <https://github.com/pyenv/pyenv>`_.
 
 Installing with ``pip``
@@ -144,21 +144,10 @@ dependencies.
 For instructions on how to install ``conda``, see the `Conda Installation
 Documentation <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_.
 
-Unfortunately, as of April 2021, ``conda`` produces numerous false
-positive [conflict errors](https://github.com/conda/conda/issues/9707)
-while working to identify dependencies. Should this be your experience, consider
-[mamba](https://github.com/mamba-org/mamba) instead, which works much faster and
-reliably in most cases.
+Once ``conda`` has been set up you can install Zipline from the ``conda-forge`` channel.
 
-Once ``conda`` has been set up you can install Zipline from the ``ml4t`` channel.
-You'll also need to activate the `conda-forge` and `ranaroussi` channels to source various dependencies.
-You can do so either by adding them to your
-`.condarc <https://docs.conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html>`_
-configuration file, or as command line flags:
+See [here](https://github.com/conda-forge/zipline-reloaded-feedstock) for the latest installation details.
 
-.. code-block:: bash
-
-    conda install -c ml4t -c conda-forge -c ranaroussi zipline-reloaded
 
 .. _managing-conda-environments:
 
@@ -174,7 +163,7 @@ Assuming ``conda`` has been set up, you can create a ``conda`` environment:
 
 .. code-block:: bash
 
-    $ conda create -n env_zipline python=3.8
+    $ conda create -n env_zipline python=3.10
 
 
 Now you have set up an isolated environment called ``env_zipline``, a sandbox-like

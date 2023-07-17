@@ -109,14 +109,13 @@ class EarningsEstimatesLoader(implements(PipelineLoader)):
     Parameters
     ----------
     estimates : pd.DataFrame
-        The raw estimates data.
-        ``estimates`` must contain at least 5 columns:
+        The raw estimates data; must contain at least 5 columns:
             sid : int64
                 The asset id associated with each estimate.
 
             event_date : datetime64[ns]
                 The date on which the event that the estimate is for will/has
-                occurred..
+                occurred.
 
             timestamp : datetime64[ns]
                 The datetime where we learned about the estimate.
@@ -1266,7 +1265,6 @@ class SplitAdjustedEstimatesLoader(EarningsEstimatesLoader):
         post_adjustments,
         requested_split_adjusted_columns,
     ):
-
         pre_adjustments_dict = self.collect_pre_split_asof_date_adjustments(
             split_adjusted_asof_idx,
             sid_idx,

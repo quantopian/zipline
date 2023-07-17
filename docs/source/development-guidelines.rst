@@ -22,6 +22,7 @@ First, you'll need to clone Zipline by running:
 Then check out to a new branch where you can make your changes:
 
 .. code-block:: bash
+
    $ cd zipline-reloaded
    $ git checkout -b some-short-descriptive-name
 

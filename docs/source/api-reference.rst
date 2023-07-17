@@ -385,7 +385,7 @@ Data Loaders
 There are several loaders to feed data to a :class:`~zipline.pipeline.Pipeline` that need to implement the interface
 defined by the :class:`~zipline.pipeline.loaders.base.PipelineLoader`.
 
-.. autoclass:: zipline.pipeline.loaders.based.PipelineLoader
+.. autoclass:: zipline.pipeline.loaders.base.PipelineLoader
    :members: __init__, load_adjusted_array, currency_aware
    :member-order: bysource
 

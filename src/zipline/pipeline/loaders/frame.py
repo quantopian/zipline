@@ -80,14 +80,14 @@ class DataFrameLoader(implements(PipelineLoader)):
 
         Returns a dict of the form:
         {
-            # Integer index into `dates` for the date on which we should
-            # apply the list of adjustments.
-            1 : [
-                Float64Multiply(first_row=2, last_row=4, col=3, value=0.5),
-                Float64Overwrite(first_row=3, last_row=5, col=1, value=2.0),
-                ...
-            ],
-            ...
+        # Integer index into `dates` for the date on which we should
+        # apply the list of adjustments.
+        1 : [
+        Float64Multiply(first_row=2, last_row=4, col=3, value=0.5),
+        Float64Overwrite(first_row=3, last_row=5, col=1, value=2.0),
+        ...
+        ],
+        ...
         }
         """
         make_adjustment = partial(make_adjustment_from_labels, dates, assets)

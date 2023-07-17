@@ -126,7 +126,7 @@ class SimulationBlotter(Blotter):
         Limit order:     order(asset, amount, style=LimitOrder(limit_price))
         Stop order:      order(asset, amount, style=StopOrder(stop_price))
         StopLimit order: order(asset, amount, style=StopLimitOrder(limit_price,
-                               stop_price))
+        stop_price))
         """
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount

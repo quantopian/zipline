@@ -508,7 +508,7 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = dt.normalize() # FIXME
+        session_label = dt.normalize()  # FIXME
 
         if not asset.is_alive_for_session(session_label):
             return False
@@ -580,11 +580,13 @@ cdef class BarData:
           :class:`pd.DatetimeIndex`, and its columns will be ``assets``.
 
         - If multiple assets and multiple fields are requested, the returned
-          value is a :class:`pd.DataFrame` with a pd.MultiIndex containing pairs of
-           :class:`pd.DatetimeIndex`, and ``assets``, while the columns while contain the field(s).
-           It has shape``(bar_count * len(assets), len(fields))``. The names of the pd.MultiIndex are
-            - ``date`` if frequency == '1d'`` or ``date_time`` if frequency == '1m``, and
-            - ``asset``
+          value is a :class:`pd.DataFrame` with a pd.MultiIndex containing
+          pairs of :class:`pd.DatetimeIndex`, and ``assets``, while the columns
+          while contain the field(s). It has shape ``(bar_count * len(assets),
+          len(fields))``. The names of the pd.MultiIndex are
+
+              - ``date`` if frequency == '1d'`` or ``date_time`` if frequency == '1m``, and
+              - ``asset``
 
         If the current simulation time is not a valid market time, we use the last market close instead.
         """

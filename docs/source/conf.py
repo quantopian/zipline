@@ -23,8 +23,8 @@ extensions = [
 ]
 
 extlinks = {
-    "issue": ("https://github.com/stefan-jansen/zipline/issues/%s", "#"),
-    "commit": ("https://github.com/stefan-jansen/zipline/commit/%s", ""),
+    "issue": ("https://github.com/stefan-jansen/zipline/issues/%s", "%s"),
+    "commit": ("https://github.com/stefan-jansen/zipline/commit/%s", "%s"),
 }
 
 numpydoc_show_class_members = False
@@ -59,7 +59,7 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
         html_theme_path = []
     else:
         html_theme = "pydata_sphinx_theme"
-        html_theme_path = pydata_sphinx_theme.get_html_theme_path()
+        # html_theme_path = pydata_sphinx_theme.get_html_theme_path()
 
 # The name of the Pygments (syntax highlighting) style to use.
 highlight_language = "python"
@@ -79,7 +79,6 @@ html_theme_options = {
     "google_analytics_id": "UA-74956955-3",
 }
 
-
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named 'default.css' will overwrite the builtin 'default.css'.
@@ -98,7 +97,7 @@ html_show_copyright = True
 htmlhelp_basename = "ziplinedoc"
 
 intersphinx_mapping = {
-    "https://docs.python.org/dev/": None,
+    "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
