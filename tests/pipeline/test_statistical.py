@@ -34,7 +34,10 @@ from zipline.pipeline.factors import (
     RollingSpearmanOfReturns,
     SimpleBeta,
 )
-from zipline.pipeline.factors.statistical import vectorized_beta
+from zipline.pipeline.factors.statistical import (
+    vectorized_beta,
+    vectorized_pearson_r,
+)
 from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.testing import (
@@ -1059,3 +1062,84 @@ class VectorizedBetaTestCase(zf.ZiplineTestCase):
         result5 = vectorized_beta(dependents, independent, allowed_missing=5)
         assert_equal(np.isnan(result5),
                      np.array([False, False, False, False, False]))
+
+
+class VectorizedCorrelationTestCase(zf.ZiplineTestCase):
+
+    def naive_columnwise_func(self, func, left, right):
+        out = np.empty_like(left[0])
+        self.assertEqual(left.shape, right.shape)
+
+        for col in range(left.shape[1]):
+            left_col = left[:, col]
+            right_col = right[:, col]
+            missing = np.isnan(left_col) | np.isnan(right_col)
+            left_col = left_col[~missing]
+            right_col = right_col[~missing]
+            r, pvalue = func(left_col, right_col)
+            out[col] = r
+
+        return out
+
+    def naive_columnwise_pearson(self, left, right):
+        return self.naive_columnwise_func(pearsonr, left, right)
+
+    def naive_columnwise_spearman(self, left, right):
+        return self.naive_columnwise_func(spearmanr, left, right)
+
+    @parameter_space(
+        seed=[1, 2, 42],
+        nan_offset=[-1, 0, 1],
+        nans=['dependent', 'independent', 'both'],
+        __fail_fast=True,
+    )
+    def test_produce_nans_when_too_much_missing_data(self,
+                                                     seed,
+                                                     nans,
+                                                     nan_offset):
+        rand = np.random.RandomState(seed)
+
+        betas = np.array([-0.5, 0.0, 0.5, 1.0, 1.5])
+        independents = as_column(np.linspace(-5., 5., 30)) + np.arange(5)
+        noise = as_column(rand.uniform(-2, 2, 30))
+        dependents = 1.0 + betas * independents + noise
+
+        # Write nans in a triangular pattern into the middle of the dependent
+        # array.
+        nan_grid = np.array([[1, 1, 1, 1, 1],
+                             [0, 1, 1, 1, 1],
+                             [0, 0, 1, 1, 1],
+                             [0, 0, 0, 1, 1],
+                             [0, 0, 0, 0, 1]], dtype=bool)
+
+        if nans == 'dependent' or nans == 'both':
+            dependents[10 + nan_offset:15 + nan_offset][nan_grid] = np.nan
+        if nans == 'independent' or nans == 'both':
+            independents[10 + nan_offset:15 + nan_offset][nan_grid] = np.nan
+
+        expected = self.naive_columnwise_pearson(dependents, independents)
+        for allowed_missing in list(range(7)) + [10000]:
+            results = vectorized_pearson_r(
+                dependents, independents, allowed_missing
+            )
+            for i, result in enumerate(results):
+                # column i has i + 1 missing values.
+                if i + 1 > allowed_missing:
+                    self.assertTrue(np.isnan(result))
+                else:
+                    assert_equal(result, expected[i])
+
+    def test_broadcasting(self):
+        _independent = as_column(np.array([1, 2, 3, 4, 5]))
+        dependent = _independent * [2.5, 1.0, -3.5]
+
+        def do_check(independent):
+            result = vectorized_pearson_r(
+                dependent, independent, allowed_missing=0
+            )
+            assert_equal(result, np.array([1.0, 1.0, -1.0]))
+
+        # We should get the same result from passing a N x 1 array or an N x 3
+        # array with the column tiled 3 times.
+        do_check(_independent)
+        do_check(np.tile(_independent, 3))

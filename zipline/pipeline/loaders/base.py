@@ -7,6 +7,7 @@ from interface import default, Interface
 class PipelineLoader(Interface):
     """Interface for PipelineLoaders.
     """
+
     def load_adjusted_array(self, domain, columns, dates, sids, mask):
         """
         Load data for ``columns`` as AdjustedArrays.
@@ -35,18 +36,10 @@ class PipelineLoader(Interface):
         """
 
     @default
-    def validate_domain(self, domain):
+    @property
+    def currency_aware(self):
+        """Whether or not this loader supports currency-conversions.
+
+        By default, assume that loaders to not support currency conversions.
         """
-        Verify that a domain is supported before attempting to load it.
-
-        This can be implemented by a loader to raise a useful error before
-        performing any potentially-expensive work.
-
-        The default implementation is a no-op.
-
-        Parameters
-        ----------
-        domain : zipline.pipeline.domain.Domain
-            The domain on which a pipeline is about to be run.
-        """
-        pass
+        return False

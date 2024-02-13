@@ -22,18 +22,15 @@ from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import ComputableTerm
 from zipline.utils.compat import unicode
 from zipline.utils.input_validation import expect_types, expect_dtypes
-from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     int64_dtype,
     vectorized_is_element,
 )
 
-from ..filters import ArrayPredicate, NotNullFilter, NullFilter, NumExprFilter
+from ..filters import ArrayPredicate, NumExprFilter
 from ..mixins import (
-    AliasedMixin,
     CustomTermMixin,
-    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -64,18 +61,6 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     # Used by RestrictedDTypeMixin
     ALLOWED_DTYPES = CLASSIFIER_DTYPES
     categories = NotSpecified
-
-    def isnull(self):
-        """
-        A Filter producing True for values where this term has missing data.
-        """
-        return NullFilter(self)
-
-    def notnull(self):
-        """
-        A Filter producing True for values where this term has complete data.
-        """
-        return NotNullFilter(self)
 
     # We explicitly don't support classifier to classifier comparisons, since
     # the stored values likely don't mean the same thing. This may be relaxed
@@ -370,13 +355,9 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             self.missing_value,
         )
 
-    @classlazyval
-    def _downsampled_type(self):
-        return DownsampledMixin.make_downsampled_type(Classifier)
-
-    @classlazyval
-    def _aliased_type(self):
-        return AliasedMixin.make_aliased_type(Classifier)
+    @classmethod
+    def _principal_computable_term_type(cls):
+        return Classifier
 
     def _to_integral(self, output_array):
         """
@@ -397,6 +378,49 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 "Unexpected Classifier dtype: %s." % self.dtype
             )
         return group_labels, null_label
+
+    def peer_count(self, mask=NotSpecified):
+        """
+        Construct a factor that gives the number of occurrences of
+        each distinct category in a classifier.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            If passed, only count assets passing the filter.  Default behavior
+            is to count all assets.
+
+        Examples
+        --------
+        Let ``c`` be a Classifier which would produce the following output::
+
+                         AAPL   MSFT    MCD     BK   AMZN     FB
+            2015-05-05    'a'    'a'   None    'b'    'a'   None
+            2015-05-06    'b'    'a'    'c'    'b'    'b'    'b'
+            2015-05-07   None    'a'   'aa'   'aa'   'aa'   None
+            2015-05-08    'c'    'c'    'c'    'c'    'c'    'c'
+
+        Then ``c.peer_count()`` will count, for each row, the total number
+        of assets in each classifier category produced by ``c``.  Missing
+        data will be evaluated to NaN.
+
+        ::
+
+                         AAPL   MSFT    MCD     BK   AMZN     FB
+            2015-05-05    3.0    3.0    NaN    1.0    3.0    NaN
+            2015-05-06    4.0    1.0    1.0    4.0    4.0    4.0
+            2015-05-07    NaN    1.0    3.0    3.0    3.0    NaN
+            2015-05-08    6.0    6.0    6.0    6.0    6.0    6.0
+
+        Returns
+        -------
+        factor : CustomFactor
+            A CustomFactor that counts, for each asset, the total number
+            of assets with the same classifier category label.
+        """
+        # Lazy import due to cyclic dependencies in factor.py, classifier.py
+        from ..factors import PeerCount
+        return PeerCount(inputs=[self], mask=mask)
 
 
 class Everything(Classifier):
@@ -538,8 +562,6 @@ class Latest(LatestMixin, CustomClassifier):
     See Also
     --------
     zipline.pipeline.data.dataset.BoundColumn.latest
-    zipline.pipeline.factors.factor.Latest
-    zipline.pipeline.filters.filter.Latest
     """
     pass
 

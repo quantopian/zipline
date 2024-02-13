@@ -13,7 +13,6 @@ from six.moves.urllib.parse import urlencode
 from six import iteritems
 from trading_calendars import register_calendar_alias
 
-from zipline.utils.deprecate import deprecated
 from . import core as bundles
 import numpy as np
 
@@ -308,10 +307,6 @@ QUANTOPIAN_QUANDL_URL = (
 
 
 @bundles.register('quantopian-quandl', create_writers=False)
-@deprecated(
-    'quantopian-quandl has been deprecated and '
-    'will be removed in a future release.'
-)
 def quantopian_quandl_bundle(environ,
                              asset_db_writer,
                              minute_bar_writer,

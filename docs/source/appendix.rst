@@ -184,27 +184,37 @@ Pipeline API
    :members:
    :member-order: groupwise
 
-.. autoclass:: zipline.pipeline.filters.Filter
-   :members: __and__, __or__
+.. autoclass:: zipline.pipeline.Filter
+   :members: __and__, __or__, if_else
    :exclude-members: dtype
 
-.. autoclass:: zipline.pipeline.factors.Factor
+.. autoclass:: zipline.pipeline.Factor
    :members: bottom, deciles, demean, linear_regression, pearsonr,
              percentile_between, quantiles, quartiles, quintiles, rank,
              spearmanr, top, winsorize, zscore, isnan, notnan, isfinite, eq,
              __add__, __sub__, __mul__, __div__, __mod__, __pow__, __lt__,
-             __le__, __ne__, __ge__, __gt__
+             __le__, __ne__, __ge__, __gt__, clip, fillna, mean, stddev, max,
+             min, median, sum, clip
    :exclude-members: dtype
    :member-order: bysource
 
-.. autoclass:: zipline.pipeline.term.Term
+.. autoclass:: zipline.pipeline.Term
    :members:
    :exclude-members: compute_extra_rows, dependencies, inputs, mask, windowed
 
 .. autoclass:: zipline.pipeline.data.DataSet
    :members:
 
-.. autoclass:: zipline.pipeline.data.USEquityPricing
+.. autoclass:: zipline.pipeline.data.Column
+   :members:
+
+.. autoclass:: zipline.pipeline.data.BoundColumn
+   :members:
+
+.. autoclass:: zipline.pipeline.data.DataSetFamily
+   :members:
+
+.. autoclass:: zipline.pipeline.data.EquityPricing
    :members: open, high, low, close, volume
    :undoc-members:
 
@@ -244,6 +254,12 @@ Built-in Factors
 .. autoclass:: zipline.pipeline.factors.Returns
    :members:
 
+.. autoclass:: zipline.pipeline.factors.RollingPearson
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RollingSpearman
+   :members:
+
 .. autoclass:: zipline.pipeline.factors.RollingLinearRegressionOfReturns
    :members:
 
@@ -267,6 +283,13 @@ Built-in Factors
 
 .. autoclass:: zipline.pipeline.factors.WeightedAverageValue
    :members:
+
+.. autoclass:: zipline.pipeline.factors.PercentChange
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.PeerCount
+   :members:
+
 
 Built-in Filters
 ````````````````

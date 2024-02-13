@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from cpython cimport (
+    bool,
     PyDict_Contains,
     PySet_Add,
 )
 
+from itertools import chain
 from numpy import (
     int64,
     uint32,
@@ -112,9 +114,13 @@ cdef _adjustments(object adjustments_db,
     while splits_to_query:
         query_len = min(len(splits_to_query), SQLITE_MAX_IN_STATEMENT)
         query_assets = splits_to_query[:query_len]
-        t= [str(a) for a in query_assets]
-        statement = ADJ_QUERY_TEMPLATE.format('splits',
-            ",".join(['?' for _ in query_assets]), start_date, end_date)
+        t = [str(a) for a in query_assets]
+        statement = ADJ_QUERY_TEMPLATE.format(
+            'splits',
+            ",".join(['?' for _ in query_assets]),
+            start_date,
+            end_date,
+        )
         c.execute(statement, t)
         splits_to_query = splits_to_query[query_len:]
         splits_results.extend(c.fetchall())
@@ -124,9 +130,13 @@ cdef _adjustments(object adjustments_db,
     while mergers_to_query:
         query_len = min(len(mergers_to_query), SQLITE_MAX_IN_STATEMENT)
         query_assets = mergers_to_query[:query_len]
-        t= [str(a) for a in query_assets]
-        statement = ADJ_QUERY_TEMPLATE.format('mergers',
-            ",".join(['?' for _ in query_assets]), start_date, end_date)
+        t = [str(a) for a in query_assets]
+        statement = ADJ_QUERY_TEMPLATE.format(
+            'mergers',
+            ",".join(['?' for _ in query_assets]),
+            start_date,
+            end_date,
+        )
         c.execute(statement, t)
         mergers_to_query = mergers_to_query[query_len:]
         mergers_results.extend(c.fetchall())
@@ -136,9 +146,13 @@ cdef _adjustments(object adjustments_db,
     while dividends_to_query:
         query_len = min(len(dividends_to_query), SQLITE_MAX_IN_STATEMENT)
         query_assets = dividends_to_query[:query_len]
-        t= [str(a) for a in query_assets]
-        statement = ADJ_QUERY_TEMPLATE.format('dividends',
-            ",".join(['?' for _ in query_assets]), start_date, end_date)
+        t = [str(a) for a in query_assets]
+        statement = ADJ_QUERY_TEMPLATE.format(
+            'dividends',
+            ",".join(['?' for _ in query_assets]),
+            start_date,
+            end_date,
+        )
         c.execute(statement, t)
         dividends_to_query = dividends_to_query[query_len:]
         dividends_results.extend(c.fetchall())
@@ -146,50 +160,96 @@ cdef _adjustments(object adjustments_db,
     return splits_results, mergers_results, dividends_results
 
 
-cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
-                                   list columns,
+cpdef load_adjustments_from_sqlite(object adjustments_db,
                                    DatetimeIndex_t dates,
-                                   Int64Index_t assets):
+                                   Int64Index_t assets,
+                                   bool should_include_splits,
+                                   bool should_include_mergers,
+                                   bool should_include_dividends,
+                                   str adjustment_type):
     """
-    Load a dictionary of Adjustment objects from adjustments_db
+    Load a dictionary of Adjustment objects from adjustments_db.
 
     Parameters
     ----------
     adjustments_db : sqlite3.Connection
         Connection to a sqlite3 table in the format written by
         SQLiteAdjustmentWriter.
-    columns : list[str]
-        List of column names for which adjustments are needed.
     dates : pd.DatetimeIndex
-        Dates for which adjustments are needed
+        Dates for which adjustments are needed.
     assets : pd.Int64Index
         Assets for which adjustments are needed.
+    should_include_splits : bool
+        Whether split adjustments should be included.
+    should_include_mergers : bool
+        Whether merger adjustments should be included.
+    should_include_dividends : bool
+        Whether dividend adjustments should be included.
+    adjustment_type : str
+        Whether price adjustments, volume adjustments, or both, should be
+        included in the output.
 
     Returns
     -------
-    adjustments : list[dict[int -> Adjustment]]
-        A list of mappings from index to adjustment objects to apply at that
-        index.
+    adjustments : dict[str -> dict[int -> Adjustment]]
+        A dictionary containing price and/or volume adjustment mappings from
+        index to adjustment objects to apply at that index.
     """
+
+    if not (adjustment_type == 'price' or
+            adjustment_type == 'volume' or
+            adjustment_type == 'all'):
+        raise ValueError(
+            "%s is not a valid adjustment type.\n"
+            "Valid adjustment types are 'price', 'volume', and 'all'.\n" % (
+                adjustment_type,
+            )
+        )
+
+    cdef bool should_include_price_adjustments = (
+        adjustment_type == 'all' or adjustment_type == 'price'
+    )
+    cdef bool should_include_volume_adjustments = (
+        adjustment_type == 'all' or adjustment_type == 'volume'
+    )
+
+    if not should_include_price_adjustments:
+        should_include_mergers = False
+        should_include_dividends = False
 
     cdef int start_date = timedelta_to_integral_seconds(dates[0] - EPOCH)
     cdef int end_date = timedelta_to_integral_seconds(dates[-1] - EPOCH)
+    cdef:
+        set split_sids
+        set merger_sids
+        set dividend_sids
 
-    cdef set split_sids = _get_split_sids(
-        adjustments_db,
-        start_date,
-        end_date,
-    )
-    cdef set merger_sids = _get_merger_sids(
-        adjustments_db,
-        start_date,
-        end_date,
-    )
-    cdef set dividend_sids = _get_dividend_sids(
-        adjustments_db,
-        start_date,
-        end_date,
-    )
+    if should_include_splits:
+        split_sids = _get_split_sids(
+            adjustments_db,
+            start_date,
+            end_date,
+        )
+    else:
+        split_sids = set()
+
+    if should_include_mergers:
+        merger_sids = _get_merger_sids(
+            adjustments_db,
+            start_date,
+            end_date,
+        )
+    else:
+        merger_sids = set()
+
+    if should_include_dividends:
+        dividend_sids = _get_dividend_sids(
+            adjustments_db,
+            start_date,
+            end_date,
+        )
+    else:
+        dividend_sids = set()
 
     cdef:
         list splits, mergers, dividends
@@ -203,7 +263,9 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
         assets,
     )
 
-    cdef list results = [{} for column in columns]
+    cdef dict price_adjustments = {}
+    cdef dict volume_adjustments = {}
+    cdef dict result = {}
     cdef dict asset_ixs = {}  # Cache sid lookups here.
     cdef dict date_ixs = {}
     cdef:
@@ -234,64 +296,36 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
+        if should_include_price_adjustments:
+            price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+            price_adjustments.setdefault(date_loc, []).append(price_adj)
+
+        if should_include_volume_adjustments:
+            volume_adj = Float64Multiply(
+                0, date_loc, asset_ix, asset_ix, 1.0 / ratio
+            )
+            volume_adjustments.setdefault(date_loc, []).append(volume_adj)
+
+    # mergers and dividends affect prices only
+    for sid, ratio, eff_date in chain(mergers, dividends):
+        if eff_date < start_date:
+            continue
+
+        date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
+
+        if not PyDict_Contains(asset_ixs, sid):
+            asset_ixs[sid] = assets.get_loc(sid)
+        asset_ix = asset_ixs[sid]
+
         price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        for i, column in enumerate(columns):
-            col_adjustments = results[i]
-            if column != 'volume':
-                try:
-                    col_adjustments[date_loc].append(price_adj)
-                except KeyError:
-                    col_adjustments[date_loc] = [price_adj]
-            else:
-                volume_adj = Float64Multiply(
-                    0, date_loc, asset_ix, asset_ix, 1.0 / ratio
-                )
-                try:
-                    col_adjustments[date_loc].append(volume_adj)
-                except KeyError:
-                    col_adjustments[date_loc] = [volume_adj]
+        price_adjustments.setdefault(date_loc, []).append(price_adj)
 
-    # mergers affect prices only
-    for sid, ratio, eff_date in mergers:
-        if eff_date < start_date:
-            continue
+    if should_include_price_adjustments:
+        result['price'] = price_adjustments
+    if should_include_volume_adjustments:
+        result['volume'] = volume_adjustments
 
-        date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
-
-        if not PyDict_Contains(asset_ixs, sid):
-            asset_ixs[sid] = assets.get_loc(sid)
-        asset_ix = asset_ixs[sid]
-
-        adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        for i, column in enumerate(columns):
-            col_adjustments = results[i]
-            if column != 'volume':
-                try:
-                    col_adjustments[date_loc].append(adj)
-                except KeyError:
-                    col_adjustments[date_loc] = [adj]
-
-    # dividends affect prices only
-    for sid, ratio, eff_date in dividends:
-        if eff_date < start_date:
-            continue
-
-        date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
-
-        if not PyDict_Contains(asset_ixs, sid):
-            asset_ixs[sid] = assets.get_loc(sid)
-        asset_ix = asset_ixs[sid]
-
-        adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
-        for i, column in enumerate(columns):
-            col_adjustments = results[i]
-            if column != 'volume':
-                try:
-                    col_adjustments[date_loc].append(adj)
-                except KeyError:
-                    col_adjustments[date_loc] = [adj]
-
-    return results
+    return result
 
 
 cdef _lookup_dt(dict dt_cache,

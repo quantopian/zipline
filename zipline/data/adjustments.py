@@ -10,13 +10,16 @@ from pandas import Timestamp
 import six
 import sqlite3
 
+from zipline.utils.functional import keysorted
 from zipline.utils.input_validation import preprocess
 from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
     uint32_dtype,
     uint64_dtype,
 )
+from zipline.utils.pandas_utils import empty_dataframe
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
 from ._adjustments import load_adjustments_from_sqlite
 
@@ -71,6 +74,16 @@ SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
 }
 
 
+def specialize_any_integer(d):
+    out = {}
+    for k, v in six.iteritems(d):
+        if v is any_integer:
+            out[k] = int64_dtype
+        else:
+            out[k] = v
+    return out
+
+
 class SQLiteAdjustmentReader(object):
     """
     Loads adjustments based on corporate actions from a SQLite database.
@@ -86,22 +99,36 @@ class SQLiteAdjustmentReader(object):
     --------
     :class:`zipline.data.adjustments.SQLiteAdjustmentWriter`
     """
+    _datetime_int_cols = {
+        'splits': ('effective_date',),
+        'mergers': ('effective_date',),
+        'dividends': ('effective_date',),
+        'dividend_payouts': (
+            'declared_date', 'ex_date', 'pay_date', 'record_date',
+        ),
+        'stock_dividend_payouts': (
+            'declared_date', 'ex_date', 'pay_date', 'record_date',
+        )
+    }
+    _raw_table_dtypes = {
+        # We use any_integer above to be lenient in accepting different dtypes
+        # from users. For our outputs, however, we always want to return the
+        # same types, and any_integer turns into int32 on some numpy windows
+        # builds, so specify int64 explicitly here.
+        'splits': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'mergers': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'dividends': specialize_any_integer(SQLITE_ADJUSTMENT_COLUMN_DTYPES),
+        'dividend_payouts': specialize_any_integer(
+            SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+        ),
+        'stock_dividend_payouts': specialize_any_integer(
+            SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+        ),
+    }
 
     @preprocess(conn=coerce_string_to_conn(require_exists=True))
     def __init__(self, conn):
         self.conn = conn
-
-        # Given the tables in the adjustments.db file, dict which knows which
-        # col names contain dates that have been coerced into ints.
-        self._datetime_int_cols = {
-            'dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
-                                 'record_date'),
-            'dividends': ('effective_date',),
-            'mergers': ('effective_date',),
-            'splits': ('effective_date',),
-            'stock_dividend_payouts': ('declared_date', 'ex_date', 'pay_date',
-                                       'record_date')
-        }
 
     def __enter__(self):
         return self
@@ -112,13 +139,72 @@ class SQLiteAdjustmentReader(object):
     def close(self):
         return self.conn.close()
 
-    def load_adjustments(self, columns, dates, assets):
+    def load_adjustments(self,
+                         dates,
+                         assets,
+                         should_include_splits,
+                         should_include_mergers,
+                         should_include_dividends,
+                         adjustment_type):
+        """
+        Load collection of Adjustment objects from underlying adjustments db.
+
+        Parameters
+        ----------
+        dates : pd.DatetimeIndex
+            Dates for which adjustments are needed.
+        assets : pd.Int64Index
+            Assets for which adjustments are needed.
+        should_include_splits : bool
+            Whether split adjustments should be included.
+        should_include_mergers : bool
+            Whether merger adjustments should be included.
+        should_include_dividends : bool
+            Whether dividend adjustments should be included.
+        adjustment_type : str
+            Whether price adjustments, volume adjustments, or both, should be
+            included in the output.
+
+        Returns
+        -------
+        adjustments : dict[str -> dict[int -> Adjustment]]
+            A dictionary containing price and/or volume adjustment mappings
+            from index to adjustment objects to apply at that index.
+        """
         return load_adjustments_from_sqlite(
             self.conn,
-            list(columns),
             dates,
             assets,
+            should_include_splits,
+            should_include_mergers,
+            should_include_dividends,
+            adjustment_type,
         )
+
+    def load_pricing_adjustments(self, columns, dates, assets):
+        if 'volume' not in set(columns):
+            adjustment_type = 'price'
+        elif len(set(columns)) == 1:
+            adjustment_type = 'volume'
+        else:
+            adjustment_type = 'all'
+
+        adjustments = self.load_adjustments(
+            dates,
+            assets,
+            should_include_splits=True,
+            should_include_mergers=True,
+            should_include_dividends=True,
+            adjustment_type=adjustment_type,
+        )
+        price_adjustments = adjustments.get('price')
+        volume_adjustments = adjustments.get('volume')
+
+        return [
+            volume_adjustments if column == 'volume'
+            else price_adjustments
+            for column in columns
+        ]
 
     def get_adjustments_for_sid(self, table_name, sid):
         t = (sid,)
@@ -197,33 +283,56 @@ class SQLiteAdjustmentReader(object):
             version of the table, where all date columns have been coerced back
             from int to datetime.
         """
-
-        def _get_df_from_table(table_name, date_cols):
-
-            # Dates are stored in second resolution as ints in adj.db tables.
-            # Need to specifically convert them as UTC, not local time.
-            kwargs = (
-                {'parse_dates': {col: {'unit': 's', 'utc': True}
-                                 for col in date_cols}
-                 }
-                if convert_dates
-                else {}
-            )
-
-            return pd.read_sql(
-                'select * from "{}"'.format(table_name),
-                self.conn,
-                index_col='index',
-                **kwargs
-            ).rename_axis(None)
-
         return {
-            t_name: _get_df_from_table(
-                t_name,
-                date_cols
-            )
-            for t_name, date_cols in self._datetime_int_cols.items()
+            t_name: self.get_df_from_table(t_name, convert_dates)
+            for t_name in self._datetime_int_cols
         }
+
+    def get_df_from_table(self, table_name, convert_dates=False):
+        try:
+            date_cols = self._datetime_int_cols[table_name]
+        except KeyError:
+            raise ValueError(
+                "Requested table %s not found.\n"
+                "Available tables: %s\n" % (
+                    table_name,
+                    self._datetime_int_cols.keys(),
+                )
+            )
+
+        # Dates are stored in second resolution as ints in adj.db tables.
+        # Need to specifically convert them as UTC, not local time.
+        kwargs = (
+            {'parse_dates': {col: {'unit': 's', 'utc': True}
+                             for col in date_cols}
+             }
+            if convert_dates
+            else {}
+        )
+
+        result = pd.read_sql(
+            'select * from "{}"'.format(table_name),
+            self.conn,
+            index_col='index',
+            **kwargs
+        ).rename_axis(None)
+
+        if not len(result):
+            dtypes = self._df_dtypes(table_name, convert_dates)
+            return empty_dataframe(*keysorted(dtypes))
+
+        return result
+
+    def _df_dtypes(self, table_name, convert_dates):
+        """Get dtypes to use when unpacking sqlite tables as dataframes.
+        """
+        out = self._raw_table_dtypes[table_name]
+        if convert_dates:
+            out = out.copy()
+            for date_column in self._datetime_int_cols[table_name]:
+                out[date_column] = datetime64ns_dtype
+
+        return out
 
 
 class SQLiteAdjustmentWriter(object):

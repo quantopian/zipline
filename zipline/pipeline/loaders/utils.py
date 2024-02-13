@@ -266,14 +266,7 @@ def ffill_across_cols(df, columns, name_map):
 
 def shift_dates(dates, start_date, end_date, shift):
     """
-    Shift dates of a pipeline query back by `shift` days.
-
-    load_adjusted_array is called with dates on which the user's algo
-    will be shown data, which means we need to return the data that would
-    be known at the start of each date.  This is often labeled with a
-    previous date in the underlying data (e.g. at the start of today, we
-    have the data as of yesterday). In this case, we can shift the query
-    dates back to query the appropriate values.
+    Shift dates of a pipeline query back by ``shift`` days.
 
     Parameters
     ----------
@@ -285,6 +278,20 @@ def shift_dates(dates, start_date, end_date, shift):
         End date of the pipeline query.
     shift : int
         The number of days to shift back the query dates.
+
+    Returns
+    -------
+    shifted : pd.DatetimeIndex
+        The range [start_date, end_date] from ``dates``, shifted backwards by
+        ``shift`` days.
+
+    Raises
+    ------
+    ValueError
+        If ``start_date`` or ``end_date`` is not in ``dates``.
+    NoFurtherDataError
+        If shifting ``start_date`` back by ``shift`` days would push it off the
+        end of ``dates``.
     """
     try:
         start = dates.get_loc(start_date)
@@ -327,4 +334,5 @@ def shift_dates(dates, start_date, end_date, shift):
             )
         else:
             raise ValueError("Query end %s not in calendar" % end_date)
-    return dates[start - shift], dates[end - shift]
+
+    return dates[start - shift:end - shift + 1]  # +1 to be inclusive

@@ -34,7 +34,7 @@ def generate_daily_test_data(first_day,
     days_count = len(days)
     o = np.zeros(days_count, dtype=np.uint32)
     h = np.zeros(days_count, dtype=np.uint32)
-    l = np.zeros(days_count, dtype=np.uint32)
+    l = np.zeros(days_count, dtype=np.uint32)  # noqa: E741
     c = np.zeros(days_count, dtype=np.uint32)
     v = np.zeros(days_count, dtype=np.uint32)
 
@@ -116,7 +116,7 @@ def generate_minute_test_data(first_day,
 
     o = np.zeros(minutes_count, dtype=np.uint32)
     h = np.zeros(minutes_count, dtype=np.uint32)
-    l = np.zeros(minutes_count, dtype=np.uint32)
+    l = np.zeros(minutes_count, dtype=np.uint32)  # noqa: E741
     c = np.zeros(minutes_count, dtype=np.uint32)
     v = np.zeros(minutes_count, dtype=np.uint32)
 

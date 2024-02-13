@@ -1,6 +1,9 @@
+import mock
+
 import zipline.__main__ as main
 import zipline
 from zipline.testing import ZiplineTestCase
+from zipline.testing.fixtures import WithTmpDir
 from zipline.testing.predicates import (
     assert_equal,
     assert_raises_str,
@@ -13,7 +16,7 @@ from zipline.extensions import (
 )
 
 
-class CmdLineTestCase(ZiplineTestCase):
+class CmdLineTestCase(WithTmpDir, ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(CmdLineTestCase, self).init_instance_fixtures()
@@ -136,3 +139,83 @@ class CmdLineTestCase(ZiplineTestCase):
         assert_equal(zipline.extension_args.second.b.a, 'blah5')
         assert_equal(zipline.extension_args.a1, 'value1')
         assert_equal(zipline.extension_args.b_, 'value2')
+
+    def test_benchmark_argument_handling(self):
+        runner = CliRunner()
+
+        # CLI validates that the algo file exists, so create an empty file.
+        algo_path = self.tmpdir.getpath('dummy_algo.py')
+        with open(algo_path, 'w'):
+            pass
+
+        def run_and_get_benchmark_spec(benchmark_args):
+            """
+            Run the cli, mocking out `main._run`, and return the benchmark_spec
+            passed to _run..
+            """
+            args = [
+                '--no-default-extension',
+                'run',
+                '-s', '2014-01-02',
+                '-e 2015-01-02',
+                '--algofile', algo_path,
+            ] + benchmark_args
+
+            mock_spec = mock.create_autospec(main._run)
+
+            with mock.patch.object(main, '_run', spec=mock_spec) as mock_run:
+                result = runner.invoke(main.main, args, catch_exceptions=False)
+
+            if result.exit_code != 0:
+                raise AssertionError(
+                    "Cli run failed with {exc}\n\n"
+                    "Output was:\n\n"
+                    "{output}".format(exc=result.exception,
+                                      output=result.output),
+                )
+
+            mock_run.assert_called_once()
+
+            return mock_run.call_args[1]['benchmark_spec']
+
+        spec = run_and_get_benchmark_spec([])
+        assert_equal(spec.benchmark_returns, None)
+        assert_equal(spec.benchmark_file, None)
+        assert_equal(spec.benchmark_sid, None)
+        assert_equal(spec.benchmark_symbol, None)
+        assert_equal(spec.no_benchmark, False)
+
+        spec = run_and_get_benchmark_spec(['--no-benchmark'])
+        assert_equal(spec.benchmark_returns, None)
+        assert_equal(spec.benchmark_file, None)
+        assert_equal(spec.benchmark_sid, None)
+        assert_equal(spec.benchmark_symbol, None)
+        assert_equal(spec.no_benchmark, True)
+
+        for symbol in 'AAPL', 'SPY':
+            spec = run_and_get_benchmark_spec(['--benchmark-symbol', symbol])
+            assert_equal(spec.benchmark_returns, None)
+            assert_equal(spec.benchmark_file, None)
+            assert_equal(spec.benchmark_sid, None)
+            assert_equal(spec.benchmark_symbol, symbol)
+            assert_equal(spec.no_benchmark, False)
+
+        for sid in 2, 3:
+            spec = run_and_get_benchmark_spec(['--benchmark-sid', str(sid)])
+            assert_equal(spec.benchmark_returns, None)
+            assert_equal(spec.benchmark_file, None)
+            assert_equal(spec.benchmark_sid, sid)
+            assert_equal(spec.benchmark_symbol, None)
+            assert_equal(spec.no_benchmark, False)
+
+        # CLI also validates the returns file exists.
+        bm_path = self.tmpdir.getpath('returns.csv')
+        with open(bm_path, 'w'):
+            pass
+
+        spec = run_and_get_benchmark_spec(['--benchmark-file', bm_path])
+        assert_equal(spec.benchmark_returns, None)
+        assert_equal(spec.benchmark_file, bm_path)
+        assert_equal(spec.benchmark_sid, None)
+        assert_equal(spec.benchmark_symbol, None)
+        assert_equal(spec.no_benchmark, False)

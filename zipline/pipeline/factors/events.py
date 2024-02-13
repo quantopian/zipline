@@ -27,6 +27,26 @@ class BusinessDaysSincePreviousEvent(Factor):
     day will produce a value of 1.0.
 
     Assets for which the event date is `NaT` will produce a value of `NaN`.
+
+
+    Example
+    -------
+    ``BusinessDaysSincePreviousEvent`` can be used to create an event-driven
+    factor. For instance, you may want to only trade assets that have
+    a data point with an asof_date in the last 5 business days. To do this,
+    you can create a ``BusinessDaysSincePreviousEvent`` factor, supplying
+    the relevant asof_date column from your dataset as input, like this::
+
+        # Factor computing number of days since most recent asof_date
+        # per asset.
+        days_since_event = BusinessDaysSincePreviousEvent(
+            inputs=[MyDataset.asof_date]
+        )
+
+        # Filter returning True for each asset whose most recent asof_date
+        # was in the last 5 business days.
+        recency_filter = (days_since_event <= 5)
+
     """
     window_length = 0
     dtype = float64_dtype

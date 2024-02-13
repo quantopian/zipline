@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logbook
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_series_equal
@@ -23,17 +24,24 @@ from zipline.errors import (
     InvalidBenchmarkAsset)
 
 from zipline.sources.benchmark_source import BenchmarkSource
+from zipline.utils.run_algo import BenchmarkSpec
+
 from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
+    parameter_space,
     tmp_bcolz_equity_minute_bar_reader,
 )
+from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
+    WithAssetFinder,
     WithDataPortal,
     WithSimParams,
+    WithTmpDir,
     WithTradingCalendars,
     ZiplineTestCase,
 )
+from zipline.testing.core import make_test_handler
 
 
 class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
@@ -230,3 +238,176 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                          "00:00:00.  Choose another asset to use as the "
                          "benchmark.",
                          exc.exception.message)
+
+
+class BenchmarkSpecTestCase(WithTmpDir,
+                            WithAssetFinder,
+                            ZiplineTestCase):
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(BenchmarkSpecTestCase, cls).init_class_fixtures()
+
+        zero_returns_index = pd.date_range(
+            cls.START_DATE,
+            cls.END_DATE,
+            freq='D',
+            tz='utc',
+        )
+        cls.zero_returns = pd.Series(index=zero_returns_index, data=0.0)
+
+    def init_instance_fixtures(self):
+        super(BenchmarkSpecTestCase, self).init_instance_fixtures()
+        self.log_handler = self.enter_instance_context(make_test_handler(self))
+
+    @classmethod
+    def make_equity_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                1: {
+                    'symbol': 'A',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
+                },
+                2: {
+                    'symbol': 'B',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
+                }
+            },
+            orient='index',
+        )
+
+    def logs_at_level(self, level):
+        return [
+            r.message for r in self.log_handler.records if r.level == level
+        ]
+
+    def resolve_spec(self, spec):
+        return spec.resolve(self.asset_finder, self.START_DATE, self.END_DATE)
+
+    def test_no_benchmark(self):
+        """Test running with no benchmark provided.
+
+        We should have no benchmark sid and have a returns series of all zeros.
+        """
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=None,
+            benchmark_symbol=None,
+            benchmark_file=None,
+        )
+
+        sid, returns = self.resolve_spec(spec)
+
+        self.assertIs(sid, None)
+        self.assertIs(returns, None)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = [
+            'No benchmark configured. Assuming algorithm calls set_benchmark.',
+            'Pass --benchmark-sid, --benchmark-symbol, or --benchmark-file to set a source of benchmark returns.',  # noqa
+            "Pass --no-benchmark to use a dummy benchmark of zero returns.",
+        ]
+        assert_equal(warnings, expected)
+
+    def test_no_benchmark_explicitly_disabled(self):
+        """Test running with no benchmark provided, with no_benchmark flag.
+        """
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=True,
+            benchmark_sid=None,
+            benchmark_symbol=None,
+            benchmark_file=None,
+        )
+
+        sid, returns = self.resolve_spec(spec)
+
+        self.assertIs(sid, None)
+        assert_series_equal(returns, self.zero_returns)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)
+
+    @parameter_space(case=[('A', 1), ('B', 2)])
+    def test_benchmark_symbol(self, case):
+        """Test running with no benchmark provided, with no_benchmark flag.
+        """
+        symbol, expected_sid = case
+
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=None,
+            benchmark_symbol=symbol,
+            benchmark_file=None,
+        )
+
+        sid, returns = self.resolve_spec(spec)
+
+        assert_equal(sid, expected_sid)
+        self.assertIs(returns, None)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)
+
+    @parameter_space(input_sid=[1, 2])
+    def test_benchmark_sid(self, input_sid):
+        """Test running with no benchmark provided, with no_benchmark flag.
+        """
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=input_sid,
+            benchmark_symbol=None,
+            benchmark_file=None,
+        )
+
+        sid, returns = self.resolve_spec(spec)
+
+        assert_equal(sid, input_sid)
+        self.assertIs(returns, None)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)
+
+    def test_benchmark_file(self):
+        """Test running with a benchmark file.
+        """
+        csv_file_path = self.tmpdir.getpath('b.csv')
+        with open(csv_file_path, 'w') as csv_file:
+            csv_file.write("date,return\n"
+                           "2020-01-03 00:00:00+00:00,-0.1\n"
+                           "2020-01-06 00:00:00+00:00,0.333\n"
+                           "2020-01-07 00:00:00+00:00,0.167\n"
+                           "2020-01-08 00:00:00+00:00,0.143\n"
+                           "2020-01-09 00:00:00+00:00,6.375\n")
+
+        spec = BenchmarkSpec.from_cli_params(
+            no_benchmark=False,
+            benchmark_sid=None,
+            benchmark_symbol=None,
+            benchmark_file=csv_file_path,
+        )
+
+        sid, returns = self.resolve_spec(spec)
+
+        self.assertIs(sid, None)
+
+        expected_dates = pd.to_datetime(
+            ['2020-01-03', '2020-01-06', '2020-01-07',
+             '2020-01-08', '2020-01-09'],
+            utc=True,
+        )
+        expected_values = [-0.1, 0.333, 0.167, 0.143, 6.375]
+        expected_returns = pd.Series(index=expected_dates,
+                                     data=expected_values)
+
+        assert_series_equal(returns, expected_returns, check_names=False)
+
+        warnings = self.logs_at_level(logbook.WARNING)
+        expected = []
+        assert_equal(warnings, expected)

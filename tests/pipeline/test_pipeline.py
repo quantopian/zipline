@@ -4,6 +4,7 @@ Tests for zipline.pipeline.Pipeline
 from unittest import TestCase
 
 from mock import patch
+from six import PY2
 
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import Column, DataSet, USEquityPricing
@@ -42,6 +43,10 @@ class SomeOtherFilter(Filter):
 
 
 class PipelineTestCase(TestCase):
+
+    if PY2:
+        def assertRaisesRegex(self, *args, **kwargs):
+            return self.assertRaisesRegexp(*args, **kwargs)
 
     def test_construction(self):
         p0 = Pipeline()
@@ -208,7 +213,7 @@ class PipelineTestCase(TestCase):
             r"but got 'fizzbuzz' instead."
         )
 
-        with self.assertRaisesRegexp(ValueError, expected):
+        with self.assertRaisesRegex(ValueError, expected):
             p.show_graph(format='fizzbuzz')
 
     def test_infer_domain_no_terms(self):

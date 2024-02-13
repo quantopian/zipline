@@ -20,33 +20,36 @@ First, you'll need to clone Zipline by running:
 Then check out to a new branch where you can make your changes:
 
 .. code-block:: bash
-		
+
    $ git checkout -b some-short-descriptive-name
 
 If you don't already have them, you'll need some C library dependencies. You can follow the `install guide`__ to get the appropriate dependencies.
 
 __ install.html
 
-The following section assumes you already have virtualenvwrapper and pip installed on your system. Suggested installation of Python library dependencies used for development:
+Once you've created and activated a `virtual environment`__, run the ``etc/dev-install`` script to install all development dependencies in their required order:
+
+__ https://docs.python.org/3/library/venv.html
+
+.. code-block:: bash
+
+   $ python3 -m venv venv
+   $ source venv/bin/activate
+   $ etc/dev-install
+
+Or, using `virtualenvwrapper`__:
+
+__ https://virtualenvwrapper.readthedocs.io/en/latest/
 
 .. code-block:: bash
 
    $ mkvirtualenv zipline
-   $ ./etc/ordered_pip.sh ./etc/requirements.txt
-   $ pip install -r ./etc/requirements_dev.txt
-   $ pip install -r ./etc/requirements_blaze.txt 
+   $ etc/dev-install
 
-You can build the C extensions by running:
+After installation, you should be able to use the ``zipline`` command line interface from your virtualenv:
 
 .. code-block:: bash
 
-   $ python setup.py build_ext --inplace
-
-In case you want to install the package locally and use ``zipline`` wrapper script:
-
-.. code-block:: bash
-
-   $ pip install -e .
    $ zipline --help
 
 To finish, make sure `tests`__ pass.
@@ -60,6 +63,12 @@ If you get an error running nosetests after setting up a fresh virtualenv, pleas
    # where zipline is the name of your virtualenv
    $ deactivate zipline
    $ workon zipline
+
+During development, you can rebuild the C extensions by running:
+
+.. code-block:: bash
+
+   $ python setup.py build_ext --inplace
 
 
 Development with Docker
@@ -75,8 +84,8 @@ Style Guide & Running Tests
 
 We use `flake8`__ for checking style requirements and `nosetests`__ to run Zipline tests. Our `continuous integration`__ tools will run these commands.
 
-__ http://flake8.pycqa.org/en/latest/
-__ http://nose.readthedocs.io/en/latest/
+__ https://flake8.pycqa.org/en/latest/
+__ https://nose.readthedocs.io/en/latest/
 __ https://en.wikipedia.org/wiki/Continuous_integration
 
 Before submitting patches or pull requests, please ensure that your changes pass when running:
@@ -108,12 +117,12 @@ Then run ``pip install`` TA-lib:
 
 .. code-block:: bash
 
-   $ pip install -r ./etc/requirements_talib.txt
+   $ pip install -r ./etc/requirements_talib.in -c ./etc/requirements_locked.txt
 
 You should now be free to run tests:
 
 .. code-block:: bash
-		
+
    $ nosetests
 
 
@@ -132,10 +141,45 @@ __ https://ci.appveyor.com/project/quantopian/zipline
 
 Packaging
 ---------
+
 To learn about how we build Zipline conda packages, you can read `this`__ section in our release process notes.
 
 __ release-process.html#uploading-conda-packages
-   
+
+
+Updating dependencies
+---------------------
+
+If you update the zipline codebase so that it now depends on a new version of a library,
+then you should update the lower bound on that dependency in ``etc/requirements.in``
+(or ``etc/requirements_dev.in`` as appropriate).
+We use `pip-compile`__ to find mutually compatible versions of dependencies for the
+``etc/requirements_locked.txt`` lockfile used in our CI environments.
+
+__ https://github.com/jazzband/pip-tools/
+
+When you update a dependency in an ``.in`` file,
+you need to re-run the ``pip-compile`` command included in the header of `the lockfile`__;
+otherwise the lockfile will not meet the constraints specified to pip by zipline
+at install time (via ``etc/requirements.in`` via ``setup.py``).
+
+__ https://github.com/quantopian/zipline/tree/master/etc/requirements_locked.txt
+
+If the zipline codebase can still support an old version of a dependency, but you want
+to update to a newer version of that library in our CI environments, then only the
+lockfile needs updating. To update the lockfile without bumping the lower bound,
+re-run the ``pip-compile`` command included in the header of the lockfile with the
+addition of the ``--upgrade-package`` or ``-P`` `flag`__, e.g.
+
+__ https://github.com/jazzband/pip-tools/#updating-requirements
+
+.. code-block:: bash
+
+   $ pip-compile --output-file=etc/reqs.txt etc/reqs.in ... -P six==1.13.0 -P "click>4.0.0"
+
+As you can see above, you can include multiple such constraints in a single invocation of ``pip-compile``.
+
+
 Contributing to the Docs
 ------------------------
 
@@ -145,12 +189,14 @@ __ https://en.wikipedia.org/wiki/ReStructuredText
 
 We use `Sphinx`__ to generate documentation for Zipline, which you will need to install by running:
 
-__ http://www.sphinx-doc.org/en/stable/
+__ https://www.sphinx-doc.org/en/master/
 
 
 .. code-block:: bash
 
-   $ pip install -r ./etc/requirements_docs.txt
+   $ pip install -r ./etc/requirements_docs.in -c ./etc/requirements_locked.txt
+
+If you would like to use Anaconda, please follow :ref:`the installation guide<managing-conda-environments>` to create and activate an environment, and then run the command above.
 
 To build and view the docs locally, run:
 
@@ -200,7 +246,7 @@ __ https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project
 
    At least one of those calculations, max_leverage, was causing a
    divide by zero error.
-   
+
    Instead of papering over that error, the entire calculation was
    a bit suspect so removing, with possibility of adding it back in
    later with handling the case (or raising appropriate errors) when

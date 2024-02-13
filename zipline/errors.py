@@ -308,7 +308,7 @@ class MultipleSymbolsFound(ZiplineError):
     """
     msg = """
 Multiple symbols with the name '{symbol}' found. Use the
-as_of_date' argument to to specify when the date symbol-lookup
+as_of_date' argument to specify when the date symbol-lookup
 should be valid.
 
 Possible options: {options}
@@ -322,7 +322,7 @@ class MultipleSymbolsFoundForFuzzySymbol(MultipleSymbolsFound):
     """
     msg = dedent("""\
         Multiple symbols were found fuzzy matching the name '{symbol}'. Use
-        the as_of_date and/or country_code arguments to to specify the date
+        the as_of_date and/or country_code arguments to specify the date
         and country for the symbol-lookup.
 
         Possible options: {options}
@@ -336,7 +336,7 @@ class SameSymbolUsedAcrossCountries(MultipleSymbolsFound):
     """
     msg = dedent("""\
         The symbol '{symbol}' is used in more than one country. Use the
-        country_code argument to to specify the country.
+        country_code argument to specify the country.
 
         Possible options by country: {options}
     """)
@@ -658,7 +658,7 @@ class AttachPipelineAfterInitialize(ZiplineError):
     Raised when a user tries to call add_pipeline outside of initialize.
     """
     msg = (
-        "Attempted to attach a pipeline after initialize()."
+        "Attempted to attach a pipeline after initialize(). "
         "attach_pipeline() can only be called during initialize."
     )
 

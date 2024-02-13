@@ -1,8 +1,8 @@
+from numexpr import evaluate
 import numpy as np
 from numpy import broadcast_arrays
 from scipy.stats import (
     linregress,
-    pearsonr,
     spearmanr,
 )
 
@@ -10,7 +10,7 @@ from zipline.assets import Asset
 from zipline.errors import IncompatibleTerms
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
-from zipline.pipeline.mixins import SingleInputMixin, StandardOutputs
+from zipline.pipeline.mixins import StandardOutputs
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists
 from zipline.utils.input_validation import (
@@ -31,7 +31,7 @@ from .basic import Returns
 ALLOWED_DTYPES = (float64_dtype, int64_dtype)
 
 
-class _RollingCorrelation(CustomFactor, SingleInputMixin):
+class _RollingCorrelation(CustomFactor):
 
     @expect_dtypes(base_factor=ALLOWED_DTYPES, target=ALLOWED_DTYPES)
     @expect_bounded(correlation_length=(2, None))
@@ -59,7 +59,7 @@ class RollingPearson(_RollingCorrelation):
 
     Parameters
     ----------
-    base_factor : zipline.pipeline.factors.Factor
+    base_factor : zipline.pipeline.Factor
         The factor for which to compute correlations of each of its columns
         with `target`.
     target : zipline.pipeline.Term with a numeric dtype
@@ -88,13 +88,12 @@ class RollingPearson(_RollingCorrelation):
     window_safe = True
 
     def compute(self, today, assets, out, base_data, target_data):
-        # If `target_data` is a Slice or single column of data, broadcast it
-        # out to the same shape as `base_data`, then compute column-wise. This
-        # is efficient because each column of the broadcasted array only refers
-        # to a single memory location.
-        target_data = broadcast_arrays(target_data, base_data)[0]
-        for i in range(len(out)):
-            out[i] = pearsonr(base_data[:, i], target_data[:, i])[0]
+        vectorized_pearson_r(
+            base_data,
+            target_data,
+            allowed_missing=0,
+            out=out,
+        )
 
 
 class RollingSpearman(_RollingCorrelation):
@@ -105,7 +104,7 @@ class RollingSpearman(_RollingCorrelation):
 
     Parameters
     ----------
-    base_factor : zipline.pipeline.factors.Factor
+    base_factor : zipline.pipeline.Factor
         The factor for which to compute correlations of each of its columns
         with `target`.
     target : zipline.pipeline.Term with a numeric dtype
@@ -143,7 +142,7 @@ class RollingSpearman(_RollingCorrelation):
             out[i] = spearmanr(base_data[:, i], target_data[:, i])[0]
 
 
-class RollingLinearRegression(CustomFactor, SingleInputMixin):
+class RollingLinearRegression(CustomFactor):
     """
     A Factor that performs an ordinary least-squares regression predicting the
     columns of a given Factor from either the columns of another
@@ -151,7 +150,7 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
 
     Parameters
     ----------
-    dependent : zipline.pipeline.factors.Factor
+    dependent : zipline.pipeline.Factor
         The factor whose columns are the predicted/dependent variable of each
         regression with `independent`.
     independent : zipline.pipeline.slice.Slice or zipline.pipeline.Factor
@@ -400,7 +399,7 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
       regression.
 
     For more help on factors with multiple outputs, see
-    :class:`zipline.pipeline.factors.CustomFactor`.
+    :class:`zipline.pipeline.CustomFactor`.
 
     Examples
     --------
@@ -582,8 +581,11 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
         Independent variable of the regression
     allowed_missing : int
         Number of allowed missing (NaN) observations per column. Columns with
-        more than this many non-nan observations in both ``dependents`` and
+        more than this many non-nan observations in either ``dependents`` or
         ``independents`` will output NaN as the regression coefficient.
+    out : np.array[M] or None, optional
+        Output array into which to write results.  If None, a new array is
+        created and returned.
 
     Returns
     -------
@@ -662,4 +664,75 @@ def vectorized_beta(dependents, independent, allowed_missing, out=None):
     nanlocs = isnan(independent).sum(axis=0) > allowed_missing
     out[nanlocs] = nan
 
+    return out
+
+
+def vectorized_pearson_r(dependents, independents, allowed_missing, out=None):
+    """
+    Compute Pearson's r between columns of ``dependents`` and ``independents``.
+
+    Parameters
+    ----------
+    dependents : np.array[N, M]
+        Array with columns of data to be regressed against ``independent``.
+    independents : np.array[N, M] or np.array[N, 1]
+        Independent variable(s) of the regression. If a single column is
+        passed, it is broadcast to the shape of ``dependents``.
+    allowed_missing : int
+        Number of allowed missing (NaN) observations per column. Columns with
+        more than this many non-nan observations in either ``dependents`` or
+        ``independents`` will output NaN as the correlation coefficient.
+    out : np.array[M] or None, optional
+        Output array into which to write results.  If None, a new array is
+        created and returned.
+
+    Returns
+    -------
+    correlations : np.array[M]
+        Pearson correlation coefficients for each column of ``dependents``.
+
+    See Also
+    --------
+    :class:`zipline.pipeline.factors.RollingPearson`
+    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
+    """
+    nan = np.nan
+    isnan = np.isnan
+    N, M = dependents.shape
+
+    if out is None:
+        out = np.full(M, nan)
+
+    if allowed_missing > 0:
+        # If we're handling nans robustly, we need to mask both arrays to
+        # locations where either was nan.
+        either_nan = isnan(dependents) | isnan(independents)
+        independents = np.where(either_nan, nan, independents)
+        dependents = np.where(either_nan, nan, dependents)
+        mean = nanmean
+    else:
+        # Otherwise, we can just use mean, which will give us a nan for any
+        # column where there's ever a nan.
+        mean = np.mean
+
+    # Pearson R is Cov(X, Y) / StdDev(X) * StdDev(Y)
+    # c.f. https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
+    ind_residual = independents - mean(independents, axis=0)
+    dep_residual = dependents - mean(dependents, axis=0)
+
+    ind_variance = mean(ind_residual ** 2, axis=0)
+    dep_variance = mean(dep_residual ** 2, axis=0)
+
+    covariances = mean(ind_residual * dep_residual, axis=0)
+
+    evaluate(
+        'where(mask, nan, cov / sqrt(ind_variance * dep_variance))',
+        local_dict={'cov': covariances,
+                    'mask': isnan(independents).sum(axis=0) > allowed_missing,
+                    'nan': np.nan,
+                    'ind_variance': ind_variance,
+                    'dep_variance': dep_variance},
+        global_dict={},
+        out=out,
+    )
     return out

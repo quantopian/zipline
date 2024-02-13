@@ -7,6 +7,7 @@ from zipline.data.adjustments import (
     SQLiteAdjustmentWriter,
 )
 from zipline.data.in_memory_daily_bars import InMemoryDailyBarReader
+from zipline.testing import parameter_space
 from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
@@ -19,14 +20,14 @@ from zipline.testing.fixtures import (
 nat = pd.Timestamp('nat')
 
 
-class TestSQLiteAdjustementsWriter(WithTradingCalendars,
-                                   WithInstanceTmpDir,
-                                   WithLogger,
-                                   ZiplineTestCase):
+class TestSQLiteAdjustmentsWriter(WithTradingCalendars,
+                                  WithInstanceTmpDir,
+                                  WithLogger,
+                                  ZiplineTestCase):
     make_log_handler = logbook.TestHandler
 
     def init_instance_fixtures(self):
-        super(TestSQLiteAdjustementsWriter, self).init_instance_fixtures()
+        super(TestSQLiteAdjustmentsWriter, self).init_instance_fixtures()
         self.db_path = self.instance_tmpdir.getpath('adjustments.db')
 
     def writer(self, session_bar_reader):
@@ -38,9 +39,9 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
             ),
         )
 
-    def component_dataframes(self):
+    def component_dataframes(self, convert_dates=True):
         with SQLiteAdjustmentReader(self.db_path) as r:
-            return r.unpack_db_to_component_dfs(convert_dates=True)
+            return r.unpack_db_to_component_dfs(convert_dates=convert_dates)
 
     def empty_in_memory_reader(self, dates, sids):
         nan_frame = pd.DataFrame(
@@ -53,7 +54,11 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
             for key in ('open', 'high', 'low', 'close', 'volume')
         }
 
-        return InMemoryDailyBarReader(frames, self.trading_calendar)
+        return InMemoryDailyBarReader(
+            frames,
+            self.trading_calendar,
+            currency_codes=pd.Series(index=sids, data='USD'),
+        )
 
     def writer_without_pricing(self, dates, sids):
         return self.writer(self.empty_in_memory_reader(dates, sids))
@@ -67,7 +72,11 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
         frames = {'close': close}
         for key in 'open', 'high', 'low', 'volume':
             frames[key] = nan_frame
-        return InMemoryDailyBarReader(frames, self.trading_calendar)
+        return InMemoryDailyBarReader(
+            frames,
+            self.trading_calendar,
+            currency_codes=pd.Series(index=close.columns, data='USD'),
+        )
 
     def writer_from_close(self, close):
         return self.writer(self.in_memory_reader_for_close(close))
@@ -262,3 +271,57 @@ class TestSQLiteAdjustementsWriter(WithTradingCalendars,
         self.assert_all_empty(dfs)
 
         assert_equal(output, input_)
+
+    @parameter_space(convert_dates=[True, False])
+    def test_empty_frame_dtypes(self, convert_dates):
+        """Test that dataframe dtypes are preserved for empty tables.
+        """
+        sids = np.arange(5)
+        dates = self.trading_calendar.all_sessions.tz_convert(None)
+
+        if convert_dates:
+            date_dtype = np.dtype('M8[ns]')
+        else:
+            date_dtype = np.dtype('int64')
+
+        # Write all empty frames.
+        self.writer_without_pricing(dates, sids).write()
+
+        dfs = self.component_dataframes(convert_dates)
+
+        for df in dfs.values():
+            assert_equal(len(df), 0)
+
+        for key in 'splits', 'mergers', 'dividends':
+            result = dfs[key].dtypes
+            expected = pd.Series({
+                'effective_date': date_dtype,
+                'ratio': np.dtype('float64'),
+                'sid': np.dtype('int64'),
+            }).sort_index()
+            assert_equal(result, expected)
+
+        result = dfs['dividend_payouts'].dtypes
+        expected = pd.Series({
+            'sid': np.dtype('int64'),
+            'ex_date': date_dtype,
+            'declared_date': date_dtype,
+            'record_date': date_dtype,
+            'pay_date': date_dtype,
+            'amount': np.dtype('float64'),
+        }).sort_index()
+
+        assert_equal(result, expected)
+
+        result = dfs['stock_dividend_payouts'].dtypes
+        expected = pd.Series({
+            'sid': np.dtype('int64'),
+            'ex_date': date_dtype,
+            'declared_date': date_dtype,
+            'record_date': date_dtype,
+            'pay_date': date_dtype,
+            'payment_sid': np.dtype('int64'),
+            'ratio': np.dtype('float64'),
+        }).sort_index()
+
+        assert_equal(result, expected)

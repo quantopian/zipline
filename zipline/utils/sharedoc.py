@@ -55,7 +55,7 @@ def format_docstring(owner_name, docstring, formatters):
     format_params = {}
     for target, doc_for_target in iteritems(formatters):
         # Search for '{name}', with optional leading whitespace.
-        regex = re.compile('^(\s*)' + '({' + target + '})$', re.MULTILINE)
+        regex = re.compile(r'^(\s*)' + '({' + target + '})$', re.MULTILINE)
         matches = regex.findall(docstring)
         if not matches:
             raise ValueError(

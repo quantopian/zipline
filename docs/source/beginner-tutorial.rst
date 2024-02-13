@@ -51,7 +51,7 @@ Quantopian docs <https://www.quantopian.com/help#api-toplevel>`__.
 My First Algorithm
 ~~~~~~~~~~~~~~~~~~
 
-Lets take a look at a very simple algorithm from the ``examples``
+Let's take a look at a very simple algorithm from the ``examples``
 directory, ``buyapple.py``:
 
 .. code-block:: python
@@ -101,15 +101,15 @@ interfaces: A command-line interface, ``IPython Notebook`` magic, and
 
 Ingesting Data
 ^^^^^^^^^^^^^^
-If you haven't ingested the data, you'll need a `Quandl <https://docs.quandl.com/docs#section-authentication>`__ API key to
-ingest the default bundle. Then run:
+If you haven't ingested the data, then run:
 
 .. code-block:: bash
 
-   $ QUANDL_API_KEY=<yourkey> zipline ingest [-b <bundle>]
+   $ zipline ingest [-b <bundle>]
 
 where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-``quandl``.
+``quantopian-quandl``.
+
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
 more detail.
@@ -157,13 +157,27 @@ on OSX):
                                    The calendar you want to use e.g. LSE. NYSE
                                    is the default.
    --print-algo / --no-print-algo  Print the algorithm to stdout.
+   --benchmark-file                The csv file that contains the benchmark
+                                   returns (date, returns columns)
+   --benchmark-symbol              The instrument's symbol to be used as
+                                   a benchmark.
+                                   (should exist in the ingested bundle)
+   --benchmark-sid                 The sid of the instrument to be used as a
+                                   benchmark.
+                                   (should exist in the ingested bundle)
+   --no-benchmark                  This flag is used to set the benchmark to
+                                   zero. Alpha, beta and benchmark metrics
+                                   are not calculated
    --help                          Show this message and exit.
 
 As you can see there are a couple of flags that specify where to find your
 algorithm (``-f``) as well as parameters specifying which data to use,
 defaulting to ``quandl``. There are also arguments for
-the date range to run the algorithm over (``--start`` and ``--end``). Finally,
-you'll want to save the performance metrics of your algorithm so that you can
+the date range to run the algorithm over (``--start`` and ``--end``).To use a
+benchmark, you need to choose one of the benchmark options listed before. You can
+always use the option (``--no-benchmark``) that uses zero returns as a benchmark (
+alpha, beta and benchmark metrics are not calculated in this case).
+Finally, you'll want to save the performance metrics of your algorithm so that you can
 analyze how it performed. This is done via the ``--output`` flag and will cause
 it to write the performance ``DataFrame`` in the pickle Python file format.
 Note that you can also define a configuration file with these parameters that
@@ -172,18 +186,15 @@ supply the command line args all the time (see the .conf files in the examples
 directory).
 
 Thus, to execute our algorithm from above and save the results to
-``buyapple_out.pickle`` we would call ``zipline run`` as follows:
+``buyapple_out.pickle``, we call ``zipline run`` as follows:
 
-.. code-block:: python
+.. code-block:: bash
 
-    zipline run -f ../../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle
-
+    zipline run -f ../zipline/examples/buyapple.py --start 2016-1-1 --end 2018-1-1 -o buyapple_out.pickle --no-benchmark
 
 .. parsed-literal::
 
     AAPL
-    [2018-01-03 04:30:50.150039] WARNING: Loader: Refusing to download new benchmark data because a download succeeded at 2018-01-03 04:01:34+00:00.
-    [2018-01-03 04:30:50.191479] WARNING: Loader: Refusing to download new treasury data because a download succeeded at 2018-01-03 04:01:35+00:00.
     [2018-01-03 04:30:51.843465] INFO: Performance: Simulated 503 trading days out of 503.
     [2018-01-03 04:30:51.843598] INFO: Performance: first open: 2016-01-04 14:31:00+00:00
     [2018-01-03 04:30:51.843672] INFO: Performance: last close: 2017-12-29 21:00:00+00:00
@@ -204,7 +215,7 @@ slippage model that ``zipline`` uses, see the `Quantopian
 docs <https://www.quantopian.com/help#ide-slippage>`__ for more
 information).
 
-Lets take a quick look at the performance ``DataFrame``. For this, we
+Let's take a quick look at the performance ``DataFrame``. For this, we
 use ``pandas`` from inside the IPython Notebook and print the first ten
 rows. Note that ``zipline`` makes heavy usage of ``pandas``, especially
 for data input and outputting so it's worth spending some time to learn

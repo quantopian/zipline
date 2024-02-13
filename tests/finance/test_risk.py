@@ -317,6 +317,24 @@ class TestRisk(zf.WithBenchmarkReturns, zf.ZiplineTestCase):
         )
         self.assertEqual(test_period['sharpe'], 0.0)
 
+    def test_sharpe_value_when_benchmark_null(self):
+        # Sharpe is displayed as '0.0' instead of np.nan
+        null_returns = factory.create_returns_from_list(
+            [0.0]*251,
+            self.sim_params
+        )
+        test_period = ClassicRiskMetrics.risk_metric_period(
+            start_session=self.start_session,
+            end_session=self.end_session,
+            algorithm_returns=null_returns,
+            benchmark_returns=null_returns,
+            algorithm_leverages=pd.Series(
+                0.0,
+                index=self.algo_returns.index
+            )
+        )
+        self.assertEqual(test_period['sharpe'], 0.0)
+
     def test_representation(self):
         test_period = ClassicRiskMetrics.risk_metric_period(
             start_session=self.start_session,

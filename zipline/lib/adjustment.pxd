@@ -42,7 +42,7 @@ cdef class Float64Adjustment(Adjustment):
     """
     Base class for adjustments that operate on Float64 data.
     """
-    cdef readonly np.float64_t value
+    cdef public np.float64_t value
 
 
 cdef class Float64Multiply(Float64Adjustment):
@@ -146,7 +146,7 @@ cdef class Float641DArrayOverwrite(ArrayAdjustment):
            [ 4.,  16.,  17.,  18.,  19.],
            [ 20.,  21.,  22.,  23.,  24.]])
     """
-    cdef readonly np.float64_t[:] values
+    cdef public np.float64_t[:] values
     cpdef mutate(self, np.float64_t[:, :] data)
 
 
@@ -184,8 +184,24 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
        [False, False, False],
        [False,  True,  True]], dtype=bool)
     """
-    cdef readonly np.int64_t[:] values
+    cdef public np.int64_t[:] values
     cpdef mutate(self, np.int64_t[:, :] data)
+
+
+cdef class Object1DArrayOverwrite(ArrayAdjustment):
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+    """
+    cdef public object values
+    cpdef mutate(self, object data)
+
+
+cdef class Boolean1DArrayOverwrite(ArrayAdjustment):
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+    """
+    cdef public np.uint8_t[:] values
+    cpdef mutate(self, np.uint8_t[:, :] data)
 
 
 cdef class Float64Add(Float64Adjustment):
@@ -226,7 +242,7 @@ cdef class _Int64Adjustment(Adjustment):
     This is private because we never actually operate on integers as data, but
     we use integer arrays to represent datetime and timedelta data.
     """
-    cdef readonly np.int64_t value
+    cdef public np.int64_t value
 
 
 cdef class Int64Overwrite(_Int64Adjustment):
@@ -312,7 +328,7 @@ cdef class _ObjectAdjustment(Adjustment):
     We use only this for categorical data, where our data buffer is an array of
     indices into an array of unique Python string objects.
     """
-    cdef readonly object value
+    cdef public object value
 
 
 cdef class ObjectOverwrite(_ObjectAdjustment):
@@ -330,7 +346,7 @@ cdef class BooleanAdjustment(Adjustment):
     instead we work with uint8 values everywhere, and we do validation/coercion
     at API boundaries.
     """
-    cdef readonly np.uint8_t value
+    cdef public np.uint8_t value
 
 
 cdef class BooleanOverwrite(BooleanAdjustment):

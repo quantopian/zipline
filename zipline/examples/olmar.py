@@ -109,7 +109,7 @@ def rebalance_portfolio(algo, data, desired_port):
 
 
 def simplex_projection(v, b=1):
-    """Projection vectors to the simplex domain
+    r"""Projection vectors to the simplex domain
 
     Implemented according to the paper: Efficient projections onto the
     l1-ball for learning in high dimensions, John Duchi, et al. ICML 2008.

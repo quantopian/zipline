@@ -7,15 +7,18 @@ try:
     from pygments import highlight
     from pygments.lexers import PythonLexer
     from pygments.formatters import TerminalFormatter
+
     PYGMENTS = True
 except ImportError:
     PYGMENTS = False
+import logbook
+import pandas as pd
 import six
 from toolz import concatv
 from trading_calendars import get_calendar
 
 from zipline.data import bundles
-from zipline.data.loader import load_market_data
+from zipline.data.benchmarks import get_benchmark_returns_from_file
 from zipline.data.data_portal import DataPortal
 from zipline.finance import metrics
 from zipline.finance.trading import SimulationParameters
@@ -24,8 +27,11 @@ from zipline.pipeline.loaders import USEquityPricingLoader
 
 import zipline.utils.paths as pth
 from zipline.extensions import load
-from zipline.algorithm import TradingAlgorithm
+from zipline.errors import SymbolNotFound
+from zipline.algorithm import TradingAlgorithm, NoBenchmark
 from zipline.finance.blotter import Blotter
+
+log = logbook.Logger(__name__)
 
 
 class _RunAlgoError(click.ClickException, ValueError):
@@ -73,13 +79,35 @@ def _run(handle_data,
          local_namespace,
          environ,
          blotter,
-         benchmark_returns):
+         benchmark_spec):
     """Run a backtest for the given algorithm.
 
     This is shared between the cli and :func:`zipline.run_algo`.
     """
-    if benchmark_returns is None:
-        benchmark_returns, _ = load_market_data(environ=environ)
+
+    bundle_data = bundles.load(
+        bundle,
+        environ,
+        bundle_timestamp,
+    )
+
+    if trading_calendar is None:
+        trading_calendar = get_calendar('XNYS')
+
+    # date parameter validation
+    if trading_calendar.session_distance(start, end) < 1:
+        raise _RunAlgoError(
+            'There are no trading days between %s and %s' % (
+                start.date(),
+                end.date(),
+            ),
+        )
+
+    benchmark_sid, benchmark_returns = benchmark_spec.resolve(
+        asset_finder=bundle_data.asset_finder,
+        start_date=start,
+        end_date=end,
+    )
 
     if algotext is not None:
         if local_namespace:
@@ -125,24 +153,6 @@ def _run(handle_data,
         else:
             click.echo(algotext)
 
-    if trading_calendar is None:
-        trading_calendar = get_calendar('XNYS')
-
-    # date parameter validation
-    if trading_calendar.session_distance(start, end) < 1:
-        raise _RunAlgoError(
-            'There are no trading days between %s and %s' % (
-                start.date(),
-                end.date(),
-            ),
-        )
-
-    bundle_data = bundles.load(
-        bundle,
-        environ,
-        bundle_timestamp,
-    )
-
     first_trading_day = \
         bundle_data.equity_minute_bar_reader.first_trading_day
 
@@ -155,7 +165,7 @@ def _run(handle_data,
         adjustment_reader=bundle_data.adjustment_reader,
     )
 
-    pipeline_loader = USEquityPricingLoader(
+    pipeline_loader = USEquityPricingLoader.without_fx(
         bundle_data.equity_daily_bar_reader,
         bundle_data.adjustment_reader,
     )
@@ -179,31 +189,46 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
-    perf = TradingAlgorithm(
-        namespace=namespace,
-        data_portal=data,
-        get_pipeline_loader=choose_loader,
-        trading_calendar=trading_calendar,
-        sim_params=SimulationParameters(
-            start_session=start,
-            end_session=end,
+    try:
+        perf = TradingAlgorithm(
+            namespace=namespace,
+            data_portal=data,
+            get_pipeline_loader=choose_loader,
             trading_calendar=trading_calendar,
-            capital_base=capital_base,
-            data_frequency=data_frequency,
-        ),
-        metrics_set=metrics_set,
-        blotter=blotter,
-        benchmark_returns=benchmark_returns,
-        **{
-            'initialize': initialize,
-            'handle_data': handle_data,
-            'before_trading_start': before_trading_start,
-            'analyze': analyze,
-        } if algotext is None else {
-            'algo_filename': getattr(algofile, 'name', '<algorithm>'),
-            'script': algotext,
-        }
-    ).run()
+            sim_params=SimulationParameters(
+                start_session=start,
+                end_session=end,
+                trading_calendar=trading_calendar,
+                capital_base=capital_base,
+                data_frequency=data_frequency,
+            ),
+            metrics_set=metrics_set,
+            blotter=blotter,
+            benchmark_returns=benchmark_returns,
+            benchmark_sid=benchmark_sid,
+            **{
+                'initialize': initialize,
+                'handle_data': handle_data,
+                'before_trading_start': before_trading_start,
+                'analyze': analyze,
+            } if algotext is None else {
+                'algo_filename': getattr(algofile, 'name', '<algorithm>'),
+                'script': algotext,
+            }
+        ).run()
+    except NoBenchmark:
+        raise _RunAlgoError(
+            (
+                'No ``benchmark_spec`` was provided, and'
+                ' ``zipline.api.set_benchmark`` was not called in'
+                ' ``initialize``.'
+            ),
+            (
+                "Neither '--benchmark-symbol' nor '--benchmark-sid' was"
+                " provided, and ``zipline.api.set_benchmark`` was not called"
+                " in ``initialize``. Did you mean to pass '--no-benchmark'?"
+            ),
+        )
 
     if output == '-':
         click.echo(str(perf))
@@ -325,6 +350,8 @@ def run_algorithm(start,
     metrics_set : iterable[Metric] or str, optional
         The set of metrics to compute in the simulation. If a string is passed,
         resolve the set with :func:`zipline.finance.metrics.load`.
+    benchmark_returns : pd.Series, optional
+        Series of returns to use as the benchmark.
     default_extension : bool, optional
         Should the default zipline extension be loaded. This is found at
         ``$ZIPLINE_ROOT/extension.py``
@@ -356,6 +383,8 @@ def run_algorithm(start,
     """
     load_extensions(default_extension, extensions, strict_extensions, environ)
 
+    benchmark_spec = BenchmarkSpec.from_returns(benchmark_returns)
+
     return _run(
         handle_data=handle_data,
         initialize=initialize,
@@ -377,5 +406,145 @@ def run_algorithm(start,
         local_namespace=False,
         environ=environ,
         blotter=blotter,
-        benchmark_returns=benchmark_returns,
+        benchmark_spec=benchmark_spec,
     )
+
+
+class BenchmarkSpec(object):
+    """
+    Helper for different ways we can get benchmark data for the Zipline CLI and
+    zipline.utils.run_algo.run_algorithm.
+
+    Parameters
+    ----------
+    benchmark_returns : pd.Series, optional
+        Series of returns to use as the benchmark.
+    benchmark_file : str or file
+        File containing a csv with `date` and `return` columns, to be read as
+        the benchmark.
+    benchmark_sid : int, optional
+        Sid of the asset to use as a benchmark.
+    benchmark_symbol : str, optional
+        Symbol of the asset to use as a benchmark. Symbol will be looked up as
+        of the end date of the backtest.
+    no_benchmark : bool
+        Flag indicating that no benchmark is configured. Benchmark-dependent
+        metrics will be calculated using a dummy benchmark of all-zero returns.
+    """
+
+    def __init__(self,
+                 benchmark_returns,
+                 benchmark_file,
+                 benchmark_sid,
+                 benchmark_symbol,
+                 no_benchmark):
+
+        self.benchmark_returns = benchmark_returns
+        self.benchmark_file = benchmark_file
+        self.benchmark_sid = benchmark_sid
+        self.benchmark_symbol = benchmark_symbol
+        self.no_benchmark = no_benchmark
+
+    @classmethod
+    def from_cli_params(cls,
+                        benchmark_sid,
+                        benchmark_symbol,
+                        benchmark_file,
+                        no_benchmark):
+
+        return cls(
+            benchmark_returns=None,
+            benchmark_sid=benchmark_sid,
+            benchmark_symbol=benchmark_symbol,
+            benchmark_file=benchmark_file,
+            no_benchmark=no_benchmark,
+        )
+
+    @classmethod
+    def from_returns(cls, benchmark_returns):
+        return cls(
+            benchmark_returns=benchmark_returns,
+            benchmark_file=None,
+            benchmark_sid=None,
+            benchmark_symbol=None,
+            no_benchmark=benchmark_returns is None,
+        )
+
+    def resolve(self, asset_finder, start_date, end_date):
+        """
+        Resolve inputs into values to be passed to TradingAlgorithm.
+
+        Returns a pair of ``(benchmark_sid, benchmark_returns)`` with at most
+        one non-None value. Both values may be None if no benchmark source has
+        been configured.
+
+        Parameters
+        ----------
+        asset_finder : zipline.assets.AssetFinder
+            Asset finder for the algorithm to be run.
+        start_date : pd.Timestamp
+            Start date of the algorithm to be run.
+        end_date : pd.Timestamp
+            End date of the algorithm to be run.
+
+        Returns
+        -------
+        benchmark_sid : int
+            Sid to use as benchmark.
+        benchmark_returns : pd.Series
+            Series of returns to use as benchmark.
+        """
+        if self.benchmark_returns is not None:
+            benchmark_sid = None
+            benchmark_returns = self.benchmark_returns
+        elif self.benchmark_file is not None:
+            benchmark_sid = None
+            benchmark_returns = get_benchmark_returns_from_file(
+                self.benchmark_file,
+            )
+        elif self.benchmark_sid is not None:
+            benchmark_sid = self.benchmark_sid
+            benchmark_returns = None
+        elif self.benchmark_symbol is not None:
+            try:
+                asset = asset_finder.lookup_symbol(
+                    self.benchmark_symbol,
+                    as_of_date=end_date,
+                )
+                benchmark_sid = asset.sid
+                benchmark_returns = None
+            except SymbolNotFound:
+                raise _RunAlgoError(
+                    "Symbol %r as a benchmark not found in this bundle."
+                    % self.benchmark_symbol
+                )
+        elif self.no_benchmark:
+            benchmark_sid = None
+            benchmark_returns = self._zero_benchmark_returns(
+                start_date=start_date,
+                end_date=end_date,
+            )
+        else:
+            log.warn(
+                "No benchmark configured. "
+                "Assuming algorithm calls set_benchmark."
+            )
+            log.warn(
+                "Pass --benchmark-sid, --benchmark-symbol, or"
+                " --benchmark-file to set a source of benchmark returns."
+            )
+            log.warn(
+                "Pass --no-benchmark to use a dummy benchmark "
+                "of zero returns.",
+            )
+            benchmark_sid = None
+            benchmark_returns = None
+
+        return benchmark_sid, benchmark_returns
+
+    @staticmethod
+    def _zero_benchmark_returns(start_date, end_date):
+        return pd.Series(
+            index=pd.date_range(start_date, end_date, tz='utc'),
+            data=0.0,
+        )

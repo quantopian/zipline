@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Quantopian, Inc.
+# Copyright 2019 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,18 +12,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from unittest import TestCase
 from datetime import timedelta
 import pandas as pd
 from nose_parameterized import parameterized
 
-from zipline.testing import parameter_space
 from zipline.utils.events import NDaysBeforeLastTradingDayOfWeek, AfterOpen, \
     BeforeClose
 from zipline.utils.events import NthTradingDayOfWeek
 
-from test_events import StatelessRulesTests, StatefulRulesTests, \
+from .test_events import StatelessRulesTests, StatefulRulesTests, \
     minutes_for_days
+
+T = partial(pd.Timestamp, tz='UTC')
 
 
 class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
@@ -32,15 +34,7 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
     HALF_SESSION = pd.Timestamp("2014-07-03", tz='UTC')
     FULL_SESSION = pd.Timestamp("2014-09-24", tz='UTC')
 
-    @parameter_space(
-        rule_offset=(0, 1, 2, 3, 4),
-        start_offset=(0, 1, 2, 3, 4),
-        type=('week_start', 'week_end')
-    )
-    def test_edge_cases_for_TradingDayOfWeek(self,
-                                             rule_offset,
-                                             start_offset,
-                                             type):
+    def test_edge_cases_for_TradingDayOfWeek(self):
         """
         Test that we account for midweek holidays. Monday 01/20 is a holiday.
         Ensure that the trigger date for that week is adjusted
@@ -49,71 +43,109 @@ class TestStatelessRulesNYSE(StatelessRulesTests, TestCase):
         for that week, that the trigger is recalculated for next week.
         """
 
-        sim_start = pd.Timestamp('2014-01-06', tz='UTC') + \
-            timedelta(days=start_offset)
+        #    December 2013
+        # Su Mo Tu We Th Fr Sa
+        #  1  2  3  4  5  6  7
+        #  8  9 10 11 12 13 14
+        # 15 16 17 18 19 20 21
+        # 22 23 24 25 26 27 28
+        # 29 30 31
 
-        delta = timedelta(days=start_offset)
+        #    January 2014
+        # Su Mo Tu We Th Fr Sa
+        #           1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30 31
 
-        jan_minutes = self.cal.minutes_for_sessions_in_range(
-            pd.Timestamp("2014-01-06", tz='UTC') + delta,
-            pd.Timestamp("2014-01-31", tz='UTC')
-        )
+        # Include last day of 2013 to exercise case where the first day of a
+        # week is in the previous year.
 
-        if type == 'week_start':
-            rule = NthTradingDayOfWeek
-            # Expect to trigger on the first trading day of the week, plus the
-            # offset
-            trigger_periods = [
-                pd.Timestamp('2014-01-06', tz='UTC'),
-                pd.Timestamp('2014-01-13', tz='UTC'),
-                pd.Timestamp('2014-01-21', tz='UTC'),
-                pd.Timestamp('2014-01-27', tz='UTC'),
-            ]
-            trigger_periods = \
-                [x + timedelta(days=rule_offset) for x in trigger_periods]
-        else:
-            rule = NDaysBeforeLastTradingDayOfWeek
-            # Expect to trigger on the last trading day of the week, minus the
-            # offset
-            trigger_periods = [
-                pd.Timestamp('2014-01-10', tz='UTC'),
-                pd.Timestamp('2014-01-17', tz='UTC'),
-                pd.Timestamp('2014-01-24', tz='UTC'),
-                pd.Timestamp('2014-01-31', tz='UTC'),
-            ]
-            trigger_periods = \
-                [x - timedelta(days=rule_offset) for x in trigger_periods]
-
+        # `week_start`
+        rule = NthTradingDayOfWeek(0)
         rule.cal = self.cal
-        should_trigger = rule(rule_offset).should_trigger
 
-        # If offset is 4, there is not enough trading days in the short week,
-        # and so it should not trigger
-        if rule_offset == 4:
-            del trigger_periods[2]
+        expected = {
+            # A Monday before the New Year.
+            '2013-12-30': True,
+            # Should not trigger on day after.
+            '2013-12-31': False,
+            # Should not trigger at market open of 1-2, a Thursday,
+            # day after a holiday.
+            '2014-01-02': False,
+            # Test that the next Monday, which is at a start of a
+            # 'normal' week successfully triggers.
+            '2014-01-06': True,
+            # Test around a Monday holiday, MLK day, to exercise week
+            # start on a Tuesday.
+            # MLK is 2014-01-20 in 2014.
+            '2014-01-21': True,
+            # Should not trigger at market open of 01-22, a Wednesday.
+            '2014-01-22': False,
+        }
 
-        # Filter out trigger dates that happen before the simulation starts
-        trigger_periods = [x for x in trigger_periods if x >= sim_start]
+        results = {
+            x: rule.should_trigger(self.cal.next_open(T(x)))
+            for x in expected.keys()
+        }
 
-        # Get all the minutes on the trigger dates
-        trigger_minutes = self.cal.minutes_for_session(trigger_periods[0])
-        for period in trigger_periods[1:]:
-            trigger_minutes += self.cal.minutes_for_session(period)
+        self.assertEquals(expected, results)
 
-        expected_n_triggered = len(trigger_minutes)
-        trigger_minutes_iter = iter(trigger_minutes)
+        # Ensure that offset from start of week also works around edge cases.
+        rule = NthTradingDayOfWeek(1)
+        rule.cal = self.cal
 
-        n_triggered = 0
-        for m in jan_minutes:
-            if should_trigger(m):
-                self.assertEqual(m, next(trigger_minutes_iter))
-                n_triggered += 1
+        expected = {
+            # Should trigger at market open of 12-31, day after week start.
+            '2013-12-31': True,
+            # Should not trigger at market open of 1-2, a Thursday,
+            # day after a holiday.
+            '2014-01-02': False,
+            # Test around a Monday holiday, MLK day, to exercise
+            # week start on a Tuesday.
+            # MLK is 2014-01-20 in 2014.
+            # Should trigger at market open, two days after Monday hoilday.
+            '2014-01-22': True,
+            # Should not trigger at market open of 01-23, a Thursday.
+            '2014-01-23': False,
+        }
 
-        self.assertEqual(n_triggered, expected_n_triggered)
+        results = {
+            x: rule.should_trigger(self.cal.next_open(T(x)))
+            for x in expected.keys()
+        }
+
+        self.assertEquals(expected, results)
+
+        # `week_end`
+        rule = NDaysBeforeLastTradingDayOfWeek(0)
+        rule.cal = self.cal
+
+        expected = {
+            # Should trigger at market open of the Friday of the first week.
+            '2014-01-03': True,
+            # Should not trigger day before the end of the week.
+            '2014-01-02': False,
+            # Test around a Monday holiday, MLK day, to exercise week
+            # start on a Tuesday.
+            # MLK is 2014-01-20 in 2014.
+            # Should trigger at market open, on Friday after the holiday.
+            '2014-01-24': True,
+            # Should not trigger at market open of 01-23, a Thursday.
+            '2014-01-23': False,
+        }
+
+        results = {
+            x: rule.should_trigger(self.cal.next_open(T(x)))
+            for x in expected.keys()
+        }
+
+        self.assertEquals(expected, results)
 
     @parameterized.expand([('week_start',), ('week_end',)])
-    def test_week_and_time_composed_rule(self, type):
-        week_rule = NthTradingDayOfWeek(0) if type == 'week_start' else \
+    def test_week_and_time_composed_rule(self, rule_type):
+        week_rule = NthTradingDayOfWeek(0) if rule_type == 'week_start' else \
             NDaysBeforeLastTradingDayOfWeek(4)
         time_rule = AfterOpen(minutes=60)
 

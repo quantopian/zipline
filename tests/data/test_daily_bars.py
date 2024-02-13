@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from itertools import cycle, islice
 from sys import maxsize
 import re
 
@@ -27,6 +28,7 @@ from pandas import (
     concat,
     DataFrame,
     NaT,
+    Series,
     Timestamp,
 )
 from six import iteritems
@@ -57,7 +59,7 @@ from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
     make_bar_data,
 )
-from zipline.testing import seconds_to_timestamp
+from zipline.testing import seconds_to_timestamp, powerset
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithBcolzEquityDailyBarReader,
@@ -145,6 +147,12 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
     # The country under which these tests should be run.
     DAILY_BARS_TEST_QUERY_COUNTRY_CODE = 'US'
 
+    # Currencies to use for assets in these tests.
+    DAILY_BARS_TEST_CURRENCIES = {
+        'US': ['USD'],
+        'CA': ['USD', 'CAD']
+    }
+
     @classmethod
     def init_class_fixtures(cls):
         super(_DailyBarsTestCase, cls).init_class_fixtures()
@@ -173,6 +181,13 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
             cls.equity_daily_bar_days,
             holes=merge(HOLES.values()),
         )
+
+    @classmethod
+    def make_equity_daily_bar_currency_codes(cls, country_code, sids):
+        # Evenly distribute choices among ``sids``.
+        choices = cls.DAILY_BARS_TEST_CURRENCIES[country_code]
+        codes = list(islice(cycle(choices), len(sids)))
+        return Series(index=sids, data=np.array(codes, dtype=object))
 
     @classproperty
     def holes(cls):
@@ -321,9 +336,9 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
         # E.g.
         #   INVALID VALID INVALID VALID ... VALID INVALID
         query_assets = (
-            [self.assets[-1] + 1] +
-            list(range(self.assets[0], self.assets[-1] + 1)) +
-            [self.assets[-1] + 3]
+                [self.assets[-1] + 1] +
+                list(range(self.assets[0], self.assets[-1] + 1)) +
+                [self.assets[-1] + 3]
         )
 
         columns = [CLOSE, VOLUME]
@@ -506,6 +521,48 @@ class _DailyBarsTestCase(WithEquityDailyBarData,
                 NaT,
             )
 
+    def test_listing_currency(self):
+        # Test loading on all assets.
+        all_assets = np.array(list(self.assets))
+        all_results = self.daily_bar_reader.currency_codes(all_assets)
+        all_expected = self.make_equity_daily_bar_currency_codes(
+            self.DAILY_BARS_TEST_QUERY_COUNTRY_CODE, all_assets,
+        ).values
+        assert_equal(all_results, all_expected)
+
+        self.assertEqual(all_results.dtype, np.dtype(object))
+        for code in all_results:
+            self.assertIsInstance(code, str)
+
+        # Check all possible subsets of assets.
+        for indices in map(list, powerset(range(len(all_assets)))):
+            # Empty queries aren't currently supported.
+            if not indices:
+                continue
+            assets = all_assets[indices]
+            results = self.daily_bar_reader.currency_codes(assets)
+            expected = all_expected[indices]
+
+            assert_equal(results, expected)
+
+    def test_listing_currency_for_nonexistent_asset(self):
+        reader = self.daily_bar_reader
+
+        valid_sid = max(self.assets)
+        valid_currency = reader.currency_codes(np.array([valid_sid]))[0]
+        invalid_sids = [-1, -2]
+
+        # XXX: We currently require at least one valid sid here, because the
+        # MultiCountryDailyBarReader needs one valid sid to be able to dispatch
+        # to a child reader. We could probably make that work, but there are no
+        # real-world cases where we expect to get all-invalid currency queries,
+        # so it's unclear whether we should do work to explicitly support such
+        # queries.
+        mixed = np.array(invalid_sids + [valid_sid])
+        result = self.daily_bar_reader.currency_codes(mixed)
+        expected = np.array([None] * 2 + [valid_currency])
+        assert_equal(result, expected)
+
 
 class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
     EQUITY_DAILY_BAR_COUNTRY_CODES = ['US']
@@ -552,10 +609,10 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
         result = self.bcolz_daily_bar_ctable
         expected_first_row = {
             '1': 0,
-            '3': 5,    # Asset 1 has 5 trading days.
-            '5': 12,   # Asset 3 has 7 trading days.
-            '7': 33,   # Asset 5 has 21 trading days.
-            '9': 44,   # Asset 7 has 11 trading days.
+            '3': 5,  # Asset 1 has 5 trading days.
+            '5': 12,  # Asset 3 has 7 trading days.
+            '7': 33,  # Asset 5 has 21 trading days.
+            '9': 44,  # Asset 7 has 11 trading days.
             '11': 49,  # Asset 9 has 5 trading days.
         }
         expected_last_row = {
@@ -564,14 +621,14 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, _DailyBarsTestCase):
             '5': 32,
             '7': 43,
             '9': 48,
-            '11': 57,    # Asset 11 has 9 trading days.
+            '11': 57,  # Asset 11 has 9 trading days.
         }
         expected_calendar_offset = {
-            '1': 0,    # Starts on 6-01, 1st trading day of month.
-            '3': 15,   # Starts on 6-22, 16th trading day of month.
-            '5': 1,    # Starts on 6-02, 2nd trading day of month.
-            '7': 0,    # Starts on 6-01, 1st trading day of month.
-            '9': 9,    # Starts on 6-12, 10th trading day of month.
+            '1': 0,  # Starts on 6-01, 1st trading day of month.
+            '3': 15,  # Starts on 6-22, 16th trading day of month.
+            '5': 1,  # Starts on 6-02, 2nd trading day of month.
+            '7': 0,  # Starts on 6-01, 1st trading day of month.
+            '9': 9,  # Starts on 6-12, 10th trading day of month.
             '11': 10,  # Starts on 6-15, 11th trading day of month.
         }
         self.assertEqual(result.attrs['first_row'], expected_first_row)
@@ -649,7 +706,7 @@ class BcolzDailyBarWriterMissingDataTestCase(WithAssetFinder,
             "[Timestamp('2015-06-15 00:00:00+0000', tz='UTC')]\n"
             "Extra sessions: []"
         )
-        with self.assertRaisesRegexp(AssertionError, expected_msg):
+        with self.assertRaisesRegex(AssertionError, expected_msg):
             writer.write(bar_data)
 
 

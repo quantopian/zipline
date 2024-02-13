@@ -1,0 +1,64 @@
+# Incompatible with earlier PIP versions
+pip>=7.1.0
+# bcolz fails to install if this is not in the build_requires.
+setuptools>18.0
+
+Logbook>=0.12.5
+
+# Command line interface helper
+click>=4.0.0
+
+# Language utilities
+six>=1.10.0
+contextlib2>=0.4.0; python_version < "3.0"
+python-interface>=1.5.3
+multipledispatch>=0.6.0
+# FUNctional programming utilities
+toolz>=0.8.2
+
+# Scientific Libraries
+numpy>=1.11.3
+pandas>=0.18.1,<=0.22
+pandas-datareader>=0.2.1,<0.9.0
+scipy>=0.17.1
+# Needed for parts of pandas.stats
+patsy>=0.4.0
+statsmodels>=0.6.1
+
+# For financial risk calculations
+empyrical>=0.5.0
+
+# Dates/times/calendars
+pytz>=2018.5
+# Country Codes
+iso3166>=0.9
+trading-calendars>=1.6.1
+python-dateutil>=2.4.2
+
+# For fetching remote data
+requests>=2.9.1
+
+# Asset writer and finder
+sqlalchemy>=1.0.8
+# For asset db management
+alembic>=0.7.7
+
+# On disk storage format for pipeline data.
+bcolz>=0.12.1
+# On disk storage format for pricing data.
+h5py>=2.7.1
+tables>=3.4.3
+
+# Performance
+lru-dict>=1.1.4
+intervaltree>=2.1.0
+# faster array ops.
+bottleneck>=1.0.0
+
+# Graph algorithms used by zipline.pipeline
+networkx>=1.9.1,<2.0
+# NumericalExpression pipeline terms.
+numexpr>=2.6.1
+
+# Currency Codes
+iso4217>=1.6.20180829

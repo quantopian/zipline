@@ -1081,10 +1081,10 @@ class OrdersStopTestCase(WithSimParams,
         },
     }
 
-    @parameterized.expand([
+    @parameterized.expand(sorted(
         (name, case['order'], case['event'], case['expected'])
         for name, case in STOP_ORDER_CASES.items()
-    ])
+    ))
     def test_orders_stop(self, name, order_data, event_data, expected):
         data = order_data
         data['asset'] = self.ASSET133

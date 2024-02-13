@@ -156,11 +156,10 @@ class CalendarRollFinder(RollFinder):
 
 class VolumeRollFinder(RollFinder):
     """
-    The CalendarRollFinder calculates contract rolls based on when
+    The VolumeRollFinder calculates contract rolls based on when
     volume activity transfers from one contract to another.
     """
     GRACE_DAYS = 7
-    THRESHOLD = 0.10
 
     def __init__(self, trading_calendar, asset_finder, session_reader):
         self.trading_calendar = trading_calendar
@@ -168,7 +167,7 @@ class VolumeRollFinder(RollFinder):
         self.session_reader = session_reader
 
     def _active_contract(self, oc, front, back, dt):
-        """
+        r"""
         Return the active contract based on the previous trading day's volume.
 
         In the rare case that a double volume switch occurs we treat the first

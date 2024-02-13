@@ -97,10 +97,9 @@ def setup(self,
           new_pandas=new_pandas):
     """Lives in zipline.__init__ for doctests."""
 
-    legacy_version = '1.13'
-    if numpy_version > StrictVersion(legacy_version):
+    if numpy_version >= StrictVersion('1.14'):
         self.old_opts = np.get_printoptions()
-        np.set_printoptions(legacy=legacy_version)
+        np.set_printoptions(legacy='1.13')
     else:
         self.old_opts = None
 

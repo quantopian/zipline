@@ -197,9 +197,9 @@ class ComputeExtraRowsTestCase(WithTradingSessions, ZiplineTestCase):
         # land prior to the first date of 2012. The downsampled terms will fail
         # to request enough extra rows.
         for i in range(0, 30, 5):
-            with self.assertRaisesRegexp(
+            with self.assertRaisesRegex(
                 NoFurtherDataError,
-                '\s*Insufficient data to compute Pipeline'
+                r'\s*Insufficient data to compute Pipeline'
             ):
                 self.check_extra_row_calculations(
                     downsampled_terms,

@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
 from functools import partial
@@ -50,8 +51,13 @@ from zipline.lib.adjustment import Adjustment
 from zipline.lib.labelarray import LabelArray
 from zipline.testing.core import ensure_doctest
 from zipline.utils.compat import getargspec, mappingproxy
+from zipline.utils.formatting import s
 from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
+from zipline.utils.numpy_utils import (
+    assert_array_compare,
+    compare_datetime_arrays,
+)
 
 
 @instance
@@ -174,25 +180,6 @@ def filter_kwargs(f, kwargs):
     return keyfilter(op.contains(keywords(f)), kwargs)
 
 
-def _s(word, seq, suffix='s'):
-    """Adds a suffix to ``word`` if some sequence has anything other than
-    exactly one element.
-
-    word : str
-        The string to add the suffix to.
-    seq : sequence
-        The sequence to check the length of.
-    suffix : str, optional.
-        The suffix to add to ``word``
-
-    Returns
-    -------
-    maybe_plural : str
-        ``word`` with ``suffix`` added if ``len(seq) != 1``.
-    """
-    return word + (suffix if len(seq) != 1 else '')
-
-
 def _fmt_path(path):
     """Format the path for final display.
 
@@ -257,6 +244,27 @@ def assert_is_subclass(subcls, cls, msg=''):
     )
 
 
+def assert_is_not_subclass(not_subcls, cls, msg=''):
+    """Assert that ``not_subcls`` is not a subclass of ``cls``.
+
+    Parameters
+    ----------
+    not_subcls : type
+        The type to check.
+    cls : type
+        The type to check ``not_subcls`` against.
+    msg : str, optional
+        An extra assertion message to print if this fails.
+    """
+    assert not issubclass(not_subcls, cls), (
+        '%s is a subclass of %s\n%s' % (
+            _safe_cls_name(not_subcls),
+            _safe_cls_name(cls),
+            msg,
+        )
+    )
+
+
 def assert_regex(result, expected, msg=''):
     """Assert that ``expected`` matches the result.
 
@@ -275,6 +283,15 @@ def assert_regex(result, expected, msg=''):
 
 
 @contextmanager
+def _assert_raises_helper(do_check, exc_type, msg):
+    try:
+        yield
+    except exc_type as e:
+        do_check(e)
+    else:
+        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc_type))
+
+
 def assert_raises_regex(exc, pattern, msg=''):
     """Assert that some exception is raised in a context and that the message
     matches some pattern.
@@ -288,14 +305,16 @@ def assert_raises_regex(exc, pattern, msg=''):
     msg : str, optional
         An extra assertion message to print if this fails.
     """
-    try:
-        yield
-    except exc as e:
+    def check_exception(e):
         assert re.search(pattern, str(e)), (
             '%s%r not found in %r' % (_fmt_msg(msg), pattern, str(e))
         )
-    else:
-        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc))
+
+    return _assert_raises_helper(
+        do_check=check_exception,
+        exc_type=exc,
+        msg=msg,
+    )
 
 
 def assert_raises_str(exc, expected_str, msg=''):
@@ -311,7 +330,15 @@ def assert_raises_str(exc, expected_str, msg=''):
     msg : str, optional
         An extra assertion message to print if this fails.
     """
-    return assert_raises_regex(exc, '^%s$' % re.escape(expected_str), msg=msg)
+    def check_exception(e):
+        result = str(e)
+        assert_messages_equal(result, expected_str, msg=msg)
+
+    return _assert_raises_helper(
+        check_exception,
+        exc_type=exc,
+        msg=msg,
+    )
 
 
 def make_assert_equal_assertion_error(assertion_message, path, msg):
@@ -410,23 +437,23 @@ def _check_sets(result, expected, msg, path, type_):
     if result != expected:
         if result > expected:
             diff = result - expected
-            msg = 'extra %s in result: %r' % (_s(type_, diff), diff)
+            msg = 'extra %s in result: %r' % (s(type_, diff), diff)
         elif result < expected:
             diff = expected - result
-            msg = 'result is missing %s: %r' % (_s(type_, diff), diff)
+            msg = 'result is missing %s: %r' % (s(type_, diff), diff)
         else:
             in_result = result - expected
             in_expected = expected - result
             msg = '%s only in result: %s\n%s only in expected: %s' % (
-                _s(type_, in_result),
+                s(type_, in_result),
                 in_result,
-                _s(type_, in_expected),
+                s(type_, in_expected),
                 in_expected,
             )
         raise AssertionError(
-            '%s%ss do not match\n%s' % (
-                _fmt_msg(msg),
+            '%ss do not match\n%s%s' % (
                 type_,
+                _fmt_msg(msg),
                 _fmt_path(path),
             ),
         )
@@ -456,7 +483,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
             failures.append(str(e))
 
     if failures:
-        raise AssertionError('\n'.join(failures))
+        raise AssertionError('\n===\n'.join(failures))
 
 
 @assert_equal.register(mappingproxy, mappingproxy)
@@ -488,6 +515,16 @@ def asssert_mappingproxy_equal(result, expected, path=(), msg='', **kwargs):
 
     if failures:
         raise AssertionError('\n'.join(failures))
+
+
+@assert_equal.register(OrderedDict, OrderedDict)
+def assert_ordereddict_equal(result, expected, path=(), **kwargs):
+    assert_sequence_equal(
+        result.items(),
+        expected.items(),
+        path=path + ('.items()',),
+        **kwargs
+    )
 
 
 @assert_equal.register(list, list)
@@ -533,11 +570,30 @@ def assert_array_equal(result,
                        array_verbose=True,
                        array_decimal=None,
                        **kwargs):
-    f = (
-        np.testing.assert_array_equal
-        if array_decimal is None else
-        partial(np.testing.assert_array_almost_equal, decimal=array_decimal)
-    )
+    result_dtype = result.dtype
+    expected_dtype = expected.dtype
+
+    if result_dtype.kind in 'mM' and expected_dtype.kind in 'mM':
+        assert result_dtype == expected_dtype, (
+            "\nType mismatch:\n\n"
+            "result dtype: %s\n"
+            "expected dtype: %s\n%s"
+            % (result_dtype, expected_dtype, _fmt_path(path))
+        )
+
+        f = partial(
+            assert_array_compare,
+            compare_datetime_arrays,
+            header='Arrays are not equal',
+        )
+    elif array_decimal is not None and expected_dtype.kind not in {'O', 'S'}:
+        f = partial(
+            np.testing.assert_array_almost_equal,
+            decimal=array_decimal,
+        )
+    else:
+        f = np.testing.assert_array_equal
+
     try:
         f(
             result,
@@ -745,7 +801,7 @@ def assert_isidentical(result, expected, msg=''):
     )
 
 
-def assert_messages_equal(result, expected):
+def assert_messages_equal(result, expected, msg=''):
     """Assertion helper for comparing very long strings (e.g. error messages).
     """
     # The arg here is "keepends" which keeps trailing newlines (which
@@ -758,9 +814,9 @@ def assert_messages_equal(result, expected):
         if ll != rl:
             col = index_of_first_difference(ll, rl)
             raise AssertionError(
-                "Messages differ on line {line}, col {col}:"
+                "{msg}Messages differ on line {line}, col {col}:"
                 "\n{ll!r}\n!=\n{rl!r}".format(
-                    line=line, col=col, ll=ll, rl=rl
+                    msg=_fmt_msg(msg), line=line, col=col, ll=ll, rl=rl
                 )
             )
 

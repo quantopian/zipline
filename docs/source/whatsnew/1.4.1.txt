@@ -1,0 +1,36 @@
+Release 1.4.1
+-------------
+
+:Release: 1.4.1
+:Date: October 5, 2020
+
+This release includes a small number of bug fixes, documentation improvements,
+and build/dependency enhancements.
+
+Conda packages for zipline and its dependencies are now available for python
+3.6 on the 'conda-forge' Anaconda channel. They're also available on the
+'Quantopian' channel, but we'll stop updating those eventually.
+
+Bug Fixes
+~~~~~~~~~
+
+- Fix for calling ``run_algorithm`` without ``benchmark_returns`` (:issue:`2762`)
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Support for empyrical 0.5.3 (:issue:`2526`)
+- Removed dependence on contextlib2 in py3 environments (:issue:`2757`)
+- Update default bundle to 'quantopian-quandl' at more entrypoints (:issue:`2763`)
+
+Build
+~~~~~
+
+- CI with newer statsmodels and scipy (:issue:`2739`)
+- GitHub Actions CI on linux and macos (:issue:`2743`, :issue:`2767`)
+- Added conda packaging for zipline and its dependencies to conda-forge (:issue:`2665`)
+
+Documentation
+~~~~~~~~~~~~~
+
+- Various documentation improvements (:issue:`2763`, :issue:`2771`, :issue:`2772`, :issue:`2776`, :issue:`2780`)

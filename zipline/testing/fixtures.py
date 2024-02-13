@@ -3,30 +3,35 @@ import sqlite3
 from unittest import TestCase
 import warnings
 
-from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
 import numpy as np
 import pandas as pd
-from six import with_metaclass, iteritems, itervalues
+from pandas.core.common import PerformanceWarning
+from six import with_metaclass, iteritems, itervalues, PY2
 import responses
 from toolz import flip, groupby, merge
 from trading_calendars import (
     get_calendar,
     register_calendar_alias,
 )
+import h5py
 
 import zipline
 from zipline.algorithm import TradingAlgorithm
 from zipline.assets import Equity, Future
 from zipline.assets.continuous_futures import CHAIN_PREDICATES
+from zipline.data.benchmarks import get_benchmark_returns_from_file
+from zipline.data.fx import DEFAULT_FX_RATE
 from zipline.finance.asset_restrictions import NoRestrictions
 from zipline.utils.memoize import classlazyval
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.domain import GENERIC, US_EQUITIES
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.protocol import BarData
+from zipline.utils.compat import ExitStack
 from zipline.utils.paths import ensure_directory, ensure_directory_containing
 from .core import (
     create_daily_bar_data,
@@ -50,13 +55,15 @@ from ..data.data_portal import (
     DEFAULT_MINUTE_HISTORY_PREFETCH,
     DEFAULT_DAILY_HISTORY_PREFETCH,
 )
+from ..data.fx import (
+    InMemoryFXRateReader,
+    HDF5FXRateReader,
+    HDF5FXRateWriter,
+)
 from ..data.hdf5_daily_bars import (
     HDF5DailyBarReader,
     HDF5DailyBarWriter,
     MultiCountryDailyBarReader,
-)
-from ..data.loader import (
-    get_benchmark_filename,
 )
 from ..data.minute_bars import (
     BcolzMinuteBarReader,
@@ -128,7 +135,7 @@ class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
                 "This probably means that you overrode init_class_fixtures"
                 " without calling super()."
             )
-        except:
+        except BaseException:  # Clean up even on KeyboardInterrupt
             cls.tearDownClass()
             raise
 
@@ -207,7 +214,7 @@ class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
                 "This probably means that you overrode"
                 " init_instance_fixtures without calling super()."
             )
-        except:
+        except BaseException:  # Clean up even on KeyboardInterrupt
             self.tearDown()
             raise
         finally:
@@ -242,6 +249,10 @@ class ZiplineTestCase(with_metaclass(DebugMROMeta, TestCase)):
             The callback to invoke at the end of each test.
         """
         return self._instance_teardown_stack.callback(callback)
+
+    if PY2:
+        def assertRaisesRegex(self, *args, **kwargs):
+            return self.assertRaisesRegexp(*args, **kwargs)
 
 
 def alias(attr_name):
@@ -520,42 +531,42 @@ class WithTradingCalendars(object):
         super(WithTradingCalendars, cls).init_class_fixtures()
 
         cls.trading_calendars = {}
+        # Silence `pandas.errors.PerformanceWarning: Non-vectorized DateOffset
+        # being applied to Series or DatetimeIndex` in trading calendar
+        # construction. This causes nosetest to fail.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PerformanceWarning)
+            for cal_str in (
+                set(cls.TRADING_CALENDAR_STRS) |
+                {cls.TRADING_CALENDAR_PRIMARY_CAL}
+            ):
+                # Set name to allow aliasing.
+                calendar = get_calendar(cal_str)
+                setattr(cls,
+                        '{0}_calendar'.format(cal_str.lower()), calendar)
+                cls.trading_calendars[cal_str] = calendar
 
-        for cal_str in (
-            set(cls.TRADING_CALENDAR_STRS) |
-            {cls.TRADING_CALENDAR_PRIMARY_CAL}
-        ):
-            # Set name to allow aliasing.
-            calendar = get_calendar(cal_str)
-            setattr(cls,
-                    '{0}_calendar'.format(cal_str.lower()), calendar)
-            cls.trading_calendars[cal_str] = calendar
-
-        type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
-        for asset_type, cal_str in type_to_cal:
-            calendar = get_calendar(cal_str)
-            cls.trading_calendars[asset_type] = calendar
+            type_to_cal = iteritems(cls.TRADING_CALENDAR_FOR_ASSET_TYPE)
+            for asset_type, cal_str in type_to_cal:
+                calendar = get_calendar(cal_str)
+                cls.trading_calendars[asset_type] = calendar
 
         cls.trading_calendar = (
             cls.trading_calendars[cls.TRADING_CALENDAR_PRIMARY_CAL]
         )
 
 
-_MARKET_DATA_DIR = os.path.join(zipline_dir, 'resources', 'market_data')
+STATIC_BENCHMARK_PATH = os.path.join(
+    zipline_dir,
+    'resources',
+    'market_data',
+    'SPY_benchmark.csv',
+)
 
 
 @remember_last
 def read_checked_in_benchmark_data():
-    symbol = 'SPY'
-    filename = get_benchmark_filename(symbol)
-    source_path = os.path.join(_MARKET_DATA_DIR, filename)
-    benchmark_returns = pd.read_csv(
-        source_path,
-        parse_dates=[0],
-        index_col=0,
-        header=None,
-    ).tz_localize('UTC')
-    return benchmark_returns.iloc[:, 0]
+    return get_benchmark_returns_from_file(STATIC_BENCHMARK_PATH)
 
 
 class WithBenchmarkReturns(WithDefaultDateBounds,
@@ -570,28 +581,27 @@ class WithBenchmarkReturns(WithDefaultDateBounds,
     def BENCHMARK_RETURNS(cls):
         benchmark_returns = read_checked_in_benchmark_data()
 
-        # Zipline ordinarily uses cached benchmark returns and treasury
-        # curves data, but when running the zipline tests this cache is not
-        # always updated to include the appropriate dates required by both
-        # the futures and equity calendars. In order to create more
-        # reliable and consistent data throughout the entirety of the
-        # tests, we read static benchmark returns and treasury curve csv
-        # files from source. If a test using this fixture attempts to run
-        # outside of the static date range of the csv files, raise an
-        # exception warning the user to either update the csv files in
-        # source or to use a date range within the current bounds.
+        # Zipline ordinarily uses cached benchmark returns data, but when
+        # running the zipline tests this cache is not always updated to include
+        # the appropriate dates required by both the futures and equity
+        # calendars. In order to create more reliable and consistent data
+        # throughout the entirety of the tests, we read static benchmark
+        # returns files from source. If a test using this fixture attempts to
+        # run outside of the static date range of the csv files, raise an
+        # exception warning the user to either update the csv files in source
+        # or to use a date range within the current bounds.
         static_start_date = benchmark_returns.index[0].date()
         static_end_date = benchmark_returns.index[-1].date()
         warning_message = (
             'The WithBenchmarkReturns fixture uses static data between '
             '{static_start} and {static_end}. To use a start and end date '
             'of {given_start} and {given_end} you will have to update the '
-            'files in {resource_dir} to include the missing dates.'.format(
+            'file in {benchmark_path} to include the missing dates.'.format(
                 static_start=static_start_date,
                 static_end=static_end_date,
                 given_start=cls.START_DATE.date(),
                 given_end=cls.END_DATE.date(),
-                resource_dir=_MARKET_DATA_DIR,
+                benchmark_path=STATIC_BENCHMARK_PATH,
             )
         )
         if cls.START_DATE.date() < static_start_date or \
@@ -769,18 +779,14 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
 
     Methods
     -------
-    make_equity_daily_bar_data() -> iterable[(int, pd.DataFrame)]
-        A class method that returns an iterator of (sid, dataframe) pairs
-        which will be written to the bcolz files that the class's
-        ``BcolzDailyBarReader`` will read from. By default this creates
-        some simple synthetic data with
-        :func:`~zipline.testing.create_daily_bar_data`
+    make_equity_daily_bar_data(country_code, sids)
+    make_equity_daily_bar_currency_codes(country_code, sids)
 
     See Also
     --------
     WithEquityMinuteBarData
     zipline.testing.create_daily_bar_data
-    """
+    """  # noqa
     EQUITY_DAILY_BAR_START_DATE = alias('START_DATE')
     EQUITY_DAILY_BAR_END_DATE = alias('END_DATE')
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = None
@@ -813,6 +819,8 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
     @classmethod
     def make_equity_daily_bar_data(cls, country_code, sids):
         """
+        Create daily pricing data.
+
         Parameters
         ----------
         country_code : str
@@ -835,6 +843,27 @@ class WithEquityDailyBarData(WithAssetFinder, WithTradingCalendars):
             return cls._make_equity_daily_bar_from_minute()
         else:
             return create_daily_bar_data(cls.equity_daily_bar_days, sids)
+
+    @classmethod
+    def make_equity_daily_bar_currency_codes(cls, country_code, sids):
+        """Create listing currencies.
+
+        Default is to list all assets in USD.
+
+        Parameters
+        ----------
+        country_code : str
+            An ISO 3166 alpha-2 country code. Data should be created for
+            this country.
+        sids : tuple[int]
+            The sids to include in the data.
+
+        Returns
+        -------
+        currency_codes : pd.Series[int, str]
+            Map from sids to currency for that sid's prices.
+        """
+        return pd.Series(index=list(sids), data='USD')
 
     @classmethod
     def init_class_fixtures(cls):
@@ -1216,6 +1245,7 @@ class WithWriteHDF5DailyBars(WithEquityDailyBarData,
             cls.asset_finder,
             country_codes,
             cls.make_equity_daily_bar_data,
+            cls.make_equity_daily_bar_currency_codes,
         )
 
         # Open the file and mark it for closure during teardown.
@@ -1663,12 +1693,16 @@ class WithAdjustmentReader(WithBcolzEquityDailyBarReader):
     def init_class_fixtures(cls):
         super(WithAdjustmentReader, cls).init_class_fixtures()
         conn = sqlite3.connect(cls.make_adjustment_db_conn_str())
-        cls.make_adjustment_writer(conn).write(
-            splits=cls.make_splits_data(),
-            mergers=cls.make_mergers_data(),
-            dividends=cls.make_dividends_data(),
-            stock_dividends=cls.make_stock_dividends_data(),
-        )
+        # Silence numpy DeprecationWarnings which cause nosetest to fail
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+
+            cls.make_adjustment_writer(conn).write(
+                splits=cls.make_splits_data(),
+                mergers=cls.make_mergers_data(),
+                dividends=cls.make_dividends_data(),
+                stock_dividends=cls.make_stock_dividends_data(),
+            )
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
 
 
@@ -1689,7 +1723,7 @@ class WithUSEquityPricingPipelineEngine(WithAdjustmentReader,
         cls.findata_dir = cls.data_root_dir.makedir('findata')
         super(WithUSEquityPricingPipelineEngine, cls).init_class_fixtures()
 
-        loader = USEquityPricingLoader(
+        loader = USEquityPricingLoader.without_fx(
             cls.bcolz_equity_daily_bar_reader,
             SQLiteAdjustmentReader(cls.adjustments_db_path),
         )
@@ -1755,12 +1789,29 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
             cls.SEEDED_RANDOM_PIPELINE_SEED,
             cls.trading_days,
             cls._sids,
+            columns=cls.make_seeded_random_loader_columns(),
         )
         cls.seeded_random_engine = SimplePipelineEngine(
             get_loader=lambda column: loader,
             asset_finder=cls.asset_finder,
             default_domain=cls.SEEDED_RANDOM_PIPELINE_DEFAULT_DOMAIN,
+            default_hooks=cls.make_seeded_random_pipeline_engine_hooks(),
+            populate_initial_workspace=(
+                cls.make_seeded_random_populate_initial_workspace()
+            ),
         )
+
+    @classmethod
+    def make_seeded_random_pipeline_engine_hooks(cls):
+        return []
+
+    @classmethod
+    def make_seeded_random_populate_initial_workspace(cls):
+        return None
+
+    @classmethod
+    def make_seeded_random_loader_columns(cls):
+        return TestingDataSet.columns
 
     def raw_expected_values(self, column, start_date, end_date):
         """
@@ -1775,18 +1826,32 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
         row_slice = self.trading_days.slice_indexer(start_date, end_date)
         return all_values[row_slice]
 
-    def run_pipeline(self, pipeline, start_date, end_date):
+    def run_pipeline(self, pipeline, start_date, end_date, hooks=None):
         """
         Run a pipeline with self.seeded_random_engine.
         """
-        if start_date not in self.trading_days:
-            raise AssertionError("Start date not in calendar: %s" % start_date)
-        if end_date not in self.trading_days:
-            raise AssertionError("End date not in calendar: %s" % end_date)
         return self.seeded_random_engine.run_pipeline(
             pipeline,
             start_date,
             end_date,
+            hooks=hooks,
+        )
+
+    def run_chunked_pipeline(self,
+                             pipeline,
+                             start_date,
+                             end_date,
+                             chunksize,
+                             hooks=None):
+        """
+        Run a chunked pipeline with self.seeded_random_engine.
+        """
+        return self.seeded_random_engine.run_chunked_pipeline(
+            pipeline,
+            start_date,
+            end_date,
+            chunksize=chunksize,
+            hooks=hooks,
         )
 
 
@@ -2017,3 +2082,177 @@ class WithSeededRandomState(object):
     def init_instance_fixtures(self):
         super(WithSeededRandomState, self).init_instance_fixtures()
         self.rand = np.random.RandomState(self.RANDOM_SEED)
+
+
+class WithFXRates(object):
+    """Fixture providing a factory for in-memory exchange rate data.
+    """
+    # Start date for exchange rates data.
+    FX_RATES_START_DATE = alias('START_DATE')
+
+    # End date for exchange rates data.
+    FX_RATES_END_DATE = alias('END_DATE')
+
+    # Calendar to which exchange rates data is aligned.
+    FX_RATES_CALENDAR = '24/5'
+
+    # Currencies between which exchange rates can be calculated.
+    FX_RATES_CURRENCIES = ["USD", "CAD", "GBP", "EUR"]
+
+    # Kinds of rates for which exchange rate data is present.
+    FX_RATES_RATE_NAMES = ["mid"]
+
+    # Default chunk size used for fx artifact compression.
+    HDF5_FX_CHUNK_SIZE = 75
+
+    # Rate used by default for Pipeline API queries that don't specify a rate
+    # explicitly.
+    @classproperty
+    def FX_RATES_DEFAULT_RATE(cls):
+        return cls.FX_RATES_RATE_NAMES[0]
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithFXRates, cls).init_class_fixtures()
+
+        cal = get_calendar(cls.FX_RATES_CALENDAR)
+        cls.fx_rates_sessions = cal.sessions_in_range(
+            cls.FX_RATES_START_DATE,
+            cls.FX_RATES_END_DATE,
+        )
+
+        cls.fx_rates = cls.make_fx_rates(
+            cls.FX_RATES_RATE_NAMES,
+            cls.FX_RATES_CURRENCIES,
+            cls.fx_rates_sessions,
+        )
+
+        cls.in_memory_fx_rate_reader = InMemoryFXRateReader(
+            cls.fx_rates,
+            cls.FX_RATES_DEFAULT_RATE,
+        )
+
+    @classmethod
+    def make_fx_rates_from_reference(cls, reference):
+        """
+        Helper method for implementing make_fx_rates.
+
+        Takes a (dates x currencies) DataFrame of "reference" values, which are
+        assumed to be the "true" value of each currency in some unknown
+        external currency. Computes fx rates from A -> B as by dividing the
+        reference value for A by the reference value for B.
+
+        Parameters
+        ----------
+        reference : pd.DataFrame
+            DataFrame of "true" values for currencies.
+
+        Returns
+        -------
+        rates : dict[str, pd.DataFrame]
+            Map from quote currency to FX rates for that currency.
+        """
+        out = {}
+        for quote in reference.columns:
+            out[quote] = reference.divide(reference[quote], axis=0)
+
+        return out
+
+    @classmethod
+    def make_fx_rates(cls, rate_names, currencies, sessions):
+        rng = np.random.RandomState(42)
+
+        out = {}
+        for rate_name in rate_names:
+            cols = {}
+            for currency in currencies:
+                start, end = sorted(rng.uniform(0.5, 1.5, (2,)))
+                cols[currency] = np.linspace(start, end, len(sessions))
+
+            reference = pd.DataFrame(cols, index=sessions, columns=currencies)
+            out[rate_name] = cls.make_fx_rates_from_reference(reference)
+
+        return out
+
+    @classmethod
+    def write_h5_fx_rates(cls, path):
+        """Write cls.fx_rates to disk with an HDF5FXRateWriter.
+
+        Returns an HDF5FXRateReader that reader from written data.
+        """
+        sessions = cls.fx_rates_sessions
+
+        # Write in-memory data to h5 file.
+        with h5py.File(path, 'w') as h5_file:
+            writer = HDF5FXRateWriter(h5_file, cls.HDF5_FX_CHUNK_SIZE)
+            fx_data = ((rate, quote, quote_frame.values)
+                       for rate, rate_dict in cls.fx_rates.items()
+                       for quote, quote_frame in rate_dict.items())
+
+            writer.write(
+                dts=sessions.values,
+                currencies=np.array(cls.FX_RATES_CURRENCIES, dtype=object),
+                data=fx_data,
+            )
+
+        h5_file = cls.enter_class_context(h5py.File(path, 'r'))
+
+        return HDF5FXRateReader(
+            h5_file,
+            default_rate=cls.FX_RATES_DEFAULT_RATE,
+        )
+
+    @classmethod
+    def get_expected_fx_rate_scalar(cls, rate, quote, base, dt):
+        """Get the expected FX rate for the given scalar coordinates.
+        """
+        if base is None:
+            return np.nan
+
+        if rate == DEFAULT_FX_RATE:
+            rate = cls.FX_RATES_DEFAULT_RATE
+
+        col = cls.fx_rates[rate][quote][base]
+        if dt < col.index[0]:
+            return np.nan
+
+        # PERF: We call this function a lot in some suites, and get_loc is
+        # surprisingly expensive, so optimizing it has a meaningful impact on
+        # overall suite performance. See test_fast_get_loc_ffilled_for
+        # assurance that this behaves the same as get_loc.
+        ix = fast_get_loc_ffilled(col.index.values, dt.asm8)
+        return col.values[ix]
+
+    @classmethod
+    def get_expected_fx_rates(cls, rate, quote, bases, dts):
+        """Get an array of expected FX rates for the given indices.
+        """
+        out = np.empty((len(dts), len(bases)), dtype='float64')
+
+        for i, dt in enumerate(dts):
+            for j, base in enumerate(bases):
+                out[i, j] = cls.get_expected_fx_rate_scalar(
+                    rate, quote, base, dt,
+                )
+
+        return out
+
+    @classmethod
+    def get_expected_fx_rates_columnar(cls, rate, quote, bases, dts):
+        assert len(bases) == len(dts)
+        rates = [
+            cls.get_expected_fx_rate_scalar(rate, quote, base, dt)
+            for base, dt in zip(bases, dts)
+        ]
+        return np.array(rates, dtype='float64')
+
+
+def fast_get_loc_ffilled(dts, dt):
+    """
+    Equivalent to dts.get_loc(dt, method='ffill'), but with reasonable
+    microperformance.
+    """
+    ix = dts.searchsorted(dt, side='right') - 1
+    if ix < 0:
+        raise KeyError(dt)
+    return ix

@@ -45,7 +45,9 @@ class TermGraph(object):
     -------
     ordered()
         Return a topologically-sorted iterator over the terms in self.
-    execution_order(refcounts)
+    execution_order(workspace, refcounts)
+        Return a topologically-sorted iterator over the terms in self, skipping
+        entries in ``workspace`` and entries with refcounts of zero.
 
     See Also
     --------
@@ -65,6 +67,9 @@ class TermGraph(object):
 
         # Mark that no more terms should be added to the graph.
         self._frozen = True
+
+    def __contains__(self, term):
+        return term in self.graph
 
     def _add_to_graph(self, term, parents):
         """
@@ -107,14 +112,29 @@ class TermGraph(object):
         """
         return SCREEN_NAME
 
-    def execution_order(self, refcounts):
+    def execution_order(self, workspace, refcounts):
         """
-        Return a topologically-sorted iterator over the terms in ``self`` which
+        Return a topologically-sorted list of the terms in ``self`` which
         need to be computed.
+
+        Filters out any terms that are already present in ``workspace``, as
+        well as any terms with refcounts of 0.
+
+        Parameters
+        ----------
+        workspace : dict[Term, np.ndarray]
+            Initial state of workspace for a pipeline execution. May contain
+            pre-computed values provided by ``populate_initial_workspace``.
+        refcounts : dict[Term, int]
+            Reference counts for terms to be computed. Terms with reference
+            counts of 0 do not need to be computed.
         """
-        return iter(nx.topological_sort(
+        return list(nx.topological_sort(
             self.graph.subgraph(
-                {term for term, refcount in refcounts.items() if refcount > 0},
+                {
+                    term for term, refcount in refcounts.items()
+                    if refcount > 0 and term not in workspace
+                },
             ),
         ))
 
@@ -207,6 +227,9 @@ class TermGraph(object):
                 garbage.add(parent)
         return garbage
 
+    def __len__(self):
+        return len(self.graph)
+
 
 class ExecutionPlan(TermGraph):
     """
@@ -236,14 +259,6 @@ class ExecutionPlan(TermGraph):
     extra_rows
     outputs
     offset
-
-    Methods
-    -------
-    ordered()
-        Return a topologically-sorted iterator over the terms in self.
-    execution_order(self, refcounts)
-        Return a topologically-sorted iterator over the terms in self, skipping
-        entries with refcounts of zero.
     """
     def __init__(self,
                  domain,
@@ -434,7 +449,7 @@ class ExecutionPlan(TermGraph):
         See Also
         --------
         :meth:`zipline.pipeline.graph.ExecutionPlan.offset`
-        :meth:`zipline.pipeline.term.Term.dependencies`
+        :meth:`zipline.pipeline.Term.dependencies`
         """
         return {
             term: attrs['extra_rows']

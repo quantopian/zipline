@@ -61,9 +61,9 @@ from zipline.pipeline.factors import (
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
     MaxDrawdown,
-    Returns,
     SimpleMovingAverage,
 )
+from zipline.pipeline.filters import CustomFilter
 from zipline.pipeline.loaders.equity_pricing_loader import (
     EquityPricingLoader,
 )
@@ -226,7 +226,7 @@ class ConstantInputTestCase(WithConstantInputs,
         p = Pipeline()
 
         msg = "start_date must be before or equal to end_date .*"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             self.engine.run_pipeline(p, self.dates[2], self.dates[1])
 
     def test_fail_usefully_on_insufficient_data(self):
@@ -945,7 +945,7 @@ class SyntheticBcolzTestCase(zf.WithAdjustmentReader,
         super(SyntheticBcolzTestCase, cls).init_class_fixtures()
         cls.all_asset_ids = cls.asset_finder.sids
         cls.last_asset_end = cls.equity_info['end_date'].max()
-        cls.pipeline_loader = EquityPricingLoader(
+        cls.pipeline_loader = EquityPricingLoader.without_fx(
             cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
@@ -1502,7 +1502,7 @@ class PopulateInitialWorkspaceTestCase(WithConstantInputs,
         )
 
 
-class ChunkedPipelineTestCase(zf.WithUSEquityPricingPipelineEngine,
+class ChunkedPipelineTestCase(zf.WithSeededRandomPipelineEngine,
                               zf.ZiplineTestCase):
 
     PIPELINE_START_DATE = Timestamp('2006-01-05', tz='UTC')
@@ -1514,26 +1514,72 @@ class ChunkedPipelineTestCase(zf.WithUSEquityPricingPipelineEngine,
         Test that running a pipeline in chunks produces the same result as if
         it were run all at once
         """
+
         pipe = Pipeline(
             columns={
-                'close': EquityPricing.close.latest,
-                'returns': Returns(window_length=2),
-                'categorical': EquityPricing.close.latest.quantiles(5)
+                'float': TestingDataSet.float_col.latest,
+                'custom_factor': SimpleMovingAverage(
+                    inputs=[TestingDataSet.float_col],
+                    window_length=10,
+                ),
             },
             domain=US_EQUITIES,
         )
-        pipeline_result = self.pipeline_engine.run_pipeline(
+
+        if not new_pandas:
+            # Categoricals only work on old pandas.
+            pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
+
+        pipeline_result = self.run_pipeline(
             pipe,
             start_date=self.PIPELINE_START_DATE,
             end_date=self.END_DATE,
         )
-        chunked_result = self.pipeline_engine.run_chunked_pipeline(
+        chunked_result = self.run_chunked_pipeline(
             pipeline=pipe,
             start_date=self.PIPELINE_START_DATE,
             end_date=self.END_DATE,
             chunksize=22
         )
         self.assertTrue(chunked_result.equals(pipeline_result))
+
+    def test_concatenate_empty_chunks(self):
+        # Test that we correctly handle concatenating chunked pipelines when
+        # some of the chunks are empty. This is slightly tricky b/c pandas
+        # DataFrames lose dtype information when they're empty.
+
+        class FalseOnOddMonths(CustomFilter):
+            """Filter that returns False for all assets during odd months.
+            """
+            inputs = ()
+            window_length = 1
+
+            def compute(self, today, assets, out):
+                out[:] = (today.month % 2 == 0)
+
+        pipe = Pipeline(
+            columns={
+                'float': TestingDataSet.float_col.latest,
+                'bool': TestingDataSet.bool_col.latest,
+            },
+            # Define a screen that's False for all assets a significant portion
+            # of the time.
+            screen=FalseOnOddMonths(),
+            domain=US_EQUITIES,
+        )
+
+        if not new_pandas:
+            # Categoricals only work on old pandas.
+            pipe.add(TestingDataSet.categorical_col.latest, 'categorical')
+
+        self.run_chunked_pipeline(
+            pipeline=pipe,
+            start_date=self.PIPELINE_START_DATE,
+            end_date=self.END_DATE,
+            # Make chunksize small enough that some chunks are guaranteed to
+            # have no assets pass the screen.
+            chunksize=5,
+        )
 
 
 class MaximumRegressionTest(zf.WithSeededRandomPipelineEngine,

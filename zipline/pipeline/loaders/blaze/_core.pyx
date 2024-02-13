@@ -172,6 +172,7 @@ cdef inline insert_non_null_ad_index(list non_null_ad_ixs,
 cdef _array_for_column_impl(object dtype,
                             np.ndarray[column_type, ndim=2] out_array,
                             Py_ssize_t size,
+                            np.ndarray[np.int64_t] timestamps,
                             np.ndarray[np.int64_t] ts_ixs,
                             np.ndarray[np.int64_t] asof_dates,
                             np.ndarray[np.int64_t] asof_ixs,
@@ -303,9 +304,11 @@ cdef _array_for_column_impl(object dtype,
             asof_ix = asof_ixs[n]
             if asof_ix == out_of_bounds_ix:
                 raise ValueError(
-                    'asof_date newer than timestamp: sid=%s, asof_date=%s' % (
+                    'asof_date newer than timestamp:'
+                    ' sid=%s, asof_date=%s, timestamp=%s' % (
                         sid,
                         np.datetime64(asof_dates[n], 'ns'),
+                        np.datetime64(timestamps[n], 'ns'),
                     ),
                 )
 
@@ -444,6 +447,7 @@ cdef _array_for_column_impl(object dtype,
 cdef array_for_column(object dtype,
                       tuple out_shape,
                       Py_ssize_t size,
+                      np.ndarray[np.int64_t] timestamps,
                       np.ndarray[np.int64_t] ts_ixs,
                       np.ndarray[np.int64_t] asof_dates,
                       np.ndarray[np.int64_t] asof_ixs,
@@ -464,6 +468,7 @@ cdef array_for_column(object dtype,
             dtype,
             out_array,
             size,
+            timestamps,
             ts_ixs,
             asof_dates,
             asof_ixs,
@@ -479,6 +484,7 @@ cdef array_for_column(object dtype,
             dtype,
             out_array.view('int64'),
             size,
+            timestamps,
             ts_ixs,
             asof_dates,
             asof_ixs,
@@ -494,6 +500,7 @@ cdef array_for_column(object dtype,
             dtype,
             out_array,
             size,
+            timestamps,
             ts_ixs,
             asof_dates,
             asof_ixs,
@@ -510,6 +517,7 @@ cdef array_for_column(object dtype,
             dtype,
             out_array,
             size,
+            timestamps,
             ts_ixs,
             asof_dates,
             asof_ixs,
@@ -525,6 +533,7 @@ cdef array_for_column(object dtype,
             dtype,
             out_array.view('uint8'),
             size,
+            timestamps,
             ts_ixs,
             asof_dates,
             asof_ixs,
@@ -585,6 +594,14 @@ cdef arrays_from_rows(DatetimeIndex_t dates,
             column.dtype,
             out_shape,
             size,
+            (
+                all_rows[TS_FIELD_NAME].values.view('int64')
+                if len(all_rows) else
+                # workaround for empty data frames which often lost type
+                # information; enforce than an empty column as an int64 type
+                # instead of object type
+                np.array([], dtype='int64')
+            ),
             ts_ixs,
             (
                 all_rows[AD_FIELD_NAME].values.view('int64')

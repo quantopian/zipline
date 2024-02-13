@@ -1,12 +1,17 @@
-from functools import total_ordering
+import abc
+from collections import namedtuple, OrderedDict
+from itertools import repeat
+from textwrap import dedent
+from weakref import WeakKeyDictionary
+
 from six import (
     iteritems,
     with_metaclass,
 )
-from weakref import WeakKeyDictionary
-
 from toolz import first
 
+from zipline.currency import Currency
+from zipline.data.fx import DEFAULT_FX_RATE
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.domain import Domain, GENERIC
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
@@ -17,9 +22,15 @@ from zipline.pipeline.term import (
     LoadableTerm,
     validate_dtype,
 )
-from zipline.utils.input_validation import ensure_dtype, expect_types
-from zipline.utils.numpy_utils import NoDefaultMissingValue
+from zipline.utils.formatting import s, plural
+from zipline.utils.input_validation import (
+    coerce_types,
+    ensure_dtype,
+    expect_types,
+)
+from zipline.utils.numpy_utils import float64_dtype, NoDefaultMissingValue
 from zipline.utils.preprocess import preprocess
+from zipline.utils.string_formatting import bulleted_list
 
 
 IsSpecialization = sentinel('IsSpecialization')
@@ -34,11 +45,20 @@ class Column(object):
                  dtype,
                  missing_value=NotSpecified,
                  doc=None,
-                 metadata=None):
+                 metadata=None,
+                 currency_aware=False):
+        if currency_aware and dtype != float64_dtype:
+            raise ValueError(
+                'Columns cannot be constructed with currency_aware={}, '
+                'dtype={}. Currency aware columns must have a float64 dtype.'
+                .format(currency_aware, dtype)
+            )
+
         self.dtype = dtype
         self.missing_value = missing_value
         self.doc = doc
         self.metadata = metadata.copy() if metadata is not None else {}
+        self.currency_aware = currency_aware
 
     def bind(self, name):
         """
@@ -50,6 +70,7 @@ class Column(object):
             name=name,
             doc=self.doc,
             metadata=self.metadata,
+            currency_aware=self.currency_aware,
         )
 
 
@@ -61,7 +82,13 @@ class _BoundColumnDescr(object):
     This exists so that subclasses of DataSets don't share columns with their
     parent classes.
     """
-    def __init__(self, dtype, missing_value, name, doc, metadata):
+    def __init__(self,
+                 dtype,
+                 missing_value,
+                 name,
+                 doc,
+                 metadata,
+                 currency_aware):
         # Validating and calculating default missing values here guarantees
         # that we fail quickly if the user passes an unsupporte dtype or fails
         # to provide a missing value for a dtype that requires one
@@ -85,6 +112,7 @@ class _BoundColumnDescr(object):
         self.name = name
         self.doc = doc
         self.metadata = metadata
+        self.currency_aware = currency_aware
 
     def __get__(self, instance, owner):
         """
@@ -100,6 +128,8 @@ class _BoundColumnDescr(object):
             name=self.name,
             doc=self.doc,
             metadata=self.metadata,
+            currency_conversion=None,
+            currency_aware=self.currency_aware,
         )
 
 
@@ -107,27 +137,31 @@ class BoundColumn(LoadableTerm):
     """
     A column of data that's been concretely bound to a particular dataset.
 
-    Instances of this class are dynamically created upon access to attributes
-    of DataSets (for example, USEquityPricing.close is an instance of this
-    class).
-
     Attributes
     ----------
     dtype : numpy.dtype
         The dtype of data produced when this column is loaded.
-    latest : zipline.pipeline.data.Factor or zipline.pipeline.data.Filter
-        A Filter, Factor, or Classifier computing the most recently known value
-        of this column on each date.
-
-        Produces a Filter if self.dtype == ``np.bool_``.
-        Produces a Classifier if self.dtype == ``np.int64``
-        Otherwise produces a Factor.
+    latest : zipline.pipeline.LoadableTerm
+        A :class:`~zipline.pipeline.Filter`, :class:`~zipline.pipeline.Factor`,
+        or :class:`~zipline.pipeline.Classifier` computing the most recently
+        known value of this column on each date.
+        See :class:`zipline.pipeline.mixins.LatestMixin` for more details.
     dataset : zipline.pipeline.data.DataSet
         The dataset to which this column is bound.
     name : str
         The name of this column.
     metadata : dict
         Extra metadata associated with this column.
+    currency_aware : bool
+        Whether or not this column produces currency-denominated data.
+
+    Notes
+    -----
+    Instances of this class are dynamically created upon access to attributes
+    of :class:`~zipline.pipeline.data.DataSet`. For example,
+    :attr:`~zipline.pipeline.data.EquityPricing.close` is an instance of this
+    class. Pipeline API users should never construct instances of this
+    directly.
     """
     mask = AssetExists()
     window_safe = True
@@ -138,7 +172,21 @@ class BoundColumn(LoadableTerm):
                 dataset,
                 name,
                 doc,
-                metadata):
+                metadata,
+                currency_conversion,
+                currency_aware):
+        if currency_aware and dtype != float64_dtype:
+            raise AssertionError(
+                'The {} column on dataset {} cannot be constructed with '
+                'currency_aware={}, dtype={}. Currency aware columns must '
+                'have a float64 dtype.'.format(
+                    name,
+                    dataset,
+                    currency_aware,
+                    dtype,
+                )
+            )
+
         return super(BoundColumn, cls).__new__(
             cls,
             domain=dataset.domain,
@@ -149,24 +197,65 @@ class BoundColumn(LoadableTerm):
             ndim=dataset.ndim,
             doc=doc,
             metadata=metadata,
+            currency_conversion=currency_conversion,
+            currency_aware=currency_aware,
         )
 
-    def _init(self, dataset, name, doc, metadata, *args, **kwargs):
+    def _init(self,
+              dataset,
+              name,
+              doc,
+              metadata,
+              currency_conversion,
+              currency_aware,
+              *args, **kwargs):
         self._dataset = dataset
         self._name = name
         self.__doc__ = doc
         self._metadata = metadata
+        self._currency_conversion = currency_conversion
+        self._currency_aware = currency_aware
         return super(BoundColumn, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls, dataset, name, doc, metadata, *args, **kwargs):
+    def _static_identity(cls,
+                         dataset,
+                         name,
+                         doc,
+                         metadata,
+                         currency_conversion,
+                         currency_aware,
+                         *args, **kwargs):
         return (
             super(BoundColumn, cls)._static_identity(*args, **kwargs),
             dataset,
             name,
             doc,
             frozenset(sorted(metadata.items(), key=first)),
+            currency_conversion,
+            currency_aware,
         )
+
+    def __lt__(self, other):
+        msg = "Can't compare '{}' with '{}'. (Did you mean to use '.latest'?)"
+        raise TypeError(msg.format(self.qualname, other.__class__.__name__))
+
+    __gt__ = __le__ = __ge__ = __lt__
+
+    def _replace(self, **kwargs):
+        kw = dict(
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            dataset=self._dataset,
+            name=self._name,
+            doc=self.__doc__,
+            metadata=self._metadata,
+            currency_conversion=self._currency_conversion,
+            currency_aware=self._currency_aware,
+        )
+        kw.update(kwargs)
+
+        return type(self)(**kw)
 
     def specialize(self, domain):
         """Specialize ``self`` to a concrete domain.
@@ -174,14 +263,7 @@ class BoundColumn(LoadableTerm):
         if domain == self.domain:
             return self
 
-        return type(self)(
-            dtype=self.dtype,
-            missing_value=self.missing_value,
-            dataset=self._dataset.specialize(domain),
-            name=self._name,
-            doc=self.__doc__,
-            metadata=self._metadata,
-        )
+        return self._replace(dataset=self._dataset.specialize(domain))
 
     def unspecialize(self):
         """
@@ -190,6 +272,52 @@ class BoundColumn(LoadableTerm):
         This is equivalent to ``column.specialize(GENERIC)``.
         """
         return self.specialize(GENERIC)
+
+    @coerce_types(currency=(str, Currency))
+    def fx(self, currency):
+        """
+        Construct a currency-converted version of this column.
+
+        Parameters
+        ----------
+        currency : str or zipline.currency.Currency
+            Currency into which to convert this column's data.
+
+        Returns
+        -------
+        column : BoundColumn
+            Column producing the same data as ``self``, but currency-converted
+            into ``currency``.
+        """
+        conversion = self._currency_conversion
+
+        if not self._currency_aware:
+            raise TypeError(
+                'The .fx() method cannot be called on {} because it does not '
+                'produce currency-denominated data.'.format(self.qualname)
+            )
+        elif conversion is not None and conversion.currency == currency:
+            return self
+
+        return self._replace(
+            currency_conversion=CurrencyConversion(
+                currency=currency,
+                field=DEFAULT_FX_RATE,
+            )
+        )
+
+    @property
+    def currency_conversion(self):
+        """Specification for currency conversions applied for this term.
+        """
+        return self._currency_conversion
+
+    @property
+    def currency_aware(self):
+        """
+        Whether or not this column produces currency-denominated data.
+        """
+        return self._currency_aware
 
     @property
     def dataset(self):
@@ -214,12 +342,13 @@ class BoundColumn(LoadableTerm):
 
     @property
     def qualname(self):
+        """The fully-qualified name of this column.
         """
-        The fully-qualified name of this column.
-
-        Generated by doing '.'.join([self.dataset.__name__, self.name]).
-        """
-        return '.'.join([self.dataset.qualname, self.name])
+        out = '.'.join([self.dataset.qualname, self.name])
+        conversion = self._currency_conversion
+        if conversion is not None:
+            out += '.fx({!r})'.format(conversion.currency.code)
+        return out
 
     @property
     def latest(self):
@@ -247,7 +376,8 @@ class BoundColumn(LoadableTerm):
 
     def graph_repr(self):
         """Short repr to use when rendering Pipeline graphs."""
-        return "BoundColumn:\l  Dataset: {}\l  Column: {}\l".format(
+        # Graphviz interprets `\l` as "divide label into lines, left-justified"
+        return "BoundColumn:\\l  Dataset: {}\\l  Column: {}\\l".format(
             self.dataset.__name__,
             self.name
         )
@@ -257,7 +387,6 @@ class BoundColumn(LoadableTerm):
         return self.qualname
 
 
-@total_ordering
 class DataSetMeta(type):
     """
     Metaclass for DataSets
@@ -321,9 +450,9 @@ class DataSetMeta(type):
 
         Returns
         -------
-        specialized : DataSetMeta
-            A new DataSet subclass with the same columns as ``self``, but
-            specialized to ``domain``.
+        specialized : type
+            A new :class:`~zipline.pipeline.data.DataSet` subclass with the
+            same columns as ``self``, but specialized to ``domain``.
         """
         # We're already the specialization to this domain, so just return self.
         if domain == self.domain:
@@ -389,7 +518,9 @@ class DataSetMeta(type):
         name = self.__name__
         bases = (self,)
         dict_ = {'domain': domain, IsSpecialization: True}
-        return type(name, bases, dict_)
+        out = type(name, bases, dict_)
+        out.__module__ = self.__module__
+        return out
 
     @property
     def columns(self):
@@ -406,6 +537,11 @@ class DataSetMeta(type):
 
         return self.__name__ + specialization_key
 
+    # NOTE: We used to use `functools.total_ordering` to account for all of the
+    #       other rich comparison methods, but it has issues in python 3 and
+    #       this method is only used for test purposes, so for now we will just
+    #       keep this in isolation. If we ever need any of the other comparison
+    #       methods we will have to implement them individually.
     def __lt__(self, other):
         return id(self) < id(other)
 
@@ -417,22 +553,24 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     """
     Base class for Pipeline datasets.
 
-    A DataSet has two parts:
+    A :class:`DataSet` is defined by two parts:
 
     1. A collection of :class:`~zipline.pipeline.data.Column` objects that
-       describe the attributes of the dataset.
+       describe the queryable attributes of the dataset.
 
     2. A :class:`~zipline.pipeline.domain.Domain` describing the assets and
-       calendar of the data represented by the DataSet.
+       calendar of the data represented by the :class:`DataSet`.
 
-    To create a new Pipeline dataset, define a subclass of DataSet and set one
-    or more Column objects as class-level attributes. Each column requires a
-    ``np.dtype`` that describes the type of data that should be produced by a
-    loader for the dataset. Integer columns must also provide a "missing value"
-    to be used when no value is available for a given asset/date combination.
+    To create a new Pipeline dataset, define a subclass of :class:`DataSet` and
+    set one or more :class:`Column` objects as class-level attributes. Each
+    column requires a ``np.dtype`` that describes the type of data that should
+    be produced by a loader for the dataset. Integer columns must also provide
+    a "missing value" to be used when no value is available for a given
+    asset/date combination.
 
-    By default, the domain of a dataset is the special singleton value GENERIC,
-    which means that they can be used in a Pipeline running on **any** domain.
+    By default, the domain of a dataset is the special singleton value,
+    :data:`~zipline.pipeline.domain.GENERIC`, which means that they can be used
+    in a Pipeline running on **any** domain.
 
     In some cases, it may be preferable to restrict a dataset to only allow
     support a single domain. For example, a DataSet may describe data from a
@@ -440,7 +578,7 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     define a `domain` attribute at class scope.
 
     You can also define a domain-specific version of a generic DataSet by
-    calling its `specialize` method with the domain of interest.
+    calling its ``specialize`` method with the domain of interest.
 
     Examples
     --------
@@ -491,9 +629,363 @@ class DataSet(with_metaclass(DataSetMeta, object)):
     domain = GENERIC
     ndim = 2
 
+    @classmethod
+    def get_column(cls, name):
+        """Look up a column by name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the column to look up.
+
+        Returns
+        -------
+        column : zipline.pipeline.data.BoundColumn
+            Column with the given name.
+
+        Raises
+        ------
+        AttributeError
+            If no column with the given name exists.
+        """
+        clsdict = vars(cls)
+        try:
+            maybe_column = clsdict[name]
+            if not isinstance(maybe_column, _BoundColumnDescr):
+                raise KeyError(name)
+        except KeyError:
+            raise AttributeError(
+                "{dset} has no column {colname!r}:\n\n"
+                "Possible choices are:\n"
+                "{choices}".format(
+                    dset=cls.qualname,
+                    colname=name,
+                    choices=bulleted_list(
+                        sorted(cls._column_names),
+                        max_count=10,
+                    ),
+                )
+            )
+
+        # Resolve column descriptor into a BoundColumn.
+        return maybe_column.__get__(None, cls)
+
 
 # This attribute is set by DataSetMeta to mark that a class is the root of a
 # family of datasets with diffent domains. We don't want that behavior for the
 # base DataSet class, and we also don't want to accidentally use a shared
 # version of this attribute if we fail to set this in a subclass somewhere.
 del DataSet._domain_specializations
+
+
+class DataSetFamilyLookupError(AttributeError):
+    """Exception thrown when a column is accessed on a DataSetFamily
+    instead of on the result of a slice.
+
+    Parameters
+    ----------
+    family_name : str
+        The name of the DataSetFamily on which the access occurred.
+    column_name : str
+        The name of the column accessed.
+    """
+    def __init__(self, family_name, column_name):
+        self.family_name = family_name
+        self.column_name = column_name
+
+    def __str__(self):
+        # NOTE: when ``aggregate`` is added, remember to update this message
+        return dedent(
+            """\
+            Attempted to access column {c} from DataSetFamily {d}:
+
+            To work with dataset families, you must first select a
+            slice using the ``slice`` method:
+
+                {d}.slice(...).{c}
+            """.format(c=self.column_name, d=self.family_name)
+        )
+
+
+class _DataSetFamilyColumn(object):
+    """Descriptor used to raise a helpful error when a column is accessed on a
+    DataSetFamily instead of on the result of a slice.
+
+    Parameters
+    ----------
+    column_names : str
+        The name of the column.
+    """
+    def __init__(self, column_name):
+        self.column_name = column_name
+
+    def __get__(self, instance, owner):
+        raise DataSetFamilyLookupError(
+            owner.__name__,
+            self.column_name,
+        )
+
+
+class DataSetFamilyMeta(abc.ABCMeta):
+
+    def __new__(cls, name, bases, dict_):
+        columns = {}
+        for k, v in dict_.items():
+            if isinstance(v, Column):
+                # capture all the columns off the DataSetFamily class
+                # and replace them with a descriptor that will raise a helpful
+                # error message. The columns will get added to the BaseSlice
+                # for this type.
+                columns[k] = v
+                dict_[k] = _DataSetFamilyColumn(k)
+
+        is_abstract = dict_.pop('_abstract', False)
+
+        self = super(DataSetFamilyMeta, cls).__new__(
+            cls,
+            name,
+            bases,
+            dict_,
+        )
+
+        if not is_abstract:
+            self.extra_dims = extra_dims = OrderedDict([
+                (k, frozenset(v))
+                for k, v in OrderedDict(self.extra_dims).items()
+            ])
+            if not extra_dims:
+                raise ValueError(
+                    'DataSetFamily must be defined with non-empty'
+                    ' extra_dims, or with `_abstract = True`',
+                )
+
+            class BaseSlice(self._SliceType):
+                dataset_family = self
+
+                ndim = self.slice_ndim
+                domain = self.domain
+
+                locals().update(columns)
+
+            BaseSlice.__name__ = '%sBaseSlice' % self.__name__
+            self._SliceType = BaseSlice
+
+        # each type gets a unique cache
+        self._slice_cache = {}
+        return self
+
+    def __repr__(self):
+        return '<DataSetFamily: %r, extra_dims=%r>' % (
+            self.__name__,
+            list(self.extra_dims),
+        )
+
+
+class DataSetFamilySlice(DataSet):
+    """Marker type for slices of a
+    :class:`zipline.pipeline.data.dataset.DataSetFamily` objects
+    """
+
+
+# XXX: This docstring was mostly written when the abstraction here was
+# "MultiDimensionalDataSet". It probably needs some rewriting.
+class DataSetFamily(with_metaclass(DataSetFamilyMeta)):
+    """
+    Base class for Pipeline dataset families.
+
+    Dataset families are used to represent data where the unique identifier for
+    a row requires more than just asset and date coordinates. A
+    :class:`DataSetFamily` can also be thought of as a collection of
+    :class:`~zipline.pipeline.data.DataSet` objects, each of which has the same
+    columns, domain, and ndim.
+
+    :class:`DataSetFamily` objects are defined with one or more
+    :class:`~zipline.pipeline.data.Column` objects, plus one additional field:
+    ``extra_dims``.
+
+    The ``extra_dims`` field defines coordinates other than asset and date that
+    must be fixed to produce a logical timeseries. The column objects determine
+    columns that will be shared by slices of the family.
+
+    ``extra_dims`` are represented as an ordered dictionary where the keys are
+    the dimension name, and the values are a set of unique values along that
+    dimension.
+
+    To work with a :class:`DataSetFamily` in a pipeline expression, one must
+    choose a specific value for each of the extra dimensions using the
+    :meth:`~zipline.pipeline.data.DataSetFamily.slice` method.
+    For example, given a :class:`DataSetFamily`:
+
+    .. code-block:: python
+
+       class SomeDataSet(DataSetFamily):
+           extra_dims = [
+               ('dimension_0', {'a', 'b', 'c'}),
+               ('dimension_1', {'d', 'e', 'f'}),
+           ]
+
+           column_0 = Column(float)
+           column_1 = Column(bool)
+
+    This dataset might represent a table with the following columns:
+
+    ::
+
+      sid :: int64
+      asof_date :: datetime64[ns]
+      timestamp :: datetime64[ns]
+      dimension_0 :: str
+      dimension_1 :: str
+      column_0 :: float64
+      column_1 :: bool
+
+    Here we see the implicit ``sid``, ``asof_date`` and ``timestamp`` columns
+    as well as the extra dimensions columns.
+
+    This :class:`DataSetFamily` can be converted to a regular :class:`DataSet`
+    with:
+
+    .. code-block:: python
+
+       DataSetSlice = SomeDataSet.slice(dimension_0='a', dimension_1='e')
+
+    This sliced dataset represents the rows from the higher dimensional dataset
+    where ``(dimension_0 == 'a') & (dimension_1 == 'e')``.
+    """
+    _abstract = True  # Removed by metaclass
+
+    domain = GENERIC
+    slice_ndim = 2
+
+    _SliceType = DataSetFamilySlice
+
+    @type.__call__
+    class extra_dims(object):
+        """OrderedDict[str, frozenset] of dimension name -> unique values
+
+        May be defined on subclasses as an iterable of pairs: the
+        metaclass converts this attribute to an OrderedDict.
+        """
+        __isabstractmethod__ = True
+
+        def __get__(self, instance, owner):
+            return []
+
+    @classmethod
+    def _canonical_key(cls, args, kwargs):
+        extra_dims = cls.extra_dims
+        dimensions_set = set(extra_dims)
+        if not set(kwargs) <= dimensions_set:
+            extra = sorted(set(kwargs) - dimensions_set)
+            raise TypeError(
+                '%s does not have the following %s: %s\n'
+                'Valid dimensions are: %s' % (
+                    cls.__name__,
+                    s('dimension', extra),
+                    ', '.join(extra),
+                    ', '.join(extra_dims),
+                ),
+            )
+
+        if len(args) > len(extra_dims):
+            raise TypeError(
+                '%s has %d extra %s but %d %s given' % (
+                    cls.__name__,
+                    len(extra_dims),
+                    s('dimension', extra_dims),
+                    len(args),
+                    plural('was', 'were', args),
+                ),
+            )
+
+        missing = object()
+        coords = OrderedDict(zip(extra_dims, repeat(missing)))
+        to_add = dict(zip(extra_dims, args))
+        coords.update(to_add)
+        added = set(to_add)
+
+        for key, value in kwargs.items():
+            if key in added:
+                raise TypeError(
+                    '%s got multiple values for dimension %r' % (
+                        cls.__name__,
+                        coords,
+                    ),
+                )
+            coords[key] = value
+            added.add(key)
+
+        missing = {k for k, v in coords.items() if v is missing}
+        if missing:
+            missing = sorted(missing)
+            raise TypeError(
+                'no coordinate provided to %s for the following %s: %s' % (
+                    cls.__name__,
+                    s('dimension', missing),
+                    ', '.join(missing),
+                ),
+            )
+
+        # validate that all of the provided values exist along their given
+        # dimensions
+        for key, value in coords.items():
+            if value not in cls.extra_dims[key]:
+                raise ValueError(
+                    '%r is not a value along the %s dimension of %s' % (
+                        value,
+                        key,
+                        cls.__name__,
+                    ),
+                )
+
+        return coords, tuple(coords.items())
+
+    @classmethod
+    def _make_dataset(cls, coords):
+        """Construct a new dataset given the coordinates.
+        """
+        class Slice(cls._SliceType):
+            extra_coords = coords
+
+        Slice.__name__ = '%s.slice(%s)' % (
+            cls.__name__,
+            ', '.join('%s=%r' % item for item in coords.items()),
+        )
+        return Slice
+
+    @classmethod
+    def slice(cls, *args, **kwargs):
+        """Take a slice of a DataSetFamily to produce a dataset
+        indexed by asset and date.
+
+        Parameters
+        ----------
+        *args
+        **kwargs
+            The coordinates to fix along each extra dimension.
+
+        Returns
+        -------
+        dataset : DataSet
+            A regular pipeline dataset indexed by asset and date.
+
+        Notes
+        -----
+        The extra dimensions coords used to produce the result are available
+        under the ``extra_coords`` attribute.
+        """
+        coords, hash_key = cls._canonical_key(args, kwargs)
+        try:
+            return cls._slice_cache[hash_key]
+        except KeyError:
+            pass
+
+        Slice = cls._make_dataset(coords)
+        cls._slice_cache[hash_key] = Slice
+        return Slice
+
+
+CurrencyConversion = namedtuple(
+    'CurrencyConversion',
+    ['currency', 'field'],
+)

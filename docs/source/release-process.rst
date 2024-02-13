@@ -8,7 +8,7 @@ Updating the Release Notes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When we are ready to ship a new release of zipline, edit the :doc:`releases`
-page. We will have been maintaining a whatsnew file while working on the release
+page. We will have been maintaining a ``whatsnew`` file while working on the release
 with the new version. First, find that file in:
 ``docs/source/whatsnew/<version>.txt``. It will be the highest version number.
 Edit the release date field to be today's date in the format:
@@ -19,7 +19,7 @@ Edit the release date field to be today's date in the format:
 
 
 for example, November 6, 2015.
-Remove the active development warning from the whatsnew, since it will no
+Remove the active development warning from the ``whatsnew``, since it will no
 longer be pending release.
 Update the title of the release from "Development" to "Release x.x.x" and
 update the underline of the title to match the title's width.
@@ -145,7 +145,7 @@ create a new virtualenv, ``cd`` into a clean directory and then run:
 
 .. code-block:: bash
 
-   $ pip install --extra-index-url https://testpypi.python.org/pypi zipline
+   $ pip install --extra-index-url https://test.pypi.org/simple zipline
    $ python -c 'import zipline;print(zipline.__version__)'
 
 
@@ -156,7 +156,7 @@ Now that we have tested locally and on PyPI test, it is time to upload to PyPI:
 
 .. code-block:: bash
 
-   $ python setup.py sdist upload
+   $ twine upload dist/zipline-<version-number>.tar.gz
 
 ``bdist``
 ^^^^^^^^^
@@ -168,7 +168,7 @@ they were compiled.
 Documentation
 ~~~~~~~~~~~~~
 
-To update `zipline.io <http://www.zipline.io/index.html>`__, checkout the
+To update `zipline.io <https://www.zipline.io>`__, checkout the
 latest master and run:
 
 .. code-block:: python
@@ -196,7 +196,7 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
    $ git commit -m "DOC: update zipline.io"
    $ git push origin gh-pages
 
-`zipline.io <http://www.zipline.io/index.html>`__ will update in a few moments.
+`zipline.io <https://www.zipline.io>`__ will update in a few moments.
 
 Uploading conda packages
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -233,13 +233,13 @@ may be specified with the ``--user`` flag.
 Next Commit
 ~~~~~~~~~~~
 
-Push a new commit post-release that adds the whatsnew for the next release,
+Push a new commit post-release that adds the ``whatsnew`` for the next release,
 which should be titled according to a micro version increment. If that next
 release turns out to be a major/minor version increment, the file can be
 renamed when that's decided. You can use ``docs/source/whatsnew/skeleton.txt``
 as a template for the new file.
 
-Include the whatsnew file in ``docs/source/releases.rst``. New releases should
+Include the ``whatsnew`` file in ``docs/source/releases.rst``. New releases should
 appear at the top. The syntax for this is:
 
 ::

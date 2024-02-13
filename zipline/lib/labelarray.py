@@ -136,7 +136,7 @@ class LabelArray(ndarray):
 
     See Also
     --------
-    http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html
+    https://docs.scipy.org/doc/numpy-1.11.0/user/basics.subclassing.html
     """
     SUPPORTED_SCALAR_TYPES = (bytes, unicode, type(None))
     SUPPORTED_NON_NONE_SCALAR_TYPES = (bytes, unicode)
@@ -166,16 +166,21 @@ class LabelArray(ndarray):
         if not is_object(values):
             values = values.astype(object)
 
+        if values.flags.f_contiguous:
+            ravel_order = 'F'
+        else:
+            ravel_order = 'C'
+
         if categories is None:
             codes, categories, reverse_categories = factorize_strings(
-                values.ravel(),
+                values.ravel(ravel_order),
                 missing_value=missing_value,
                 sort=sort,
             )
         else:
             codes, categories, reverse_categories = (
                 factorize_strings_known_categories(
-                    values.ravel(),
+                    values.ravel(ravel_order),
                     categories=categories,
                     missing_value=missing_value,
                     sort=sort,
@@ -184,7 +189,7 @@ class LabelArray(ndarray):
         categories.setflags(write=False)
 
         return cls.from_codes_and_metadata(
-            codes=codes.reshape(values.shape),
+            codes=codes.reshape(values.shape, order=ravel_order),
             categories=categories,
             reverse_categories=reverse_categories,
             missing_value=missing_value,
@@ -375,6 +380,18 @@ class LabelArray(ndarray):
             value_categories = value.categories
             if compare_arrays(self_categories, value_categories):
                 return super(LabelArray, self).__setitem__(indexer, value)
+            elif (self.missing_value == value.missing_value and
+                  set(value.categories) <= set(self.categories)):
+                rhs = LabelArray.from_codes_and_metadata(
+                    *factorize_strings_known_categories(
+                        value.as_string_array().ravel(),
+                        list(self.categories),
+                        self.missing_value,
+                        False,
+                    ),
+                    missing_value=self.missing_value
+                ).reshape(value.shape)
+                super(LabelArray, self).__setitem__(indexer, rhs)
             else:
                 raise CategoryMismatch(self_categories, value_categories)
         else:
@@ -806,3 +823,16 @@ class _sortable_sentinel(object):
 
     def __lt__(self, other):
         return True
+
+
+@expect_types(trues=LabelArray, falses=LabelArray)
+def labelarray_where(cond, trues, falses):
+    """LabelArray-aware implementation of np.where.
+    """
+    if trues.missing_value != falses.missing_value:
+        raise ValueError(
+            "Can't compute where on arrays with different missing values."
+        )
+
+    strs = np.where(cond, trues.as_string_array(), falses.as_string_array())
+    return LabelArray(strs, missing_value=trues.missing_value)

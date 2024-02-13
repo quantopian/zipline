@@ -88,6 +88,8 @@ NUMEXPR_MATH_FUNCS = {
     'abs',
 }
 
+NPY_MAXARGS = 32
+
 
 def _ensure_element(tup, elem):
     """
@@ -307,7 +309,15 @@ class NumericalExpression(ComputableTerm):
             other_expr = str(other)
             new_inputs = self.inputs
         else:
-            raise BadBinaryOperator(op, other)
+            raise BadBinaryOperator(op, self, other)
+
+        # If the merged inputs would be too many for numexpr, then don't merge
+        # them:
+        if len(new_inputs) >= NPY_MAXARGS:
+            self_expr = "x_0"
+            other_expr = "x_1"
+            new_inputs = self, other
+
         return self_expr, other_expr, new_inputs
 
     @property
@@ -332,6 +342,7 @@ class NumericalExpression(ComputableTerm):
         final = re.sub(r"[-+]?\d*\.\d+",
                        lambda x: format(float(x.group(0)), '.2E'),
                        self._expr)
-        return "Expression:\l  {}\l".format(
+        # Graphviz interprets `\l` as "divide label into lines, left-justified"
+        return "Expression:\\l  {}\\l".format(
             final,
         )

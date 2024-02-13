@@ -12,12 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib2 import ExitStack
 from copy import copy
 from logbook import Logger, Processor
 from zipline.finance.order import ORDER_STATUS
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
+from zipline.utils.compat import ExitStack
 from six import viewkeys
 
 from zipline.gens.sim_engine import (
