@@ -481,7 +481,7 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        val = self.cal.minute_to_session_label(dt, direction="none").value
+        val = self.cal.minute_to_session_label(dt, direction="none").normalize().value
         return val in self.execution_period_values
 
     @lazyval
@@ -527,7 +527,7 @@ class TradingDayOfMonthRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        value = self.cal.minute_to_session_label(dt, direction="none").value
+        value = self.cal.minute_to_session_label(dt, direction="none").normalize().value
         return value in self.execution_period_values
 
     @lazyval
